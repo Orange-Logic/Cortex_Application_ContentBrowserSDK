@@ -1,0 +1,9 @@
+export const MESSAGE_NEW_LINE = '\n';
+export const DEFAULT_VIEW_SIZE = 'CoreField.LargeSizePreview';
+export const FIELD_TITLE_WITH_FALLBACK = 'CoreField.TitleWithFallback';
+export const FIELD_DOC_TYPE = 'CoreField.DocType';
+export const FIELD_CORTEX_PATH = 'Document.CortexPath';
+export const FIELD_KEYWORDS = 'CoreField.Keywords';
+export const FIELD_MAX_WIDTH = 'CoreField.MaxWidth';
+export const FIELD_MAX_HEIGHT = 'CoreField.MaxHeight';
+export const FIELD_FILE_SIZE = 'CoreField.FileSize';
