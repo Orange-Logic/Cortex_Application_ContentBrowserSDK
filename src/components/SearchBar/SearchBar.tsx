@@ -1,27 +1,22 @@
-import ClearIcon from '@mui/icons-material/Clear';
+import { useState } from 'react';
+
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import ArrowDropUpIcon from '@mui/icons-material/ArrowDropUp';
-import SearchIcon from '@mui/icons-material/Search';
-import type { InputProps } from '@mui/material';
-import {
-  IconButton,
-  Box,
-  InputAdornment,
-  Popover,
-  TextField,
-  Tooltip,
-  InputLabel,
-  Typography,
-} from '@mui/material';
-import { useState } from 'react';
+import Box from '@mui/system/Box';
+import Popover from '@mui/material/Popover';
+import Tooltip from '@mui/material/Tooltip';
+import InputAdornment from '@mui/material/InputAdornment';
+import TextField from '@mui/material/TextField';
+import { InputLabel, Typography } from '@mui/material';
+
 import { RootState, useAppDispatch, useAppSelector } from '../../store';
 import { useGetFoldersQuery } from '../../store/search/search.api';
 import {
   RootFolder,
   setImageSearchText,
 } from '../../store/search/search.slice';
-import { useDebouncedEffect } from '../../utils/debounce';
-import { IsNullOrWhiteSpace } from '../../utils/string';
+import { FilterMenu } from './FilterMenu/FilterMenu';
+import { SearchInput } from './SearchInput';
 import { Browser as BrowserTree } from '../Browser';
 import { CortexSwitch } from '../CortexSwitch';
 import { CortexColors } from '../../utils/constants';
@@ -33,7 +28,7 @@ type SearchBarProps = {
   currentCount: number,
 };
 
-const SearchBar = ({ isSeeThrough, setIsSeeThrough, totalCount, currentCount }: SearchBarProps)=> {
+const SearchBar = ({ isSeeThrough, setIsSeeThrough, totalCount, currentCount }: SearchBarProps) => {
   const searchText = useAppSelector(
     (state: RootState) => state.search.imageSearchText,
   );
@@ -42,18 +37,8 @@ const SearchBar = ({ isSeeThrough, setIsSeeThrough, totalCount, currentCount }: 
   );
   const dispatch = useAppDispatch();
 
-  const [internalText, setInternalText] = useState(searchText);
-  useDebouncedEffect(
-    () => dispatch(setImageSearchText(internalText)),
-    [internalText, dispatch],
-    1000,
-  );
-
   // Pre-fetch browser tree
   useGetFoldersQuery({ folder: RootFolder, searchText: '' });
-
-  const onChange: InputProps['onChange'] = (e) =>
-    setInternalText(e.target.value);
 
   const [anchorEl, setAnchorEl] = useState<Element>();
 
@@ -67,7 +52,7 @@ const SearchBar = ({ isSeeThrough, setIsSeeThrough, totalCount, currentCount }: 
   const browserOpen = Boolean(anchorEl);
 
   return (
-    <Box sx={{ display: 'flex', flexDirection:'column', gap: 1 }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
         <Tooltip title={currentFolder.title} placement="top-start">
           <TextField
@@ -107,41 +92,21 @@ const SearchBar = ({ isSeeThrough, setIsSeeThrough, totalCount, currentCount }: 
             }}
           />
         </Tooltip>
-        <TextField
-          sx={{ flexGrow: 1 }}
-          fullWidth
-          value={internalText}
-          onChange={onChange}
-          size="small"
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon />
-              </InputAdornment>
-            ),
-            endAdornment: (
-              <InputAdornment
-                position="end"
-                sx={{
-                  opacity: IsNullOrWhiteSpace(internalText) ? 0 : 1,
-                }}
-              >
-                <IconButton disableRipple onClick={() => setInternalText('')}>
-                  <ClearIcon></ClearIcon>
-                </IconButton>
-              </InputAdornment>
-            ),
-          }}
+        <SearchInput
+          defaultValue={searchText}
+          onValueChange={(value) => dispatch(setImageSearchText(value))}
         />
+        <FilterMenu />
       </Box>
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent:'space-between', gap: 1 }}>
+
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
         <Tooltip title={isSeeThrough ? 'Turn off see-thru to only show direct children of the selected folder ' : 'Turn on see-thru to show all assets within the subfolder'} placement="right">
-          <Box sx={{ display: 'flex', alignItems: 'center',  gap: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <InputLabel>See-thru</InputLabel>
-            <CortexSwitch 
-              checked={isSeeThrough} 
-              onChange={(e) => setIsSeeThrough(e.target.checked)} 
-              />
+            <CortexSwitch
+              checked={isSeeThrough}
+              onChange={(e) => setIsSeeThrough(e.target.checked)}
+            />
           </Box>
         </Tooltip>
         {(totalCount > 0 && currentCount > 0) &&
@@ -160,7 +125,7 @@ const SearchBar = ({ isSeeThrough, setIsSeeThrough, totalCount, currentCount }: 
           horizontal: 'left',
         }}
         slotProps={{
-          paper:{
+          paper: {
             sx: {
               minWidth: 240,
               maxWidth: 500,

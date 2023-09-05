@@ -1,12 +1,12 @@
 import { Alert, Box } from '@mui/material';
 import { useEffect, useRef, useState } from 'react';
-import { useSelector } from 'react-redux';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import { useGetImagesQuery } from '../../store/search/search.api';
-import { getExtraFields } from '../../store/search/search.slice';
+import { getMediaTypes } from '../../store/search/search.slice';
 import { AssetImage, Folder } from '../../types/search';
 import { PAGE_SIZE } from '../../utils/constants';
 import { ResultAssetCardWraper } from './ResultAssetCard';
+import { useAppSelector } from '../../store';
 
 type ResultsProps = {
   isSeeThrough: boolean;
@@ -22,12 +22,14 @@ const Results = ({ currentFolder, searchText, handleSelectItem, selectedAssets, 
   const scrollTarget = useRef<Node | Window | undefined>();
   const [page, setPage] = useState(0);
   const [seeThru, setSeeThru] = useState(isSeeThrough);
+  const mediaTypes = useAppSelector(getMediaTypes);
 
   const { data, isFetching, isLoading, isError } = useGetImagesQuery({
     folderID: currentFolder.id,
     searchText: searchText,
     page,
     isSeeThrough: seeThru,
+    mediaTypes,
   });
 
   useEffect(() => {
@@ -35,11 +37,11 @@ const Results = ({ currentFolder, searchText, handleSelectItem, selectedAssets, 
     setPage(0);
   }, [isSeeThrough]);
 
-  useEffect(()=>{
+  useEffect(() => {
     setTotalCount(data?.totalCount || 0);
   }, [data?.totalCount, setTotalCount]);
 
-  useEffect(()=>{
+  useEffect(() => {
     setCurrentCount(data?.items.length || 0);
   }, [data?.items.length, setCurrentCount]);
 
