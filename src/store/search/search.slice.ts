@@ -71,6 +71,7 @@ export const searchSlice = createSlice({
     reset: (state) => {
       state.currentFolder = initialState.currentFolder;
       state.imageSearchText = initialState.imageSearchText;
+      state.mediaTypes = initialState.mediaTypes;
     },
     setExtraFields: (state, action: PayloadAction<string[]>) => {
       state.extraFields = action.payload;

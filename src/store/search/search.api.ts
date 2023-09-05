@@ -1,4 +1,3 @@
-import _ from 'lodash';
 import { createApi } from '@reduxjs/toolkit/query/react';
 import { DEFAULT_VIEW_SIZE, FIELD_CORTEX_PATH, FIELD_DOC_TYPE, FIELD_FILE_SIZE, FIELD_KEYWORDS, FIELD_MAX_HEIGHT, FIELD_MAX_WIDTH, FIELD_TITLE_WITH_FALLBACK } from '../../consts/data';
 import { AssetImage, Folder, GetContentRequest, GetContentResponse, MediaType } from '../../types/search';
@@ -7,7 +6,7 @@ import { PAGE_SIZE } from '../../utils/constants';
 import { IsNullOrWhiteSpace } from '../../utils/string';
 
 const resolveExtraFilters = (searchText: string, mediaTypes: MediaType[]) => {
-  const typesToFilter = _.isEmpty(mediaTypes) ? Object.keys(MediaType) : mediaTypes;
+  const typesToFilter = !mediaTypes?.length ? Object.keys(MediaType) : mediaTypes;
 
   const typesQuery = typesToFilter
     .map(type => type === MediaType.MultiMedia ? 'FileExtension:PDF' : `MediaType:${type}`)
