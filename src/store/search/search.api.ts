@@ -1,9 +1,21 @@
 import { createApi } from '@reduxjs/toolkit/query/react';
 import { DEFAULT_VIEW_SIZE, FIELD_CORTEX_PATH, FIELD_DOC_TYPE, FIELD_FILE_SIZE, FIELD_KEYWORDS, FIELD_MAX_HEIGHT, FIELD_MAX_WIDTH, FIELD_TITLE_WITH_FALLBACK } from '../../consts/data';
-import { AssetImage, Folder, GetContentRequest, GetContentResponse } from '../../types/search';
+import { AssetImage, Folder, GetContentRequest, GetContentResponse, MediaType } from '../../types/search';
 import { AppBaseQuery, GetValueByKeyCaseInsensitive } from '../../utils/api';
 import { PAGE_SIZE } from '../../utils/constants';
 import { IsNullOrWhiteSpace } from '../../utils/string';
+
+const resolveExtraFilters = (searchText: string, mediaTypes: MediaType[]) => {
+  const typesToFilter = !mediaTypes?.length ? Object.keys(MediaType) : mediaTypes;
+
+  const typesQuery = typesToFilter
+    .map(type => type === MediaType.MultiMedia ? 'FileExtension:PDF' : `MediaType:${type}`)
+    .join(' OR ');
+
+  const searchTextQuery = IsNullOrWhiteSpace(searchText) ? '' : ` AND Text:${searchText}`;
+
+  return typesQuery + searchTextQuery;
+};
 
 // Define a service using a base URL and expected endpoints
 export const searchApi = createApi({
@@ -69,6 +81,7 @@ export const searchApi = createApi({
         searchText,
         page,
         isSeeThrough,
+        mediaTypes,
       }: GetContentRequest) => {
         return {
           url: '/webapi/extensibility/integrations/gab/assetbrowser/getcontent_4bw_v1',
@@ -78,13 +91,11 @@ export const searchApi = createApi({
             ['fields', DEFAULT_VIEW_SIZE],
             ['fields', FIELD_KEYWORDS],
             ['fields', FIELD_MAX_WIDTH],
-            ['fields', FIELD_MAX_HEIGHT ],
+            ['fields', FIELD_MAX_HEIGHT],
             ['fields', FIELD_FILE_SIZE],
             [
               'extraFilters',
-              IsNullOrWhiteSpace(searchText)
-                ? 'MediaType:Image'
-                : `MediaType:Image AND Text:${searchText}`,
+              resolveExtraFilters(searchText, mediaTypes),
             ],
             ['seeThru', isSeeThrough],
             ['start', page * PAGE_SIZE],

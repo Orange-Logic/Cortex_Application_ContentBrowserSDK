@@ -1,7 +1,7 @@
 import type { PayloadAction } from '@reduxjs/toolkit';
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import { RootState } from '..';
-import { Folder } from '../../types/search';
+import { Folder, MediaType } from '../../types/search';
 import { searchApi } from './search.api';
 
 // ======================================================================
@@ -21,6 +21,7 @@ export type SearchState = {
   currentFolder: Folder;
   imageSearchText: string;
   extraFields?: string[];
+  mediaTypes: MediaType[];
 };
 
 // ======================================================================
@@ -29,6 +30,7 @@ export type SearchState = {
 const initialState: SearchState = {
   currentFolder: RootFolder, // root folder
   imageSearchText: '',
+  mediaTypes: [],
 };
 
 export const explorePath = createAsyncThunk(
@@ -54,9 +56,22 @@ export const searchSlice = createSlice({
     setImageSearchText: (state, action: PayloadAction<string>) => {
       state.imageSearchText = action.payload;
     },
+    setMediaTypes: (state, action: PayloadAction<MediaType[]>) => {
+      state.mediaTypes = action.payload;
+    },
+    resetCurrentFolder: (state) => {
+      state.currentFolder = initialState.currentFolder;
+    },
+    resetSearchText: (state) => {
+      state.imageSearchText = initialState.imageSearchText;
+    },
+    resetMediaTypes: (state) => {
+      state.mediaTypes = initialState.mediaTypes;
+    },
     reset: (state) => {
       state.currentFolder = initialState.currentFolder;
       state.imageSearchText = initialState.imageSearchText;
+      state.mediaTypes = initialState.mediaTypes;
     },
     setExtraFields: (state, action: PayloadAction<string[]>) => {
       state.extraFields = action.payload;
@@ -73,7 +88,18 @@ export const getSearchText = (state: RootState) =>
   state[SEARCH_FEATURE_KEY].imageSearchText;
 export const getExtraFields = (state: RootState) =>
   state[SEARCH_FEATURE_KEY].extraFields;
+export const getMediaTypes = (state: RootState) =>
+  state[SEARCH_FEATURE_KEY].mediaTypes;
 
-export const { internalExplorePath, setImageSearchText, reset, setExtraFields } =
+export const {
+  internalExplorePath,
+  setImageSearchText,
+  reset,
+  setExtraFields,
+  setMediaTypes,
+  resetCurrentFolder,
+  resetSearchText,
+  resetMediaTypes,
+} =
   searchSlice.actions;
 export default searchSlice.reducer;

@@ -33,6 +33,7 @@ export type GetContentRequest = {
   searchText: string;
   page: number;
   isSeeThrough: boolean;
+  mediaTypes: MediaType[];
 };
 
 export interface GetAssetLinkResponse {
@@ -43,4 +44,12 @@ export interface GetAssetLinkResponse {
   extraFields?: {
     [key: string]: string;
   }
+}
+
+export enum MediaType {
+  Image = 'Image',
+  Graphic = 'Graphic',
+  Video = 'Video',
+  Audio = 'Audio',
+  MultiMedia = 'MultiMedia',
 }
