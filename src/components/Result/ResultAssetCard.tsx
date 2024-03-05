@@ -6,16 +6,16 @@ import {
   Chip,
   CircularProgress,
   Divider,
-  Grow,
   LinearProgress,
   Skeleton,
   Tooltip,
   Typography,
 } from '@mui/material';
-import { Box, display } from '@mui/system';
+import { Box } from '@mui/system';
 import { useContext, useEffect, useState } from 'react';
 import InfiniteScroll from 'react-infinite-scroll-component';
 import Masonry from 'react-responsive-masonry';
+import { AppContext } from '../../AppContext';
 import { AssetImage } from '../../types/search';
 import {
   CortexColors,
@@ -24,7 +24,6 @@ import {
 import { IsNullOrWhiteSpace } from '../../utils/string';
 import { NoResult } from '../NoResult';
 import ResultLoadingSkeleton from './ResultLoadingSkeleton';
-import { AppContext } from '../../AppContext';
 
 type ResultAssetCardProps = {
   image: AssetImage;
@@ -227,7 +226,7 @@ type ResultAssetCardWraperProps = {
   loadNextPage: () => void;
   width: number;
   height: number;
-  handleSelectItem: ()=>void;
+  handleSelectItem: (selectedAsset: AssetImage) => void;
   selectedAssets: AssetImage[];
 };
 

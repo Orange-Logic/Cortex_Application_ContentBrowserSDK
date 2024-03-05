@@ -1,18 +1,18 @@
 import { Alert, Box } from '@mui/material';
 import { useEffect, useRef, useState } from 'react';
-import AutoSizer from 'react-virtualized-auto-sizer';
+import AutoSizer, { Size } from 'react-virtualized-auto-sizer';
+import { useAppSelector } from '../../store';
 import { useGetImagesQuery } from '../../store/search/search.api';
 import { getMediaTypes } from '../../store/search/search.slice';
 import { AssetImage, Folder } from '../../types/search';
 import { PAGE_SIZE } from '../../utils/constants';
 import { ResultAssetCardWraper } from './ResultAssetCard';
-import { useAppSelector } from '../../store';
 
 type ResultsProps = {
   isSeeThrough: boolean;
   currentFolder: Folder;
   searchText: string;
-  handleSelectItem: any;
+  handleSelectItem: (selectedAsset: AssetImage) => void;
   selectedAssets: AssetImage[];
   setTotalCount: (totalCount: number) => void;
   setCurrentCount: (currentCount: number) => void;
@@ -55,7 +55,7 @@ const Results = ({ currentFolder, searchText, handleSelectItem, selectedAssets, 
 
   return (
     <AutoSizer>
-      {({ height, width }: any) => (
+      {({ height, width }: Size) => (
         <ResultAssetCardWraper
           key={searchText}
           hasNextPage={data ? (page + 1) * PAGE_SIZE < data.totalCount : false}

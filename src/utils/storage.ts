@@ -157,6 +157,7 @@ export const storeData = (
       return null;
   }
 };
+
 /**
  * Delete data from all storage
  * @param {string} key

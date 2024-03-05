@@ -5,6 +5,8 @@ import { AppBaseQuery, GetValueByKeyCaseInsensitive } from '../../utils/api';
 import { PAGE_SIZE } from '../../utils/constants';
 import { IsNullOrWhiteSpace } from '../../utils/string';
 
+const NATURAL_SORT_ORDER_REFERENCEID = 'OR4ND000000063615';
+
 const resolveExtraFilters = (searchText: string, mediaTypes: MediaType[]) => {
   const typesToFilter = !mediaTypes?.length ? Object.keys(MediaType) : mediaTypes;
 
@@ -43,6 +45,7 @@ export const searchApi = createApi({
               ? 'MediaType:Story OR MediaType:Album'
               : `(MediaType:Story OR MediaType:Album) AND Story_Title:${searchText}`,
           ],
+          ['OrderBy', NATURAL_SORT_ORDER_REFERENCEID],
           ['seeThru', !IsNullOrWhiteSpace(searchText)],
         ],
       }),

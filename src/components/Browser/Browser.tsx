@@ -46,7 +46,7 @@ const Browser = ({ focusInput, onFolderSelect }: BrowserProps) => {
         <BrowserSearchBox
           onFolderSelect={onFolderSelect}
           value={internalText}
-          onValueChange={(val: any) => setInternalText(val)}
+          onValueChange={(val) => setInternalText(val)}
         />
         <List
           sx={{
@@ -80,7 +80,7 @@ const Browser = ({ focusInput, onFolderSelect }: BrowserProps) => {
       <Box>
         <BrowserSearchBox
           value={internalText}
-          onValueChange={(val: any) => setInternalText(val)}
+          onValueChange={(val) => setInternalText(val)}
           onFolderSelect={onFolderSelect}
         />
         <Alert severity="error">Error</Alert>
@@ -93,7 +93,7 @@ const Browser = ({ focusInput, onFolderSelect }: BrowserProps) => {
         <BrowserSearchBox
           onFolderSelect={onFolderSelect}
           value={internalText}
-          onValueChange={(val: any) => setInternalText(val)}
+          onValueChange={(val) => setInternalText(val)}
         />
         <Divider color={CortexColors.A100} />
         <List

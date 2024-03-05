@@ -6,6 +6,7 @@ export type ImageCardDisplayInfo = {
   fileSize?: boolean,
   tags?: boolean,
 };
+
 export interface AppContextType {
   onImageSelected: (image: GetAssetLinkResponse[]) => void;
   onError: (errorMessage?: string, error?: Error) => void;

@@ -52,7 +52,7 @@ export const BrowserSearchBox = ({
       </Tooltip>
       <TextField
         value={value}
-        onChange={(e: any) => onValueChange(e.target.value)}
+        onChange={(e) => onValueChange(e.target.value)}
         placeholder="Search for folders"
         fullWidth
         inputRef={(node: HTMLInputElement) => node?.focus()}

@@ -48,8 +48,9 @@ export interface GetAssetLinkResponse {
 
 export enum MediaType {
   Image = 'Image',
-  Graphic = 'Graphic',
-  Video = 'Video',
-  Audio = 'Audio',
   MultiMedia = 'MultiMedia',
+  // Preserve for later use
+  // Graphic = 'Graphic',
+  // Video = 'Video',
+  // Audio = 'Audio',
 }

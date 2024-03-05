@@ -5,16 +5,11 @@ export type GetLargestDownloadLinkRes = {
 };
 
 export type AssetsState = {
-  isImporting: boolean;
-  downloadState: {
-    [imageId in string]: {
-      name: string;
-      status: ImageImportStatus;
-      message: string;
-    };
-  };
-  downloadAbortController?: AbortController;
+  selectedAssets: AssetImage[];
   onlyIIIFPrefix: boolean;
+  importProxy?: string;
+  isProxyModalOpen: boolean;
+  isImporting: boolean;
 };
 
 export enum ImageImportStatus {

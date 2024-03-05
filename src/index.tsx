@@ -1,7 +1,7 @@
 import { createRoot } from 'react-dom/client';
 import { Provider } from 'react-redux';
 import { App } from './App';
-import { AppContext, AppContextType, ImageCardDisplayInfo } from './AppContext';
+import { AppContextType, ImageCardDisplayInfo } from './AppContext';
 import { store } from './store';
 import { enableOnlyIIIFPrefix } from './store/assets/assets.slice';
 import { initAuthInfoFromCache, setSiteUrl } from './store/auth/auth.slice';
@@ -57,7 +57,15 @@ declare global {
          * default to true for all field
          */
         displayInfo?: ImageCardDisplayInfo;
-      }) => void
+      }) => void,
+      /**
+       * Global function which mirrored the behavior of onImageSelected
+       */
+      _onImageSelected?: AppContextType['onImageSelected'],
+      /**
+       * Global function which mirrored the behavior of onError
+       */
+      _onError?: AppContextType['onError'],
     };
   }
 }
@@ -83,7 +91,7 @@ window.CortexAssetPicker = {
         dimension: true,
         fileSize: true,
         tags: true,
-      }
+      },
     });`);
   },
   open: ({ 
@@ -135,35 +143,27 @@ window.CortexAssetPicker = {
     if (typeof onlyIIIFPrefix === 'boolean' && onlyIIIFPrefix) {
       store.dispatch(enableOnlyIIIFPrefix());
     }
-    
-    const defaultDisplayInfo = {
-      title: true,
-      dimension: true,
-      fileSize: true,
-      tags: true,
+
+    const errorHandler         = (typeof onError === 'function' && !onError) ? onError : console.log;
+    const imageSelectedHandler = (typeof onError === 'function' && !onImageSelected) ? onImageSelected : console.log;
+    const onClose = () => {
+      root.unmount();
+      // Reset these function when close the GAB
+      window.CortexAssetPicker._onImageSelected = undefined;
+      window.CortexAssetPicker._onError         = undefined;
     };
-    
+    window.CortexAssetPicker._onImageSelected = imageSelectedHandler;
+    window.CortexAssetPicker._onError         = errorHandler;
+
     root.render(
       <Provider store={store}>
-        <AppContext.Provider value={{
-          onImageSelected: (image) => {
-            onImageSelected(image);
-            root.unmount();
-          },
-          onError: (errorMessage, error) => {
-            if (typeof onError === 'function') {
-              onError(errorMessage, error);
-            } else {
-              console.log(errorMessage);
-            }
-          },
-          displayInfo: { ...defaultDisplayInfo, ...displayInfo },
-        }}>
           <App
             multiSelect={multiSelect}
             containerId={containerId}
-            onClose={() => root.unmount()} />
-        </AppContext.Provider>
+            displayInfo={displayInfo}
+            onError={errorHandler}
+            onImageSelected={imageSelectedHandler}
+            onClose={onClose} />
       </Provider>,
     );
   },

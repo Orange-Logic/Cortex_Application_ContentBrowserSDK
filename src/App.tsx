@@ -1,9 +1,9 @@
-import { createTheme, ThemeProvider, Dialog, useMediaQuery } from '@mui/material';
+import { Dialog, ThemeProvider, createTheme, useMediaQuery } from '@mui/material';
 import { useEffect, useState } from 'react';
-import { LoaderProvider } from './components/Loader/LoaderWrapper';
-import { CortexColors, CortexFonts } from './utils/constants';
 import WebFont from 'webfontloader';
+import { CortexColors, CortexFonts } from './utils/constants';
 import AssetsPicker from './view/AssetsPicker';
+import { AppContext, AppContextType, ImageCardDisplayInfo } from './AppContext';
 
 const theme = createTheme({
   palette: {
@@ -264,15 +264,26 @@ const theme = createTheme({
 type AppProps = {
   multiSelect?: boolean;
   containerId?: string;
+  displayInfo?: ImageCardDisplayInfo;
   /**
    * Call back when we close the app modal.
    * Note: This only applicable when containerId is not defined
    * @returns 
    */
   onClose?: () => void;
+  onError: AppContextType['onError'];
+  onImageSelected: AppContextType['onImageSelected'];
 };
 
-export const App = ({ multiSelect, containerId, onClose }: AppProps) => {
+const defaultDisplayInfo = {
+  title: true,
+  dimension: true,
+  fileSize: true,
+  tags: true,
+};
+    
+
+export const App = ({ multiSelect, displayInfo, containerId, onClose, onError, onImageSelected }: AppProps) => {
   useEffect(() => {
     WebFont.load({
       google: {
@@ -286,6 +297,7 @@ export const App = ({ multiSelect, containerId, onClose }: AppProps) => {
       },
     });
   }, []);
+  const smallScreen = useMediaQuery(theme.breakpoints.down('md'));
   const [open, setOpen] = useState(true);
 
   const handleClose = () => {
@@ -296,36 +308,31 @@ export const App = ({ multiSelect, containerId, onClose }: AppProps) => {
     }
   };
 
-  const smallScreen = useMediaQuery(theme.breakpoints.down('md'));
-
   return (
     <ThemeProvider theme={theme}>
-        {containerId ? (
-          <LoaderProvider> 
-            <AssetsPicker 
-              handleClose={handleClose} 
-              multiSelect={multiSelect}
-            />
-          </LoaderProvider>
-        ) : (
-          <Dialog 
-            onClose={handleClose} 
-            open={open}
-            fullScreen
-            sx={{
-              padding: smallScreen ? '2em' : '6em',
-              display: 'flex',
-              flexDirection: 'column',
-            }}
-            PaperProps={{ sx: { borderRadius: '0.5em' } }}
-          >
-            <LoaderProvider>
-              <AssetsPicker
-                handleClose={handleClose} 
-                multiSelect={multiSelect}
-              />
-            </LoaderProvider>
-          </Dialog>)}
+      <AppContext.Provider value={{
+        onImageSelected,
+        onError,
+        displayInfo: { ...defaultDisplayInfo, ...displayInfo },
+      }}>
+        {
+          containerId ?
+            <AssetsPicker handleClose={handleClose} multiSelect={multiSelect} />
+            : <Dialog
+              onClose={handleClose}
+              open={open}
+              fullScreen
+              sx={{
+                padding: smallScreen ? '2em' : '6em',
+                display: 'flex',
+                flexDirection: 'column',
+              }}
+              PaperProps={{ sx: { borderRadius: '0.5em' } }}
+            >
+              <AssetsPicker handleClose={handleClose} multiSelect={multiSelect} />
+            </Dialog>
+        }
+      </AppContext.Provider>
     </ThemeProvider>
   );
 };

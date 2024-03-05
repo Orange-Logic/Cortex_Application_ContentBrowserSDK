@@ -31,7 +31,7 @@ export const BrowserItem = ({ folder, searchText, onSelect }: BrowserItemProps) 
     <>
       <DumbBrowserItem
         isExpanded={isExpanded}
-        onExpandClick={(e: any) => {
+        onExpandClick={(e) => {
           e.stopPropagation();
           setIsExpanded(!isExpanded);
         }}

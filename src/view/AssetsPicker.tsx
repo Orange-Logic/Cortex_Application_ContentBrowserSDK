@@ -1,10 +1,14 @@
 import { Suspense, lazy } from 'react';
 import { useSelector } from 'react-redux';
-import { authenticatedSelector } from '../store/auth/auth.slice';
 import Loader from '../components/Loader/Loader';
+import LoaderProvider from '../components/Loader/LoaderWrapper';
+import { useAppSelector } from '../store';
+import { authenticatedSelector } from '../store/auth/auth.slice';
+import { selectCurrentPage } from '../store/navigation/navigation.slice';
 
 const Authenticate = lazy(() => import('../page/Authenticate'));
-const HomePage = lazy(() => import('../page/Home/Home'));
+const HomePage = lazy(() => import('../page/Home'));
+const SettingsPage  = lazy(() => import('../page/Settings'));
 
 type AssetsPickerProps = {
   handleClose: () => void;
@@ -13,10 +17,18 @@ type AssetsPickerProps = {
 
 const AssetsPicker = ({ handleClose, multiSelect } : AssetsPickerProps) => {
   const isAuthenticated = useSelector(authenticatedSelector);
+  const currentPage = useAppSelector(selectCurrentPage);
+
   return (
-    <Suspense fallback={<Loader />}>
-      {isAuthenticated ? <HomePage handleClose={handleClose} multiSelect={multiSelect}/> : <Authenticate />}
-    </Suspense>
+    <LoaderProvider>
+      <Suspense fallback={<Loader />}>
+        {
+          currentPage === 'home'
+            ? (isAuthenticated ? <HomePage handleClose={handleClose} multiSelect={multiSelect}/> : <Authenticate />)
+            : <SettingsPage />
+        }
+      </Suspense>
+    </LoaderProvider>
   );
 };
 
