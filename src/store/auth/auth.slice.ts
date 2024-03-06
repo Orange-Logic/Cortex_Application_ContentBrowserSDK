@@ -102,9 +102,10 @@ export const initAuthInfoFromCache = createAsyncThunk(
     );
 
     const execute = async () => {
-      // By default, we will get the site URL from store since the site URL can be set be for init auth into
-      let siteUrl = (getState() as RootState)[AUTH_FEATURE_KEY].siteUrl;
-      if (!!siteUrl) {
+      // eslint-disable-next-line @typescript-eslint/no-use-before-define
+      let siteUrl = siteUrlSelector(getState() as RootState);
+      if (!siteUrl) {
+        // when site info not found in state, we will get the site URL from store
         siteUrl = await getData(AUTH_FEATURE_SITE_URL_KEY) || '';
         if (!!siteUrl) {
           // eslint-disable-next-line @typescript-eslint/no-use-before-define
@@ -117,7 +118,7 @@ export const initAuthInfoFromCache = createAsyncThunk(
       if (accessKey) {
         const accessToken = (
           await getAccessTokenService(
-            (getState() as RootState)[AUTH_FEATURE_KEY].siteUrl,
+            siteUrl,
             accessKey,
           )
         ).accessToken;

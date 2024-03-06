@@ -258,6 +258,13 @@ const theme = createTheme({
         },
       },
     },
+    MuiDialog: {
+      styleOverrides: {
+        root: {
+          zIndex: 10030,
+        },
+      },
+    },
   },
 });
 
