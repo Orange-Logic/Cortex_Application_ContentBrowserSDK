@@ -258,13 +258,16 @@ const theme = createTheme({
         },
       },
     },
-    MuiDialog: {
-      styleOverrides: {
-        root: {
-          zIndex: 10030,
-        },
-      },
-    },
+  },
+  zIndex: {
+    mobileStepper: 10000,
+    fab: 10500,
+    speedDial: 10500,
+    appBar: 11000,
+    drawer: 12000,
+    modal: 13000,
+    snackbar: 14000,
+    tooltip: 15000,
   },
 });
 
