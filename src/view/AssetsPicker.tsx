@@ -11,11 +11,10 @@ const HomePage = lazy(() => import('../page/Home'));
 const SettingsPage  = lazy(() => import('../page/Settings'));
 
 type AssetsPickerProps = {
-  handleClose: () => void;
   multiSelect?: boolean;
 };
 
-const AssetsPicker = ({ handleClose, multiSelect } : AssetsPickerProps) => {
+const AssetsPicker = ({ multiSelect } : AssetsPickerProps) => {
   const isAuthenticated = useSelector(authenticatedSelector);
   const currentPage = useAppSelector(selectCurrentPage);
 
@@ -24,7 +23,7 @@ const AssetsPicker = ({ handleClose, multiSelect } : AssetsPickerProps) => {
       <Suspense fallback={<Loader />}>
         {
           currentPage === 'home'
-            ? (isAuthenticated ? <HomePage handleClose={handleClose} multiSelect={multiSelect}/> : <Authenticate />)
+            ? (isAuthenticated ? <HomePage multiSelect={multiSelect}/> : <Authenticate />)
             : <SettingsPage />
         }
       </Suspense>

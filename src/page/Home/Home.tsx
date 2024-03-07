@@ -12,7 +12,6 @@ import { AssetImage } from '../../types/search';
 import { CortexColors } from '../../utils/constants';
 
 type HomePageProps = {
-  handleClose: () => void;
   multiSelect?: boolean;
 };
 
@@ -90,7 +89,14 @@ const HomePage = ({ multiSelect = false }: HomePageProps) => {
             setCurrentCount={setCurrentCount}
           />
         </Box>
-        {selectedAssets && <Footer multiSelect={multiSelect} deselectAll={() => dispatch(setSelectedAssets([]))} selectedAssets={selectedAssets} />}
+        {
+          selectedAssets &&
+          <Footer
+            multiSelect={multiSelect}
+            deselectAll={() => dispatch(setSelectedAssets([]))}
+            selectedAssets={selectedAssets}
+          />
+        }
         {!isImporting && isProxyModalOpen && <SelectProxyModal open={isProxyModalOpen} />}
       </Box>
     </>

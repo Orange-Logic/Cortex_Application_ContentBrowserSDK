@@ -23,6 +23,10 @@ declare global {
          */
         onError: AppContextType['onError'];
         /**
+         * Callback when we close the asset picker
+         */
+        onClose: () => void;
+        /**
          * whether you want to select multiple assets
          */
         multiSelect: boolean;
@@ -66,6 +70,10 @@ declare global {
        * Global function which mirrored the behavior of onError
        */
       _onError?: AppContextType['onError'],
+      /**
+       * Global function to close the GAB
+       */
+      _onClose?: () => void,
     };
   }
 }
@@ -97,6 +105,7 @@ window.CortexAssetPicker = {
   open: ({ 
     onImageSelected, 
     onError, 
+    onClose,
     baseUrl, 
     onlyIIIFPrefix,
     multiSelect, 
@@ -133,10 +142,10 @@ window.CortexAssetPicker = {
     const root = createRoot(pickerRoot);
 
     // Dispatch some event before start render the APP
-    store.dispatch(initAuthInfoFromCache());
     if (!!baseUrl) {
       store.dispatch(setSiteUrl(baseUrl));
     }
+    store.dispatch(initAuthInfoFromCache());
     if (extraFields) {
       store.dispatch(setExtraFields(extraFields));
     }
@@ -146,14 +155,19 @@ window.CortexAssetPicker = {
 
     const errorHandler         = (typeof onError === 'function' && !!onError) ? onError : console.log;
     const imageSelectedHandler = (typeof onImageSelected === 'function' && !!onImageSelected) ? onImageSelected : console.log;
-    const onClose = () => {
+    const handleClose = () => {
       root.unmount();
+
       // Reset these function when close the GAB
       window.CortexAssetPicker._onImageSelected = undefined;
       window.CortexAssetPicker._onError         = undefined;
+      window.CortexAssetPicker._onClose         = undefined;
+
+      onClose?.();
     };
     window.CortexAssetPicker._onImageSelected = imageSelectedHandler;
     window.CortexAssetPicker._onError         = errorHandler;
+    window.CortexAssetPicker._onClose         = handleClose;
 
     root.render(
       <Provider store={store}>
@@ -163,7 +177,7 @@ window.CortexAssetPicker = {
             displayInfo={displayInfo}
             onError={errorHandler}
             onImageSelected={imageSelectedHandler}
-            onClose={onClose} />
+            onClose={handleClose} />
       </Provider>,
     );
   },

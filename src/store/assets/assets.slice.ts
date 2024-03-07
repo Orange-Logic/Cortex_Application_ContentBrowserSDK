@@ -87,6 +87,7 @@ export const importAssets = createAsyncThunk<void, { importProxy?: string, remem
     window.CortexAssetPicker._onImageSelected?.(images as GetAssetLinkResponse[]);
 
     dispatch(setIsImporting(false));
+    window.CortexAssetPicker._onClose?.();
   },
 );
 

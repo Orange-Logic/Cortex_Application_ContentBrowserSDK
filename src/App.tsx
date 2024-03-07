@@ -1,9 +1,9 @@
 import { Dialog, ThemeProvider, createTheme, useMediaQuery } from '@mui/material';
 import { useEffect, useState } from 'react';
 import WebFont from 'webfontloader';
+import { AppContext, AppContextType, ImageCardDisplayInfo } from './AppContext';
 import { CortexColors, CortexFonts } from './utils/constants';
 import AssetsPicker from './view/AssetsPicker';
-import { AppContext, AppContextType, ImageCardDisplayInfo } from './AppContext';
 
 const theme = createTheme({
   palette: {
@@ -291,7 +291,6 @@ const defaultDisplayInfo = {
   fileSize: true,
   tags: true,
 };
-    
 
 export const App = ({ multiSelect, displayInfo, containerId, onClose, onError, onImageSelected }: AppProps) => {
   useEffect(() => {
@@ -312,10 +311,7 @@ export const App = ({ multiSelect, displayInfo, containerId, onClose, onError, o
 
   const handleClose = () => {
     setOpen(false);
-
-    if (!!containerId && typeof onClose !== 'undefined') {
-      onClose();
-    }
+    onClose?.();
   };
 
   return (
@@ -327,7 +323,7 @@ export const App = ({ multiSelect, displayInfo, containerId, onClose, onError, o
       }}>
         {
           containerId ?
-            <AssetsPicker handleClose={handleClose} multiSelect={multiSelect} />
+            <AssetsPicker multiSelect={multiSelect} />
             : <Dialog
               onClose={handleClose}
               open={open}
@@ -339,7 +335,7 @@ export const App = ({ multiSelect, displayInfo, containerId, onClose, onError, o
               }}
               PaperProps={{ sx: { borderRadius: '0.5em' } }}
             >
-              <AssetsPicker handleClose={handleClose} multiSelect={multiSelect} />
+              <AssetsPicker multiSelect={multiSelect} />
             </Dialog>
         }
       </AppContext.Provider>
