@@ -144,8 +144,8 @@ window.CortexAssetPicker = {
       store.dispatch(enableOnlyIIIFPrefix());
     }
 
-    const errorHandler         = (typeof onError === 'function' && !onError) ? onError : console.log;
-    const imageSelectedHandler = (typeof onError === 'function' && !onImageSelected) ? onImageSelected : console.log;
+    const errorHandler         = (typeof onError === 'function' && !!onError) ? onError : console.log;
+    const imageSelectedHandler = (typeof onImageSelected === 'function' && !!onImageSelected) ? onImageSelected : console.log;
     const onClose = () => {
       root.unmount();
       // Reset these function when close the GAB
