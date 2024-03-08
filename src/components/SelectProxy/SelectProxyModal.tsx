@@ -3,24 +3,35 @@ import { Button, Dialog, DialogActions, DialogProps, DialogTitle, IconButton } f
 import { useEffect, useState } from 'react';
 import { useAppDispatch } from '../../store';
 import { useGetAvailableProxiesQuery } from '../../store/assets/assets.api';
-import { importAssets, setIsProxyModalOpen, setSelectedAssets } from '../../store/assets/assets.slice';
+import { ASSETS_FEATURE_STORAGE_KEY_IMPORT_PROXY, importAssets, setImportProxy, setIsProxyModalOpen } from '../../store/assets/assets.slice';
+import { deleteData, getData } from '../../utils/storage';
 import MultipleProxyDialogContent from './MultipleProxyDialogContent';
 import NoProxyDialogContent from './NoProxyDialogContent';
 
 const SelectProxyModal = ({ open, ...props }: DialogProps) => {
   const { isSuccess, data } = useGetAvailableProxiesQuery();
-  const [importProxy, setImportProxy] = useState<string | undefined>();
+  const [proxy, setProxy] = useState<string | undefined>();
   const [rememberProxy, setRememberProxy] = useState<boolean>(false);
   const dispatch = useAppDispatch();
 
-  const handleCancelImport = () => { 
-    dispatch(setSelectedAssets([]));
-    dispatch(setIsProxyModalOpen(false));
-  };
+  useEffect(() => {
+    if (isSuccess && !!(data?.proxies) && Object.keys(data.proxies).length > 0) {
+      getData(ASSETS_FEATURE_STORAGE_KEY_IMPORT_PROXY).then((storedImportProxy) => {
+        if (storedImportProxy) {
+          // If the stored import proxy is not in the list of available proxies, remove it, else set it as the import proxy
+          if (!Object.values(data.proxies).includes(storedImportProxy)) {
+            deleteData(ASSETS_FEATURE_STORAGE_KEY_IMPORT_PROXY);
+          } else {
+            dispatch(setImportProxy(storedImportProxy));
+          }
+        }
+      });
+    }
+  }, [isSuccess, data]);
 
   const handleImport = async () => {
-    dispatch(importAssets({ importProxy, rememberProxy }));
-    handleCancelImport();
+    dispatch(importAssets({ importProxy: proxy, rememberProxy }));
+    dispatch(setIsProxyModalOpen(false));
   };
   
   useEffect(() => {
@@ -62,10 +73,10 @@ const SelectProxyModal = ({ open, ...props }: DialogProps) => {
       {
         isSuccess && !!(data?.proxies)
           ? <>
-            <MultipleProxyDialogContent proxies={data.proxies} onSetImportProxy={setImportProxy} onSetRememberImportProxy={setRememberProxy}/>
+            <MultipleProxyDialogContent proxies={data.proxies} onSetImportProxy={setProxy} onSetRememberImportProxy={setRememberProxy}/>
             <DialogActions sx={{ border: 'none' }}>
-              <Button color='secondary' onClick={handleCancelImport}>Cancel</Button>
-              <Button onClick={handleImport} disabled={!importProxy}>Insert</Button>
+              <Button color='secondary' onClick={() => dispatch(setIsProxyModalOpen(false))}>Cancel</Button>
+              <Button onClick={handleImport} disabled={!proxy}>Insert</Button>
             </DialogActions>
           </>
           : <NoProxyDialogContent />

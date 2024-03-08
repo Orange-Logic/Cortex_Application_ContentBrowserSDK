@@ -1,8 +1,8 @@
-import { Box, Button, Typography } from '@mui/material';
-import { useAppDispatch, useAppSelector } from '../store';
-import { importAssets, importProxySelector, setIsProxyModalOpen } from '../store/assets/assets.slice';
-import { AssetImage } from '../types/search';
-import { CortexColors } from '../utils/constants';
+import { Alert, Box, Button, Snackbar, Typography } from '@mui/material';
+import { useAppDispatch, useAppSelector } from '../../store';
+import { importAssets, isImportFailedSelector, importProxySelector, resetImportStatus, setIsProxyModalOpen } from '../../store/assets/assets.slice';
+import { AssetImage } from '../../types/search';
+import { CortexColors } from '../../utils/constants';
 
 type FooterProps = {
   multiSelect?: boolean;
@@ -12,6 +12,7 @@ type FooterProps = {
 
 const Footer = ({ multiSelect = false, selectedAssets, deselectAll }: FooterProps) => {
   const importProxy = useAppSelector(importProxySelector);
+  const isImportFailed = useAppSelector(isImportFailedSelector);
   const dispatch    = useAppDispatch();
 
   const handleClickConfirm = async () => {
@@ -23,6 +24,10 @@ const Footer = ({ multiSelect = false, selectedAssets, deselectAll }: FooterProp
     } else {
       dispatch(importAssets({ rememberProxy: false }));
     }
+  };
+
+  const handleSnackbarClose = () => {
+    dispatch(resetImportStatus());
   };
 
   return <Box
@@ -91,9 +96,26 @@ const Footer = ({ multiSelect = false, selectedAssets, deselectAll }: FooterProp
         color: CortexColors.A0,
       }}
       onClick={handleClickConfirm}
+      disabled={selectedAssets.length === 0}
     >
       Confirm
     </Button>
+
+    <Snackbar
+      open={isImportFailed}
+      autoHideDuration={3000}
+      onClose={handleSnackbarClose}
+      sx={{ position: 'absolute' }}
+    >
+      <Alert
+        onClose={handleSnackbarClose}
+        severity="error"
+        variant="filled"
+        sx={{ width: '100%' }}
+      >
+        Failed to import asset! Please try again.
+      </Alert>
+    </Snackbar>
   </Box>;
 };
 

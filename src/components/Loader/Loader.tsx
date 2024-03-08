@@ -11,23 +11,23 @@ type LoaderProps = {
 const Loader = ({ message, overlay, children }: LoaderProps) => {
   return (
     <Box
-      top={0}
-      bottom={0}
-      left={0}
-      right={0}
-      display="flex"
-      flexDirection="column"
-      alignItems="center"
-      margin={2}
-      style={
-        overlay
-          ? {
-            backgroundColor: '#000',
-            opacity: 0.5,
-            color: '#fff',
-          }
-          : {}
-      }
+      sx={{
+        inset: 0,
+        position: 'relative',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        m: 2,
+        ...(
+          overlay
+            ? {
+              backgroundColor: '#000',
+              opacity: 0.5,
+              color: '#fff',
+            }
+            : {}
+        ),
+      }}
     >
       <CircularProgress />
       {message &&

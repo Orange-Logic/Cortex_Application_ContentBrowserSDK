@@ -1,7 +1,7 @@
 import { AppBar, Box, Toolbar } from '@mui/material';
 import { grey } from '@mui/material/colors';
 import { useState } from 'react';
-import Footer from '../../components/Footer';
+import Footer, { ImportingDialog } from '../../components/Footer';
 import Header from '../../components/Header/Header';
 import Results from '../../components/Result/Result';
 import SearchBar from '../../components/SearchBar';
@@ -97,7 +97,9 @@ const HomePage = ({ multiSelect = false }: HomePageProps) => {
             selectedAssets={selectedAssets}
           />
         }
-        {!isImporting && isProxyModalOpen && <SelectProxyModal open={isProxyModalOpen} />}
+        {/* Need this component mounted to handle the stored default proxy */}
+        <SelectProxyModal open={isProxyModalOpen && !isImporting} /> 
+        <ImportingDialog />
       </Box>
     </>
   );

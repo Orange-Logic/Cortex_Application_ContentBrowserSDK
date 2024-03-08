@@ -10,6 +10,7 @@ export type AssetsState = {
   importProxy?: string;
   isProxyModalOpen: boolean;
   isImporting: boolean;
+  isImportFailed: boolean;
 };
 
 export enum ImageImportStatus {

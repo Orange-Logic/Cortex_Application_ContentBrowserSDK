@@ -37,6 +37,34 @@
       To begin the development, run `npm start` or `yarn start`.
       To create a production bundle, use `npm run build` or `yarn build`.
     -->
+  <script>
+    // /* To keep the GAB open after selecting an image for debugging, you can use the following code:
+
+    const debugGAB = () => {
+      const settings = {
+        onImageSelected: console.debug,
+        onError: console.error,
+        // containerId: 'react-app-root',
+        multiSelect: true, // single or multiple file picke
+        displayInfo: {
+          title: true,
+          dimension: true,
+          fileSize: true,
+          tags: true,
+        },
+        onClose: () => { },
+      };
+
+      settings.onClose = () => {
+        console.log('Picker closed, reopening ...');
+        window.CortexAssetPicker.open(settings);
+      };
+
+      window.CortexAssetPicker.open(settings);
+    }
+
+    // */
+  </script>
 </body>
 
 </html>

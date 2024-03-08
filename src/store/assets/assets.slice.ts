@@ -3,6 +3,7 @@ import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import { RootState } from '..';
 import { AssetsState } from '../../types/assets';
 import { AssetImage, GetAssetLinkResponse } from '../../types/search';
+import { getData, storeData } from '../../utils/storage';
 import { getExtraFields } from '../search/search.slice';
 import { getAssetLinks } from './assets.service';
 
@@ -15,6 +16,7 @@ const initialState: AssetsState = {
   onlyIIIFPrefix: false,
   isProxyModalOpen: false,
   isImporting: false,
+  isImportFailed: false,
 };
 
 // ======================================================================
@@ -34,6 +36,9 @@ export const isProxyModalOpenSelector = (state: RootState) =>
 
 export const isImportingSelector = (state: RootState) =>
   state[ASSETS_FEATURE_KEY].isImporting;
+
+export const isImportFailedSelector = (state: RootState) =>
+  state[ASSETS_FEATURE_KEY].isImportFailed;
 
 // ======================================================================
 // Slice
@@ -57,10 +62,32 @@ export const assetsState = createSlice({
     setIsImporting: (state, action: PayloadAction<boolean>) => {
       state.isImporting = action.payload;
     },
+    resetImportStatus: (state) => {
+      state.isImporting = false;
+      state.isImportFailed = false;
+    },
+  },
+  extraReducers(builder) {
+    // eslint-disable-next-line @typescript-eslint/no-use-before-define
+    builder.addCase(importAssets.pending, (state) => {
+      state.isImporting = true;
+      state.isImportFailed = false;
+    });
+    // eslint-disable-next-line @typescript-eslint/no-use-before-define
+    builder.addCase(importAssets.rejected, (state, action) => {
+      state.isImporting = false;
+      console.error(action, action.error.message);
+      state.isImportFailed = true;
+    });
+    // eslint-disable-next-line @typescript-eslint/no-use-before-define
+    builder.addCase(importAssets.fulfilled, (state) => {
+      state.isImporting = false;
+      state.isImportFailed = false;
+    });
   },
 });
 
-export const { enableOnlyIIIFPrefix, setImportProxy, setSelectedAssets, setIsProxyModalOpen, setIsImporting } = assetsState.actions;
+export const { enableOnlyIIIFPrefix, setImportProxy, setSelectedAssets, setIsProxyModalOpen, setIsImporting, resetImportStatus } = assetsState.actions;
 
 // ======================================================================
 // Action
@@ -70,8 +97,18 @@ export const importAssets = createAsyncThunk<void, { importProxy?: string, remem
   async ({ importProxy, rememberProxy }, { dispatch, getState }) => {
     dispatch(setIsImporting(true));
 
+    // If import proxy is not defined, try to get it from storage. If it's not there, show the select proxy modal
+    if (!importProxy) {
+      importProxy = await getData(ASSETS_FEATURE_STORAGE_KEY_IMPORT_PROXY) ?? undefined;
+    }
+    if (!importProxy) {
+      dispatch(setIsProxyModalOpen(true));
+      dispatch(setIsImporting(false));
+      return;
+    }
+
     if (rememberProxy && importProxy) {
-      localStorage.setItem(ASSETS_FEATURE_STORAGE_KEY_IMPORT_PROXY, importProxy);
+      storeData(ASSETS_FEATURE_STORAGE_KEY_IMPORT_PROXY, importProxy, 'LocalStorage', 1000 * 60 * 60);
       dispatch(setImportProxy(importProxy));
     }
     const rootState      = getState() as RootState;
@@ -86,7 +123,6 @@ export const importAssets = createAsyncThunk<void, { importProxy?: string, remem
     dispatch(setIsProxyModalOpen(false));
     window.CortexAssetPicker._onImageSelected?.(images as GetAssetLinkResponse[]);
 
-    dispatch(setIsImporting(false));
     window.CortexAssetPicker._onClose?.();
   },
 );

@@ -2,8 +2,11 @@ import FilterAltIcon from '@mui/icons-material/FilterAlt';
 import { IconButton, Popover } from '@mui/material';
 import { useState } from 'react';
 import { FilterMenuPopover } from './FilterMenuPopover';
+import { useAppSelector } from '../../../store';
+import { getMediaTypes } from '../../../store/search/search.slice';
 
 export const FilterMenu: React.FC = () => {
+  const mediaTypes = useAppSelector(getMediaTypes);
   const [anchorEl, setAnchorEl] = useState<Element>();
 
   const openPopover = (event: React.MouseEvent) => {
@@ -14,22 +17,24 @@ export const FilterMenu: React.FC = () => {
   const browserOpen = Boolean(anchorEl);
 
   return (
-        <>
-            <IconButton onClick={openPopover}>
-                <FilterAltIcon />
-            </IconButton>
-            <Popover
-                open={browserOpen}
-                anchorEl={anchorEl}
-                onClose={closePopover}
-                anchorOrigin={{
-                  vertical: 'bottom',
-                  horizontal: 'right',
-                }}
-            >
-                <FilterMenuPopover />
-            </Popover>
-        </>
+    <>
+      <IconButton onClick={openPopover}>
+        <FilterAltIcon
+          color={mediaTypes.length > 0 ? 'primary' : 'inherit'}
+        />
+      </IconButton>
+      <Popover
+          open={browserOpen}
+          anchorEl={anchorEl}
+          onClose={closePopover}
+          anchorOrigin={{
+            vertical: 'bottom',
+            horizontal: 'right',
+          }}
+      >
+          <FilterMenuPopover />
+      </Popover>
+    </>
   );
 };
 

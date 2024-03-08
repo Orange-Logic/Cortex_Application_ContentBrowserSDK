@@ -10,9 +10,12 @@ const NATURAL_SORT_ORDER_REFERENCEID = 'OR4ND000000063615';
 const resolveExtraFilters = (searchText: string, mediaTypes: MediaType[]) => {
   const typesToFilter = !mediaTypes?.length ? Object.keys(MediaType) : mediaTypes;
 
-  const typesQuery = typesToFilter
+  let typesQuery = typesToFilter
     .map(type => type === MediaType.MultiMedia ? 'FileExtension:PDF' : `MediaType:${type}`)
     .join(' OR ');
+  if (typesToFilter.length > 1) {
+    typesQuery = `(${typesQuery})`;
+  }
 
   const searchTextQuery = IsNullOrWhiteSpace(searchText) ? '' : ` AND Text:${searchText}`;
 
