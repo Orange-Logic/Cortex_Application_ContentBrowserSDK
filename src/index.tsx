@@ -3,7 +3,7 @@ import { Provider } from 'react-redux';
 import { App } from './App';
 import { AppContextType, ImageCardDisplayInfo } from './AppContext';
 import { store } from './store';
-import { enableOnlyIIIFPrefix } from './store/assets/assets.slice';
+import { enableOnlyIIIFPrefix, resetImportStatus } from './store/assets/assets.slice';
 import { initAuthInfoFromCache, setSiteUrl } from './store/auth/auth.slice';
 import { setExtraFields } from './store/search/search.slice';
 import './styles.css';
@@ -157,6 +157,8 @@ window.CortexAssetPicker = {
     const imageSelectedHandler = (typeof onImageSelected === 'function' && !!onImageSelected) ? onImageSelected : console.log;
     const handleClose = () => {
       root.unmount();
+
+      store.dispatch(resetImportStatus());
 
       // Reset these function when close the GAB
       window.CortexAssetPicker._onImageSelected = undefined;

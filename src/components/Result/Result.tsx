@@ -32,9 +32,13 @@ const Results = ({ currentFolder, searchText, handleSelectItem, selectedAssets, 
     mediaTypes,
   });
 
+  // Reset page when search criteria changes
+  useEffect(() => {
+    setPage(0);
+  }, [isSeeThrough, mediaTypes]);
+
   useEffect(() => {
     setSeeThru(isSeeThrough);
-    setPage(0);
   }, [isSeeThrough]);
 
   useEffect(() => {

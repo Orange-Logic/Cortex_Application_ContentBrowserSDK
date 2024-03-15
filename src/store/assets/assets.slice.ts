@@ -16,7 +16,6 @@ const initialState: AssetsState = {
   onlyIIIFPrefix: false,
   isProxyModalOpen: false,
   isImporting: false,
-  isImportFailed: false,
 };
 
 // ======================================================================
@@ -37,8 +36,8 @@ export const isProxyModalOpenSelector = (state: RootState) =>
 export const isImportingSelector = (state: RootState) =>
   state[ASSETS_FEATURE_KEY].isImporting;
 
-export const isImportFailedSelector = (state: RootState) =>
-  state[ASSETS_FEATURE_KEY].isImportFailed;
+export const importAssetErrorMessageSelector = (state: RootState) =>
+  state[ASSETS_FEATURE_KEY].errorMessage;
 
 // ======================================================================
 // Slice
@@ -63,26 +62,28 @@ export const assetsState = createSlice({
       state.isImporting = action.payload;
     },
     resetImportStatus: (state) => {
-      state.isImporting = false;
-      state.isImportFailed = false;
+      state.selectedAssets = initialState.selectedAssets;
+      state.onlyIIIFPrefix = initialState.onlyIIIFPrefix;
+      state.isProxyModalOpen = initialState.isProxyModalOpen;
+      state.isImporting = initialState.isImporting;
     },
   },
   extraReducers(builder) {
     // eslint-disable-next-line @typescript-eslint/no-use-before-define
     builder.addCase(importAssets.pending, (state) => {
       state.isImporting = true;
-      state.isImportFailed = false;
+      state.errorMessage = undefined;
     });
     // eslint-disable-next-line @typescript-eslint/no-use-before-define
     builder.addCase(importAssets.rejected, (state, action) => {
       state.isImporting = false;
       console.error(action, action.error.message);
-      state.isImportFailed = true;
+      state.errorMessage = action.error.message;
     });
     // eslint-disable-next-line @typescript-eslint/no-use-before-define
     builder.addCase(importAssets.fulfilled, (state) => {
       state.isImporting = false;
-      state.isImportFailed = false;
+      state.errorMessage = undefined;
     });
   },
 });

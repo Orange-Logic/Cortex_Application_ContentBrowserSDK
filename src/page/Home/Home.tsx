@@ -10,14 +10,15 @@ import { useAppDispatch, useAppSelector } from '../../store';
 import { isImportingSelector, isProxyModalOpenSelector, selectedAssetsSelector, setSelectedAssets } from '../../store/assets/assets.slice';
 import { AssetImage } from '../../types/search';
 import { CortexColors } from '../../utils/constants';
+import { getCurrentFolder, getSearchText } from '../../store/search/search.slice';
 
 type HomePageProps = {
   multiSelect?: boolean;
 };
 
 const HomePage = ({ multiSelect = false }: HomePageProps) => {
-  const currentFolder = useAppSelector((state) => state.search.currentFolder);
-  const searchText = useAppSelector((state) => state.search.imageSearchText);
+  const currentFolder = useAppSelector(getCurrentFolder);
+  const searchText = useAppSelector(getSearchText);
   const selectedAssets = useAppSelector(selectedAssetsSelector);
   const isProxyModalOpen = useAppSelector(isProxyModalOpenSelector);
   const isImporting = useAppSelector(isImportingSelector);

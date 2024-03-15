@@ -14,17 +14,15 @@ export const getAssetLinks = async (
     baseUrl += `Proxy=${proxy}&`;
   baseUrl += 'RecordId=';
 
-  let errorMessage: string = '';
+  const failToImportAssets: string[] = [];
   // Loop through all selected assets to replace Image url by IIIF urls
   const result = (await Promise.all(assets.map(async (asset) => {
     const response  = await cortexFetch(baseUrl + asset.id, { method: 'GET' });
     let responseData: GetAssetLinkResponse | null = null;
-    if (response.ok) {
-      responseData = await response.json();
-    }
+    responseData = await response.json();
 
-    if (!responseData) {
-      errorMessage += `Failed to retrive asset link and metadata for asset ${asset.id}.\n`;
+    if (!response.ok || !responseData) {
+      failToImportAssets.push(asset.name);
       return {
         imageUrl: asset.imageUrl,
       } as GetAssetLinkResponse;
@@ -34,8 +32,8 @@ export const getAssetLinks = async (
     return responseData;
   })));
 
-  if (!!errorMessage) {
-    throw new Error(errorMessage);
+  if (failToImportAssets.length > 0) {
+    throw new Error("You don't have permission to import the following assets: " + failToImportAssets.join(', '));
   }
 
   return result;

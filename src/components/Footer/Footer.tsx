@@ -1,6 +1,6 @@
 import { Alert, Box, Button, Snackbar, Typography } from '@mui/material';
 import { useAppDispatch, useAppSelector } from '../../store';
-import { importAssets, isImportFailedSelector, importProxySelector, resetImportStatus, setIsProxyModalOpen } from '../../store/assets/assets.slice';
+import { importAssetErrorMessageSelector, importAssets, importProxySelector, resetImportStatus, setIsProxyModalOpen } from '../../store/assets/assets.slice';
 import { AssetImage } from '../../types/search';
 import { CortexColors } from '../../utils/constants';
 
@@ -12,7 +12,7 @@ type FooterProps = {
 
 const Footer = ({ multiSelect = false, selectedAssets, deselectAll }: FooterProps) => {
   const importProxy = useAppSelector(importProxySelector);
-  const isImportFailed = useAppSelector(isImportFailedSelector);
+  const errorMessage = useAppSelector(importAssetErrorMessageSelector);
   const dispatch    = useAppDispatch();
 
   const handleClickConfirm = async () => {
@@ -102,7 +102,7 @@ const Footer = ({ multiSelect = false, selectedAssets, deselectAll }: FooterProp
     </Button>
 
     <Snackbar
-      open={isImportFailed}
+      open={!!errorMessage}
       autoHideDuration={3000}
       onClose={handleSnackbarClose}
       sx={{ position: 'absolute' }}
@@ -111,9 +111,13 @@ const Footer = ({ multiSelect = false, selectedAssets, deselectAll }: FooterProp
         onClose={handleSnackbarClose}
         severity="error"
         variant="filled"
-        sx={{ width: '100%' }}
+        sx={{
+          maxWidth: '70%',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+        }}
       >
-        Failed to import asset! Please try again.
+        {errorMessage}
       </Alert>
     </Snackbar>
   </Box>;
