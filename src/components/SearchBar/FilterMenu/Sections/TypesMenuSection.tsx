@@ -31,35 +31,35 @@ export const TypesMenuSection: React.FC = () => {
   };
 
   return (
-        <FilterMenuSection sectionName="Types">
-            <List component="div" disablePadding>
-                {Object.keys(MediaType).map((value) => {
-                  const labelId = `checkbox-list-label-${value}`;
-                  const valueAsEnum = MediaType[value as keyof typeof MediaType];
+    <FilterMenuSection sectionName="Types">
+      <List component="div" disablePadding>
+        {Object.keys(MediaType).map((value) => {
+          const labelId = `checkbox-list-label-${value}`;
+          const valueAsEnum = MediaType[value as keyof typeof MediaType];
 
-                  return (
-                        <ListItem key={value} disablePadding>
-                            <ListItemButton
-                                role={undefined}
-                                onClick={handleToggle(valueAsEnum)}
-                                dense
-                            >
-                                <ListItemIcon>
-                                    <Checkbox
-                                        edge="start"
-                                        checked={mediaTypes.indexOf(valueAsEnum) !== -1}
-                                        tabIndex={-1}
-                                        disableRipple
-                                        inputProps={{ 'aria-labelledby': labelId }}
-                                    />
-                                </ListItemIcon>
-                                <ListItemText id={labelId} primary={`${value}`} />
-                            </ListItemButton>
-                        </ListItem>
-                  );
-                })}
-            </List>
-        </FilterMenuSection>
+          return (
+            <ListItem key={value} disablePadding>
+              <ListItemButton
+                onClick={handleToggle(valueAsEnum)}
+                dense
+              >
+                <ListItemIcon
+                  sx={{ minWidth: 'auto' }}
+                >
+                  <Checkbox
+                    edge="start"
+                    checked={mediaTypes.indexOf(valueAsEnum) !== -1}
+                    disableRipple
+                    inputProps={{ 'aria-labelledby': labelId }}
+                  />
+                </ListItemIcon>
+                <ListItemText id={labelId} primary={`${value}`} />
+              </ListItemButton>
+            </ListItem>
+          );
+        })}
+      </List>
+    </FilterMenuSection>
   );
 };
 

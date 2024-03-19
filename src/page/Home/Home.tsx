@@ -10,15 +10,12 @@ import { useAppDispatch, useAppSelector } from '../../store';
 import { isImportingSelector, isProxyModalOpenSelector, selectedAssetsSelector, setSelectedAssets } from '../../store/assets/assets.slice';
 import { AssetImage } from '../../types/search';
 import { CortexColors } from '../../utils/constants';
-import { getCurrentFolder, getSearchText } from '../../store/search/search.slice';
 
 type HomePageProps = {
   multiSelect?: boolean;
 };
 
 const HomePage = ({ multiSelect = false }: HomePageProps) => {
-  const currentFolder = useAppSelector(getCurrentFolder);
-  const searchText = useAppSelector(getSearchText);
   const selectedAssets = useAppSelector(selectedAssetsSelector);
   const isProxyModalOpen = useAppSelector(isProxyModalOpenSelector);
   const isImporting = useAppSelector(isImportingSelector);
@@ -43,66 +40,61 @@ const HomePage = ({ multiSelect = false }: HomePageProps) => {
   };
 
   return (
-    <>
-      <Box
-        display="grid"
-        gridTemplateColumns="1fr"
-        gridTemplateRows="max-content 1fr"
-        sx={{
-          position: 'relative',
-          overflow: 'hidden',
-          width: '100%',
-          height: '100%',
-          backgroundColor: CortexColors.A0,
-        }}
+    <Box
+      display="grid"
+      gridTemplateColumns="1fr"
+      gridTemplateRows="max-content 1fr"
+      sx={{
+        position: 'relative',
+        overflow: 'hidden',
+        width: '100%',
+        height: '100%',
+        backgroundColor: CortexColors.A0,
+      }}
+    >
+      <AppBar
+        component="nav"
+        sx={{ backgroundColor: 'white' }}
+        position="sticky"
       >
-        <AppBar
-          component="nav"
-          sx={{ backgroundColor: 'white' }}
-          position="sticky"
-        >
-          <Toolbar sx={{ margin: 0, padding: 1 }}>
-            <Box sx={{ width: '100%' }}>
-              <Header />
-              {/* Folder selector - Search bar - Template selector */}
-              <SearchBar
-                isSeeThrough={isSeeThrough}
-                setIsSeeThrough={setIsSeeThrough}
-                totalCount={totalCount}
-                currentCount={currentCount}
-              />
-            </Box>
-          </Toolbar>
-        </AppBar>
-        <Box
-          component="main"
-          overflow="hidden"
-          sx={{ position: 'relative', backgroundColor: grey[200] }}
-        >
-          <Results
-            key={currentFolder.id + searchText + ''}
-            currentFolder={currentFolder}
-            searchText={searchText}
-            handleSelectItem={handleSelectItem}
-            selectedAssets={selectedAssets}
-            isSeeThrough={isSeeThrough}
-            setTotalCount={setTotalCount}
-            setCurrentCount={setCurrentCount}
-          />
-        </Box>
-        {
-          selectedAssets &&
-          <Footer
-            multiSelect={multiSelect}
-            deselectAll={() => dispatch(setSelectedAssets([]))}
-            selectedAssets={selectedAssets}
-          />
-        }
-        {/* Need this component mounted to handle the stored default proxy */}
-        <SelectProxyModal open={isProxyModalOpen && !isImporting} /> 
-        <ImportingDialog />
+        <Toolbar sx={{ margin: 0, padding: 1 }}>
+          <Box sx={{ width: '100%' }}>
+            <Header />
+            {/* Folder selector - Search bar - Template selector */}
+            <SearchBar
+              isSeeThrough={isSeeThrough}
+              setIsSeeThrough={setIsSeeThrough}
+              totalCount={totalCount}
+              currentCount={currentCount}
+            />
+          </Box>
+        </Toolbar>
+      </AppBar>
+      <Box
+        component="main"
+        overflow="hidden"
+        sx={{ position: 'relative', backgroundColor: grey[200] }}
+      >
+        <Results
+          handleSelectItem={handleSelectItem}
+          selectedAssets={selectedAssets}
+          isSeeThrough={isSeeThrough}
+          setTotalCount={setTotalCount}
+          setCurrentCount={setCurrentCount}
+        />
       </Box>
-    </>
+      {
+        selectedAssets &&
+        <Footer
+          multiSelect={multiSelect}
+          deselectAll={() => dispatch(setSelectedAssets([]))}
+          selectedAssets={selectedAssets}
+        />
+      }
+      {/* Need this component mounted to handle the stored default proxy */}
+      <SelectProxyModal open={isProxyModalOpen && !isImporting} /> 
+      <ImportingDialog />
+    </Box>
   );
 };
 

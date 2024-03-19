@@ -3,8 +3,8 @@ import { useEffect, useRef, useState } from 'react';
 import AutoSizer, { Size } from 'react-virtualized-auto-sizer';
 import { useAppSelector } from '../../store';
 import { useGetImagesQuery } from '../../store/search/search.api';
-import { getMediaTypes } from '../../store/search/search.slice';
-import { AssetImage, Folder } from '../../types/search';
+import { getCurrentFolder, getMediaTypes, getSearchText } from '../../store/search/search.slice';
+import { AssetImage, Folder, MediaType } from '../../types/search';
 import { PAGE_SIZE } from '../../utils/constants';
 import { ResultAssetCardWraper } from './ResultAssetCard';
 
@@ -16,26 +16,21 @@ type ResultsProps = {
   selectedAssets: AssetImage[];
   setTotalCount: (totalCount: number) => void;
   setCurrentCount: (currentCount: number) => void;
+  mediaTypes: MediaType[];
 };
 
-const Results = ({ currentFolder, searchText, handleSelectItem, selectedAssets, isSeeThrough, setTotalCount, setCurrentCount }: ResultsProps) => {
+const Results = ({ currentFolder, searchText, handleSelectItem, selectedAssets, isSeeThrough, setTotalCount, setCurrentCount, mediaTypes }: ResultsProps) => {
   const scrollTarget = useRef<Node | Window | undefined>();
   const [page, setPage] = useState(0);
   const [seeThru, setSeeThru] = useState(isSeeThrough);
-  const mediaTypes = useAppSelector(getMediaTypes);
 
   const { data, isFetching, isLoading, isError } = useGetImagesQuery({
     folderID: currentFolder.id,
-    searchText: searchText,
+    searchText,
     page,
     isSeeThrough: seeThru,
     mediaTypes,
   });
-
-  // Reset page when search criteria changes
-  useEffect(() => {
-    setPage(0);
-  }, [isSeeThrough, mediaTypes]);
 
   useEffect(() => {
     setSeeThru(isSeeThrough);
@@ -76,4 +71,17 @@ const Results = ({ currentFolder, searchText, handleSelectItem, selectedAssets, 
   );
 };
 
-export default Results;
+export const ResultsWrapper = (props: Omit<ResultsProps, 'currentFolder' | 'searchText' | 'mediaTypes'>) => {
+  const currentFolder = useAppSelector(getCurrentFolder);
+  const searchText = useAppSelector(getSearchText);
+  const mediaTypes = useAppSelector(getMediaTypes);
+
+  return <Results
+    key={currentFolder.id + searchText + mediaTypes.join('+') + ''}
+    currentFolder={currentFolder}
+    searchText={searchText}
+    mediaTypes={mediaTypes}
+    {...props} />;
+};
+
+export default ResultsWrapper;
