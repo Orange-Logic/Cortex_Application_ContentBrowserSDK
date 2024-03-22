@@ -10,11 +10,13 @@ import {
 import { getRequestUrl } from '../../utils/getRequestUrl';
 import { deleteData, getData, storeData } from '../../utils/storage';
 import { RandomString } from '../../utils/string';
+import { resetImportStatus } from '../assets/assets.slice';
 import {
   clearLoader,
   loaderSlice,
   setFullPageLoader,
 } from '../loader/loader.slice';
+import { resetSearchState } from '../search/search.slice';
 import {
   getAccessKeyService,
   getAccessTokenService,
@@ -82,6 +84,11 @@ export const oAuth = createAsyncThunk<OAuthRes, { siteUrl: string }>(
       if (getOAuthResult.code !== GetAccessKeyResponseCode.Authorized) {
         return rejectWithValue((getOAuthResult as GetAccessKeyRes).message);
       }
+
+      // Login successfully, reset other state
+      dispatch(resetSearchState());
+      dispatch(resetImportStatus());
+
       return getOAuthResult as OAuthRes;
     } catch (exception) {
       return rejectWithValue((exception as Error).message);
@@ -143,6 +150,10 @@ export const initAuthInfoFromCache = createAsyncThunk(
       if (!isSuccess) {
         return rejectWithValue('Unable to recover access key');
       }
+
+      // Login successfully, reset other state
+      dispatch(resetSearchState());
+      dispatch(resetImportStatus());
     } catch (exception) {
       return rejectWithValue((exception as Error).message);
     } finally {

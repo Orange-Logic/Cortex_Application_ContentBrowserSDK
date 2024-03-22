@@ -68,7 +68,7 @@ export const searchSlice = createSlice({
     resetMediaTypes: (state) => {
       state.mediaTypes = initialState.mediaTypes;
     },
-    reset: (state) => {
+    resetSearchState: (state) => {
       state.currentFolder = initialState.currentFolder;
       state.imageSearchText = initialState.imageSearchText;
       state.mediaTypes = initialState.mediaTypes;
@@ -94,12 +94,11 @@ export const getMediaTypes = (state: RootState) =>
 export const {
   internalExplorePath,
   setImageSearchText,
-  reset,
+  resetSearchState,
   setExtraFields,
   setMediaTypes,
   resetCurrentFolder,
   resetSearchText,
   resetMediaTypes,
-} =
-  searchSlice.actions;
+} = searchSlice.actions;
 export default searchSlice.reducer;

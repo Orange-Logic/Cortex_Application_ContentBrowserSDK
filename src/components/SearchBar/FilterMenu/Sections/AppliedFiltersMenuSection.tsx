@@ -8,7 +8,7 @@ import {
   getCurrentFolder,
   getMediaTypes,
   getSearchText,
-  reset,
+  resetSearchState,
   resetCurrentFolder,
   resetMediaTypes,
   resetSearchText,
@@ -55,7 +55,7 @@ export const AppliedFiltersMenuSection: React.FC = () => {
                 (currentFolder && currentFolder.title) ||
                 (mediaTypes && !!mediaTypes.length)) && (
                     <Button
-                        onClick={() => dispatch(reset())}
+                        onClick={() => dispatch(resetSearchState())}
                         sx={{ ml: 4, my: 1 }}
                         variant="text"
                         size="small"

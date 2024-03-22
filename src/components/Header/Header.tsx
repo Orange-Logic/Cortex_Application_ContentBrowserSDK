@@ -1,8 +1,9 @@
 import { Box } from '@mui/material';
 import { useAppDispatch } from '../../store';
+import { resetImportStatus } from '../../store/assets/assets.slice';
 import { logout } from '../../store/auth/auth.slice';
 import { openSettings } from '../../store/navigation/navigation.slice';
-import { reset } from '../../store/search/search.slice';
+import { resetSearchState } from '../../store/search/search.slice';
 import { LOGO_BASE64 } from '../../utils/constants';
 import HeaderButton from './HeaderButton';
 import HeaderDivider from './HeaderDivider';
@@ -42,7 +43,8 @@ const Header = () => {
         <HeaderButton
           onClick={() => {
             dispatch(logout());
-            dispatch(reset());
+            dispatch(resetSearchState());
+            dispatch(resetImportStatus());
           }}
         >
           Logout
