@@ -66,6 +66,7 @@ export const assetsState = createSlice({
       state.onlyIIIFPrefix = initialState.onlyIIIFPrefix;
       state.isProxyModalOpen = initialState.isProxyModalOpen;
       state.isImporting = initialState.isImporting;
+      state.errorMessage = undefined;
     },
   },
   extraReducers(builder) {
@@ -77,7 +78,6 @@ export const assetsState = createSlice({
     // eslint-disable-next-line @typescript-eslint/no-use-before-define
     builder.addCase(importAssets.rejected, (state, action) => {
       state.isImporting = false;
-      console.error(action, action.error.message);
       state.errorMessage = action.error.message;
     });
     // eslint-disable-next-line @typescript-eslint/no-use-before-define

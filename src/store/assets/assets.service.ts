@@ -1,6 +1,9 @@
+import { store } from '..';
 import { CortexErrorResponse } from '../../types/common';
 import { AssetImage, GetAssetLinkResponse } from '../../types/search';
 import { cortexFetch } from '../../utils/api';
+import { assetsApi } from './assets.api';
+import { importProxySelector } from './assets.slice';
 
 export const getAssetLinks = async (
   assets: AssetImage[],
@@ -33,6 +36,14 @@ export const getAssetLinks = async (
             errorMessage = `${asset.name} is not found`;
             break;
           case 'OL_ASSETLINKSERVICE_ERROR_001_LINKS_TO_NON_REQUIRED_FORMATS_NOT_ALLOWED':
+            const proxies = assetsApi.endpoints.getAvailableProxies.select()(store.getState()).data?.proxies;
+            const selectedProxy = importProxySelector(store.getState());
+            if (!proxies || !selectedProxy) {
+              errorMessage = `You don't have permission to import ${asset.size} of ${asset.name}`;
+            } else {
+              errorMessage = `You don't have permission to import ${Object.keys(proxies).find(key => proxies[key] == selectedProxy)} proxy of ${asset.name}`;
+            }
+            break;
           case 'OL_ERR_002_NOTALLOWED':
             errorMessage = `You don't have permission to import ${asset.name}`;
             break;
