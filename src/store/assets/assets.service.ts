@@ -39,9 +39,9 @@ export const getAssetLinks = async (
             const proxies = assetsApi.endpoints.getAvailableProxies.select()(store.getState()).data?.proxies;
             const selectedProxy = importProxySelector(store.getState());
             if (!proxies || !selectedProxy) {
-              errorMessage = `You don't have permission to import ${asset.size} of ${asset.name}`;
+              errorMessage = `You don't have permission to import selected quality of ${asset.name}`;
             } else {
-              errorMessage = `You don't have permission to import ${Object.keys(proxies).find(key => proxies[key] == selectedProxy)} proxy of ${asset.name}`;
+              errorMessage = `You don't have permission to import ${Object.keys(proxies).find(key => proxies[key] == selectedProxy)} quality of ${asset.name}`;
             }
             break;
           case 'OL_ERR_002_NOTALLOWED':
