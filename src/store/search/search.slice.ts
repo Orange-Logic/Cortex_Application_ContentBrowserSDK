@@ -3,6 +3,7 @@ import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import { RootState } from '..';
 import { Folder, MediaType } from '../../types/search';
 import { searchApi } from './search.api';
+import { assetsSlice } from '../assets/assets.slice';
 
 // ======================================================================
 // Const
@@ -36,11 +37,17 @@ const initialState: SearchState = {
 export const explorePath = createAsyncThunk(
   'auth/explorePath',
   async (folder: Folder, thunkAPI) => {
+    // eslint-disable-next-line @typescript-eslint/no-use-before-define
+    const currentFolder = getCurrentFolder(thunkAPI.getState() as RootState);
+    if (folder.path === currentFolder.path) {
+      return;
+    }
     thunkAPI.dispatch(
       searchApi.util.invalidateTags([
         { type: 'ImagesInFolders', id: folder.id },
       ]),
     );
+    thunkAPI.dispatch(assetsSlice.actions.setSelectedAssets([]));
     // eslint-disable-next-line @typescript-eslint/no-use-before-define
     thunkAPI.dispatch(searchSlice.actions.internalExplorePath(folder));
   },

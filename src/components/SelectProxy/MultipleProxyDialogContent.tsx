@@ -1,15 +1,16 @@
 import ImageIcon from '@mui/icons-material/Image';
-import { Checkbox, DialogContent, Divider, FormControl, FormControlLabel, FormLabel, Radio, RadioGroup } from '@mui/material';
+import { Checkbox, DialogContent, Divider, FormControl, FormControlLabel, FormHelperText, FormLabel, Radio, RadioGroup } from '@mui/material';
 import { Box } from '@mui/system';
 import { FC } from 'react';
 
 interface Props {
   proxies: { [key: string]: string },
+  rememberProxy: boolean,
   onSetImportProxy: (proxy: string) => void,
   onSetRememberImportProxy: (remember: boolean) => void,
 }
 
-export const MultipleProxyDialogContent: FC<Props> = ({ proxies, onSetImportProxy, onSetRememberImportProxy }) => {
+export const MultipleProxyDialogContent: FC<Props> = ({ proxies, onSetImportProxy, rememberProxy, onSetRememberImportProxy }) => {
   return (
     <DialogContent sx={{ maxHeight: 400, userSelect: 'none' }}>
       <Box bgcolor='#cccccc' padding={4}>
@@ -51,19 +52,25 @@ export const MultipleProxyDialogContent: FC<Props> = ({ proxies, onSetImportProx
             <FormControlLabel
               sx={{
                 display: 'flex',
-                
               }}
               control={
-                <Checkbox
-                  sx={{
-                    width:'40px', height:'40px',
-                  }}
-                  onChange={(e) => onSetRememberImportProxy(e.target.checked)}
-                  name="rememberMe"
-                />
+                (
+                  <Checkbox
+                    sx={{
+                      width:'40px', height:'40px',
+                    }}
+                    onChange={(e) => onSetRememberImportProxy(e.target.checked)}
+                    name="rememberMe"
+                  />
+                )
               }
               label="Remember this option"
             />
+            {rememberProxy &&
+              <FormHelperText component='span'>
+                Remember this option for the next time you import assets. You can change this inside the settings menu
+              </FormHelperText>
+            }
           </FormControl>
         </Box>
       </Box>

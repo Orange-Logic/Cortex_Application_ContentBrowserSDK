@@ -41,11 +41,11 @@ const Footer = ({ multiSelect = false, selectedAssets, deselectAll }: FooterProp
       alignItems: 'center',
       padding: '8px 12px',
       gap: 2,
-      backgroundImage: `linear-gradient(to left, ${CortexColors.A0} 400px, transparent, transparent)`,
+      backgroundImage: `linear-gradient(to left, ${CortexColors.A0} 520px, transparent, transparent)`,
     }}
   >
     <Typography sx={{ color: CortexColors.A500 }} fontWeight='500' fontStyle='italic'>
-      Selecting {multiSelect ? 'multiple assets' : 'a single asset'}
+      Import {multiSelect ? 'multiple assets' : 'a single asset'}
     </Typography>
     {(selectedAssets.length > 0 && multiSelect) &&
       <Box sx={{
@@ -83,6 +83,7 @@ const Footer = ({ multiSelect = false, selectedAssets, deselectAll }: FooterProp
               backgroundColor: CortexColors.A200,
               borderColor: CortexColors.B300,
             },
+            minWidth: 140,
           }}
           onClick={deselectAll}
         >
@@ -94,6 +95,7 @@ const Footer = ({ multiSelect = false, selectedAssets, deselectAll }: FooterProp
       sx={{
         backgroundColor: CortexColors.B500,
         color: CortexColors.A0,
+        minWidth: 140,
       }}
       onClick={handleClickConfirm}
       disabled={selectedAssets.length === 0}
@@ -115,6 +117,7 @@ const Footer = ({ multiSelect = false, selectedAssets, deselectAll }: FooterProp
           maxWidth: '70%',
           overflow: 'hidden',
           textOverflow: 'ellipsis',
+          whiteSpace: 'pre-line',
         }}
       >
         {errorMessage}

@@ -4,7 +4,7 @@ import { App } from './App';
 import { AppContextType, ImageCardDisplayInfo } from './AppContext';
 import { store } from './store';
 import { enableOnlyIIIFPrefix, resetImportStatus } from './store/assets/assets.slice';
-import { initAuthInfoFromCache, setSiteUrl } from './store/auth/auth.slice';
+import { initAuthInfoFromCache, setUserConfigSiteUrl } from './store/auth/auth.slice';
 import { setExtraFields } from './store/search/search.slice';
 import './styles.css';
 
@@ -143,7 +143,7 @@ window.CortexAssetPicker = {
 
     // Dispatch some event before start render the APP
     if (!!baseUrl) {
-      store.dispatch(setSiteUrl(baseUrl));
+      store.dispatch(setUserConfigSiteUrl(baseUrl));
     }
     store.dispatch(initAuthInfoFromCache());
     if (extraFields) {

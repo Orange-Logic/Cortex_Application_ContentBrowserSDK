@@ -26,6 +26,7 @@ const Header = () => {
         src={LOGO_BASE64}
         sx={{
           height: 30,
+          pb: 3,
         }}
       ></Box>
       <Box

@@ -42,7 +42,7 @@ export const importAssetErrorMessageSelector = (state: RootState) =>
 // ======================================================================
 // Slice
 // ======================================================================
-export const assetsState = createSlice({
+export const assetsSlice = createSlice({
   name: ASSETS_FEATURE_KEY,
   initialState,
   reducers: {
@@ -88,7 +88,7 @@ export const assetsState = createSlice({
   },
 });
 
-export const { enableOnlyIIIFPrefix, setImportProxy, setSelectedAssets, setIsProxyModalOpen, setIsImporting, resetImportStatus } = assetsState.actions;
+export const { enableOnlyIIIFPrefix, setImportProxy, setSelectedAssets, setIsProxyModalOpen, setIsImporting, resetImportStatus } = assetsSlice.actions;
 
 // ======================================================================
 // Action
@@ -128,4 +128,4 @@ export const importAssets = createAsyncThunk<void, { importProxy?: string, remem
   },
 );
 
-export default assetsState.reducer;
+export default assetsSlice.reducer;

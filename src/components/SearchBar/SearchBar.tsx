@@ -20,6 +20,7 @@ import { SearchInput } from './SearchInput';
 import { Browser as BrowserTree } from '../Browser';
 import { CortexSwitch } from '../CortexSwitch';
 import { CortexColors } from '../../utils/constants';
+import { setSelectedAssets } from '../../store/assets/assets.slice';
 
 type SearchBarProps = {
   isSeeThrough: boolean;
@@ -61,7 +62,7 @@ const SearchBar = ({ isSeeThrough, setIsSeeThrough, totalCount, currentCount }: 
             size="small"
             sx={{
               cursor: 'pointer',
-              maxWidth: 250,
+              maxWidth: 300,
             }}
             label="Folder"
             onMouseDownCapture={handleClick}
@@ -94,7 +95,12 @@ const SearchBar = ({ isSeeThrough, setIsSeeThrough, totalCount, currentCount }: 
         </Tooltip>
         <SearchInput
           defaultValue={searchText}
-          onValueChange={(value) => dispatch(setImageSearchText(value))}
+          onValueChange={(value) => {
+            if (searchText !== value) {
+              dispatch(setSelectedAssets([]));
+              dispatch(setImageSearchText(value));
+            }
+          }}
         />
         <FilterMenu />
       </Box>

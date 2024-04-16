@@ -36,6 +36,7 @@ const Authenticate = () => {
   const dispatch = useDispatch<AppDispatch>();
   const oAuthForm = useRef<HTMLFormElement>(null);
   const siteUrl = useSelector(siteUrlSelector);
+  console.log(siteUrl);
   const authError = useSelector(authErrorSelector);
   const [url, setUrl] = useState(siteUrl);
   const [urlError, setUrlError] = useState<string | null>(null);
@@ -48,6 +49,7 @@ const Authenticate = () => {
       .then(() => {
         setCustomAction(<CancelAuthenticateButton />);
         dispatch(oAuth({ siteUrl: urlWithProtocol }));
+        setUrl('');
       })
       .catch(() => {
         setUrlError(

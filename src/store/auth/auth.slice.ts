@@ -30,6 +30,7 @@ export const AUTH_FEATURE_SITE_URL_KEY = `${AUTH_FEATURE_KEY}_site_url_key`;
 export type AuthState = {
   authenticated: boolean;
   siteUrl: string;
+  userConfigSiteUrl?: string;
   accessToken?: string;
   accessKey?: string;
   oAuthUrl?: string;
@@ -112,12 +113,19 @@ export const initAuthInfoFromCache = createAsyncThunk(
       // eslint-disable-next-line @typescript-eslint/no-use-before-define
       let siteUrl = siteUrlSelector(getState() as RootState);
       if (!siteUrl) {
-        // when site info not found in state, we will get the site URL from store
         siteUrl = await getData(AUTH_FEATURE_SITE_URL_KEY) || '';
+        if (!siteUrl) {
+          // eslint-disable-next-line @typescript-eslint/no-use-before-define
+          siteUrl = userConfigSiteUrlSelector(getState() as RootState) ?? '';
+        }
         if (!!siteUrl) {
           // eslint-disable-next-line @typescript-eslint/no-use-before-define
           dispatch(setSiteUrl(siteUrl));
         }
+      }
+
+      if (!siteUrl) {
+        return false;
       }
 
       const accessKey = await getData(AUTH_FEATURE_ACCESS_KEY_KEY);
@@ -186,13 +194,18 @@ export const authSlice = createSlice({
       state.error = '';
       state.siteUrl = action.payload;
     },
+    setUserConfigSiteUrl: (state, action: PayloadAction<string>) => {
+      state.userConfigSiteUrl = action.payload;
+    },
     logout: (state) => {
       state.authenticated = false;
       state.error = '';
       state.accessKey = undefined;
       state.accessToken = undefined;
       state.oAuthUrl = undefined;
+      state.siteUrl = state.userConfigSiteUrl ?? '';
       deleteData(AUTH_FEATURE_ACCESS_KEY_KEY);
+      deleteData(AUTH_FEATURE_SITE_URL_KEY);
     },
   },
   extraReducers: (builder) => {
@@ -219,7 +232,7 @@ export const authSlice = createSlice({
 });
 
 export default authSlice.reducer;
-export const { logout, setAccessToken, setSiteUrl } = authSlice.actions;
+export const { logout, setAccessToken, setSiteUrl, setUserConfigSiteUrl } = authSlice.actions;
 
 // ======================================================================
 // Selector
@@ -235,6 +248,9 @@ export const oAuthUrlSelector = (rootState: RootState) =>
 
 export const siteUrlSelector = (rootState: RootState) =>
   rootState[AUTH_FEATURE_KEY].siteUrl;
+
+export const userConfigSiteUrlSelector = (rootState: RootState) =>
+  rootState[AUTH_FEATURE_KEY].userConfigSiteUrl;
 
 export const authErrorSelector = (rootState: RootState) =>
   rootState[AUTH_FEATURE_KEY].error;

@@ -73,7 +73,7 @@ const SelectProxyModal = ({ open, ...props }: DialogProps) => {
       {
         isSuccess && !!(data?.proxies)
           ? <>
-            <MultipleProxyDialogContent proxies={data.proxies} onSetImportProxy={setProxy} onSetRememberImportProxy={setRememberProxy}/>
+            <MultipleProxyDialogContent proxies={data.proxies} onSetImportProxy={setProxy} rememberProxy={rememberProxy} onSetRememberImportProxy={setRememberProxy}/>
             <DialogActions sx={{ border: 'none' }}>
               <Button color='secondary' onClick={() => dispatch(setIsProxyModalOpen(false))}>Cancel</Button>
               <Button onClick={handleImport} disabled={!proxy}>Insert</Button>
