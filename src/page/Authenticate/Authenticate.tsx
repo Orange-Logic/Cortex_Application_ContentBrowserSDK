@@ -8,97 +8,120 @@ import {
 } from '@mui/material';
 import { useContext, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { LoaderContext } from '../../components/Loader/LoaderWrapper';
+import { GlobalConfigContext } from '../../GlobalConfigContext';
 import { AppDispatch } from '../../store';
-import { abortGetAccessKeyController } from '../../store/auth/auth.service';
 import {
   authErrorSelector,
   oAuth,
   siteUrlSelector,
 } from '../../store/auth/auth.slice';
 import { checkCorrectSiteUrl } from '../../utils/api';
-import { CortexColors } from '../../utils/constants';
+import { CortexColors, LOGIN_GRAPHICS_TOP_COLOR_BASE64 } from '../../utils/constants';
+import { useDebounceState } from '../../utils/hooks';
 
-const CancelAuthenticateButton = () => {
-  return (
-    <Button
-      color='secondary'
-      variant='contained'
-      sx={{ marginY: 8 }}
-      onClick={() => abortGetAccessKeyController.abort()}
-    >
-      Cancel
-    </Button>
-  );
-};
-
-const Authenticate = () => {
+const AuthenticatePage = () => {
   const dispatch = useDispatch<AppDispatch>();
   const oAuthForm = useRef<HTMLFormElement>(null);
   const siteUrl = useSelector(siteUrlSelector);
-  console.log(siteUrl);
   const authError = useSelector(authErrorSelector);
+  const { pluginInfo } = useContext(GlobalConfigContext);
   const [url, setUrl] = useState(siteUrl);
   const [urlError, setUrlError] = useState<string | null>(null);
-  const { setCustomAction } = useContext(LoaderContext);
+  const [checkingSite, setCheckingSite] = useDebounceState(false, 1000); // debounce to avoid flashing when check site connect too fast
 
   const onSubmit: React.FormEventHandler<HTMLFormElement> = (e) => {
-    const urlWithProtocol = url.indexOf('://') === -1 ? `https://${url}` : url;
     e.preventDefault();
+    setCheckingSite(true, true);
+    const urlWithProtocol = url.indexOf('://') === -1 ? `https://${url}` : url;
     checkCorrectSiteUrl(urlWithProtocol)
-      .then(() => {
-        setCustomAction(<CancelAuthenticateButton />);
-        dispatch(oAuth({ siteUrl: urlWithProtocol }));
-        setUrl('');
-      })
-      .catch(() => {
-        setUrlError(
-          `Site ${url} is not available. Please check your internet connection`,
-        );
-      });
+      .then(() => dispatch(oAuth({ siteUrl: urlWithProtocol })))
+      .catch(() => setUrlError('The site is currently not available. Please verify your Site URL and check your Internet connection.'))
+      .finally(() => setCheckingSite(false));
+  };
+
+  const cancelConnect = () => {
+    setCheckingSite(false, true);
+    setUrlError(null);
   };
 
   return (
     <Box
-      display='flex'
-      flexDirection='column'
-      alignItems='stretch'
-      justifyContent='center'
-      sx={{ 
-        backgroundColor: CortexColors.A0,
-        height: '100%',
-        margin: 'auto',
-        minWidth: 600,
+      sx={{
+        background: `url(${LOGIN_GRAPHICS_TOP_COLOR_BASE64})`,
+        backgroundPositionX: 'center',
+        backgroundPositionY: 'top',
+        backgroundSize: 'contain',
+        backgroundRepeat: 'no-repeat',
+        display: 'flex',
+        position: 'absolute',
+        inset: 0,
       }}
     >
-      <Typography variant='h4' gutterBottom textAlign='center'>
-        OrangeDam Assets Browser
-      </Typography>
-
-      <Stack
-        spacing={2}
-        component='form'
-        noValidate
-        onSubmit={onSubmit}
-        ref={oAuthForm}
+      <Box
+        display='flex'
+        flexDirection='column'
+        alignItems='stretch'
+        justifyContent='center'
+        sx={{ 
+          height: '100%',
+          margin: 'auto',
+          minWidth: 700,
+        }}
       >
-        {authError && <Alert severity='error'>{authError}</Alert>}
-        <TextField
-          error={!!urlError}
-          label='Site URL'
-          placeholder='Enter your OrangeDAM URL'
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-          helperText={urlError ?? undefined}
-        />
-        <Box alignSelf='end'>
-          <Button variant='contained' disabled={!url} type='submit'>
-            connect
-          </Button>
-        </Box>
-      </Stack>
+        <Typography variant='h4' gutterBottom textAlign='center'>
+          Welcome to the Orange DAM Asset Browser
+        </Typography>
+        {
+          pluginInfo.pluginName && (
+            <Typography variant="h5" gutterBottom textAlign="center" sx={{
+              fontSize: 15,
+              color: CortexColors.A600,
+            }}>
+              for {pluginInfo.pluginName}
+            </Typography>
+          )
+        }
+
+        <Stack
+          marginTop={20}
+          spacing={2}
+          component='form'
+          noValidate
+          onSubmit={onSubmit}
+          ref={oAuthForm}
+        >
+          {authError && <Alert severity='error'>{authError}</Alert>}
+          <Stack spacing={2}>
+            <TextField
+              error={!!urlError}
+              label='Site URL'
+              placeholder='Enter your OrangeDAM URL'
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              helperText={urlError ?? undefined}
+            />
+          </Stack>
+          <Box sx={{
+            display: 'flex',
+            flexDirection: 'row',
+            justifyContent: 'flex-end',
+            alignItems: 'center',
+          }}>
+            <Box sx={{
+              display: 'flex',
+              flexDirection: 'row',
+              alignItems: 'center',
+              width: 'min-content',
+            }}>
+              {checkingSite && <Button sx={{ mr: 2 }} color='secondary' onClick={cancelConnect}>Cancel</Button>}
+              <Button disabled={url === '' || checkingSite} type="submit">
+                {checkingSite ? 'Connecting...' : (!urlError ? 'Connect' : 'Retry' )}</Button>
+            </Box>
+          </Box>
+        </Stack>
+      </Box>
     </Box>
   );
 };
 
-export default Authenticate;
+export default AuthenticatePage;

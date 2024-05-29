@@ -44,8 +44,8 @@
       const settings = {
         onImageSelected: console.debug,
         onError: console.error,
-        baseUrl: "asdf",
-        // containerId: 'react-app-root',
+        // baseUrl: "local.orangelogic.com",
+        containerId: 'react-app-root',
         multiSelect: true, // single or multiple file picke
         displayInfo: {
           title: true,
@@ -54,13 +54,13 @@
           tags: true,
         },
         onClose: () => { },
-      };
-
+        // pluginName: "Generic Asset Browser",
+        // pluginShortName: "GAB"
+      }
       settings.onClose = () => {
         console.log('Picker closed, reopening ...');
         window.CortexAssetPicker.open(settings);
-      };
-
+      }
       window.CortexAssetPicker.open(settings);
     }
 

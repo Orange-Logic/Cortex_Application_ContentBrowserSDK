@@ -11,7 +11,7 @@ const resolveExtraFilters = (searchText: string, mediaTypes: MediaType[]) => {
   const typesToFilter = !mediaTypes?.length ? Object.keys(MediaType) : mediaTypes;
 
   let typesQuery = typesToFilter
-    .map(type => type === MediaType.MultiMedia ? 'FileExtension:PDF' : `MediaType:${type}`)
+    .map(type => type === MediaType.Others ? 'FileExtension:PDF' : `MediaType:${type}`)
     .join(' OR ');
   if (typesToFilter.length > 1) {
     typesQuery = `(${typesQuery})`;
@@ -71,9 +71,7 @@ export const searchApi = createApi({
               ).replace(/^Root\//i, ''),
             }))
             .filter((item) => {
-              return item.title
-                .toLowerCase()
-                .startsWith(arg.searchText.toLowerCase());
+              return item.title.toLowerCase().includes(arg.searchText.toLowerCase());
             }) ?? []
         );
       },

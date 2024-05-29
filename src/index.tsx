@@ -1,7 +1,8 @@
 import { createRoot } from 'react-dom/client';
 import { Provider } from 'react-redux';
 import { App } from './App';
-import { AppContextType, ImageCardDisplayInfo } from './AppContext';
+import { AppContextType } from './AppContext';
+import { GlobalConfigContext, ImageCardDisplayInfo } from './GlobalConfigContext';
 import { store } from './store';
 import { enableOnlyIIIFPrefix, resetImportStatus } from './store/assets/assets.slice';
 import { initAuthInfoFromCache, setUserConfigSiteUrl } from './store/auth/auth.slice';
@@ -61,6 +62,16 @@ declare global {
          * default to true for all field
          */
         displayInfo?: ImageCardDisplayInfo;
+        /**
+         * The plugin name.
+         * Should be defined when using GAB as a plugin for 3rd party app.
+         */
+        pluginName?: string;
+        /**
+         * The plugin short name.
+         * By default, it will be the `pluginName`
+         */
+        pluginShortName?: string;
       }) => void,
       /**
        * Global function which mirrored the behavior of onImageSelected
@@ -75,6 +86,10 @@ declare global {
        */
       _onClose?: () => void,
     };
+  }
+
+  interface URLSearchParams {
+    Token?: string;
   }
 }
 
@@ -100,6 +115,8 @@ window.CortexAssetPicker = {
         fileSize: true,
         tags: true,
       },
+      pluginName: "Generic Asset Browser",
+      pluginShortName: "GAB"
     });`);
   },
   open: ({ 
@@ -117,6 +134,8 @@ window.CortexAssetPicker = {
       fileSize: true,
       tags: true,
     },
+    pluginName,
+    pluginShortName,
   }) => {
     let container = containerId && document.getElementById(containerId);
     if (!containerId) {
@@ -137,6 +156,7 @@ window.CortexAssetPicker = {
       pickerRoot.style.display = 'flex';
       pickerRoot.style.alignItems = 'center';
       pickerRoot.style.justifyContent = 'center';
+      pickerRoot.style.position = 'relative';
       container.appendChild(pickerRoot);
     }
     const root = createRoot(pickerRoot);
@@ -173,13 +193,21 @@ window.CortexAssetPicker = {
 
     root.render(
       <Provider store={store}>
+        <GlobalConfigContext.Provider value={{
+          displayInfo,
+          pluginInfo: {
+            pluginName,
+            pluginShortName: pluginShortName ?? pluginName,
+          },
+          isGABPopedup: !containerId,
+        }}>
           <App
             multiSelect={multiSelect}
             containerId={containerId}
-            displayInfo={displayInfo}
             onError={errorHandler}
             onImageSelected={imageSelectedHandler}
             onClose={handleClose} />
+        </GlobalConfigContext.Provider>
       </Provider>,
     );
   },

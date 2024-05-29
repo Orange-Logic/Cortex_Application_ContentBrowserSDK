@@ -8,8 +8,7 @@ export const userApi = createApi({
   baseQuery: AppBaseQuery,
   endpoints: (builder) => ({
     getUserInfo: builder.query({
-      query: () =>
-        '/webapi/extensibility/integrations/gab/authorization/getuserinfo_4bs_v1',
+      query: () => '/webapi/extensibility/integrations/gab/authorization/getuserinfo_4bs_v1',
       transformResponse: (response: UserInfo) => {
         return response;
       },

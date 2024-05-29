@@ -1,4 +1,4 @@
-import { Box } from '@mui/material';
+import { Box, IconButton } from '@mui/material';
 import { useAppDispatch } from '../../store';
 import { resetImportStatus } from '../../store/assets/assets.slice';
 import { logout } from '../../store/auth/auth.slice';
@@ -8,9 +8,15 @@ import { LOGO_BASE64 } from '../../utils/constants';
 import HeaderButton from './HeaderButton';
 import HeaderDivider from './HeaderDivider';
 import UserName from './UserName';
+import { useContext } from 'react';
+import { GlobalConfigContext } from '../../GlobalConfigContext';
+import CloseIcon from '@mui/icons-material/Close';
+import { AppContext } from '../../AppContext';
 
 const Header = () => {
   const dispatch = useAppDispatch();
+  const { isGABPopedup } = useContext(GlobalConfigContext);
+  const { onClose } = useContext(AppContext);
 
   return (
     <Box
@@ -50,6 +56,16 @@ const Header = () => {
         >
           Logout
         </HeaderButton>
+        {
+          isGABPopedup && (
+            <>
+              <HeaderDivider />
+              <IconButton size='small' disableRipple onClick={onClose}>
+                <CloseIcon/>
+              </IconButton>
+            </>
+          )
+        }
       </Box>
     </Box>
   );

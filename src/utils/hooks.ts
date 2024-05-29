@@ -1,25 +1,36 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
-export function useDebounce<T>(value: T, delay: number): T {
+export function useDebounceState<T>(value: T, delay: number): [T, (value: T, instance?: boolean) => void] {
   // State and setters for debounced value
   const [debouncedValue, setDebouncedValue] = useState(value);
+  const timerFlag = useRef<NodeJS.Timeout | null>(null);
 
-  useEffect(
-    () => {
-      // Update debounced value after delay
-      const handler = setTimeout(() => {
-        setDebouncedValue(value);
+  const resetTimer = () => {
+    if (!!timerFlag.current) {
+      clearTimeout(timerFlag.current); 
+      timerFlag.current = null;
+    }
+  };
+
+  // Clear timeout on unmount if necessary
+  useEffect(() => () => resetTimer(), []);
+
+  const setValue = useCallback<(value: T, instance?: boolean) => void>((newValue, instance = false) => {
+    if (instance) resetTimer();
+
+    if (timerFlag.current === null) {
+      setDebouncedValue(newValue);
+      timerFlag.current = setTimeout(() => {
+        timerFlag.current = null;
       }, delay);
+    } else {
+      resetTimer();
+      timerFlag.current = setTimeout(() => {
+        timerFlag.current = null;
+        setDebouncedValue(newValue);
+      }, delay);
+    }
+  }, [delay]); // reset all setting if value or delay changed
 
-      // Cancel the timeout if value changes (also on delay change or unmount)
-      // This is how we prevent debounced value from updating if value is changed ...
-      // .. within the delay period. Timeout gets cleared and restarted.
-      return () => {
-        clearTimeout(handler);
-      };
-    },
-    [value, delay], // Only re-call effect if value or delay changes
-  );
-
-  return debouncedValue;
+  return [debouncedValue, setValue];
 }

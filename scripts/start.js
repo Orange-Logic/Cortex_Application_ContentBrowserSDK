@@ -62,7 +62,6 @@ if (process.env.HOST) {
   console.log(
     `Learn more here: ${chalk.yellow('https://cra.link/advanced-config')}`,
   );
-  console.log();
 }
 
 // We require that you explicitly set browsers and do not fall back to

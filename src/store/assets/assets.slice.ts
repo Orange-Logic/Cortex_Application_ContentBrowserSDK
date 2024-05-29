@@ -30,6 +30,9 @@ export const importProxySelector = (state: RootState) =>
 export const selectedAssetsSelector = (state: RootState) =>
   state[ASSETS_FEATURE_KEY].selectedAssets;
 
+export const totalSelectedAssetSelector = (state: RootState) =>
+  state[ASSETS_FEATURE_KEY].selectedAssets.length;
+
 export const isProxyModalOpenSelector = (state: RootState) =>
   state[ASSETS_FEATURE_KEY].isProxyModalOpen;
 

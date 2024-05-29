@@ -3,22 +3,23 @@ import {
   GetAccessTokenRes,
   RequestAuthorizeRes,
 } from '../../types/auth';
-import { getRequestUrl } from '../../utils/getRequestUrl';
+import { cortexFetch } from '../../utils/api';
 
 export const AUTH_MAX_RETRIES = 10;
-// Public the abort controller for getaccesskey
-let abortGetAccessKeyController = new AbortController();
-export { abortGetAccessKeyController };
+export const CANCEL_AUTH_MESSAGE = 'Authentication cancelled';
+
+export let authAbortController = new AbortController();
+
+export const abortAuthService = () => {
+  authAbortController.abort(CANCEL_AUTH_MESSAGE);
+  authAbortController = new AbortController();
+};
 
 export const requestAuthorizeService = async (
-  baseUrl: string,
   nonce: string,
 ): Promise<RequestAuthorizeRes> => {
-  const response = await fetch(
-    getRequestUrl(
-      baseUrl,
-      'webapi/extensibility/integrations/gab/authorization/requestauthorize_4bu_v1',
-    ),
+  const response = await cortexFetch(
+    'webapi/extensibility/integrations/gab/authorization/requestauthorize_4bu_v1',
     {
       method: 'POST',
       body: JSON.stringify({ Nonce: nonce }),
@@ -31,20 +32,16 @@ export const requestAuthorizeService = async (
 };
 
 export const getAccessKeyService = async (
-  baseUrl: string,
   requestID: string,
 ): Promise<GetAccessKeyRes> => {
-  abortGetAccessKeyController = new AbortController();
+  authAbortController = new AbortController();
   let count = 0;
   let data: GetAccessKeyRes;
   while (count < AUTH_MAX_RETRIES) {
-    const response = await fetch(
-      getRequestUrl(
-        baseUrl,
-        'webapi/extensibility/integrations/gab/authorization/getaccesskey_4bv_v1',
-      ),
+    const response = await cortexFetch(
+      'webapi/extensibility/integrations/gab/authorization/getaccesskey_4bv_v1',
       {
-        signal: abortGetAccessKeyController.signal,
+        signal: authAbortController.signal,
         method: 'POST',
         body: JSON.stringify({ RequestID: requestID }),
         headers: {
@@ -62,14 +59,10 @@ export const getAccessKeyService = async (
 };
 
 export const getAccessTokenService = async (
-  baseUrl: string,
   accessKey: string,
 ): Promise<GetAccessTokenRes> => {
-  const response = await fetch(
-    getRequestUrl(
-      baseUrl,
-      'webapi/extensibility/integrations/gab/authorization/getaccesstoken_4bt_v1',
-    ),
+  const response = await cortexFetch(
+    'webapi/extensibility/integrations/gab/authorization/getaccesstoken_4bt_v1',
     {
       method: 'POST',
       body: JSON.stringify({ AccessKey: accessKey }),

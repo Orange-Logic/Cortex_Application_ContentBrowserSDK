@@ -7,7 +7,7 @@ import {
 import { Mutex } from 'async-mutex';
 import { RootState, store } from '../store';
 import { getAccessTokenService } from '../store/auth/auth.service';
-import { AUTH_FEATURE_KEY, logout, setAccessToken } from '../store/auth/auth.slice';
+import { accessTokenSelector, AUTH_FEATURE_KEY, logout, setAccessToken } from '../store/auth/auth.slice';
 import { getRequestUrl } from './getRequestUrl';
 
 interface CortexFetchOptions extends RequestInit {
@@ -46,9 +46,11 @@ string | FetchArgs,
 unknown,
 FetchBaseQueryError
 > = async (args, api, extraOptions) => {
-  const token = (api.getState() as RootState).auth.accessToken;
-  if (token) args = appendQueryStringParam(args, 'Token', token);
-  const authState = (api.getState() as RootState)[AUTH_FEATURE_KEY];
+  const rootState = api.getState() as RootState;
+  const token = accessTokenSelector(rootState);
+  if (token)
+    args = appendQueryStringParam(args, 'Token', token);
+  const authState = rootState[AUTH_FEATURE_KEY];
   const rawBaseQuery = fetchBaseQuery({
     baseUrl: authState.siteUrl,
   });
@@ -62,7 +64,7 @@ FetchBaseQueryError
       try {
         if (authState.accessKey) {
           const accessToken = (
-            await getAccessTokenService(authState.siteUrl, authState.accessKey)
+            await getAccessTokenService(authState.accessKey)
           ).accessToken;
           api.dispatch(setAccessToken(accessToken));
         }
@@ -151,19 +153,17 @@ export const cortexFetch = async (resource: string, options?: CortexFetchOptions
         } else {
           let needsLoggingOut = false;
           try {
-            const tokenResp = await getAccessTokenService(authState.siteUrl, authState.accessKey);
+            const tokenResp = await getAccessTokenService(authState.accessKey);
 
             if (tokenResp.accessToken) {
               store.dispatch(setAccessToken(tokenResp.accessToken));
               resource = getRequestUrl(authState.siteUrl, resource, authState.accessToken);
               return await fetchWithTimeout(resource, options);
             } else {
-              console.log('access token not found -- logging out');
               needsLoggingOut = true;
               return response;
             }
           } catch (e) {
-            console.log(`${e} -- logging out`);
             needsLoggingOut = true;
             return response;
           } finally {

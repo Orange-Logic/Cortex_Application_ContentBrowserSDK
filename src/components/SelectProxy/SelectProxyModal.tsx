@@ -1,6 +1,7 @@
 import CloseIcon from '@mui/icons-material/Close';
-import { Button, Dialog, DialogActions, DialogProps, DialogTitle, IconButton } from '@mui/material';
-import { useEffect, useState } from 'react';
+import { Button, Dialog, DialogActions, DialogProps, DialogTitle, Divider, IconButton } from '@mui/material';
+import { useContext, useEffect, useState } from 'react';
+import { GlobalConfigContext } from '../../GlobalConfigContext';
 import { useAppDispatch } from '../../store';
 import { useGetAvailableProxiesQuery } from '../../store/assets/assets.api';
 import { ASSETS_FEATURE_STORAGE_KEY_IMPORT_PROXY, importAssets, setImportProxy, setIsProxyModalOpen } from '../../store/assets/assets.slice';
@@ -12,6 +13,7 @@ const SelectProxyModal = ({ open, ...props }: DialogProps) => {
   const { isSuccess, data } = useGetAvailableProxiesQuery();
   const [proxy, setProxy] = useState<string | undefined>();
   const [rememberProxy, setRememberProxy] = useState<boolean>(false);
+  const { pluginInfo } = useContext(GlobalConfigContext);
   const dispatch = useAppDispatch();
 
   useEffect(() => {
@@ -59,7 +61,7 @@ const SelectProxyModal = ({ open, ...props }: DialogProps) => {
         position: 'relative',
         border: 'none',
       }}>
-        Import Asset
+        {pluginInfo.pluginShortName ? `Add to ${pluginInfo.pluginShortName}` : 'Import Asset' }
         <IconButton sx={{
           position: 'absolute',
           top: '50%',
@@ -70,13 +72,16 @@ const SelectProxyModal = ({ open, ...props }: DialogProps) => {
           <CloseIcon />
         </IconButton>
       </DialogTitle>
+      <Divider />
       {
         isSuccess && !!(data?.proxies)
           ? <>
             <MultipleProxyDialogContent proxies={data.proxies} onSetImportProxy={setProxy} rememberProxy={rememberProxy} onSetRememberImportProxy={setRememberProxy}/>
             <DialogActions sx={{ border: 'none' }}>
               <Button color='secondary' onClick={() => dispatch(setIsProxyModalOpen(false))}>Cancel</Button>
-              <Button onClick={handleImport} disabled={!proxy}>Insert</Button>
+              <Button onClick={handleImport} disabled={!proxy}>
+                {pluginInfo.pluginShortName ? `Add to ${pluginInfo.pluginShortName}` : 'Insert' }
+              </Button>
             </DialogActions>
           </>
           : <NoProxyDialogContent />

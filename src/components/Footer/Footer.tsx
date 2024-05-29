@@ -1,4 +1,6 @@
 import { Alert, Box, Button, Snackbar, Typography } from '@mui/material';
+import { useContext } from 'react';
+import { GlobalConfigContext } from '../../GlobalConfigContext';
 import { useAppDispatch, useAppSelector } from '../../store';
 import { importAssetErrorMessageSelector, importAssets, importProxySelector, resetImportStatus, setIsProxyModalOpen } from '../../store/assets/assets.slice';
 import { AssetImage } from '../../types/search';
@@ -14,6 +16,7 @@ const Footer = ({ multiSelect = false, selectedAssets, deselectAll }: FooterProp
   const importProxy = useAppSelector(importProxySelector);
   const errorMessage = useAppSelector(importAssetErrorMessageSelector);
   const dispatch    = useAppDispatch();
+  const { pluginInfo } = useContext(GlobalConfigContext);
 
   const handleClickConfirm = async () => {
     if (!importProxy) {
@@ -44,9 +47,6 @@ const Footer = ({ multiSelect = false, selectedAssets, deselectAll }: FooterProp
       backgroundImage: `linear-gradient(to left, ${CortexColors.A0} 520px, transparent, transparent)`,
     }}
   >
-    <Typography sx={{ color: CortexColors.A500 }} fontWeight='500' fontStyle='italic'>
-      Import {multiSelect ? 'multiple assets' : 'a single asset'}
-    </Typography>
     {(selectedAssets.length > 0 && multiSelect) &&
       <Box sx={{
         display: 'flex',
@@ -100,7 +100,7 @@ const Footer = ({ multiSelect = false, selectedAssets, deselectAll }: FooterProp
       onClick={handleClickConfirm}
       disabled={selectedAssets.length === 0}
     >
-      Confirm
+      Add selected assets {pluginInfo.pluginShortName ? `to ${pluginInfo.pluginShortName}` : '' }
     </Button>
 
     <Snackbar

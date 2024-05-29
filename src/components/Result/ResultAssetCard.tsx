@@ -15,7 +15,7 @@ import { Box } from '@mui/system';
 import { useContext, useEffect, useState } from 'react';
 import InfiniteScroll from 'react-infinite-scroll-component';
 import Masonry from 'react-responsive-masonry';
-import { AppContext } from '../../AppContext';
+import { GlobalConfigContext } from '../../GlobalConfigContext';
 import { AssetImage } from '../../types/search';
 import {
   CortexColors,
@@ -33,7 +33,7 @@ type ResultAssetCardProps = {
 };
 
 const ResultAssetCard = ({ image, setLoadCounter, handleSelectItem, isSelected }: ResultAssetCardProps) => {
-  const { displayInfo } = useContext(AppContext);
+  const { displayInfo } = useContext(GlobalConfigContext);
   
   const [imageLoaded, setImageLoaded] = useState(false);
   useEffect(() => {

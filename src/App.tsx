@@ -1,7 +1,7 @@
 import { Dialog, ThemeProvider, createTheme, useMediaQuery } from '@mui/material';
 import { useEffect, useState } from 'react';
 import WebFont from 'webfontloader';
-import { AppContext, AppContextType, ImageCardDisplayInfo } from './AppContext';
+import { AppContext, AppContextType } from './AppContext';
 import { CortexColors, CortexFonts } from './utils/constants';
 import AssetsPicker from './view/AssetsPicker';
 
@@ -274,7 +274,7 @@ const theme = createTheme({
 type AppProps = {
   multiSelect?: boolean;
   containerId?: string;
-  displayInfo?: ImageCardDisplayInfo;
+  pluginName?: string;
   /**
    * Call back when we close the app modal.
    * Note: This only applicable when containerId is not defined
@@ -285,14 +285,7 @@ type AppProps = {
   onImageSelected: AppContextType['onImageSelected'];
 };
 
-const defaultDisplayInfo = {
-  title: true,
-  dimension: true,
-  fileSize: true,
-  tags: true,
-};
-
-export const App = ({ multiSelect, displayInfo, containerId, onClose, onError, onImageSelected }: AppProps) => {
+export const App = ({ multiSelect, containerId, onClose, onError, onImageSelected }: AppProps) => {
   useEffect(() => {
     WebFont.load({
       google: {
@@ -319,7 +312,7 @@ export const App = ({ multiSelect, displayInfo, containerId, onClose, onError, o
       <AppContext.Provider value={{
         onImageSelected,
         onError,
-        displayInfo: { ...defaultDisplayInfo, ...displayInfo },
+        onClose: handleClose,
       }}>
         {
           containerId ?
