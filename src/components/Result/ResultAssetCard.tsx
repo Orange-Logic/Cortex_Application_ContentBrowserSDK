@@ -34,29 +34,23 @@ type ResultAssetCardProps = {
 
 const ResultAssetCard = ({ image, setLoadCounter, handleSelectItem, isSelected }: ResultAssetCardProps) => {
   const { displayInfo } = useContext(GlobalConfigContext);
-  
   const [imageLoaded, setImageLoaded] = useState(false);
+
+  const onImageLoaded = () => {
+    setImageLoaded(true);
+    setLoadCounter((counter: number) => counter - 1);
+  };
+
   useEffect(() => {
-    const assetImage = new Image();
     setLoadCounter((counter: number) => counter + 1);
-
-    const onImageLoaded = () => {
-      setImageLoaded(true);
-      setLoadCounter((counter: number) => counter - 1);
-    };
-    assetImage.onload = onImageLoaded;
-    assetImage.onerror = () => {
-      onImageLoaded();
-      assetImage.src = MISSING_IMAGE_PLACEHOLDER_BASE64;
-    };
-
-    assetImage.src = image.imageUrl;
-  }, [image.imageUrl, setLoadCounter]);
+  }, []);
 
   if (!image) {
     return <ResultLoadingSkeleton />;
   }
+
   const tags = image?.tags?.split(',').map((s) => s.trim()) ?? [];
+  const isImgUrlFilled = typeof image.imageUrl === 'string' && image.imageUrl.length > 0;
 
   return (
     <Box
@@ -95,12 +89,13 @@ const ResultAssetCard = ({ image, setLoadCounter, handleSelectItem, isSelected }
             )}
             <CardMedia
               component="img"
-              image={'' + image.imageUrl}
+              image={isImgUrlFilled ? image.imageUrl : MISSING_IMAGE_PLACEHOLDER_BASE64}
               title={image.name}
-              onError={(e) =>
-                ((e.target as HTMLImageElement).src =
-                  MISSING_IMAGE_PLACEHOLDER_BASE64)
-              }
+              onLoad={onImageLoaded}
+              onError={(e) => {
+                onImageLoaded();
+                ((e.target as HTMLImageElement).src = MISSING_IMAGE_PLACEHOLDER_BASE64);
+              }}
             />
             {isSelected && 
               <CheckBoxIcon 
