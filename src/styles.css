@@ -1,29 +1,19 @@
-* {
+#cortex-asset-picker-root > * {
     margin: 0px;
     padding: 0px;
     transition: opacity ease-in 0.2s;
 }
 
-html,
-body,
-#container {
-    height: 100%;
-}
-
-#container {
-    color: #212121;
-}
-
-::-webkit-scrollbar {
+#cortex-asset-picker-root ::-webkit-scrollbar {
     width: 17px;
     height: 17px;
 }
 
-::-webkit-scrollbar-corner {
+#cortex-asset-picker-root ::-webkit-scrollbar-corner {
     background-color: transparent;
 }
 
-::-webkit-scrollbar-thumb {
+#cortex-asset-picker-root ::-webkit-scrollbar-thumb {
     border-radius: 13px;
     background: #8E8E93;
     background-clip: padding-box;
@@ -31,44 +21,8 @@ body,
     min-height: 50px;
 }
 
-::-webkit-scrollbar-thumb:hover {
+#cortex-asset-picker-root ::-webkit-scrollbar-thumb:hover {
     background: #5B5B6F;
     background-clip: padding-box;
     border: 4px solid rgba(0, 0, 0, 0)
 }
-
-/* needed to make consistent test snapshots across OSs */
-body {
-  font-family: Arial !important;
-}
-
-/*
-CSSTransitionGroup styling
- */
-.sheetNames-enter {
-  opacity: 0;
-}
-
-.sheetNames-enter.sheetNames-enter-active {
-  opacity: 1;
-  transition: opacity 300ms ease-in;
-}
-
-.sheetNames-exit {
-  opacity: 1;
-}
-
-.sheetNames-exit.sheetNames-exit-active {
-  opacity: 0;
-  transition: opacity 300ms ease-in;
-}
-
-.sheetNames-appear {
-  opacity: 0;
-}
-
-.sheetNames-appear.sheetNames-appear-active {
-  opacity: 1;
-  transition: opacity 0.5ms ease-in;
-}
-
