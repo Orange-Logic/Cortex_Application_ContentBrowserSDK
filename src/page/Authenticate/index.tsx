@@ -55,7 +55,7 @@ const WaitForAuthorise = () => {
         fontSize: 15,
         color: CortexColors.A600,
       }}>
-        You will be automatically redirected to authorize {pluginInfo.pluginShortName ? `the ${pluginInfo.pluginShortName} plugin ` : '' }in Orange DAM
+        You will be automatically redirected to authorize {pluginInfo.pluginShortName ? `the ${pluginInfo.pluginShortName} plugin ` : '' }in OrangeDAM
       </Typography>
     </ConnectingBackground>
   );

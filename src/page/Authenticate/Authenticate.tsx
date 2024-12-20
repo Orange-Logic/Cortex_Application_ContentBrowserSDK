@@ -69,7 +69,7 @@ const AuthenticatePage = () => {
         }}
       >
         <Typography variant='h4' gutterBottom textAlign='center'>
-          Welcome to the Orange DAM Asset Browser
+          Welcome to the OrangeDAM Asset Browser
         </Typography>
         {
           pluginInfo.pluginName && (

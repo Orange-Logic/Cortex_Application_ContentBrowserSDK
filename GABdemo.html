@@ -15,7 +15,7 @@
   <div style="display:flex; flex-direction: column; align-items: start; gap: 0.5em;" id="app">
     <div style="display:flex; gap: 0.5em;">
       </span>Try CortexAssetPicker.help() in the console or click this button</span>
-      <button style="width: 250px; height:20px;" onclick="myFunction()">Load the Generic Asset Browser</button>
+      <button style="width: 250px; height:20px;" onclick="showGAB()">Load the Generic Asset Browser</button>
     </div>
     <div>
       <input id="isMultiSelect" type="checkbox">Multi select</input>
@@ -32,7 +32,7 @@
   </div>
 
   <script>
-    function myFunction() {
+    function showGAB() {
       CortexAssetPicker.open({
         multiSelect: document.getElementById("isMultiSelect").checked,
         onImageSelected: function (assets) {
@@ -40,9 +40,11 @@
           document.getElementById("console").value = JSON.stringify(assets, undefined, 4);
         },
         containerId: "react-app-root",
-        baseUrl: "https://cortexdemo2.orangelogic.com",
       });
     }
+    window.onload = function() {
+      showGAB();
+    };
   </script>
 </body>
 
