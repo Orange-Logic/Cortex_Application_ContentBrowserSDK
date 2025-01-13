@@ -18,3 +18,15 @@ If you want to learn more about creating good readme files then refer the follow
 - [ASP.NET Core](https://github.com/aspnet/Home)
 - [Visual Studio Code](https://github.com/Microsoft/vscode)
 - [Chakra Core](https://github.com/Microsoft/ChakraCore)
+
+# Change Log
+* Dec 20, 2024 - v1.2.2
+  * Change Orange DAM to OrangeDAM
+  * GAB in demo will not pre populate with "https://cortexdemo2.orangelogic.com/" any more
+* Nov 08, 2024 - v1.2.1
+  * Resolve CSS conflict with AEM (https://link.orangelogic.com/Tasks/28L9P3)
+* Jul 09, 2024 - v1.2.0
+  * Handle encrypted asset thumbnails (https://link.orangelogic.com/Tasks/4152M3)
+* May 29, 2024 - v1.1.0
+  * Add the ability to select a proxy in the GAB UI
+  * Handle authentication when reopening the GAP
