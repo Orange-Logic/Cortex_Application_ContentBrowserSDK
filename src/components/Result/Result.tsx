@@ -20,7 +20,7 @@ type ResultsProps = {
 };
 
 const Results = ({ currentFolder, searchText, handleSelectItem, selectedAssets, isSeeThrough, setTotalCount, setCurrentCount, mediaTypes }: ResultsProps) => {
-  const scrollTarget = useRef<Node | Window | undefined>();
+  const scrollTarget = useRef<Node | Window>(undefined);
   const [page, setPage] = useState(0);
   const [seeThru, setSeeThru] = useState(isSeeThrough);
 

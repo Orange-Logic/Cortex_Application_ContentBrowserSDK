@@ -26,7 +26,7 @@ const Browser = ({ focusInput, onFolderSelect }: BrowserProps) => {
   const [internalText, setInternalText] = useState(searchText);
   useDebouncedEffect(() => setSearchText(internalText), [internalText], 1000);
 
-  const searchInputRef = useRef<HTMLInputElement | undefined>();
+  const searchInputRef = useRef<HTMLInputElement>(undefined);
   useEffect(() => {
     if (focusInput) {
       searchInputRef.current?.focus();
