@@ -1,25 +1,29 @@
-import { Button, FormControl, FormHelperText, InputLabel, MenuItem, Select, Skeleton, Typography } from '@mui/material';
+import { Button, Skeleton, Typography } from '@mui/material';
 import { Box, Stack } from '@mui/system';
-import { useContext, useEffect, useState } from 'react';
+import { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { AppContext } from '../../AppContext';
 import { useAppDispatch, useAppSelector } from '../../store';
 import { useGetAvailableProxiesQuery } from '../../store/assets/assets.api';
-import { ASSETS_FEATURE_STORAGE_KEY_IMPORT_PROXY, importProxySelector, setImportProxy } from '../../store/assets/assets.slice';
+import { setStoredProxiesPreference, storedProxiesPreferenceSelector } from '../../store/assets/assets.slice';
 import { openHome } from '../../store/navigation/navigation.slice';
+import { StringTable } from '../../types/common';
 import { CortexColors, LOGIN_GRAPHICS_TOP_COLOR_BASE64 } from '../../utils/constants';
-import { storeData } from '../../utils/storage';
-import { GlobalConfigContext } from '../../GlobalConfigContext';
-
-const SETTINGS_DEFAULT_PROXY = 'Always show asset format selector';
+import ProxySelector from './ProxySelector';
 
 export const Settings = () => {
-  const importProxy = useAppSelector(importProxySelector);
-  const { pluginInfo } = useContext(GlobalConfigContext);
-  const { isSuccess, isError, error, isFetching, data } = useGetAvailableProxiesQuery();
-  const [currentProxy, setCurrentProxy] = useState<string>(importProxy || '');
+  const dispatch = useAppDispatch();
+  const proxiesPreference = useAppSelector(storedProxiesPreferenceSelector);
   const [hasChanged, setHasChanged] = useState(false);
   const { onError } = useContext(AppContext);
-  const dispatch = useAppDispatch();
+  const { isSuccess, isError, error, isFetching, data } = useGetAvailableProxiesQuery({});
+
+  const pendingProxiesPreference = useRef<StringTable>({});
+  const setPendingProxyPreference = useCallback((docType: string, proxy: string) => {
+    pendingProxiesPreference.current[docType] = proxy;
+    setHasChanged(!Object.keys(pendingProxiesPreference.current)
+      .every(type => (proxiesPreference[type] || !pendingProxiesPreference.current[type])
+                  && (!proxiesPreference[type] || pendingProxiesPreference.current[type] === proxiesPreference[type])));
+  }, []);
 
   useEffect(() => {
     if (isError || !isSuccess) {
@@ -28,8 +32,7 @@ export const Settings = () => {
   }, [isSuccess, isError, error]);
 
   const onSave = () => {
-    dispatch(setImportProxy((currentProxy === SETTINGS_DEFAULT_PROXY || !currentProxy) ? '' : currentProxy));
-    storeData(ASSETS_FEATURE_STORAGE_KEY_IMPORT_PROXY, currentProxy);
+    if (hasChanged) dispatch(setStoredProxiesPreference(pendingProxiesPreference.current));
     dispatch(openHome());
   };
 
@@ -51,32 +54,11 @@ export const Settings = () => {
         <Typography variant="h1" gutterBottom textAlign="center">
           Settings
         </Typography>
-        <FormControl sx={{ m: 1 }}>
-          <InputLabel>Default selection when entering settings.</InputLabel>
-          {!isFetching ?
-            <Select
-              value={currentProxy}
-              label="Default selection when entering setting."
-              onChange={(e) => {
-                setHasChanged(true);
-                setCurrentProxy(e.target.value as string);
-              }}
-            >
-              {data?.proxies &&
-                Object.keys(data.proxies).map((key, id) => <MenuItem key={id} value={data?.proxies[key]}>{key}</MenuItem>)}
-              <MenuItem value={SETTINGS_DEFAULT_PROXY} sx={{ fontStyle: 'italic' }}>{ SETTINGS_DEFAULT_PROXY }</MenuItem>
-            </Select>
-            : (
-              <Skeleton variant="rounded" width="100%" height={54} />
-            )
-          }
-          <FormHelperText>
-            This format option will be used when you add assets{pluginInfo.pluginShortName ? ` to ${pluginInfo.pluginShortName}` : ''}.
-            This selection only applies to the current session.
-            {/* The proxy that you will be using when import the asset.
-            The applied value only available for the current session. */}
-          </FormHelperText>
-        </FormControl>
+        {
+          isFetching
+            ? <Skeleton variant="rounded" width="100%" height={54} />
+            : <ProxySelector proxiesForDocType={data?.proxiesForDocType} setProxyPreference={setPendingProxyPreference} proxyPreference={proxiesPreference}/>
+        }
         <Box sx={{
           display: 'flex',
           flexDirection: 'row',

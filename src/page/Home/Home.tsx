@@ -7,7 +7,7 @@ import Results from '../../components/Result/Result';
 import SearchBar from '../../components/SearchBar';
 import SelectProxyModal from '../../components/SelectProxy';
 import { useAppDispatch, useAppSelector } from '../../store';
-import { isImportingSelector, isProxyModalOpenSelector, selectedAssetsSelector, setSelectedAssets } from '../../store/assets/assets.slice';
+import { selectedAssetsSelector, setSelectedAssets } from '../../store/assets/assets.slice';
 import { AssetImage } from '../../types/search';
 import { CortexColors } from '../../utils/constants';
 
@@ -17,8 +17,6 @@ type HomePageProps = {
 
 const HomePage = ({ multiSelect = false }: HomePageProps) => {
   const selectedAssets = useAppSelector(selectedAssetsSelector);
-  const isProxyModalOpen = useAppSelector(isProxyModalOpenSelector);
-  const isImporting = useAppSelector(isImportingSelector);
   const [isSeeThrough, setIsSeeThrough] = useState<boolean>(true);
   const [totalCount, setTotalCount] = useState<number>(0);
   const [currentCount, setCurrentCount] = useState<number>(0);
@@ -29,14 +27,14 @@ const HomePage = ({ multiSelect = false }: HomePageProps) => {
       dispatch(setSelectedAssets([selectedAsset]));
       return;
     }
+
     if (selectedAssets.includes(selectedAsset)) {
-      const newAssets = selectedAssets.filter((asset)=> {
-        return asset.id !== selectedAsset.id;
-      });
-      dispatch(setSelectedAssets(newAssets));
-      return;
+      // The asset already selected, now we need to remove it from the selected assets list
+      dispatch(setSelectedAssets(selectedAssets.filter(asset => asset.id !== selectedAsset.id)));
+    } else {
+      // The asset is not selected, now we need to add it to the selected assets list
+      dispatch(setSelectedAssets([...selectedAssets, selectedAsset]));
     }
-    dispatch(setSelectedAssets([...selectedAssets, selectedAsset]));
   };
 
   return (
@@ -92,7 +90,7 @@ const HomePage = ({ multiSelect = false }: HomePageProps) => {
         />
       }
       {/* Need this component mounted to handle the stored default proxy */}
-      <SelectProxyModal open={isProxyModalOpen && !isImporting} /> 
+      <SelectProxyModal /> 
       <ImportingDialog />
     </Box>
   );

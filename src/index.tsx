@@ -4,10 +4,11 @@ import { App } from './App';
 import { AppContextType } from './AppContext';
 import { GlobalConfigContext, ImageCardDisplayInfo } from './GlobalConfigContext';
 import { store } from './store';
-import { enableOnlyIIIFPrefix, resetImportStatus } from './store/assets/assets.slice';
+import { enableOnlyIIIFPrefix, resetImportStatus, setStoredProxiesPreference } from './store/assets/assets.slice';
 import { initAuthInfoFromCache, setUserConfigSiteUrl } from './store/auth/auth.slice';
 import { setExtraFields } from './store/search/search.slice';
 import './styles.css';
+import { GetProxyPreferenceFromStorage } from './utils/storage';
 
 declare global {
   interface Window {
@@ -172,6 +173,7 @@ window.CortexAssetPicker = {
     if (typeof onlyIIIFPrefix === 'boolean' && onlyIIIFPrefix) {
       store.dispatch(enableOnlyIIIFPrefix());
     }
+    GetProxyPreferenceFromStorage().then(preference => store.dispatch(setStoredProxiesPreference(preference)));
 
     const errorHandler         = (typeof onError === 'function' && !!onError) ? onError : console.log;
     const imageSelectedHandler = (typeof onImageSelected === 'function' && !!onImageSelected) ? onImageSelected : console.log;

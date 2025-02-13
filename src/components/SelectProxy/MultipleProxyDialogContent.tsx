@@ -1,81 +1,62 @@
-import ImageIcon from '@mui/icons-material/Image';
-import { Checkbox, DialogContent, Divider, FormControl, FormControlLabel, FormHelperText, FormLabel, Radio, RadioGroup, Typography } from '@mui/material';
-import { Box } from '@mui/system';
-import { FC } from 'react';
+import { FormControlLabel, Radio, RadioGroup, Typography } from '@mui/material';
+import React, { useLayoutEffect, useState } from 'react';
 import { useAppSelector } from '../../store';
-import { totalSelectedAssetSelector } from '../../store/assets/assets.slice';
+import { SETTINGS_DEFAULT_PROXY, storedProxiesPreferenceSelector } from '../../store/assets/assets.slice';
+import { IsStringFilled } from '../../utils/string';
+import { HasElements } from '../../utils/array';
 
 interface Props {
-  proxies: { [key: string]: string },
-  rememberProxy: boolean,
-  onSetImportProxy: (proxy: string) => void,
-  onSetRememberImportProxy: (remember: boolean) => void,
+  docType: string;
+  proxyInfos: { [key: string]: string };
+  onSetImportProxy: (docType: string, proxy: string) => void;
 }
 
-export const MultipleProxyDialogContent: FC<Props> = ({ proxies, onSetImportProxy, rememberProxy, onSetRememberImportProxy }) => {
-  const totalSelectedAsset = useAppSelector(totalSelectedAssetSelector);
+const MultipleProxySelectorDialogContent: React.FC<Props> = ({ docType, proxyInfos, onSetImportProxy }) => {
+  const proxiesPreference = useAppSelector(storedProxiesPreferenceSelector);
+  const [selectedProxy, setSelectedProxy] = useState<string | null>(null);
+
+  useLayoutEffect(() => {
+    const defaultProxy = proxiesPreference[docType] !== SETTINGS_DEFAULT_PROXY && IsStringFilled(proxiesPreference[docType])
+      ? proxiesPreference[docType]
+      : Object.keys(proxyInfos).length === 1
+        ? Object.keys(proxyInfos)[0]
+        : null;
+
+    if (IsStringFilled(defaultProxy)) {
+      setSelectedProxy(defaultProxy as string);
+      onSetImportProxy(docType, defaultProxy as string);
+    }
+  }, []);
+
+  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const newProxy = event.target.value;
+    setSelectedProxy(newProxy);
+    onSetImportProxy(docType, newProxy);
+  };
 
   return (
-    <DialogContent sx={{ maxHeight: 400, userSelect: 'none' }}>
-      <Box padding={2} bgcolor="#fff">
-        <FormControl fullWidth>
-          <FormLabel id="format-label" sx={{
-            display: 'flex',
-            alignItems: 'center',
-            marginBottom: 2,
-            gap: 2,
-          }}>
-            <ImageIcon color='inherit' fontSize='small' />{totalSelectedAsset} Selected Asset{totalSelectedAsset > 1 ? 's' : ''}
-          </FormLabel>
-          <Divider />
-          <Typography paddingTop={1}>Quality</Typography>
-          <RadioGroup
-            aria-labelledby="format-label"
-            name="format"
-            onChange={e => onSetImportProxy(e.target.value)}
-          >
-            {
-              Object.keys(proxies).map((key, index) =>
-                <FormControlLabel
-                  key={index}
-                  value={proxies[key]}
-                  control={
-                    <Radio sx={{
-                      width: '40px',
-                      height: '40px',
-                    }} />
-                  }
-                  label={key}
-                />)
-            }
-          </RadioGroup>
-          <Divider />
+    <>
+      <Typography paddingTop={1}>{docType} quality</Typography>
+      <RadioGroup
+        aria-labelledby="format-label"
+        name="format"
+        onChange={handleChange}
+        value={selectedProxy}
+      >
+        {HasElements(proxyInfos)
+          ? Object.keys(proxyInfos).map((key, index) => (
           <FormControlLabel
-            sx={{
-              display: 'flex',
-            }}
-            control={
-              (
-                <Checkbox
-                  sx={{
-                    width:'40px', height:'40px',
-                  }}
-                  onChange={(e) => onSetRememberImportProxy(e.target.checked)}
-                  name="rememberMe"
-                />
-              )
-            }
-            label="Remember this option"
+            key={index}
+            value={key}
+            control={<Radio sx={{ width: '40px', height: '40px' }} />}
+            label={proxyInfos[key]}
           />
-          {rememberProxy &&
-            <FormHelperText component='span'>
-              Remember this option for the next time you import assets. You can change this inside the settings menu
-            </FormHelperText>
-          }
-        </FormControl>
-      </Box>
-    </DialogContent>
+          ))
+          : <Typography>No {docType} proxy available. You will not be able to import asset of this type.</Typography>
+        }
+      </RadioGroup>
+    </>
   );
 };
 
-export default MultipleProxyDialogContent;
+export default MultipleProxySelectorDialogContent;

@@ -14,6 +14,7 @@ export type AssetImage = {
   width: string;
   height: string;
   size: string;
+  docType: MediaType;
 };
 
 export type ContentItem = {
@@ -48,7 +49,7 @@ export interface GetAssetLinkResponse {
 
 export enum MediaType {
   Image = 'Image',
-  Others = 'MultiMedia',
+  Others = 'Multimedia',
   // Preserve for later use
   // Graphic = 'Graphic',
   // Video = 'Video',

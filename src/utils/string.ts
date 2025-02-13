@@ -19,6 +19,16 @@ export const RandomString = (length: number) => {
  * @param text
  * @returns
  */
-export const IsNullOrWhiteSpace = (text?: string) => {
+export const IsNullOrWhiteSpace = (text?: string | null) => {
   return !text || text.trim() === '';
 };
+
+/**
+ * Check if the given string is filled (not null, not undefined, not empty, not whitespace)
+ * @param text
+ * @returns {boolean}
+ */
+export const IsStringFilled = (text?: string | null) => {
+  return typeof text === 'string' && text.trim() !== '';
+};
+

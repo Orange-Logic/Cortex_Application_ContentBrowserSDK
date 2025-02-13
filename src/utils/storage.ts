@@ -1,7 +1,12 @@
 /* eslint-disable @typescript-eslint/no-use-before-define */
 /* eslint-disable no-fallthrough */
 
+import { ASSETS_FEATURE_STORAGE_KEY_IMPORT_PROXY } from '../store/assets/assets.slice';
+import { StringTable } from '../types/common';
+import { AssetImage, MediaType } from '../types/search';
 import { StorageType } from '../types/storage';
+import { UniqueArray } from './array';
+import { IsStringFilled } from './string';
 
 const DATA_EXPIRE_TIME_POSTFIX = '_valid_until';
 const DEFAULT_EXPIRED_DURATION = 1 * 24 * 60 * 60 * 1000; // 1 Day
@@ -172,3 +177,37 @@ export const deleteData = (key: string) => {
   // Remove from cookies
   document.cookie = key + '=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
 };
+
+/**
+ * Get the storage key of import proxy for a doc type
+ * @param {string}
+ * @returns {string} The storage key
+ */
+export const GetDocTypeProxyKey = (docType: string) => {
+  return ASSETS_FEATURE_STORAGE_KEY_IMPORT_PROXY + '_' + docType;
+};
+
+/**
+ * Get the proxy preference from storage.
+ * @param {AssetImage[]} selectedAssets 
+ * @returns {StringTable | null} Object contain mapping between DocType and Proxy from preference (Stored in local storage).
+ */
+export const GetProxyPreferenceFromStorage = async (selectedAssets?: AssetImage[]): Promise<Partial<StringTable>> => {
+  let selectedDocTypes: string[] = [];
+  if (selectedAssets) {
+    selectedDocTypes = UniqueArray(selectedAssets, (asset) => asset.docType).map(asset => asset.docType);
+  } else {
+    selectedDocTypes = Object.values(MediaType);
+  }
+  const proxiesPreference = await Promise.all(selectedDocTypes.map(docType => getData(GetDocTypeProxyKey(docType))));
+  return proxiesPreference.reduce((prev, curr, index) => {
+    if (IsStringFilled(curr)) {
+      return {
+        ...prev,
+        [selectedDocTypes[index]]: curr,
+      };
+    }
+    return prev;
+  }, {});
+};
+

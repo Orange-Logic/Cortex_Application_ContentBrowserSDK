@@ -2,8 +2,9 @@ import { Alert, Box, Button, Snackbar, Typography } from '@mui/material';
 import { useContext } from 'react';
 import { GlobalConfigContext } from '../../GlobalConfigContext';
 import { useAppDispatch, useAppSelector } from '../../store';
-import { importAssetErrorMessageSelector, importAssets, importProxySelector, resetImportStatus, setIsProxyModalOpen } from '../../store/assets/assets.slice';
+import { importAssetErrorMessageSelector, resetImportStatus, setIsProxyModalOpen } from '../../store/assets/assets.slice';
 import { AssetImage } from '../../types/search';
+import { HasElements } from '../../utils/array';
 import { CortexColors } from '../../utils/constants';
 
 type FooterProps = {
@@ -13,19 +14,14 @@ type FooterProps = {
 };
 
 const Footer = ({ multiSelect = false, selectedAssets, deselectAll }: FooterProps) => {
-  const importProxy = useAppSelector(importProxySelector);
   const errorMessage = useAppSelector(importAssetErrorMessageSelector);
   const dispatch    = useAppDispatch();
   const { pluginInfo } = useContext(GlobalConfigContext);
 
-  const handleClickConfirm = async () => {
-    if (!importProxy) {
-      // If import proxy is not defined, fetch it then show a pop up to let user choose the proxy
-      if (selectedAssets.length > 0) {
-        dispatch(setIsProxyModalOpen(true));
-      }
-    } else {
-      dispatch(importAssets({ rememberProxy: false }));
+  const onImportSelectedAssets = async () => {
+    if (HasElements(selectedAssets)) {
+      // Open the proxy modal selector and let the user select the proxy
+      dispatch(setIsProxyModalOpen(true));
     }
   };
 
@@ -97,7 +93,7 @@ const Footer = ({ multiSelect = false, selectedAssets, deselectAll }: FooterProp
         color: CortexColors.A0,
         minWidth: 140,
       }}
-      onClick={handleClickConfirm}
+      onClick={onImportSelectedAssets}
       disabled={selectedAssets.length === 0}
     >
       Add selected assets {pluginInfo.pluginShortName ? `to ${pluginInfo.pluginShortName}` : '' }

@@ -97,6 +97,7 @@ export const searchApi = createApi({
             ['fields', FIELD_MAX_WIDTH],
             ['fields', FIELD_MAX_HEIGHT],
             ['fields', FIELD_FILE_SIZE],
+            ['fields', FIELD_DOC_TYPE],
             [
               'extraFilters',
               resolveExtraFilters(searchText, mediaTypes),
@@ -110,20 +111,15 @@ export const searchApi = createApi({
       transformResponse: (response: GetContentResponse): { items: AssetImage[]; totalCount: number } => ({
         items:
           response.contentItems?.map((item) => ({
-            id: item.recordID,
-            name:
-              GetValueByKeyCaseInsensitive(item.fields, FIELD_TITLE_WITH_FALLBACK) ?? '',
-            imageUrl:
-              GetValueByKeyCaseInsensitive(item.fields, DEFAULT_VIEW_SIZE) ?? '',
-            tags:
-              GetValueByKeyCaseInsensitive(item.fields, FIELD_KEYWORDS) ?? '',
-            width:
-              GetValueByKeyCaseInsensitive(item.fields, FIELD_MAX_WIDTH) ?? '0',
-            height:
-              GetValueByKeyCaseInsensitive(item.fields, FIELD_MAX_HEIGHT) ?? '0',
-            size:
-              GetValueByKeyCaseInsensitive(item.fields, FIELD_FILE_SIZE) ?? '0 MB',
-          })) ?? [],
+            id:       item.recordID,
+            name:     GetValueByKeyCaseInsensitive(item.fields, FIELD_TITLE_WITH_FALLBACK) ?? '',
+            imageUrl: GetValueByKeyCaseInsensitive(item.fields, DEFAULT_VIEW_SIZE) ?? '',
+            tags:     GetValueByKeyCaseInsensitive(item.fields, FIELD_KEYWORDS) ?? '',
+            width:    GetValueByKeyCaseInsensitive(item.fields, FIELD_MAX_WIDTH) ?? '0',
+            height:   GetValueByKeyCaseInsensitive(item.fields, FIELD_MAX_HEIGHT) ?? '0',
+            size:     GetValueByKeyCaseInsensitive(item.fields, FIELD_FILE_SIZE) ?? '0 MB',
+            docType:  GetValueByKeyCaseInsensitive(item.fields, FIELD_DOC_TYPE) ?? MediaType.Others,
+          } as AssetImage)) ?? [],
         totalCount: response.totalCount,
       }),
       providesTags: (_result, _error, arg) => {
