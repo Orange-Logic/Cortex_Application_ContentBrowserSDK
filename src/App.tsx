@@ -1,9 +1,10 @@
-import { Dialog, ThemeProvider, createTheme, useMediaQuery } from '@mui/material';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import WebFont from 'webfontloader';
-import { AppContext, AppContextType } from './AppContext';
-import { CortexColors, CortexFonts } from './utils/constants';
-import AssetsPicker from './view/AssetsPicker';
+
+import { AppContext, AppContextType } from '@/AppContext';
+import { CortexColors, CortexFonts } from '@/utils/constants';
+import AssetsPicker from '@/view/AssetsPicker';
+import { createTheme, Dialog, ThemeProvider, useMediaQuery } from '@mui/material';
 
 const theme = createTheme({
   palette: {
@@ -302,18 +303,20 @@ export const App = ({ multiSelect, containerId, onClose, onError, onImageSelecte
   const smallScreen = useMediaQuery(theme.breakpoints.down('md'));
   const [open, setOpen] = useState(true);
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     setOpen(false);
     onClose?.();
-  };
+  }, [onClose]);
+
+  const contextValue = useMemo(() => ({
+    onImageSelected,
+    onError,
+    onClose: handleClose,
+  }), [handleClose, onError, onImageSelected]);
 
   return (
     <ThemeProvider theme={theme}>
-      <AppContext.Provider value={{
-        onImageSelected,
-        onError,
-        onClose: handleClose,
-      }}>
+      <AppContext.Provider value={contextValue}>
         {
           containerId ?
             <AssetsPicker multiSelect={multiSelect} />

@@ -6,7 +6,7 @@ export function useDebounceState<T>(value: T, delay: number): [T, (value: T, ins
   const timerFlag = useRef<NodeJS.Timeout | null>(null);
 
   const resetTimer = () => {
-    if (!!timerFlag.current) {
+    if (timerFlag.current) {
       clearTimeout(timerFlag.current); 
       timerFlag.current = null;
     }

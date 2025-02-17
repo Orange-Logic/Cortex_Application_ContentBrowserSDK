@@ -1,9 +1,12 @@
-import { FormControlLabel, Radio, RadioGroup, Typography } from '@mui/material';
 import React, { useLayoutEffect, useState } from 'react';
-import { useAppSelector } from '../../store';
-import { SETTINGS_DEFAULT_PROXY, storedProxiesPreferenceSelector } from '../../store/assets/assets.slice';
-import { IsStringFilled } from '../../utils/string';
-import { HasElements } from '../../utils/array';
+
+import { useAppSelector } from '@/store';
+import {
+  SETTINGS_DEFAULT_PROXY, storedProxiesPreferenceSelector,
+} from '@/store/assets/assets.slice';
+import { HasElements } from '@/utils/array';
+import { IsStringFilled } from '@/utils/string';
+import { FormControlLabel, Radio, RadioGroup, Typography } from '@mui/material';
 
 interface Props {
   docType: string;

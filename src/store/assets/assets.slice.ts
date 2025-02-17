@@ -1,12 +1,13 @@
 import type { PayloadAction } from '@reduxjs/toolkit';
+import { RootState } from '@/store';
+import { getExtraFields } from '@/store/search/search.slice';
+import { AssetsState } from '@/types/assets';
+import { StringTable } from '@/types/common';
+import { AssetImage, GetAssetLinkResponse } from '@/types/search';
+import { deleteData, GetDocTypeProxyKey, storeData } from '@/utils/storage';
+import { IsStringFilled } from '@/utils/string';
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
-import { RootState } from '..';
-import { AssetsState } from '../../types/assets';
-import { StringTable } from '../../types/common';
-import { AssetImage, GetAssetLinkResponse } from '../../types/search';
-import { deleteData, GetDocTypeProxyKey, storeData } from '../../utils/storage';
-import { IsStringFilled } from '../../utils/string';
-import { getExtraFields } from '../search/search.slice';
+
 import { getAssetLinks } from './assets.service';
 
 export const SETTINGS_DEFAULT_PROXY = 'Always show asset format selector';
@@ -24,9 +25,7 @@ const initialState: AssetsState = {
   storedProxiesPreference: {},
 };
 
-// ======================================================================
-// Selector
-// ======================================================================
+// #region Selector
 export const onlyIIIFPrefixSelector = (state: RootState) =>
   state[ASSETS_FEATURE_KEY].onlyIIIFPrefix;
 
@@ -47,10 +46,9 @@ export const isImportingSelector = (state: RootState) =>
 
 export const importAssetErrorMessageSelector = (state: RootState) =>
   state[ASSETS_FEATURE_KEY].errorMessage;
+// #endregion
 
-// ======================================================================
-// Slice
-// ======================================================================
+// #region Slice
 export const assetsSlice = createSlice({
   name: ASSETS_FEATURE_KEY,
   initialState,
@@ -103,12 +101,11 @@ export const assetsSlice = createSlice({
     });
   },
 });
+// #endregion
 
 export const { enableOnlyIIIFPrefix, setStoredProxiesPreference, setSelectedAssets, setIsProxyModalOpen, resetImportStatus } = assetsSlice.actions;
 
-// ======================================================================
-// Action
-// ======================================================================
+// #region Action
 export const importAssets = createAsyncThunk<void, Partial<StringTable> | undefined>(
   `${ASSETS_FEATURE_KEY}/oAuth`,
   async (proxiesPreference, { getState }) => {
@@ -125,5 +122,6 @@ export const importAssets = createAsyncThunk<void, Partial<StringTable> | undefi
     window.CortexAssetPicker._onClose?.();
   },
 );
+// #endregion
 
 export default assetsSlice.reducer;

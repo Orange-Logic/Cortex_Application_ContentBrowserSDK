@@ -1,6 +1,6 @@
+import { useAppSelector } from '@/store';
+import { isImportingSelector } from '@/store/assets/assets.slice';
 import { CircularProgress, Dialog, DialogContent, Typography } from '@mui/material';
-import { useAppSelector } from '../../store';
-import { isImportingSelector } from '../../store/assets/assets.slice';
 
 export const ImportingDialog = () => {
   const isImporting = useAppSelector(isImportingSelector);

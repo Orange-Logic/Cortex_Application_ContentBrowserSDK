@@ -1,26 +1,23 @@
 import { useState } from 'react';
 
+import { Browser as BrowserTree } from '@/components/Browser';
+import { CortexSwitch } from '@/components/CortexSwitch';
+import { RootState, useAppDispatch, useAppSelector } from '@/store';
+import { setSelectedAssets } from '@/store/assets/assets.slice';
+import { useGetFoldersQuery } from '@/store/search/search.api';
+import { RootFolder, setImageSearchText } from '@/store/search/search.slice';
+import { CortexColors } from '@/utils/constants';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import ArrowDropUpIcon from '@mui/icons-material/ArrowDropUp';
-import Box from '@mui/system/Box';
-import Popover from '@mui/material/Popover';
-import Tooltip from '@mui/material/Tooltip';
-import InputAdornment from '@mui/material/InputAdornment';
-import TextField from '@mui/material/TextField';
 import { InputLabel, Typography } from '@mui/material';
+import InputAdornment from '@mui/material/InputAdornment';
+import Popover from '@mui/material/Popover';
+import TextField from '@mui/material/TextField';
+import Tooltip from '@mui/material/Tooltip';
+import Box from '@mui/system/Box';
 
-import { RootState, useAppDispatch, useAppSelector } from '../../store';
-import { useGetFoldersQuery } from '../../store/search/search.api';
-import {
-  RootFolder,
-  setImageSearchText,
-} from '../../store/search/search.slice';
 import { FilterMenu } from './FilterMenu/FilterMenu';
 import { SearchInput } from './SearchInput';
-import { Browser as BrowserTree } from '../Browser';
-import { CortexSwitch } from '../CortexSwitch';
-import { CortexColors } from '../../utils/constants';
-import { setSelectedAssets } from '../../store/assets/assets.slice';
 
 type SearchBarProps = {
   isSeeThrough: boolean;

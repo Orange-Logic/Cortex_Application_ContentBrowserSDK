@@ -1,8 +1,8 @@
+import { StringTable } from '@/types/common';
+import { AssetImage, MediaType } from '@/types/search';
+import { AppBaseQuery } from '@/utils/api';
+import { HasElements, UniqueArray } from '@/utils/array';
 import { createApi } from '@reduxjs/toolkit/query/react';
-import { StringTable } from '../../types/common';
-import { AssetImage, MediaType } from '../../types/search';
-import { AppBaseQuery } from '../../utils/api';
-import { HasElements, UniqueArray } from '../../utils/array';
 
 interface GetAvailableProxiesRequest {
   assetImages?: AssetImage[];

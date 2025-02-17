@@ -1,9 +1,8 @@
-import { createContext, useEffect, useState } from 'react';
+import { createContext, useEffect, useMemo, useState } from 'react';
 import { useSelector } from 'react-redux';
-import {
-  isLoaderMessageSelector,
-  isLoadingSelector,
-} from '../../store/loader/loader.slice';
+
+import { isLoaderMessageSelector, isLoadingSelector } from '@/store/loader/loader.slice';
+
 import Loader from './Loader';
 
 type LoaderContextType = {
@@ -22,6 +21,7 @@ export const LoaderProvider = ({ children }: LoaderProps) => {
   const isLoading = useSelector(isLoadingSelector);
   const message = useSelector(isLoaderMessageSelector);
   const [customAction, setCustomAction] = useState<React.ReactNode>();
+  const contextValue = useMemo(() => ({ setCustomAction }), [setCustomAction]);
 
   useEffect(() => {
     if (!isLoading) {
@@ -30,7 +30,7 @@ export const LoaderProvider = ({ children }: LoaderProps) => {
   }, [isLoading]);
 
   return (
-    <LoaderContext.Provider value={{ setCustomAction }}>
+    <LoaderContext.Provider value={contextValue}>
       {isLoading ? <Loader message={message}>{customAction}</Loader> : children}
     </LoaderContext.Provider>
   );

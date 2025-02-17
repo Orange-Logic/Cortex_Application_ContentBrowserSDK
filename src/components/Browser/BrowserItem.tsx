@@ -1,9 +1,11 @@
 import { useState } from 'react';
-import { RootState, useAppDispatch, useAppSelector } from '../../store';
-import { useGetFoldersQuery } from '../../store/search/search.api';
-import { explorePath } from '../../store/search/search.slice';
+
+import { RootState, useAppDispatch, useAppSelector } from '@/store';
+import { useGetFoldersQuery } from '@/store/search/search.api';
+import { explorePath } from '@/store/search/search.slice';
+import { Folder } from '@/types/search';
+
 import DumbBrowserItem from './DumbBrowserItem';
-import { Folder } from '../../types/search';
 
 type BrowserItemProps = {
   folder: Folder;
@@ -11,7 +13,11 @@ type BrowserItemProps = {
   onSelect?: (selectedFolder: Folder) => void;
 };
 
-export const BrowserItem = ({ folder, searchText, onSelect }: BrowserItemProps) => {
+export const BrowserItem = ({
+  folder,
+  searchText,
+  onSelect,
+}: BrowserItemProps) => {
   const currentFolderID = useAppSelector(
     (state: RootState) => state.search.currentFolder.id,
   );
@@ -28,35 +34,32 @@ export const BrowserItem = ({ folder, searchText, onSelect }: BrowserItemProps) 
     isUninitialized,
   } = useGetFoldersQuery({ folder, searchText }, { skip: !isExpanded });
   return (
-    <>
-      <DumbBrowserItem
-        isExpanded={isExpanded}
-        onExpandClick={(e) => {
-          e.stopPropagation();
-          setIsExpanded(!isExpanded);
-        }}
-        onSelect={() => {
-          dispatch(explorePath(folder));
-          if (onSelect) {
-            onSelect(folder);
-          } 
-            
-        }}
-        isSelected={isSelected}
-        folder={folder}
-        isLoading={isLoading || isFetching}
-        isUninitialized={isUninitialized}
-      >
-        {folders?.map((item) => (
-          <BrowserItem
-            key={item.id}
-            folder={item}
-            onSelect={onSelect}
-            searchText={searchText}
-          />
-        ))}
-      </DumbBrowserItem>
-    </>
+    <DumbBrowserItem
+      isExpanded={isExpanded}
+      onExpandClick={(e) => {
+        e.stopPropagation();
+        setIsExpanded(!isExpanded);
+      }}
+      onSelect={() => {
+        dispatch(explorePath(folder));
+        if (onSelect) {
+          onSelect(folder);
+        }
+      }}
+      isSelected={isSelected}
+      folder={folder}
+      isLoading={isLoading || isFetching}
+      isUninitialized={isUninitialized}
+    >
+      {folders?.map((item) => (
+        <BrowserItem
+          key={item.id}
+          folder={item}
+          onSelect={onSelect}
+          searchText={searchText}
+        />
+      ))}
+    </DumbBrowserItem>
   );
 };
 

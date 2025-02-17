@@ -1,9 +1,5 @@
-import {
-  GetAccessKeyRes,
-  GetAccessTokenRes,
-  RequestAuthorizeRes,
-} from '../../types/auth';
-import { cortexFetch } from '../../utils/api';
+import { GetAccessKeyRes, GetAccessTokenRes, RequestAuthorizeRes } from '@/types/auth';
+import { cortexFetch } from '@/utils/api';
 
 export const AUTH_MAX_RETRIES = 10;
 export const CANCEL_AUTH_MESSAGE = 'Authentication cancelled';

@@ -1,14 +1,18 @@
+import './styles.css';
+
 import { createRoot } from 'react-dom/client';
 import { Provider } from 'react-redux';
-import { App } from './App';
-import { AppContextType } from './AppContext';
-import { GlobalConfigContext, ImageCardDisplayInfo } from './GlobalConfigContext';
-import { store } from './store';
-import { enableOnlyIIIFPrefix, resetImportStatus, setStoredProxiesPreference } from './store/assets/assets.slice';
-import { initAuthInfoFromCache, setUserConfigSiteUrl } from './store/auth/auth.slice';
-import { setExtraFields } from './store/search/search.slice';
-import './styles.css';
-import { GetProxyPreferenceFromStorage } from './utils/storage';
+
+import { App } from '@/App';
+import { AppContextType } from '@/AppContext';
+import { GlobalConfigContext, ImageCardDisplayInfo } from '@/GlobalConfigContext';
+import { store } from '@/store';
+import {
+  enableOnlyIIIFPrefix, resetImportStatus, setStoredProxiesPreference,
+} from '@/store/assets/assets.slice';
+import { initAuthInfoFromCache, setUserConfigSiteUrl } from '@/store/auth/auth.slice';
+import { setExtraFields } from '@/store/search/search.slice';
+import { GetProxyPreferenceFromStorage } from '@/utils/storage';
 
 declare global {
   interface Window {
@@ -141,11 +145,9 @@ window.CortexAssetPicker = {
     let container = containerId && document.getElementById(containerId);
     if (!containerId) {
       container = document.body;
-    } else {
-      if (!container) {
-        console.error(`Container with id ${containerId} is not found`);
-        return;
-      }
+    } else if (!container) {
+      console.error(`Container with id ${containerId} is not found`);
+      return;
     }
     let pickerRoot:HTMLDivElement | null = container.querySelector('#cortex-asset-picker-root');
     if (!pickerRoot)  {
@@ -163,7 +165,7 @@ window.CortexAssetPicker = {
     const root = createRoot(pickerRoot);
 
     // Dispatch some event before start render the APP
-    if (!!baseUrl) {
+    if (baseUrl) {
       store.dispatch(setUserConfigSiteUrl(baseUrl));
     }
     store.dispatch(initAuthInfoFromCache());

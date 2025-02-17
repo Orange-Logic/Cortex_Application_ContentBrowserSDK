@@ -1,16 +1,15 @@
+import * as React from 'react';
+
+import { useAppDispatch, useAppSelector } from '@/store';
+import { getMediaTypes, setMediaTypes } from '@/store/search/search.slice';
+import { MediaType } from '@/types/search';
 import Checkbox from '@mui/material/Checkbox';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
 import ListItemButton from '@mui/material/ListItemButton';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
-import * as React from 'react';
-import { useAppDispatch, useAppSelector } from '../../../../store';
-import {
-  getMediaTypes,
-  setMediaTypes,
-} from '../../../../store/search/search.slice';
-import { MediaType } from '../../../../types/search';
+
 import { FilterMenuSection } from './FilterMenuSection';
 
 export const TypesMenuSection: React.FC = () => {
@@ -39,13 +38,8 @@ export const TypesMenuSection: React.FC = () => {
 
           return (
             <ListItem key={value} disablePadding>
-              <ListItemButton
-                onClick={handleToggle(valueAsEnum)}
-                dense
-              >
-                <ListItemIcon
-                  sx={{ minWidth: 'auto' }}
-                >
+              <ListItemButton onClick={handleToggle(valueAsEnum)} dense>
+                <ListItemIcon sx={{ minWidth: 'auto' }}>
                   <Checkbox
                     edge="start"
                     checked={mediaTypes.indexOf(valueAsEnum) !== -1}

@@ -1,9 +1,10 @@
-import { store } from '..';
-import { CortexErrorResponse, StringTable } from '../../types/common';
-import { AssetImage, GetAssetLinkResponse } from '../../types/search';
-import { cortexFetch } from '../../utils/api';
-import { UniqueArray } from '../../utils/array';
-import { IsStringFilled } from '../../utils/string';
+import { store } from '@/store';
+import { CortexErrorResponse, StringTable } from '@/types/common';
+import { AssetImage, GetAssetLinkResponse } from '@/types/search';
+import { cortexFetch } from '@/utils/api';
+import { UniqueArray } from '@/utils/array';
+import { IsStringFilled } from '@/utils/string';
+
 import { assetsApi } from './assets.api';
 import { storedProxiesPreferenceSelector } from './assets.slice';
 

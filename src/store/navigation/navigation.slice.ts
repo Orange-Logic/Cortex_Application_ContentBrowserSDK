@@ -1,12 +1,10 @@
+import { RootState } from '@/store';
+import { NavigationState } from '@/types/navigation';
 import { createSlice } from '@reduxjs/toolkit';
-import { RootState } from '..';
-import { NavigationState } from '../../types/navigation';
 
 export const NAVIGATION_FEATURE_KEY = 'navigation';
 
-// ======================================================================
-// Slice
-// ======================================================================
+// #region Slice
 const initialState: NavigationState = {
   currentPage: 'home',
 };
@@ -24,13 +22,12 @@ export const navigationState = createSlice({
   },
 });
 
-// ======================================================================
-// Selector
-// ======================================================================
+export default navigationState.reducer;
+export const { openSettings, openHome } = navigationState.actions;
+// #endregion
+
+// #region Selector
 export const selectCurrentPage = (state: RootState) =>
   state[NAVIGATION_FEATURE_KEY].currentPage;
+// #endregion
 
-
-export const { openSettings, openHome } = navigationState.actions;
-
-export default navigationState.reducer;

@@ -1,13 +1,14 @@
-import {
-  BaseQueryFn,
-  FetchArgs,
-  fetchBaseQuery,
-  FetchBaseQueryError,
-} from '@reduxjs/toolkit/dist/query';
 import { Mutex } from 'async-mutex';
-import { RootState, store } from '../store';
-import { getAccessTokenService } from '../store/auth/auth.service';
-import { accessTokenSelector, AUTH_FEATURE_KEY, logout, setAccessToken } from '../store/auth/auth.slice';
+
+import { RootState, store } from '@/store';
+import { getAccessTokenService } from '@/store/auth/auth.service';
+import {
+  accessTokenSelector, AUTH_FEATURE_KEY, logout, setAccessToken,
+} from '@/store/auth/auth.slice';
+import {
+  BaseQueryFn, FetchArgs, fetchBaseQuery, FetchBaseQueryError,
+} from '@reduxjs/toolkit/dist/query';
+
 import { getRequestUrl } from './getRequestUrl';
 
 interface CortexFetchOptions extends RequestInit {
@@ -112,9 +113,9 @@ export const checkCorrectSiteUrl = (url: string): Promise<string | null> => {
  * @returns 
  */
 const fetchWithTimeout = async (resource: RequestInfo | URL, options?: RequestInit & { timeout?: number }) => {
-  const { timeout } = options || {};
+  const { timeout } = options ?? {};
 
-  if (!!timeout) {
+  if (timeout) {
     const controller = new AbortController();
     const id = setTimeout(() => controller.abort(), timeout);
 

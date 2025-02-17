@@ -1,15 +1,16 @@
+import { useState } from 'react';
+
+import Footer, { ImportingDialog } from '@/components/Footer';
+import Header from '@/components/Header/Header';
+import Results from '@/components/Result/Result';
+import SearchBar from '@/components/SearchBar';
+import SelectProxyModal from '@/components/SelectProxy';
+import { useAppDispatch, useAppSelector } from '@/store';
+import { selectedAssetsSelector, setSelectedAssets } from '@/store/assets/assets.slice';
+import { AssetImage } from '@/types/search';
+import { CortexColors } from '@/utils/constants';
 import { AppBar, Box, Toolbar } from '@mui/material';
 import { grey } from '@mui/material/colors';
-import { useState } from 'react';
-import Footer, { ImportingDialog } from '../../components/Footer';
-import Header from '../../components/Header/Header';
-import Results from '../../components/Result/Result';
-import SearchBar from '../../components/SearchBar';
-import SelectProxyModal from '../../components/SelectProxy';
-import { useAppDispatch, useAppSelector } from '../../store';
-import { selectedAssetsSelector, setSelectedAssets } from '../../store/assets/assets.slice';
-import { AssetImage } from '../../types/search';
-import { CortexColors } from '../../utils/constants';
 
 type HomePageProps = {
   multiSelect?: boolean;

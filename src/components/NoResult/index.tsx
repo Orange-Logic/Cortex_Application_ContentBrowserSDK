@@ -1,6 +1,6 @@
 import FolderOffIcon from '@mui/icons-material/FolderOff';
 import { Box } from '@mui/system';
-import { CortexColors } from '../../utils/constants';
+import { CortexColors } from '@/utils/constants';
 
 export const NoResult = () => {
   return (

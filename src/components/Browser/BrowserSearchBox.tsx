@@ -1,19 +1,12 @@
+import { useAppDispatch } from '@/store';
+import { explorePath, RootFolder } from '@/store/search/search.slice';
+import { Folder } from '@/types/search';
+import { CortexColors } from '@/utils/constants';
+import { IsNullOrWhiteSpace } from '@/utils/string';
 import ClearIcon from '@mui/icons-material/Clear';
 import HomeIcon from '@mui/icons-material/Home';
 import SearchIcon from '@mui/icons-material/Search';
-import {
-  Box,
-  IconButton,
-  InputAdornment,
-  TextField,
-  Tooltip,
-} from '@mui/material';
-import { useAppDispatch } from '../../store';
-import { RootFolder, explorePath } from '../../store/search/search.slice';
-import { Folder } from '../../types/search';
-import { CortexColors } from '../../utils/constants';
-import { IsNullOrWhiteSpace } from '../../utils/string';
-
+import { Box, IconButton, InputAdornment, TextField, Tooltip } from '@mui/material';
 
 type BrowserSearchBoxProps = {
   value: string;
@@ -43,7 +36,7 @@ export const BrowserSearchBox = ({
             dispatch(explorePath(RootFolder));
             if (onFolderSelect) {
               onFolderSelect(RootFolder);
-            } 
+            }
           }}
           sx={{ marginRight: 1 }}
         >

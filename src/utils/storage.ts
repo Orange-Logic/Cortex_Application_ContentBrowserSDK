@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-use-before-define */
-/* eslint-disable no-fallthrough */
 
-import { ASSETS_FEATURE_STORAGE_KEY_IMPORT_PROXY } from '../store/assets/assets.slice';
-import { StringTable } from '../types/common';
-import { AssetImage, MediaType } from '../types/search';
-import { StorageType } from '../types/storage';
+import { ASSETS_FEATURE_STORAGE_KEY_IMPORT_PROXY } from '@/store/assets/assets.slice';
+import { StringTable } from '@/types/common';
+import { AssetImage, MediaType } from '@/types/search';
+import { StorageType } from '@/types/storage';
+
 import { UniqueArray } from './array';
 import { IsStringFilled } from './string';
 
@@ -52,10 +52,16 @@ const createCookie = (
 const getCookie = (key: string) => {
   const nameEQ = key + '=';
   const ca = document.cookie.split(';');
-  for (let i = 0; i < ca.length; i++) {
-    let c = ca[i];
-    while (c.charAt(0) == ' ') c = c.substring(1, c.length);
-    if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length, c.length);
+  // for (let i = 0; i < ca.length; i++) {
+  //   let c = ca[i];
+  //   while (c.startsWith(' ')) c = c.substring(1, c.length);
+  //   if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length, c.length);
+  // }
+  for (const c of ca) {
+    const cookie = c.trim();
+    if (cookie.startsWith(nameEQ)) {
+      return cookie.substring(nameEQ.length);
+    }
   }
   return null;
 };
@@ -85,8 +91,8 @@ export const getData = async (
         : sessionStorage.getItem(key);
     case 'Cookies': // If local storage is not available or user force to save to cookie
       return getCookie(key);
-    default: // By default, we will always store data to session storage
     case 'LocalStorage':
+    default: // By default, we will always store data to session storage
       if (isLocalStorageAvailable()) {
         return (await isValueExpired(key, 'LocalStorage'))
           ? null
@@ -110,7 +116,7 @@ const isValueExpired = async (key: string, type?: StorageType) => {
   const dataExpireTimeKey = key + DATA_EXPIRE_TIME_POSTFIX;
   const expireDateStr = await getData(dataExpireTimeKey, type);
   // if expireDate wasn't specified, the value is never expire
-  if (!!expireDateStr) {
+  if (expireDateStr) {
     const expireDate = new Date(expireDateStr).getTime();
     const currentTime = new Date().getTime();
     // If the value is expired, delete it and also the expired value comes with with it.
@@ -145,16 +151,16 @@ export const storeData = (
 
   switch (storageType) {
     case 'SessionStorage':
-      if (!!ttl) {
+      if (ttl) {
         sessionStorage.setItem(dataExpireTimeKey, expireDateStr);
       }
       return sessionStorage.setItem(key, value);
     case 'Cookies': // If local storage is not available or user force to save to cookie
       return createCookie(key, value, !ttl ? undefined : expireDateStr);
-    default:
     case 'LocalStorage': // By default, we will always store data to local storage
+    default:
       if (isLocalStorageAvailable()) {
-        if (!!ttl) {
+        if (ttl) {
           localStorage.setItem(dataExpireTimeKey, expireDateStr);
         }
         return localStorage.setItem(key, value);

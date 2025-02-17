@@ -36,7 +36,9 @@
     "@semantic-release/git": "^10.0.1",
     "@semantic-release/github": "^9.0.4",
     "@semantic-release/npm": "^10.0.4",
-    "@types/react-window": "^1.8.5",
+    "@types/react-responsive-masonry": "2.1.0",
+    "@types/react-virtualized-auto-sizer": "^1.0.1",
+    "@types/webfontloader": "^1.6.35",
     "@typescript-eslint/eslint-plugin": "^6.21.0",
     "@typescript-eslint/parser": "^6.21.0",
     "autoprefixer": "^10.4.14",
@@ -50,7 +52,6 @@
     "eslint-plugin-react": "^7.33.1",
     "eslint-webpack-plugin": "^4.0.1",
     "glob": "^10.3.3",
-    "react-app-rewired": "^2.2.1",
     "standard": "^17.1.0"
   },
   "dependencies": {
@@ -71,9 +72,6 @@
     "@types/node": "^20.4.8",
     "@types/react": "^19.0.8",
     "@types/react-dom": "^19.0.3",
-    "@types/react-responsive-masonry": "2.1.0",
-    "@types/react-virtualized-auto-sizer": "^1.0.1",
-    "@types/webfontloader": "^1.6.35",
     "async-mutex": "^0.4.0",
     "babel-jest": "^27.4.2",
     "babel-loader": "^8.2.3",
@@ -94,6 +92,7 @@
     "jest": "^27.4.3",
     "jest-resolve": "^27.4.2",
     "jest-watch-typeahead": "^1.0.0",
+    "lit": "^3.2.1",
     "mini-css-extract-plugin": "^2.4.5",
     "postcss": "^8.4.4",
     "postcss-flexbugs-fixes": "^5.0.2",
@@ -110,7 +109,6 @@
     "react-refresh": "^0.11.0",
     "react-responsive-masonry": "2.1.7",
     "react-virtualized-auto-sizer": "^1.0.20",
-    "react-window": "^1.8.9",
     "resolve": "^1.20.0",
     "resolve-url-loader": "^4.0.0",
     "sass-loader": "^12.3.0",
@@ -187,5 +185,6 @@
     "presets": [
       "react-app"
     ]
-  }
+  },
+  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
 }

@@ -1,9 +1,11 @@
+import { useState } from 'react';
+
+import { useAppSelector } from '@/store';
+import { getMediaTypes } from '@/store/search/search.slice';
 import FilterAltIcon from '@mui/icons-material/FilterAlt';
 import { IconButton, Popover } from '@mui/material';
-import { useState } from 'react';
+
 import { FilterMenuPopover } from './FilterMenuPopover';
-import { useAppSelector } from '../../../store';
-import { getMediaTypes } from '../../../store/search/search.slice';
 
 export const FilterMenu: React.FC = () => {
   const mediaTypes = useAppSelector(getMediaTypes);

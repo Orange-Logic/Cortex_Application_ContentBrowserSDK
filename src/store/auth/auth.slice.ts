@@ -1,24 +1,16 @@
-/* eslint-disable @typescript-eslint/no-use-before-define */
 import type { PayloadAction } from '@reduxjs/toolkit';
+import { RootState } from '@/store';
+import { resetImportStatus } from '@/store/assets/assets.slice';
+import { resetSearchState } from '@/store/search/search.slice';
+import { GetAccessKeyRes, GetAccessKeyResponseCode, OAuthRes } from '@/types/auth';
+import { getRequestUrl } from '@/utils/getRequestUrl';
+import { deleteData, getData, storeData } from '@/utils/storage';
+import { RandomString } from '@/utils/string';
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
-import { RootState } from '..';
+
 import {
-  GetAccessKeyRes,
-  GetAccessKeyResponseCode,
-  OAuthRes,
-} from '../../types/auth';
-import { getRequestUrl } from '../../utils/getRequestUrl';
-import { deleteData, getData, storeData } from '../../utils/storage';
-import { RandomString } from '../../utils/string';
-import { resetImportStatus } from '../assets/assets.slice';
-import { resetSearchState } from '../search/search.slice';
-import {
-  CANCEL_AUTH_MESSAGE,
-  abortAuthService,
-  authAbortController,
-  getAccessKeyService,
-  getAccessTokenService,
-  requestAuthorizeService,
+  abortAuthService, authAbortController, CANCEL_AUTH_MESSAGE, getAccessKeyService,
+  getAccessTokenService, requestAuthorizeService,
 } from './auth.service';
 
 export const AUTH_FEATURE_KEY = 'auth';
@@ -36,9 +28,114 @@ export type AuthState = {
   status: 'authenticated' | 'unauthenticated' | 'restoreSession' | 'requestLogin' | 'waitForAuthorise';
 };
 
-// ======================================================================
-// Action
-// ======================================================================
+// #region Slice
+const initialState: AuthState = {
+  siteUrl: '',
+  status: 'unauthenticated',
+};
+
+export const authSlice = createSlice({
+  name: AUTH_FEATURE_KEY,
+  initialState,
+  reducers: {
+    setAccessToken: (state, action: PayloadAction<string | undefined>) => {
+      state.accessToken = action.payload;
+    },
+    updateAuthTokens: (state, action: PayloadAction<Partial<AuthState>>) => {
+      state.status = 'authenticated';
+      state.accessKey = action.payload.accessKey;
+      state.accessToken = action.payload.accessToken;
+    },
+    setSiteUrl: (state, action: PayloadAction<string>) => {
+      state.error = '';
+      state.siteUrl = action.payload;
+    },
+    setUserConfigSiteUrl: (state, action: PayloadAction<string>) => {
+      state.userConfigSiteUrl = action.payload;
+    },
+    generateNonce: (state) => {
+      state.nonce = RandomString(12);
+    },
+    logout: (state) => {
+      state.status = 'unauthenticated';
+      state.error = '';
+      state.accessKey = undefined;
+      state.accessToken = undefined;
+      state.oAuthUrl = undefined;
+      state.siteUrl = state.userConfigSiteUrl ?? '';
+      deleteData(AUTH_FEATURE_ACCESS_KEY_KEY);
+      deleteData(AUTH_FEATURE_SITE_URL_KEY);
+    },
+    setAuthStatus: (state, action: PayloadAction<AuthState['status']>) => {
+      state.status = action.payload;
+    },
+  },
+  extraReducers: (builder) => {
+    builder
+      .addCase(
+        // eslint-disable-next-line @typescript-eslint/no-use-before-define
+        oAuth.fulfilled,
+        (state, { payload }) => {
+          if (payload) {
+            const { accessKey, accessToken, siteUrl } = payload;
+            state.accessKey = accessKey;
+            state.accessToken = accessToken;
+            state.status = 'authenticated';
+            state.siteUrl = siteUrl;
+            storeData(AUTH_FEATURE_ACCESS_KEY_KEY, accessKey ?? '');
+            storeData(AUTH_FEATURE_SITE_URL_KEY, siteUrl);
+          }
+        },
+      )
+    // eslint-disable-next-line @typescript-eslint/no-use-before-define
+      .addCase(oAuth.rejected, (state, action) => {
+        state.error = action.payload as string;
+        state.status = 'unauthenticated';
+        deleteData(AUTH_FEATURE_ACCESS_KEY_KEY);
+      })
+    // eslint-disable-next-line @typescript-eslint/no-use-before-define
+      .addCase(oAuth.pending, (state) => {
+        state.error = '';
+      });
+  },
+});
+
+export default authSlice.reducer;
+export const { logout, setAccessToken, generateNonce, setSiteUrl, setUserConfigSiteUrl } = authSlice.actions;
+// #endregion
+
+// #region Selector
+export const authenticatedSelector = (rootState: RootState) =>
+  rootState[AUTH_FEATURE_KEY].status == 'authenticated';
+
+export const accessTokenSelector = (rootState: RootState) =>
+  rootState[AUTH_FEATURE_KEY].accessToken;
+
+export const oAuthUrlSelector = (rootState: RootState) =>
+  rootState[AUTH_FEATURE_KEY].oAuthUrl;
+
+export const siteUrlSelector = (rootState: RootState) =>
+  rootState[AUTH_FEATURE_KEY].siteUrl;
+
+export const userConfigSiteUrlSelector = (rootState: RootState) =>
+  rootState[AUTH_FEATURE_KEY].userConfigSiteUrl;
+
+export const authErrorSelector = (rootState: RootState) =>
+  rootState[AUTH_FEATURE_KEY].error;
+
+export const nonceSelector = (rootState: RootState) =>
+  rootState[AUTH_FEATURE_KEY].nonce;
+
+export const authStateSelector = (rootState: RootState) => 
+  rootState[AUTH_FEATURE_KEY].status;
+
+export const appAuthUrlSelector = (rootState: RootState) => {
+  const siteUrl = rootState[AUTH_FEATURE_KEY].siteUrl;
+  return siteUrl ? getRequestUrl(siteUrl, `AppAuth?RID=${rootState[AUTH_FEATURE_KEY].nonce}`) : '';
+};
+// #endregion
+
+// #region Action
 export const cancelAuth = createAsyncThunk(`${AUTH_FEATURE_KEY}/oauth`, (_, { dispatch, getState }) => {
   if (!authenticatedSelector(getState() as RootState)) {
     abortAuthService();
@@ -160,109 +257,4 @@ export const initAuthInfoFromCache = createAsyncThunk(
     }
   },
 );
-
-// ======================================================================
-// Slice
-// ======================================================================
-const initialState: AuthState = {
-  siteUrl: '',
-  status: 'unauthenticated',
-};
-
-export const authSlice = createSlice({
-  name: AUTH_FEATURE_KEY,
-  initialState,
-  reducers: {
-    setAccessToken: (state, action: PayloadAction<string | undefined>) => {
-      state.accessToken = action.payload;
-    },
-    updateAuthTokens: (state, action: PayloadAction<Partial<AuthState>>) => {
-      state.status = 'authenticated';
-      state.accessKey = action.payload.accessKey;
-      state.accessToken = action.payload.accessToken;
-    },
-    setSiteUrl: (state, action: PayloadAction<string>) => {
-      state.error = '';
-      state.siteUrl = action.payload;
-    },
-    setUserConfigSiteUrl: (state, action: PayloadAction<string>) => {
-      state.userConfigSiteUrl = action.payload;
-    },
-    generateNonce: (state) => {
-      state.nonce = RandomString(12);
-    },
-    logout: (state) => {
-      state.status = 'unauthenticated';
-      state.error = '';
-      state.accessKey = undefined;
-      state.accessToken = undefined;
-      state.oAuthUrl = undefined;
-      state.siteUrl = state.userConfigSiteUrl ?? '';
-      deleteData(AUTH_FEATURE_ACCESS_KEY_KEY);
-      deleteData(AUTH_FEATURE_SITE_URL_KEY);
-    },
-    setAuthStatus: (state, action: PayloadAction<AuthState['status']>) => {
-      state.status = action.payload;
-    },
-  },
-  extraReducers: (builder) => {
-    builder
-      .addCase(
-        oAuth.fulfilled,
-        (state, { payload }) => {
-          if (!!payload) {
-            const { accessKey, accessToken, siteUrl } = payload;
-            state.accessKey = accessKey;
-            state.accessToken = accessToken;
-            state.status = 'authenticated';
-            state.siteUrl = siteUrl;
-            storeData(AUTH_FEATURE_ACCESS_KEY_KEY, accessKey ?? '');
-            storeData(AUTH_FEATURE_SITE_URL_KEY, siteUrl);
-          }
-        },
-      )
-      .addCase(oAuth.rejected, (state, action) => {
-        state.error = action.payload as string;
-        state.status = 'unauthenticated';
-        deleteData(AUTH_FEATURE_ACCESS_KEY_KEY);
-      })
-      .addCase(oAuth.pending, (state) => {
-        state.error = '';
-      });
-  },
-});
-
-export default authSlice.reducer;
-export const { logout, setAccessToken, generateNonce, setSiteUrl, setUserConfigSiteUrl } = authSlice.actions;
-
-// ======================================================================
-// Selector
-// ======================================================================
-export const authenticatedSelector = (rootState: RootState) =>
-  rootState[AUTH_FEATURE_KEY].status == 'authenticated';
-
-export const accessTokenSelector = (rootState: RootState) =>
-  rootState[AUTH_FEATURE_KEY].accessToken;
-
-export const oAuthUrlSelector = (rootState: RootState) =>
-  rootState[AUTH_FEATURE_KEY].oAuthUrl;
-
-export const siteUrlSelector = (rootState: RootState) =>
-  rootState[AUTH_FEATURE_KEY].siteUrl;
-
-export const userConfigSiteUrlSelector = (rootState: RootState) =>
-  rootState[AUTH_FEATURE_KEY].userConfigSiteUrl;
-
-export const authErrorSelector = (rootState: RootState) =>
-  rootState[AUTH_FEATURE_KEY].error;
-
-export const nonceSelector = (rootState: RootState) =>
-  rootState[AUTH_FEATURE_KEY].nonce;
-
-export const authStateSelector = (rootState: RootState) => 
-  rootState[AUTH_FEATURE_KEY].status;
-
-export const appAuthUrlSelector = (rootState: RootState) => {
-  const siteUrl = rootState[AUTH_FEATURE_KEY].siteUrl;
-  return !!siteUrl ? getRequestUrl(siteUrl, `AppAuth?RID=${rootState[AUTH_FEATURE_KEY].nonce}`) : '';
-};
+// #endregion

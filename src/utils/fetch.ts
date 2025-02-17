@@ -1,7 +1,8 @@
 import { Mutex } from 'async-mutex';
-import { RootState, store } from '../store';
-import { getAccessTokenService } from '../store/auth/auth.service';
-import { AUTH_FEATURE_KEY, logout, setAccessToken } from '../store/auth/auth.slice';
+
+import { RootState, store } from '@/store';
+import { getAccessTokenService } from '@/store/auth/auth.service';
+import { AUTH_FEATURE_KEY, logout, setAccessToken } from '@/store/auth/auth.slice';
 
 const mutex = new Mutex();
 
@@ -29,7 +30,7 @@ interface CortexFetchOptions extends RequestInit {
 const fetchWithTimeout = async (resource: RequestInfo | URL, options: RequestInit & { timeout?: number }) => {
   const { timeout } = options;
 
-  if (!!timeout) {
+  if (timeout) {
     const controller = new AbortController();
     const id = setTimeout(() => controller.abort(), timeout);
 

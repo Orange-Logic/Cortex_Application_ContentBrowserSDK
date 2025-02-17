@@ -1,17 +1,19 @@
+import { useContext } from 'react';
+
+import { AppContext } from '@/AppContext';
+import { GlobalConfigContext } from '@/GlobalConfigContext';
+import { useAppDispatch } from '@/store';
+import { resetImportStatus } from '@/store/assets/assets.slice';
+import { logout } from '@/store/auth/auth.slice';
+import { openSettings } from '@/store/navigation/navigation.slice';
+import { resetSearchState } from '@/store/search/search.slice';
+import { LOGO_BASE64 } from '@/utils/constants';
+import CloseIcon from '@mui/icons-material/Close';
 import { Box, IconButton } from '@mui/material';
-import { useAppDispatch } from '../../store';
-import { resetImportStatus } from '../../store/assets/assets.slice';
-import { logout } from '../../store/auth/auth.slice';
-import { openSettings } from '../../store/navigation/navigation.slice';
-import { resetSearchState } from '../../store/search/search.slice';
-import { LOGO_BASE64 } from '../../utils/constants';
+
 import HeaderButton from './HeaderButton';
 import HeaderDivider from './HeaderDivider';
 import UserName from './UserName';
-import { useContext } from 'react';
-import { GlobalConfigContext } from '../../GlobalConfigContext';
-import CloseIcon from '@mui/icons-material/Close';
-import { AppContext } from '../../AppContext';
 
 const Header = () => {
   const dispatch = useAppDispatch();
@@ -45,7 +47,9 @@ const Header = () => {
       >
         <UserName />
         <HeaderDivider />
-        <HeaderButton onClick={() => dispatch(openSettings())}>Settings</HeaderButton>
+        <HeaderButton onClick={() => dispatch(openSettings())}>
+          Settings
+        </HeaderButton>
         <HeaderDivider />
         <HeaderButton
           onClick={() => {
@@ -56,16 +60,14 @@ const Header = () => {
         >
           Logout
         </HeaderButton>
-        {
-          isGABPopedup && (
-            <>
-              <HeaderDivider />
-              <IconButton size='small' disableRipple onClick={onClose}>
-                <CloseIcon/>
-              </IconButton>
-            </>
-          )
-        }
+        {isGABPopedup && (
+          <>
+            <HeaderDivider />
+            <IconButton size="small" disableRipple onClick={onClose}>
+              <CloseIcon />
+            </IconButton>
+          </>
+        )}
       </Box>
     </Box>
   );

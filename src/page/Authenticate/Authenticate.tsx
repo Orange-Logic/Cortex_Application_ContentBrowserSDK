@@ -1,23 +1,13 @@
-import {
-  Alert,
-  Box,
-  Button,
-  Stack,
-  TextField,
-  Typography,
-} from '@mui/material';
 import { useContext, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { GlobalConfigContext } from '../../GlobalConfigContext';
-import { AppDispatch } from '../../store';
-import {
-  authErrorSelector,
-  oAuth,
-  siteUrlSelector,
-} from '../../store/auth/auth.slice';
-import { checkCorrectSiteUrl } from '../../utils/api';
-import { CortexColors, LOGIN_GRAPHICS_TOP_COLOR_BASE64 } from '../../utils/constants';
-import { useDebounceState } from '../../utils/hooks';
+
+import { GlobalConfigContext } from '@/GlobalConfigContext';
+import { AppDispatch } from '@/store';
+import { authErrorSelector, oAuth, siteUrlSelector } from '@/store/auth/auth.slice';
+import { checkCorrectSiteUrl } from '@/utils/api';
+import { CortexColors, LOGIN_GRAPHICS_TOP_COLOR_BASE64 } from '@/utils/constants';
+import { useDebounceState } from '@/utils/hooks';
+import { Alert, Box, Button, Stack, TextField, Typography } from '@mui/material';
 
 const AuthenticatePage = () => {
   const dispatch = useDispatch<AppDispatch>();
@@ -43,6 +33,13 @@ const AuthenticatePage = () => {
     setCheckingSite(false, true);
     setUrlError(null);
   };
+
+  let buttonText = 'Connect';
+  if (checkingSite) {
+    buttonText = 'Connecting...';
+  } else if (urlError) {
+    buttonText = 'Retry';
+  }
 
   return (
     <Box
@@ -115,7 +112,8 @@ const AuthenticatePage = () => {
             }}>
               {checkingSite && <Button sx={{ mr: 2 }} color='secondary' onClick={cancelConnect}>Cancel</Button>}
               <Button disabled={url === '' || checkingSite} type="submit">
-                {checkingSite ? 'Connecting...' : (!urlError ? 'Connect' : 'Retry' )}</Button>
+                {buttonText}
+              </Button>
             </Box>
           </Box>
         </Stack>

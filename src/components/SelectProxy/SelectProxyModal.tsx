@@ -1,13 +1,22 @@
-import CloseIcon from '@mui/icons-material/Close';
-import { Box, Button, Dialog, DialogActions, DialogContent, DialogProps, DialogTitle, Divider, FormControl, IconButton } from '@mui/material';
 import { Fragment, useContext, useLayoutEffect, useRef } from 'react';
-import { GlobalConfigContext } from '../../GlobalConfigContext';
-import { useAppDispatch, useAppSelector } from '../../store';
-import { useGetAvailableProxiesQuery } from '../../store/assets/assets.api';
-import { importAssets, isImportingSelector, isProxyModalOpenSelector, selectedAssetsSelector, setIsProxyModalOpen, setStoredProxiesPreference, SETTINGS_DEFAULT_PROXY, storedProxiesPreferenceSelector } from '../../store/assets/assets.slice';
-import { StringTable } from '../../types/common';
-import { HasElements } from '../../utils/array';
-import { IsStringFilled } from '../../utils/string';
+
+import { GlobalConfigContext } from '@/GlobalConfigContext';
+import { useAppDispatch, useAppSelector } from '@/store';
+import { useGetAvailableProxiesQuery } from '@/store/assets/assets.api';
+import {
+  importAssets, isImportingSelector, isProxyModalOpenSelector, selectedAssetsSelector,
+  setIsProxyModalOpen, setStoredProxiesPreference, SETTINGS_DEFAULT_PROXY,
+  storedProxiesPreferenceSelector,
+} from '@/store/assets/assets.slice';
+import { StringTable } from '@/types/common';
+import { HasElements } from '@/utils/array';
+import { IsStringFilled } from '@/utils/string';
+import CloseIcon from '@mui/icons-material/Close';
+import {
+  Box, Button, Dialog, DialogActions, DialogContent, DialogProps, DialogTitle, Divider,
+  FormControl, IconButton,
+} from '@mui/material';
+
 import MultipleProxySelectorDialogContent from './MultipleProxyDialogContent';
 import NoProxyDialogContent from './NoProxyDialogContent';
 import RememberProxyCheckBox from './RememberProxyCheckBox';

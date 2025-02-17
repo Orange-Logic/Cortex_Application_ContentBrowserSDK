@@ -1,6 +1,7 @@
-import { Button, ButtonProps } from '@mui/material';
 import { FC } from 'react';
-import { CortexFonts } from '../../utils/constants';
+
+import { CortexFonts } from '@/utils/constants';
+import { Button, ButtonProps } from '@mui/material';
 
 export const HeaderButton: FC<ButtonProps> = ({ children, ...props }) => {
   return (

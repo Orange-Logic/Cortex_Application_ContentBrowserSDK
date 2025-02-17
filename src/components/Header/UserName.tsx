@@ -1,6 +1,6 @@
+import { useGetUserInfoQuery } from '@/store/user/user.api';
+import { CortexColors, CortexFonts } from '@/utils/constants';
 import { Skeleton, Typography } from '@mui/material';
-import { useGetUserInfoQuery } from '../../store/user/user.api';
-import { CortexColors, CortexFonts } from '../../utils/constants';
 
 export const UserName = () => {
   const { data, isFetching, isLoading } = useGetUserInfoQuery({});

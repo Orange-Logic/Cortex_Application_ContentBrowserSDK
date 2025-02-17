@@ -155,11 +155,11 @@ const ResultAssetCard = ({ image, setLoadCounter, handleSelectItem, isSelected }
                     {tags
                       .filter((tag) => !IsNullOrWhiteSpace(tag))
                       .slice(0, 5)
-                      .map((tag, index) => (
+                      .map((tag) => (
                         <Chip
                           label={tag}
                           size="small"
-                          key={index}
+                          key={tag.toLowerCase()}
                           sx={{ marginRight: 2 }}
                         />
                       ))}

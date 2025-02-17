@@ -1,9 +1,14 @@
+import {
+  DEFAULT_VIEW_SIZE, FIELD_CORTEX_PATH, FIELD_DOC_TYPE, FIELD_FILE_SIZE, FIELD_KEYWORDS,
+  FIELD_MAX_HEIGHT, FIELD_MAX_WIDTH, FIELD_TITLE_WITH_FALLBACK,
+} from '@/consts/data';
+import {
+  AssetImage, Folder, GetContentRequest, GetContentResponse, MediaType,
+} from '@/types/search';
+import { AppBaseQuery, GetValueByKeyCaseInsensitive } from '@/utils/api';
+import { PAGE_SIZE } from '@/utils/constants';
+import { IsNullOrWhiteSpace } from '@/utils/string';
 import { createApi } from '@reduxjs/toolkit/query/react';
-import { DEFAULT_VIEW_SIZE, FIELD_CORTEX_PATH, FIELD_DOC_TYPE, FIELD_FILE_SIZE, FIELD_KEYWORDS, FIELD_MAX_HEIGHT, FIELD_MAX_WIDTH, FIELD_TITLE_WITH_FALLBACK } from '../../consts/data';
-import { AssetImage, Folder, GetContentRequest, GetContentResponse, MediaType } from '../../types/search';
-import { AppBaseQuery, GetValueByKeyCaseInsensitive } from '../../utils/api';
-import { PAGE_SIZE } from '../../utils/constants';
-import { IsNullOrWhiteSpace } from '../../utils/string';
 
 const NATURAL_SORT_ORDER_REFERENCEID = 'OR4ND000000063615';
 

@@ -1,13 +1,12 @@
 import type { PayloadAction } from '@reduxjs/toolkit';
+import { RootState } from '@/store';
+import { Folder, MediaType } from '@/types/search';
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
-import { RootState } from '..';
-import { Folder, MediaType } from '../../types/search';
-import { searchApi } from './search.api';
-import { assetsSlice } from '../assets/assets.slice';
 
-// ======================================================================
-// Const
-// ======================================================================
+import { assetsSlice } from '../assets/assets.slice';
+import { searchApi } from './search.api';
+
+// #region Const
 export const SEARCH_FEATURE_KEY = 'search';
 
 export const RootFolder: Folder = Object.freeze({
@@ -24,10 +23,9 @@ export type SearchState = {
   extraFields?: string[];
   mediaTypes: MediaType[];
 };
+// #endregion
 
-// ======================================================================
-// Slice
-// ======================================================================
+// #region Slice
 const initialState: SearchState = {
   currentFolder: RootFolder, // root folder
   imageSearchText: '',
@@ -86,18 +84,7 @@ export const searchSlice = createSlice({
   },
 });
 
-// ======================================================================
-// Selector
-// ======================================================================
-export const getCurrentFolder = (state: RootState) =>
-  state[SEARCH_FEATURE_KEY].currentFolder;
-export const getSearchText = (state: RootState) =>
-  state[SEARCH_FEATURE_KEY].imageSearchText;
-export const getExtraFields = (state: RootState) =>
-  state[SEARCH_FEATURE_KEY].extraFields;
-export const getMediaTypes = (state: RootState) =>
-  state[SEARCH_FEATURE_KEY].mediaTypes;
-
+export default searchSlice.reducer;
 export const {
   internalExplorePath,
   setImageSearchText,
@@ -108,4 +95,15 @@ export const {
   resetSearchText,
   resetMediaTypes,
 } = searchSlice.actions;
-export default searchSlice.reducer;
+// #endregion
+
+// #region Selector
+export const getCurrentFolder = (state: RootState) =>
+  state[SEARCH_FEATURE_KEY].currentFolder;
+export const getSearchText = (state: RootState) =>
+  state[SEARCH_FEATURE_KEY].imageSearchText;
+export const getExtraFields = (state: RootState) =>
+  state[SEARCH_FEATURE_KEY].extraFields;
+export const getMediaTypes = (state: RootState) =>
+  state[SEARCH_FEATURE_KEY].mediaTypes;
+// #endregion

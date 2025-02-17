@@ -1,17 +1,12 @@
-import {
-  Alert,
-  Box,
-  Divider,
-  List,
-  ListItem,
-  Skeleton,
-} from '@mui/material';
 import { useEffect, useRef, useState } from 'react';
-import { useGetFoldersQuery } from '../../store/search/search.api';
-import { RootFolder } from '../../store/search/search.slice';
-import { Folder } from '../../types/search';
-import { CortexColors } from '../../utils/constants';
-import { useDebouncedEffect } from '../../utils/debounce';
+
+import { useGetFoldersQuery } from '@/store/search/search.api';
+import { RootFolder } from '@/store/search/search.slice';
+import { Folder } from '@/types/search';
+import { CortexColors } from '@/utils/constants';
+import { useDebouncedEffect } from '@/utils/debounce';
+import { Alert, Box, Divider, List, ListItem, Skeleton } from '@mui/material';
+
 import { NoResult } from '../NoResult';
 import BrowserItem from './BrowserItem';
 import BrowserSearchBox from './BrowserSearchBox';
@@ -88,34 +83,32 @@ const Browser = ({ focusInput, onFolderSelect }: BrowserProps) => {
     );
 
   return (
-    <>
-      <Box display="flex" flexDirection="column" maxHeight="400px" gap={0}>
-        <BrowserSearchBox
-          onFolderSelect={onFolderSelect}
-          value={internalText}
-          onValueChange={(val) => setInternalText(val)}
-        />
-        <Divider color={CortexColors.A100} />
-        <List
-          sx={{
-            overflowY: 'auto',
-          }}
-        >
-          {folders && folders.length > 0 ? (
-            folders?.map((folder) => (
-              <BrowserItem
-                key={folder.id}
-                folder={folder}
-                onSelect={onFolderSelect}
-                searchText={''}
-              />
-            ))
-          ) : (
-            <NoResult />
-          )}
-        </List>
-      </Box>
-    </>
+    <Box display="flex" flexDirection="column" maxHeight="400px" gap={0}>
+      <BrowserSearchBox
+        onFolderSelect={onFolderSelect}
+        value={internalText}
+        onValueChange={(val) => setInternalText(val)}
+      />
+      <Divider color={CortexColors.A100} />
+      <List
+        sx={{
+          overflowY: 'auto',
+        }}
+      >
+        {folders && folders.length > 0 ? (
+          folders?.map((folder) => (
+            <BrowserItem
+              key={folder.id}
+              folder={folder}
+              onSelect={onFolderSelect}
+              searchText={''}
+            />
+          ))
+        ) : (
+          <NoResult />
+        )}
+      </List>
+    </Box>
   );
 };
 

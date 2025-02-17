@@ -1,5 +1,5 @@
+import { CortexColors } from '@/utils/constants';
 import { Divider } from '@mui/material';
-import { CortexColors } from '../../utils/constants';
 
 export const HeaderDivider = () => {
   return <Divider

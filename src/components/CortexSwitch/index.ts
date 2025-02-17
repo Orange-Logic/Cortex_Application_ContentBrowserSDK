@@ -1,6 +1,6 @@
+import { CortexColors } from '@/utils/constants';
 import { styled } from '@mui/material/styles';
 import Switch from '@mui/material/Switch';
-import { CortexColors } from '../../utils/constants';
 
 export const CortexSwitch = styled(Switch)(({ theme }) => ({
   width: 33,

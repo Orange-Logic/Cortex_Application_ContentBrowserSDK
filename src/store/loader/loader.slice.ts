@@ -1,7 +1,6 @@
 import type { PayloadAction } from '@reduxjs/toolkit';
+import { RootState } from '@/store';
 import { createSlice } from '@reduxjs/toolkit';
-import { RootState } from '..';
-// import { initAuthInfoFromCache, oAuth } from '../auth/auth.slice';
 
 export const LOADER_FEATURE_KEY = 'LOADER_FEATURE_KEY';
 
@@ -12,6 +11,7 @@ export type LoaderState = {
   style?: LoaderStyle;
 };
 
+// #region Slice
 const initialState: LoaderState = {
   isLoading: false,
 };
@@ -44,10 +44,9 @@ export const loaderSlice = createSlice({
 
 export const { setFullPageLoader, clearLoader } = loaderSlice.actions;
 export default loaderSlice.reducer;
+// #endregion
 
-// ======================================================================
-// Selector
-// ======================================================================
+// #region Selector
 export const isLoadingSelector = (rootState: RootState) =>
   rootState[LOADER_FEATURE_KEY].isLoading;
 
@@ -56,3 +55,4 @@ export const isLoaderMessageSelector = (rootState: RootState) =>
 
 export const isLoaderStyleSelector = (rootState: RootState) =>
   rootState[LOADER_FEATURE_KEY].style;
+// #endregion

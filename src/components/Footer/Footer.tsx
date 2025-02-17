@@ -1,11 +1,14 @@
-import { Alert, Box, Button, Snackbar, Typography } from '@mui/material';
 import { useContext } from 'react';
-import { GlobalConfigContext } from '../../GlobalConfigContext';
-import { useAppDispatch, useAppSelector } from '../../store';
-import { importAssetErrorMessageSelector, resetImportStatus, setIsProxyModalOpen } from '../../store/assets/assets.slice';
-import { AssetImage } from '../../types/search';
-import { HasElements } from '../../utils/array';
-import { CortexColors } from '../../utils/constants';
+
+import { GlobalConfigContext } from '@/GlobalConfigContext';
+import { useAppDispatch, useAppSelector } from '@/store';
+import {
+  importAssetErrorMessageSelector, resetImportStatus, setIsProxyModalOpen,
+} from '@/store/assets/assets.slice';
+import { AssetImage } from '@/types/search';
+import { HasElements } from '@/utils/array';
+import { CortexColors } from '@/utils/constants';
+import { Alert, Box, Button, Snackbar, Typography } from '@mui/material';
 
 type FooterProps = {
   multiSelect?: boolean;

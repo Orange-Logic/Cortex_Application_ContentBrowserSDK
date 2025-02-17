@@ -1,17 +1,10 @@
+import { Children } from 'react';
+
+import { Folder } from '@/types/search';
 import FolderIcon from '@mui/icons-material/Folder';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
-import {
-  Collapse,
-  List,
-  ListItemButton,
-  ListItemIcon,
-  ListItemText,
-  Tooltip,
-} from '@mui/material';
-import { Children } from 'react';
-import { Folder } from '../../types/search';
-
+import { Collapse, List, ListItemButton, ListItemIcon, ListItemText, Tooltip } from '@mui/material';
 
 type DumbBrowserItemProps = React.PropsWithChildren<{
   isExpanded: boolean;
@@ -81,6 +74,5 @@ export const DumbBrowserItem = ({
     </>
   );
 };
-
 
 export default DumbBrowserItem;
