@@ -1,7 +1,20 @@
-#cortex-asset-picker-root > * {
-  margin: 0px;
-  padding: 0px;
-  transition: opacity ease-in 0.2s;
+@import url('https://design-system.orangelogic.com/css/ol-light.css');
+
+#cortex-asset-picker-root {
+  --cx-button-text-transform: none;
+  --default-representative-background-color: #6cdaf3;
+  --default-representative-color: #377a86;
+  
+  color: var(--cx-color-neutral);
+  font-family: var(--cx-font-sans);
+}
+
+#cortex-asset-picker-root *:not(:defined) {
+  opacity: 0;
+}
+
+#cortex-asset-picker-root * {
+  box-sizing: border-box;
 }
 
 #cortex-asset-picker-root ::-webkit-scrollbar {

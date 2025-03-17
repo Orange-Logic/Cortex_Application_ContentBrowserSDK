@@ -1,114 +1,210 @@
-import { useEffect, useRef, useState } from 'react';
+import _debounce from 'lodash-es/debounce';
+import { FC, useCallback, useEffect, useRef, useState } from 'react';
 
-import { useGetFoldersQuery } from '@/store/search/search.api';
+import { useGetCollectionsQuery, useGetFoldersQuery } from '@/store/search/search.api';
 import { RootFolder } from '@/store/search/search.slice';
 import { Folder } from '@/types/search';
-import { CortexColors } from '@/utils/constants';
-import { useDebouncedEffect } from '@/utils/debounce';
-import { Alert, Box, Divider, List, ListItem, Skeleton } from '@mui/material';
+import { CxChangeEvent, CxDrawer, CxInput, CxMenu, CxSelectEvent, CxSelectionChangeEvent, CxTree } from '@/web-component';
 
-import { NoResult } from '../NoResult';
+import { Drawer } from './Browser.styled';
 import BrowserItem from './BrowserItem';
-import BrowserSearchBox from './BrowserSearchBox';
+import { skipToken } from '@reduxjs/toolkit/query';
 
-type BrowserProps = {
+type Props = {
+  collectionPath?: string;
+  currentFolder: Folder;
   focusInput?: boolean;
+  open: boolean;
+  showCollections?: boolean;
   onFolderSelect?: (selectedFolder: Folder) => void;
+  onClose: () => void;
 };
 
-const Browser = ({ focusInput, onFolderSelect }: BrowserProps) => {
+const Browser: FC<Props> = ({ collectionPath, currentFolder, focusInput, open, showCollections, onFolderSelect, onClose }) => {    
   const [searchText, setSearchText] = useState('');
-  const [internalText, setInternalText] = useState(searchText);
-  useDebouncedEffect(() => setSearchText(internalText), [internalText], 1000);
+  const [isDefined, setIsDefined] = useState(false);
 
-  const searchInputRef = useRef<HTMLInputElement>(undefined);
+  const collectionRef = useRef<CxMenu>(null);
+  const drawerRef = useRef<CxDrawer>(null);
+  const searchRef = useRef<CxInput>(null);
+  const treeRef = useRef<CxTree>(null);
+
   useEffect(() => {
-    if (focusInput) {
-      searchInputRef.current?.focus();
-    }
-  }, [focusInput]);
+    Promise.all([
+      customElements.whenDefined('cx-drawer'),
+      customElements.whenDefined('cx-input'),
+      customElements.whenDefined('cx-tree'),
+    ]).then(() => {
+      setIsDefined(true);
+    });
+  }, []);
+  
+  
+  useEffect(() => {
+    const searchInput = searchRef.current;
+    if (!searchInput) return;
+    const onSearchInput = _debounce((e: CxChangeEvent) => {
+      const value = (e.target as CxInput).value;
+      if (searchText !== value) {
+        setSearchText(value);
+      }
+    }, 300);
+    searchInput.addEventListener('cx-input', onSearchInput);
+      
+    return () => {
+      searchInput.removeEventListener('cx-input', onSearchInput);
+    };
+  }, [isDefined, searchText]);
+  
+  useEffect(() => {
+    const drawer = drawerRef.current;
+    if (!drawer) return;
+    const onDrawerClose = () => {
+      onClose();
+    };
+    drawer.addEventListener('cx-request-close', onDrawerClose);
+
+    return () => {
+      drawer.removeEventListener('cx-request-close', onDrawerClose);
+    };
+  }, [isDefined, onClose]);
 
   const {
     data: folders,
-    isLoading,
-    isFetching,
-    isError,
+    isLoading: isLoadingFolders,
+    isFetching: isFetchingFolders,
+    isError: isErrorFolders,
   } = useGetFoldersQuery({ folder: RootFolder, searchText });
 
-  if (isLoading || isFetching)
-    return (
-      <Box>
-        <BrowserSearchBox
-          onFolderSelect={onFolderSelect}
-          value={internalText}
-          onValueChange={(val) => setInternalText(val)}
-        />
-        <List
-          sx={{
-            overflowY: 'auto',
-          }}
-        >
-          <ListItem>
-            <Skeleton variant="rounded" height={40} width="100%" />
-          </ListItem>
-          <ListItem>
-            <Skeleton variant="rounded" height={40} width="100%" />
-          </ListItem>
-          <ListItem>
-            <Skeleton variant="rounded" height={40} width="100%" />
-          </ListItem>
-          <ListItem>
-            <Skeleton variant="rounded" height={40} width="100%" />
-          </ListItem>
-          <ListItem>
-            <Skeleton variant="rounded" height={40} width="100%" />
-          </ListItem>
-          <ListItem>
-            <Skeleton variant="rounded" height={40} width="100%" />
-          </ListItem>
-        </List>
-      </Box>
-    );
+  const {
+    data: collections,
+    isLoading: isLoadingCollections,
+    isFetching: isFetchingCollections,
+    isError: isErrorCollections,
+  } = useGetCollectionsQuery(collectionPath ? {
+    folder: collectionPath,
+  } : skipToken);
 
-  if (isError)
-    return (
-      <Box>
-        <BrowserSearchBox
-          value={internalText}
-          onValueChange={(val) => setInternalText(val)}
-          onFolderSelect={onFolderSelect}
+  useEffect(() => {
+    const tree = treeRef.current;
+    if (!tree) return;
+    const onTreeSelect = (e: CxSelectionChangeEvent) => {
+      const folder = JSON.parse(e.detail.selection[0].dataset.value ?? '{}') as Folder;
+      onFolderSelect?.(folder);
+    };
+    tree.addEventListener('cx-selection-change', onTreeSelect);
+  }, [isDefined, onFolderSelect]);
+
+  useEffect(() => {
+    const collection = collectionRef.current;
+    if (!collection) return;
+    const onCollectionSelect = (e: CxSelectEvent) => {
+      const folder = JSON.parse(e.detail.item.value ?? '{}') as Folder;
+      onFolderSelect?.(folder);
+    };
+    collection.addEventListener('cx-select', onCollectionSelect);
+
+    return () => {
+      collection.removeEventListener('cx-select', onCollectionSelect);
+    };
+  }, [isDefined, collections, onFolderSelect]);
+
+  const renderFolders = useCallback(() => {
+    if (isLoadingFolders || isFetchingFolders) {
+      return Array.from({ length: 5 }).map((_, index) => (
+        <cx-skeleton key={index}></cx-skeleton>
+      ));
+    } else if (folders && folders.length > 0) {
+      return folders?.map((folder) => (
+        <BrowserItem
+          key={folder.id}
+          folder={folder}
+          currentFolderID={currentFolder.id}
         />
-        <Alert severity="error">Error</Alert>
-      </Box>
+      ));
+    } else if (isErrorFolders) {
+      return (
+        <cx-typography variant="body3">Failed to load folders</cx-typography>
+      );
+    }
+
+    return (
+      <cx-typography variant="body3">No folders found</cx-typography>
     );
+  }, [isLoadingFolders, isFetchingFolders, isErrorFolders, folders, currentFolder.id]);
+
+  const renderCollections = useCallback(() => {
+    if (isLoadingCollections || isFetchingCollections) {
+      return Array.from({ length: 5 }).map((_, index) => (
+        <cx-skeleton key={index}></cx-skeleton>
+      ));
+    } else if (collections && collections.length > 0) {
+      return collections?.map((collection) => (
+        <cx-menu-item
+          key={collection.id}
+          value={JSON.stringify(collection)}
+        >
+          <cx-icon slot="prefix" name="collections"></cx-icon>
+          {collection.title}
+        </cx-menu-item>
+      ));
+    } else if (isErrorCollections) {
+      return (
+        <cx-typography variant="body3">
+          Failed to load collections
+        </cx-typography>
+      );
+    }
+
+    return (
+      <cx-typography variant="body3">No collections found</cx-typography>
+    );
+  }, [isLoadingCollections, isFetchingCollections, isErrorCollections, collections]);
 
   return (
-    <Box display="flex" flexDirection="column" maxHeight="400px" gap={0}>
-      <BrowserSearchBox
-        onFolderSelect={onFolderSelect}
-        value={internalText}
-        onValueChange={(val) => setInternalText(val)}
-      />
-      <Divider color={CortexColors.A100} />
-      <List
-        sx={{
-          overflowY: 'auto',
-        }}
-      >
-        {folders && folders.length > 0 ? (
-          folders?.map((folder) => (
-            <BrowserItem
-              key={folder.id}
-              folder={folder}
-              onSelect={onFolderSelect}
-              searchText={''}
-            />
-          ))
-        ) : (
-          <NoResult />
+    <Drawer
+      ref={drawerRef}
+      label="Browser"
+      placement="start"
+      contained
+      open={open}
+    >
+      <cx-space direction="vertical" spacing="small" wrap="nowrap">
+        <cx-space
+          direction="vertical"
+          spacing="small"
+          style={{
+            padding: 'var(--body-spacing) var(--body-spacing) 0',
+          }}
+        >
+          <cx-typography variant="body3">Folders</cx-typography>
+          <cx-input
+            ref={searchRef}
+            value={searchText}
+            placeholder="Search..."
+            clearable
+            autoFocus={focusInput}
+          >
+            <cx-icon name="search" slot="prefix"></cx-icon>
+          </cx-input>
+          <div className="browser__folders">
+            <cx-tree ref={treeRef}>{renderFolders()}</cx-tree>
+          </div>
+        </cx-space>
+        {showCollections && collections?.length && (
+          <div className="browser__collections">
+            <cx-details>
+              <cx-typography slot="summary" variant="body3">
+                Collections
+              </cx-typography>
+              <cx-menu ref={collectionRef} className="browser__collections__menu">
+                {renderCollections()}
+              </cx-menu>
+            </cx-details>
+          </div>
         )}
-      </List>
-    </Box>
+      </cx-space>
+    </Drawer>
   );
 };
 

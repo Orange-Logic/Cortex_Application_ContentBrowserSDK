@@ -3,6 +3,6 @@ export type GetDownloadLinksResponse = {
 };
 
 type DownloadLink = {
-  recordID: string;
   downloadLink: string;
+  recordID: string;
 };

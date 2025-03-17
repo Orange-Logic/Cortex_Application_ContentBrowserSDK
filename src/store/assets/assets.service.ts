@@ -1,31 +1,48 @@
 import { store } from '@/store';
-import { CortexErrorResponse, StringTable } from '@/types/common';
-import { AssetImage, GetAssetLinkResponse } from '@/types/search';
+import { CortexErrorResponse } from '@/types/common';
+import { Asset, GetAssetLinkResponse } from '@/types/search';
 import { cortexFetch } from '@/utils/api';
-import { UniqueArray } from '@/utils/array';
-import { IsStringFilled } from '@/utils/string';
 
 import { assetsApi } from './assets.api';
-import { storedProxiesPreferenceSelector } from './assets.slice';
+import { TrackingParameter, Transformation, TransformationAction } from '@/types/assets';
+
+const USE_SESSION = process.env.REACT_APP_USE_SESSION;
 
 export const getAssetLinks = async (
-  assets: AssetImage[],
-  extraFields?: string,
-  onlyIIIFPrefix?: boolean,
-  proxyPreference?: Partial<StringTable>,
+  {
+    assets,
+    extraFields,
+    proxyPreference,
+    transformations,
+    parameters,
+    extension,
+  }: {
+    assets: Asset[];
+    extraFields?: string;
+    proxyPreference?: Record<string, string>;
+    transformations?: Transformation[];
+    parameters?: TrackingParameter[];
+    maxWidth?: number;
+    maxHeight?: number;
+    extension?: string;
+  },
 ): Promise<GetAssetLinkResponse[]> => {
   let baseUrl = '/webapi/extensibility/integrations/gab/assetbrowser/GetAssetLink_4by?';
-  if (!!extraFields)
+  if (USE_SESSION) {
+    baseUrl += `UseSession=${USE_SESSION}&`;
+  }
+  if (extraFields) {
     baseUrl += `ExtraFields=${extraFields}&`;
+  }
   baseUrl += 'RecordId=';
 
-  const getAssetLinkErrors: { [key: string]: AssetImage[] } = {};
+  const getAssetLinkErrors: { [key: string]: Asset[] } = {};
   const failToImportAssets: string[] = [];
   const isOnlyOneAssetSelected = assets.length === 1;
   // Loop through all selected assets to replace Image url by IIIF urls
   const result = (await Promise.all(assets.map(async (asset) => {
     let url = baseUrl + asset.id;
-    if (proxyPreference && proxyPreference[asset.docType]) {
+    if (proxyPreference?.[asset.docType]) {
       url += `&Proxy=${proxyPreference[asset.docType]}`;
     }
     const response  = await cortexFetch(url, { method: 'GET' });
@@ -49,7 +66,84 @@ export const getAssetLinks = async (
       } as GetAssetLinkResponse;
     }
 
-    (responseData as GetAssetLinkResponse).imageUrl += onlyIIIFPrefix ? '' : '/full/max/0.0/default.jpg';
+    let imageUrl = (responseData as GetAssetLinkResponse).imageUrl;
+
+    if (transformations && transformations.length > 0) {
+      imageUrl += '/t/';
+    } else {
+      imageUrl += '/';
+    }
+
+    transformations?.forEach(({ key, value }) => {
+      if (key === TransformationAction.Resize) {
+        const validTransformations = [{
+          key: 're_w_',
+          value: value.width,
+        }, {
+          key: 're_h_',
+          value: value.height,
+        },  {
+          key: 're_rm_',
+          value: 'stretch',
+        }].filter(item => item.value !== undefined);
+  
+        validTransformations.forEach(({ key: vKey, value: vValue }, index) => {
+          imageUrl += `${vKey}${vValue}${index < validTransformations.length - 1 ? ',' : ''}`;
+        });
+
+        imageUrl += '/';
+      }
+  
+      if (key === TransformationAction.Crop) {
+        const validTransformations = [{
+          key: 'c_w_',
+          value: value.width,
+        }, {
+          key: 'c_h_',
+          value: value.height,
+        }, {
+          key: 'c_x_',
+          value: value.x,
+        }, {
+          key: 'c_y_',
+          value: value.y,
+        }, {
+          key: 'c_whu_',
+          value: 'pixel',
+        }].filter(item => item.value !== undefined);
+  
+        validTransformations.forEach(({ key: vKey, value: vValue }, index) => {
+          imageUrl += `${vKey}${vValue}${index < validTransformations.length - 1 ? ',' : ''}`;
+        });
+
+        imageUrl += '/';
+      }
+  
+      if (key === TransformationAction.Rotate) {
+        const validTransformations = [{
+          key: 'r_a_',
+          value: value.rotation,
+        }].filter(item => item.value !== undefined);
+  
+        validTransformations.forEach(({ key: vKey, value: vValue }, index) => {
+          imageUrl += `${vKey}${vValue}${index < validTransformations.length - 1 ? ',' : ''}`;
+        });
+
+        imageUrl += '/';
+      }
+    });
+
+    imageUrl += `${asset.identifier}.${extension ?? asset.extension}`;
+
+    if (parameters && parameters.length > 0) {
+      imageUrl += '?';
+
+      parameters.forEach(({ key, value }, index) => {
+        imageUrl += `${encodeURIComponent(key.trim())}=${encodeURIComponent(value.trim())}${index < parameters.length - 1 ? '&' : ''}`;
+      });
+    }
+    
+    (responseData as GetAssetLinkResponse).imageUrl = imageUrl;
     return responseData as GetAssetLinkResponse;
   })));
 
@@ -63,14 +157,8 @@ export const getAssetLinks = async (
           break;
         case 'OL_ASSETLINKSERVICE_ERROR_001_LINKS_TO_NON_REQUIRED_FORMATS_NOT_ALLOWED':
           const proxies           = assetsApi.endpoints.getAvailableProxies.select({})(store.getState()).data?.proxiesForDocType;
-          const selectedProxy     = storedProxiesPreferenceSelector(store.getState());
-          const docTypesWithIssue = UniqueArray(assetsWithError, (asset) => asset.docType).map(asset => asset.docType);
-          if (!proxies || !selectedProxy || !docTypesWithIssue.every(docType => IsStringFilled(selectedProxy[docType]))) {
+          if (!proxies) {
             acc.push(`Failed to import ${namesOfAssetWithError}. Change the import proxy in Settings or re-check your permission`);
-          } else {
-            const docTypesToProxyName = docTypesWithIssue.map(docType => `${proxies[selectedProxy[docType] as string]} for ${docType}`).join(' and ');
-
-            acc.push(`Failed to import ${docTypesToProxyName} quality.\nChange the import proxy in Settings or re-check your permission.\n These asset are not imported: ${namesOfAssetWithError}`);
           }
           break;
         case 'OL_ERR_002_NOTALLOWED':
@@ -92,4 +180,3 @@ export const getAssetLinks = async (
 
   return result;
 };
-

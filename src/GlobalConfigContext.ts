@@ -12,13 +12,23 @@ export type PluginInfo = {
   pluginShortName?: string,
 };
 
-export interface GlobalConfigContextType {
+export type GlobalConfigContextType = {
+  availableDocTypes?: string[];
+  availableRepresentativeSubtypes?: string[];
+  ctaText: string;
   displayInfo: ImageCardDisplayInfo;
+  persistMode: boolean;
   pluginInfo: PluginInfo;
   isGABPopedup: boolean;
-}
+  searchInDrive: boolean;
+  showCollections?: boolean;
+};
 
 export const GlobalConfigContext = createContext<GlobalConfigContextType>({
+  availableDocTypes: [],
+  availableRepresentativeSubtypes: [],
+  ctaText: 'Insert',
+  persistMode: false,
   displayInfo: {
     title: true,
     dimension: true,
@@ -27,4 +37,6 @@ export const GlobalConfigContext = createContext<GlobalConfigContextType>({
   },
   pluginInfo: {},
   isGABPopedup: false,
+  searchInDrive: false,
+  showCollections: false,
 });

@@ -6,52 +6,92 @@ export type Folder = {
   fullPath: string;
 };
 
-export type AssetImage = {
-  id: string;
-  name: string;
-  imageUrl: string;
-  tags: string;
-  width: string;
-  height: string;
-  size: string;
+export type Asset = {
   docType: MediaType;
+  docSubType: string;
+  extension: string;
+  height?: string;
+  id: string;
+  identifier: string;
+  imageUrl: string;
+  name: string;
+  scrubUrl: string;
+  size: string;
+  tags: string;
+  width?: string;
 };
 
 export type ContentItem = {
-  recordID: string;
   fields: {
     [key: string]: string;
   };
+  recordID: string;
 };
 
 export type GetContentResponse = {
   contentItems?: ContentItem[];
+  facets: Record<string, Record<string, number>>;
   totalCount: number;
 };
 
 export type GetContentRequest = {
+  extensions: string[];
   folderID: string;
-  searchText: string;
-  page: number;
   isSeeThrough: boolean;
-  mediaTypes: MediaType[];
+  mediaTypes: string[];
+  page: number;
+  searchText: string;
+  sortOrder?: string;
+  statuses: string[];
+  visibilityClasses: string[];
 };
 
-export interface GetAssetLinkResponse {
+export type GetAssetLinkResponse = {
+  extraFields?: {
+    [key: string]: string;
+  };
   imageUrl: string;
   metadata?: {
     [key: string]: string;
-  }
-  extraFields?: {
-    [key: string]: string;
-  }
-}
+  };
+};
+
+export type GetTransformedAssetLinkResponse = {
+  expirationDate: string | null,
+  fileExtension: string | null,
+  format: string,
+  identifier: string,
+  imageResizingMethod: string | null
+  link: string,
+  maxHeight: number,
+  maxWidth: number,
+  recordID: string,
+};
 
 export enum MediaType {
+  Album = 'Album',
+  Audio = 'Audio',
   Image = 'Image',
-  Others = 'Multimedia',
-  // Preserve for later use
-  // Graphic = 'Graphic',
-  // Video = 'Video',
-  // Audio = 'Audio',
+  Multimedia = 'Multimedia',
+  Story = 'Story',
+  Video = 'Video',
+  Widget = 'Widget',
 }
+
+export enum GridView {
+  Small = 'small',
+  Medium = 'medium',
+  Large = 'large',
+}
+
+export enum SortDirection {
+  Ascending = 'ascending',
+  Descending = 'descending',
+}
+
+export type Filter = {
+  mediaTypes: string[],
+  visibilityClasses: string[],
+  statuses: string[],
+  extensions: string[],
+};

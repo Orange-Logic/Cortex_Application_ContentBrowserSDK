@@ -6,7 +6,7 @@ import { AUTH_FEATURE_KEY, logout, setAccessToken } from '@/store/auth/auth.slic
 
 const mutex = new Mutex();
 
-interface CortexFetchOptions extends RequestInit {
+type CortexFetchOptions = RequestInit & {
   /**
    * Time out in milliseconds
    */
@@ -18,7 +18,7 @@ interface CortexFetchOptions extends RequestInit {
    * The token will be refreshed similar to the logic in AppBaseQuery
    */
   retryWhenUnauthorize?: boolean
-}
+};
 
 
 /**

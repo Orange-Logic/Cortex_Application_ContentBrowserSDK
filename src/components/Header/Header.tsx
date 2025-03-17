@@ -1,75 +1,70 @@
-import { useContext } from 'react';
+import { CSSProperties, useContext, useMemo, ReactNode, FC } from 'react';
 
 import { AppContext } from '@/AppContext';
 import { GlobalConfigContext } from '@/GlobalConfigContext';
-import { useAppDispatch } from '@/store';
-import { resetImportStatus } from '@/store/assets/assets.slice';
-import { logout } from '@/store/auth/auth.slice';
-import { openSettings } from '@/store/navigation/navigation.slice';
-import { resetSearchState } from '@/store/search/search.slice';
-import { LOGO_BASE64 } from '@/utils/constants';
-import CloseIcon from '@mui/icons-material/Close';
-import { Box, IconButton } from '@mui/material';
+import { useGetUserInfoQuery } from '@/store/user/user.api';
 
-import HeaderButton from './HeaderButton';
-import HeaderDivider from './HeaderDivider';
-import UserName from './UserName';
+import { Container } from './Header.styled';
 
-const Header = () => {
-  const dispatch = useAppDispatch();
+type Props = {
+  bordered?: boolean;
+  children?: ReactNode;
+  onMenuClick: () => void;
+  onLogout: () => void;
+};
+
+const Header: FC<Props> = ({ bordered, children, onMenuClick, onLogout }) => {
   const { isGABPopedup } = useContext(GlobalConfigContext);
   const { onClose } = useContext(AppContext);
+  const { data, isFetching, isLoading } = useGetUserInfoQuery({});
+  
+  const Dropdown = useMemo(() => {
+    return isLoading || isFetching ? (
+        <cx-skeleton></cx-skeleton>
+    ) : (
+      <cx-dropdown distance={4}>
+        <cx-avatar slot="trigger" label="User avatar"></cx-avatar>
+        <cx-menu>
+          <cx-menu-item>
+            {data?.fullName}
+            <cx-avatar
+              slot="prefix"
+              label="User avatar"
+              style={{
+                '--size': 'var(--cx-font-size-x-large)',
+              } as CSSProperties}>
+            </cx-avatar>
+          </cx-menu-item>
+          <cx-divider></cx-divider>
+          <cx-menu-item value="logout" onClick={onLogout}>
+            Logout
+            <cx-icon slot="prefix" name="logout"></cx-icon>
+          </cx-menu-item>
+        </cx-menu>
+      </cx-dropdown>
+    );
+  }, [isLoading, isFetching, data?.fullName, onLogout]);
 
   return (
-    <Box
-      sx={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        paddingLeft: 2,
-        paddingY: 1,
-      }}
-    >
-      <Box
-        component="img"
-        src={LOGO_BASE64}
-        sx={{
-          height: 30,
-          pb: 3,
-        }}
-      ></Box>
-      <Box
-        sx={{
-          display: 'flex',
-          gap: 2,
-          alignItems: 'center',
-          width: 'fit-content',
-        }}
-      >
-        <UserName />
-        <HeaderDivider />
-        <HeaderButton onClick={() => dispatch(openSettings())}>
-          Settings
-        </HeaderButton>
-        <HeaderDivider />
-        <HeaderButton
-          onClick={() => {
-            dispatch(logout());
-            dispatch(resetSearchState());
-            dispatch(resetImportStatus());
-          }}
-        >
-          Logout
-        </HeaderButton>
-        {isGABPopedup && (
-          <>
-            <HeaderDivider />
-            <IconButton size="small" disableRipple onClick={onClose}>
-              <CloseIcon />
-            </IconButton>
-          </>
-        )}
-      </Box>
-    </Box>
+    <Container direction="vertical" spacing="small" bordered={bordered}>
+      <div className="header">
+        <div className="header__title">
+          <cx-icon-button
+            name="menu"
+            label="Menu"
+            onClick={onMenuClick}
+          ></cx-icon-button>
+          <cx-typography variant="h4">Library</cx-typography>
+        </div>
+        <div className="header__menu">
+          {Dropdown}
+          {isGABPopedup && (
+            <cx-icon-button name="close" label="Close" onClick={onClose}></cx-icon-button>
+          )}
+        </div>
+      </div>
+      {children}
+    </Container>
   );
 };
 

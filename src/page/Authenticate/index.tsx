@@ -1,81 +1,90 @@
-import { Link, Typography } from '@mui/material';
-import { useContext, useMemo } from 'react';
-import { useAppSelector } from '../../store';
-import { appAuthUrlSelector, authStateSelector, siteUrlSelector } from '../../store/auth/auth.slice';
-import { CortexColors } from '../../utils/constants';
+import { FC, useCallback, useContext, useMemo } from 'react';
+
+import { GlobalConfigContext } from '@/GlobalConfigContext';
+import { useAppDispatch, useAppSelector } from '@/store';
+import {
+  appAuthUrlSelector, authStateSelector, cancelAuth, siteUrlSelector,
+} from '@/store/auth/auth.slice';
+
 import AuthenticatePage from './Authenticate';
 import ConnectingBackground from './ConnectingBackground';
-import { Box } from '@mui/system';
-import { GlobalConfigContext } from '../../GlobalConfigContext';
 
-const RestoreSession = () => {
+type Props = {
+  onCancel: () => void;
+};
+
+const RestoreSession: FC<Props> = ({ onCancel }) => {
   return (
-    <ConnectingBackground>
-      <Typography variant="h1" gutterBottom textAlign="center">
+    <ConnectingBackground onCancel={onCancel}>
+      <cx-typography variant="h1">
         Trying to restore your previous session
-      </Typography>
+      </cx-typography>
     </ConnectingBackground>
   );
 };
 
-const RequestLogin = () => {
+const RequestLogin: FC<Props> = ({ onCancel }) => {
   const siteUrl = useAppSelector(siteUrlSelector);
   return (
-    <ConnectingBackground>
-      <Typography variant="h1" gutterBottom textAlign="center">
+    <ConnectingBackground onCancel={onCancel}>
+      <cx-typography variant="h1">
         Requesting login url from {siteUrl}
-      </Typography>
+      </cx-typography>
     </ConnectingBackground>
   );
 };
 
-const WaitForAuthorise = () => {
+const WaitForAuthorize: FC<Props> = ({ onCancel }) => {
   const appAuthUrl = useAppSelector(appAuthUrlSelector);
   const { pluginInfo } = useContext(GlobalConfigContext);
 
   return (
     <ConnectingBackground
       footer={
-        <Box marginTop={30}>
-          <Typography variant="h5" gutterBottom textAlign="center" sx={{
-            fontSize: 15,
-            color: CortexColors.A600,
-          }}>
+        <div
+          style={{
+            textAlign: 'center',
+          }}
+        >
+          <cx-typography variant="body2">
             I was not redirected automatically?
-          </Typography>
+          </cx-typography>
 
-          <Link href={appAuthUrl} fontSize={15} textAlign="center" display="block">{appAuthUrl}</Link>
-        </Box>
+          <cx-button href={appAuthUrl} variant="text">{appAuthUrl}</cx-button>
+        </div>
       }
+      onCancel={onCancel}
     >
-      <Typography variant="h1" gutterBottom textAlign="center">
+      <cx-typography variant="h1">
         Please authorize the Google Addon through Cortex
-      </Typography>
-      <Typography variant="h5" gutterBottom textAlign="center" sx={{
-        fontSize: 15,
-        color: CortexColors.A600,
-      }}>
+      </cx-typography>
+      <cx-typography variant="body2">
         You will be automatically redirected to authorize {pluginInfo.pluginShortName ? `the ${pluginInfo.pluginShortName} plugin ` : '' }in OrangeDAM
-      </Typography>
+      </cx-typography>
     </ConnectingBackground>
   );
 };
 
 const Authenticate = () => {
+  const dispatch = useAppDispatch();
   const authState = useAppSelector(authStateSelector);
+
+  const onCancel = useCallback(() => {
+    dispatch(cancelAuth());
+  }, [dispatch]);
 
   return useMemo(() => {
     switch (authState) {
       case 'unauthenticated':
         return <AuthenticatePage />;
       case 'restoreSession':
-        return <RestoreSession />;
+        return <RestoreSession onCancel={onCancel} />;
       case 'requestLogin':
-        return <RequestLogin />;
+        return <RequestLogin onCancel={onCancel} />;
       case 'waitForAuthorise':
-        return <WaitForAuthorise />;
+        return <WaitForAuthorize onCancel={onCancel} />;
     }
-  }, [authState]);
+  }, [authState, onCancel]);
 };
 
 export default Authenticate;

@@ -1,3 +1,3 @@
-export interface NavigationState {
+export type NavigationState = {
   currentPage: 'home' | 'settings';
-}
+};

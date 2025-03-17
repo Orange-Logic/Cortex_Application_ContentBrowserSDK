@@ -3,7 +3,7 @@
  * @param length
  * @returns Empty string if length is negative
  */
-export const RandomString = (length: number) => {
+export const generateRandomString = (length: number) => {
   let retval = '';
   const characters =
     'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdefghijklmnopqrstuvwxyz';
@@ -19,16 +19,6 @@ export const RandomString = (length: number) => {
  * @param text
  * @returns
  */
-export const IsNullOrWhiteSpace = (text?: string | null) => {
+export const isNullOrWhiteSpace = (text?: string | null) => {
   return !text || text.trim() === '';
 };
-
-/**
- * Check if the given string is filled (not null, not undefined, not empty, not whitespace)
- * @param text
- * @returns {boolean}
- */
-export const IsStringFilled = (text?: string | null) => {
-  return typeof text === 'string' && text.trim() !== '';
-};
-

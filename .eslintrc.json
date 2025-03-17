@@ -9,7 +9,8 @@
     "plugin:@typescript-eslint/recommended",
     "plugin:import/typescript",
     "plugin:react/recommended",
-    "plugin:react/jsx-runtime"
+    "plugin:react/jsx-runtime",
+    "plugin:react-hooks/recommended"
   ],
   "parser": "@typescript-eslint/parser",
   "parserOptions": {
@@ -58,7 +59,16 @@
         "ts": "never",
         "tsx": "never"
       }
-    ]
+    ],
+    "import/no-extraneous-dependencies": [
+      "error", {
+        "devDependencies": false, 
+        "optionalDependencies": false, 
+        "peerDependencies": false, 
+        "packageDir": "./"
+      }
+    ],
+    "react-hooks/exhaustive-deps": "warn"
   },
   "settings": {
     "import/resolver": {

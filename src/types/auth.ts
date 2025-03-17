@@ -9,34 +9,34 @@ export enum GetAccessKeyResponseCode {
 }
 
 export type GetAccessKeyResponse = {
-  code: GetAccessKeyResponseCode;
   accessKey?: string;
+  code: GetAccessKeyResponseCode;
   message?: string;
 };
 
 export type GetAccessTokenResponse = {
-  success: boolean;
   accessToken?: string;
+  success: boolean;
 };
 
 export type RequestAuthorizeRes = {
-  requestID: string;
   nonce: string;
+  requestID: string;
 };
 
 export type GetAccessKeyRes = {
-  code: GetAccessKeyResponseCode;
   accessKey?: string;
+  code: GetAccessKeyResponseCode;
   message?: string;
 };
 
 export type GetAccessTokenRes = {
-  success: boolean;
   accessToken?: string;
+  success: boolean;
 };
 
 export type OAuthRes = {
-  accessToken?: string;
   accessKey?: string;
+  accessToken?: string;
   siteUrl: string;
 };

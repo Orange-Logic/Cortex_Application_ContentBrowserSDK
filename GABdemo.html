@@ -5,45 +5,285 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" />
-  <script
+  <!-- <script
     src="https://downloads.orangelogic.com/Cortex/4SQPK-AssetBrowser/v1.1.0/OrangeDamAssetBrowser.min.js"></script>
   <link rel="stylesheet" type="text/css"
-    href="https://downloads.orangelogic.com/Cortex/4SQPK-AssetBrowser/v1.1.0/OrangeDamAssetBrowser.min.css">
+    href="https://downloads.orangelogic.com/Cortex/4SQPK-AssetBrowser/v1.1.0/OrangeDamAssetBrowser.min.css"> -->
+  <script
+    src="./build/static/js/OrangeDamAssetBrowser.min.js"></script>
+  <link rel="stylesheet" type="text/css"
+    href="./build/static/css/OrangeDamAssetBrowser.min.css">
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      color: var(--cx-color-neutral);
+      font-family: 'Roboto', sans-serif;
+      padding: 1rem;
+    }
+    p {
+      margin: 0;
+    }
+    #app {
+      display: flex;
+      gap: 0.5em;
+      height: 800px;
+    }
+    #gab-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+    #gab-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    #react-app-root {
+      flex: 1;
+      border: 2px solid var(--cx-color-neutral);
+      border-radius: var(--cx-border-radius-small);
+    }
+    #more {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      min-width: 400px;
+      height: 100%;
+    }
+
+    .wrapper {
+      display: flex;
+      flex-direction: column;
+      flex-basis: 50%;
+    }
+
+    .wrapper button {
+      border: none;
+      cursor: pointer;
+      margin-top: var(--cx-spacing-small);
+      padding: var(--cx-spacing-x-small) var(--cx-spacing-medium);
+      letter-spacing: 0.05em;
+      width: 100%;
+    }
+
+    #config,
+    #output {
+      border: 2px solid var(--cx-color-neutral);
+      border-radius: var(--cx-border-radius-small);
+      padding: var(--cx-spacing-small);
+      position: relative;
+      flex: 1;
+    }
+
+    #content {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      overflow-y: auto;
+    }
+  </style>
 </head>
 
 <body>
-  <div style="display:flex; flex-direction: column; align-items: start; gap: 0.5em;" id="app">
-    <div style="display:flex; gap: 0.5em;">
-      </span>Try CortexAssetPicker.help() in the console or click this button</span>
-      <button style="width: 250px; height:20px;" onclick="showGAB()">Load the Generic Asset Browser</button>
+  <div id="app">
+    <div id="gab-container">
+      <div id="gab-header">
+        <span>Generic Asset Browser</span>
+        <div>
+          <input type="checkbox" id="mobile">
+          <label for="mobile">Mobile</label>
+        </div>
+      </div>
+      <div id="react-app-root"></div>
     </div>
+    <div id="more">
+      <div class="wrapper">
+        <span>Config</span>
+        <div id="config">
+          <div id="content" contenteditable></div>
+        </div>
+        <button onclick="loadConfig()">Load config</button>
+      </div>
+      <div class="wrapper">
+        <span>Output</span>
+        <textarea id="output"></textarea>
+      </div>
+    </div>
+  </div>
+  <div>
+    <p>Properties</p>
     <div>
-      <input id="isMultiSelect" type="checkbox">Multi select</input>
-    </div>
-  </div>
-  <div style="display:flex; gap:0.5em">
-    <div id="react-app-root" style="width: 800px; height:800px; border: 2px solid black;"></div>
-    <div style="display:flex; align-items: start; flex-direction: column;">
-      <span>Output</span>
-      <textarea id="console"
-        style="flex: shrink; width: 100%; min-width: 400px; height:400px; border: 2px solid black;"></textarea>
-    </div>
-  </div>
+      <ul>
+        <li>
+          <b>onAssetSelected</b>
+          <p>
+            A function that will be called when an asset is selected. The function will receive an array of selected assets.
+          </p>
+        </li>
+        <li>
+          <b>onError</b>
+          <p>
+            A function that will be called when an error occurs. The function will receive an error message and the error object.
+          </p>
+        </li>
+        <li>
+          <b>availableDocTypes</b>
+          <p>
+            An array of available Cortex subtypes to filter the assets. The available subtypes are: Images, Videos, Audio, Others. If not provided, all subtypes will be available.
+          </p>
+          <p>
+            <small>
+              Note: The subtypes are case-sensitive.
+            </small>
+          </p>
+        </li>
+        <li>
+          <b>containerId</b>
+          <p>
+            The id of the container element to attach the asset picker. If not provided, the asset picker will open in a popup.
+          </p>
+        </li>
+        <li>
+          <b>ctaText</b>
+          <p>
+            The text to display on the insert button.
+          </p>
+        </li>
+        <li>
+          <b>extraFields</b>
+          <p>
+            An array of extra fields to get from the assets. The fields are in the format of "coreField.FieldName" or "document.FieldName".
+          </p>
+        </li>
+        <li>
+          <b>baseUrl</b>
+          <p>
+            The default base URL to pre-fill in the asset picker.
+          </p>
+        </li>
+        <li>
+          <b>displayInfo</b>
+          <p>
+            An object to configure the display of the asset information. The object has the following properties:
+          </p>
+          <ul>
+            <li>title</li>
+            <li>dimension</li>
+            <li>fileSize</li>
+            <li>tags</li>
+          </ul>
+        </li>
+        <li>
+          <b>persistMode</b>
+          <p>
+            A boolean to enable the persist mode. When enabled, the asset picker will not close after selecting an asset.
+          </p>
+        </li>
+        <li>
+          <b>pluginName</b>
+          <p>
+            The name of the plugin to display in the asset picker header.
+          </p>
+        </li>
+        <li>
+          <b>pluginShortName</b>
+          <p>
+            The short name of the plugin to display in the asset picker header.
+          </p>
+        </li>
+        <li>
+          <b>searchInDrive</b>
+          <p>
+            A boolean to enable searching in the drive. When enabled, the asset picker will search in the drive.
+          </p>
+          <p>
+            <small>Note: Used for File on Demand</small>
+          </p>
+        </li>
+        <li>
+          <b>showCollections</b>
+          <p>
+            A boolean to show collections in the asset picker.
+          </p>
+        </li>
+        <li>
+          <b>supportedRepresentativeSubtypes</b>
+          <p>
+            An array of supported Cortex subtypes to allow inserting representative image. If not provided, no subtypes will be supported.
+          </p>
+          <p>
+            <small>
+              Note: The subtypes are case-sensitive.
+            </small>
+          </p>
+      </ul>
   </div>
 
   <script>
-    function showGAB() {
-      CortexAssetPicker.open({
-        multiSelect: document.getElementById("isMultiSelect").checked,
-        onImageSelected: function (assets) {
-          //fill the textarea with id "console" with the response
-          document.getElementById("console").value = JSON.stringify(assets, undefined, 4);
+    function loadDefaultConfig() {
+      const config = {
+        onAssetSelected: (assets) => {
+          document.getElementById('output').value = JSON.stringify(assets, undefined, 2);
+          window.open(assets[0].imageUrl, '_blank');
         },
-        containerId: "react-app-root",
+        onError: (errorMessage, error) => {
+        },
+        availableDocTypes: ['Images', 'Videos', 'Audio', 'Others'],
+        // container element to attach, leave blank to open popup 
+        containerId: 'react-app-root',
+        ctaText: 'Insert',
+        // extra asset fields to get
+        extraFields: ['coreField.OriginalFileName', 'document.CortexPath'],
+        // default base url to pre-filled
+        baseUrl: 'https://qa-latest.orangelogic.com',
+        displayInfo: {
+          title: true,
+          dimension: true,
+          fileSize: true,
+          tags: true,
+        },
+        persistMode: true,
+        pluginName: "Generic Asset Browser",
+        pluginShortName: "GAB",
+        searchInDrive: false,
+        showCollections: true,
+        supportedRepresentativeSubtypes: ['Images', 'Videos', 'Audio', 'Others'],
+      };
+      document.getElementById("content").innerHTML = JSON.stringify(config, function(key, value) {
+        if (typeof value === "function") {
+          return value.toString().replace(/\n/g, "<br/>");
+        }
+        return value;
+      }, 2).replace(/\n/g, "<br/>");
+    }
+    function loadConfig() {
+      const value = document.getElementById("content").textContent;
+      const config = JSON.parse(value.replace(/<br>/g, ""), function(key, value) {
+        if (typeof value === "string" && (key === "onAssetSelected" || key === "onError")) {
+          return new Function("return " + value)();
+        }
+        return value;
       });
+      CortexAssetPicker.close();
+      CortexAssetPicker.open(config);
     }
     window.onload = function() {
-      showGAB();
+      loadDefaultConfig();
+
+      document.getElementById('mobile').addEventListener('change', function() {
+        const checked = this.checked;
+        const container = document.getElementById('react-app-root');
+        if (checked) {
+          container.style.maxWidth = '400px';
+        } else {
+          container.style.maxWidth = 'none';
+        }
+      });
     };
   </script>
 </body>

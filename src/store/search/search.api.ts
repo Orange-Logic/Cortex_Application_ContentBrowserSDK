@@ -1,30 +1,78 @@
+import _mapKeys from 'lodash-es/mapKeys';
+import _camelCase from 'lodash-es/camelCase';
+
 import {
-  DEFAULT_VIEW_SIZE, FIELD_CORTEX_PATH, FIELD_DOC_TYPE, FIELD_FILE_SIZE, FIELD_KEYWORDS,
-  FIELD_MAX_HEIGHT, FIELD_MAX_WIDTH, FIELD_TITLE_WITH_FALLBACK,
+  DEFAULT_VIEW_SIZE, FIELD_CORTEX_PATH, FIELD_DOC_TYPE, FIELD_EXTENSION, FIELD_FILE_SIZE,
+  FIELD_IDENTIFIER, FIELD_KEYWORDS, FIELD_MAX_HEIGHT, FIELD_MAX_WIDTH, FIELD_SCRUB_URL, FIELD_SUBTYPE, FIELD_TITLE_WITH_FALLBACK,
 } from '@/consts/data';
-import {
-  AssetImage, Folder, GetContentRequest, GetContentResponse, MediaType,
-} from '@/types/search';
+import { Asset, Folder, GetContentRequest, GetContentResponse } from '@/types/search';
 import { AppBaseQuery, GetValueByKeyCaseInsensitive } from '@/utils/api';
 import { PAGE_SIZE } from '@/utils/constants';
-import { IsNullOrWhiteSpace } from '@/utils/string';
+import { isNullOrWhiteSpace } from '@/utils/string';
 import { createApi } from '@reduxjs/toolkit/query/react';
 
-const NATURAL_SORT_ORDER_REFERENCEID = 'OR4ND000000063615';
+const NATURAL_SORT_ORDER_REFERENCE_ID = 'OR4ND000000063615';
 
-const resolveExtraFilters = (searchText: string, mediaTypes: MediaType[]) => {
-  const typesToFilter = !mediaTypes?.length ? Object.keys(MediaType) : mediaTypes;
+const resolveFolderExtraFilters = (searchText: string) => {
+  if (isNullOrWhiteSpace(searchText)) {
+    return 'MediaType:Story OR MediaType:Album';
+  }
+  return `(MediaType:Story OR MediaType:Album) AND Story_Title:${searchText}`;
+};
 
-  let typesQuery = typesToFilter
-    .map(type => type === MediaType.Others ? 'FileExtension:PDF' : `MediaType:${type}`)
-    .join(' OR ');
-  if (typesToFilter.length > 1) {
-    typesQuery = `(${typesQuery})`;
+const resolveAssetExtraFilters = ({
+  extensions,
+  searchText,
+  statuses,
+  visibilityClasses,
+}: {
+  extensions: string[];
+  searchText: string;
+  statuses: string[];
+  visibilityClasses: string[];
+}) => {
+  let statusQuery = '';
+  if (statuses?.length) {
+    statusQuery = statuses
+      .map(status => `WorkflowStatus:${status}`)
+      .join(' OR ');
+    if (statuses.length > 1) {
+      statusQuery = `(${statusQuery})`;
+    }
   }
 
-  const searchTextQuery = IsNullOrWhiteSpace(searchText) ? '' : ` AND Text:${searchText}`;
+  let extensionsQuery = '';
+  if (extensions?.length) {
+    extensionsQuery = extensions
+      .map(extension => `FileExtension:${extension}`)
+      .join(' OR ');
+    if (extensions.length > 1) {
+      extensionsQuery = `(${extensionsQuery})`;
+    }
+    if (statusQuery) {
+      extensionsQuery = ` AND ${extensionsQuery}`;
+    }
+  }
 
-  return typesQuery + searchTextQuery;
+  let visibilityClassesQuery = '';
+  if (visibilityClasses?.length) {
+    visibilityClassesQuery = visibilityClasses
+      .map(visibilityClass => `PessimisticVisibilityClass:${visibilityClass}`)
+      .join(' OR ');
+    if (visibilityClasses.length > 1) {
+      visibilityClassesQuery = `(${visibilityClassesQuery})`;
+    }
+    if (statusQuery || extensionsQuery) {
+      visibilityClassesQuery = ` AND ${visibilityClassesQuery}`;
+    }
+  }
+  
+
+  let searchTextQuery = isNullOrWhiteSpace(searchText) ? '' : `Text:${searchText}`;
+  if (statusQuery || extensionsQuery || visibilityClassesQuery) {
+    searchTextQuery = ` AND ${searchTextQuery}`;
+  }
+  return `${statusQuery}${extensionsQuery}${visibilityClassesQuery}${searchTextQuery}`;
 };
 
 // Define a service using a base URL and expected endpoints
@@ -43,18 +91,16 @@ export const searchApi = createApi({
       }) => ({
         url: '/webapi/extensibility/integrations/gab/assetbrowser/getcontent_4bw_v1',
         params: [
-          ['objectRecordID', folder.id],
-          ['fields', 'CoreField.TitleWithFallback'],
-          ['fields', 'CoreField.DocType'],
-          ['fields', 'Document.CortexPath'],
           [
             'extraFilters',
-            IsNullOrWhiteSpace(searchText)
-              ? 'MediaType:Story OR MediaType:Album'
-              : `(MediaType:Story OR MediaType:Album) AND Story_Title:${searchText}`,
+            resolveFolderExtraFilters(searchText),
           ],
-          ['OrderBy', NATURAL_SORT_ORDER_REFERENCEID],
-          ['seeThru', !IsNullOrWhiteSpace(searchText)],
+          ['fields', FIELD_CORTEX_PATH],
+          ['fields', FIELD_DOC_TYPE],
+          ['fields', FIELD_TITLE_WITH_FALLBACK],
+          ['objectRecordID', folder.id],
+          ['orderBy', NATURAL_SORT_ORDER_REFERENCE_ID],
+          ['seeThru', !isNullOrWhiteSpace(searchText)],
         ],
       }),
       transformResponse: (
@@ -84,52 +130,127 @@ export const searchApi = createApi({
         return [{ type: 'Folders', id: arg.folder.id }];
       },
     }),
-    getImages: builder.query({
+    getCollections: builder.query({
       query: ({
+        folder,
+      }) => ({
+        url: '/webapi/extensibility/integrations/gab/assetbrowser/getcontent_4bw_v1',
+        params: [
+          ['fields', FIELD_CORTEX_PATH],
+          ['fields', FIELD_DOC_TYPE],
+          ['fields', FIELD_TITLE_WITH_FALLBACK],
+          ['seeThru', true],
+          ['subtypeCriteria', folder],
+        ],
+      }),
+      transformResponse: (
+        response: GetContentResponse,
+        _meta,
+      ): Folder[] => {
+        return (
+          response.contentItems
+            ?.map((item) => ({
+              id: item.recordID,
+              title:
+                GetValueByKeyCaseInsensitive(item.fields, FIELD_TITLE_WITH_FALLBACK) ?? '',
+              docType:
+                GetValueByKeyCaseInsensitive(item.fields, FIELD_DOC_TYPE) ?? '',
+              path: [],
+              fullPath: (
+                GetValueByKeyCaseInsensitive(item.fields, FIELD_CORTEX_PATH) ?? ''
+              ).replace(/^Root\//i, ''),
+            })) ?? []
+        );
+      },
+      providesTags: (_result, _error, arg) => {
+        return [{ type: 'Folders', id: arg.folder.id }];
+      },
+    }),
+    getAssets: builder.query({
+      query: ({
+        extensions,
         folderID,
-        searchText,
-        page,
         isSeeThrough,
         mediaTypes,
+        page,
+        searchText,
+        sortOrder,
+        statuses,
+        visibilityClasses,
       }: GetContentRequest) => {
+        const mappedMediaTypes = mediaTypes.map((mediaType) => ['subtypeCriteria', mediaType]);
+        const params = [
+          ['objectRecordID', folderID],
+          ['fields', FIELD_TITLE_WITH_FALLBACK],
+          ['fields', DEFAULT_VIEW_SIZE],
+          ['fields', FIELD_KEYWORDS],
+          ['fields', FIELD_MAX_WIDTH],
+          ['fields', FIELD_MAX_HEIGHT],
+          ['fields', FIELD_FILE_SIZE],
+          ['fields', FIELD_DOC_TYPE],
+          ['fields', FIELD_SUBTYPE],
+          ['fields', FIELD_IDENTIFIER],
+          ['fields', FIELD_EXTENSION],
+          [
+            'extraFilters',
+            resolveAssetExtraFilters({
+              extensions,
+              searchText,
+              statuses,
+              visibilityClasses,
+            }),
+          ],
+          ['orderBy', sortOrder],
+          ['seeThru', isSeeThrough],
+          ['start', page * PAGE_SIZE],
+          ['limit', PAGE_SIZE],
+        ];
+        if (mappedMediaTypes.length) {
+          params.push(...mappedMediaTypes);
+        }
         return {
           url: '/webapi/extensibility/integrations/gab/assetbrowser/getcontent_4bw_v1',
-          params: [
-            ['objectRecordID', folderID],
-            ['fields', FIELD_TITLE_WITH_FALLBACK],
-            ['fields', DEFAULT_VIEW_SIZE],
-            ['fields', FIELD_KEYWORDS],
-            ['fields', FIELD_MAX_WIDTH],
-            ['fields', FIELD_MAX_HEIGHT],
-            ['fields', FIELD_FILE_SIZE],
-            ['fields', FIELD_DOC_TYPE],
-            [
-              'extraFilters',
-              resolveExtraFilters(searchText, mediaTypes),
-            ],
-            ['seeThru', isSeeThrough],
-            ['start', page * PAGE_SIZE],
-            ['limit', PAGE_SIZE],
-          ],
+          params,
         };
       },
-      transformResponse: (response: GetContentResponse): { items: AssetImage[]; totalCount: number } => ({
+      transformResponse: (
+        response: GetContentResponse,
+      ): {
+        facets: Record<string, Record<string, number>>;
+        items: Asset[];
+        totalCount: number;
+      } => ({
+        facets: _mapKeys(response.facets, (_, key) => _camelCase(key)),
         items:
           response.contentItems?.map((item) => ({
+            docType   : GetValueByKeyCaseInsensitive(item.fields, FIELD_DOC_TYPE) ?? '',
+            docSubType: GetValueByKeyCaseInsensitive(item.fields, FIELD_SUBTYPE) ?? '',
+            extension : GetValueByKeyCaseInsensitive(item.fields, FIELD_EXTENSION) ?? '',
+            height    : GetValueByKeyCaseInsensitive(item.fields, FIELD_MAX_HEIGHT) ?? '0',
             id:       item.recordID,
-            name:     GetValueByKeyCaseInsensitive(item.fields, FIELD_TITLE_WITH_FALLBACK) ?? '',
-            imageUrl: GetValueByKeyCaseInsensitive(item.fields, DEFAULT_VIEW_SIZE) ?? '',
-            tags:     GetValueByKeyCaseInsensitive(item.fields, FIELD_KEYWORDS) ?? '',
-            width:    GetValueByKeyCaseInsensitive(item.fields, FIELD_MAX_WIDTH) ?? '0',
-            height:   GetValueByKeyCaseInsensitive(item.fields, FIELD_MAX_HEIGHT) ?? '0',
-            size:     GetValueByKeyCaseInsensitive(item.fields, FIELD_FILE_SIZE) ?? '0 MB',
-            docType:  GetValueByKeyCaseInsensitive(item.fields, FIELD_DOC_TYPE) ?? MediaType.Others,
-          } as AssetImage)) ?? [],
+            identifier: GetValueByKeyCaseInsensitive(item.fields, FIELD_IDENTIFIER) ?? '',
+            imageUrl  : GetValueByKeyCaseInsensitive(item.fields, DEFAULT_VIEW_SIZE) ?? '',
+            name      : GetValueByKeyCaseInsensitive(item.fields, FIELD_TITLE_WITH_FALLBACK) ?? '',
+            scrubUrl  : GetValueByKeyCaseInsensitive(item.fields, FIELD_SCRUB_URL) ?? '',
+            size      : GetValueByKeyCaseInsensitive(item.fields, FIELD_FILE_SIZE) ?? '0 MB',
+            tags      : GetValueByKeyCaseInsensitive(item.fields, FIELD_KEYWORDS) ?? '',
+            width     : GetValueByKeyCaseInsensitive(item.fields, FIELD_MAX_WIDTH) ?? '0',
+          } as Asset)) ?? [],
         totalCount: response.totalCount,
       }),
       providesTags: (_result, _error, arg) => {
         return [
-          { type: 'ImagesInFolders', id: arg.folderID, page: arg.page, searchText: arg.searchText, isSeeThrough: arg.isSeeThrough },
+          {
+            extensions: arg.extensions,
+            id: arg.folderID,
+            isSeeThrough: arg.isSeeThrough,
+            mediaTypes: arg.mediaTypes,
+            page: arg.page,
+            searchText: arg.searchText,
+            sortOrder: arg.sortOrder,
+            statuses: arg.statuses,
+            type: 'ImagesInFolders',
+          },
           'Images',
         ];
       },
@@ -141,7 +262,6 @@ export const searchApi = createApi({
           return responseData;
         }
       },
-      // Refetch when the page arg changes
       forceRefetch({ currentArg, previousArg }) {
         return currentArg !== previousArg;
       },
@@ -167,5 +287,5 @@ export const searchApi = createApi({
 
 // Export hooks for usage in functional components, which are
 // auto-generated based on the defined endpoints
-export const { useGetFoldersQuery, useGetImagesQuery, useGetContentQuery } =
+export const { useGetFoldersQuery, useGetCollectionsQuery, useGetAssetsQuery, useGetContentQuery } =
   searchApi;

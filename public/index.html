@@ -22,11 +22,22 @@
       Learn how to configure a non-root public URL by running `npm run build`.
     -->
   <title>OrangeDam Asset Picker</title>
+  <style>
+    body {
+      background-color: rgb(255, 255, 255);
+      margin: 0;
+    }
+
+    #react-app-root {
+      width: 100vw;
+      height: 100vh;
+    }
+  </style>
 </head>
 
 <body>
   <noscript>You need to enable JavaScript to run this app.</noscript>
-  <div id="react-app-root" style="width: 800px; height:800px; border: 2px solid black; margin: auto;"></div>
+  <div id="react-app-root"></div>
   <!--
       This HTML file is a template.
       If you open it directly in the browser, you will see an empty page.
@@ -42,20 +53,28 @@
 
     const debugGAB = () => {
       const settings = {
-        onImageSelected: console.debug,
+        onAssetSelected: function (assets) {
+          console.log(assets);
+        },
         onError: console.error,
         // baseUrl: "local.orangelogic.com",
+        availableDocTypes: ['Images', 'Videos', 'Audio', 'Others'],
+        availableRepresentativeSubtypes: ['Standard Image', 'Other'],
         containerId: 'react-app-root',
-        multiSelect: true, // single or multiple file picke
         displayInfo: {
           title: true,
           dimension: true,
           fileSize: true,
-          tags: true,
+          tags: false,
         },
-        onClose: () => { },
+        extraFields: ['coreField.OriginalFileName', 'document.CortexPath'],
+        multiSelect: false, // single or multiple file picker
+        persistMode: true,
         // pluginName: "Generic Asset Browser",
         // pluginShortName: "GAB"
+        searchInDrive: false,
+        showCollections: true,
+        onClose: () => { },
       }
       settings.onClose = () => {
         console.log('Picker closed, reopening ...');
@@ -63,7 +82,8 @@
       }
       window.CortexAssetPicker.open(settings);
     }
-
+    // run debugGAB() on load
+    document.addEventListener('DOMContentLoaded', debugGAB);
     // */
   </script>
 </body>

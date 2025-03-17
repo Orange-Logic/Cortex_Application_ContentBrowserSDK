@@ -1,87 +1,63 @@
-import { Alert, Box } from '@mui/material';
-import { useEffect, useRef, useState } from 'react';
 import AutoSizer, { Size } from 'react-virtualized-auto-sizer';
-import { useAppSelector } from '../../store';
-import { useGetImagesQuery } from '../../store/search/search.api';
-import { getCurrentFolder, getMediaTypes, getSearchText } from '../../store/search/search.slice';
-import { AssetImage, Folder, MediaType } from '../../types/search';
-import { PAGE_SIZE } from '../../utils/constants';
-import { ResultAssetCardWraper } from './ResultAssetCard';
+
+import NoResult from '@/components/NoResult';
+import { Asset, GridView } from '@/types/search';
+
+import AssetCardWrapper from './AssetCard';
+import { Container } from './Result.styled';
 
 type ResultsProps = {
-  isSeeThrough: boolean;
-  currentFolder: Folder;
-  searchText: string;
-  handleSelectItem: (selectedAsset: AssetImage) => void;
-  selectedAssets: AssetImage[];
-  setTotalCount: (totalCount: number) => void;
-  setCurrentCount: (currentCount: number) => void;
-  mediaTypes: MediaType[];
+  items: Asset[];
+  isError: boolean;
+  isLoading: boolean;
+  hasNextPage: boolean;
+  selectedAsset: Asset | null;
+  view: GridView;
+  onItemSelect: (selectedAsset: Asset) => void;
+  onLoadMore: () => void;
+  onScroll: (e: MouseEvent) => void;
 };
 
-const Results = ({ currentFolder, searchText, handleSelectItem, selectedAssets, isSeeThrough, setTotalCount, setCurrentCount, mediaTypes }: ResultsProps) => {
-  const scrollTarget = useRef<Node | Window>(undefined);
-  const [page, setPage] = useState(0);
-  const [seeThru, setSeeThru] = useState(isSeeThrough);
-
-  const { data, isFetching, isLoading, isError } = useGetImagesQuery({
-    folderID: currentFolder.id,
-    searchText,
-    page,
-    isSeeThrough: seeThru,
-    mediaTypes,
-  });
-
-  useEffect(() => {
-    setSeeThru(isSeeThrough);
-  }, [isSeeThrough]);
-
-  useEffect(() => {
-    setTotalCount(data?.totalCount || 0);
-  }, [data?.totalCount, setTotalCount]);
-
-  useEffect(() => {
-    setCurrentCount(data?.items.length || 0);
-  }, [data?.items.length, setCurrentCount]);
-
+const Results = ({
+  selectedAsset,
+  view,
+  hasNextPage,
+  items,
+  isError,
+  isLoading,
+  onItemSelect,
+  onLoadMore,
+  onScroll,
+}: ResultsProps) => {
   if (isError) {
     return (
-      <Box ref={scrollTarget}>
-        <Alert severity="error">Error</Alert>
-      </Box>
+      <NoResult
+        icon="error_outline"
+        message="Something went wrong. Please try again later."
+      />
     );
   }
 
   return (
-    <AutoSizer>
-      {({ height, width }: Size) => (
-        <ResultAssetCardWraper
-          key={searchText}
-          hasNextPage={data ? (page + 1) * PAGE_SIZE < data.totalCount : false}
-          isLoadingData={isFetching || isLoading}
-          items={data ? data.items : []}
-          loadNextPage={() => setPage(page + 1)}
-          width={width}
-          height={height}
-          handleSelectItem={handleSelectItem}
-          selectedAssets={selectedAssets}
-        />
-      )}
-    </AutoSizer>
+    <Container>
+      <AutoSizer>
+        {({ height, width }: Size) => (
+          <AssetCardWrapper
+            hasNextPage={hasNextPage}
+            height={height}
+            isLoadingData={isLoading}
+            items={items ?? []}
+            selectedAsset={selectedAsset}
+            view={view}
+            width={width}
+            onItemSelect={onItemSelect}
+            onLoadMore={onLoadMore}
+            onScroll={onScroll}
+          />
+        )}
+      </AutoSizer>
+    </Container>
   );
 };
 
-export const ResultsWrapper = (props: Omit<ResultsProps, 'currentFolder' | 'searchText' | 'mediaTypes'>) => {
-  const currentFolder = useAppSelector(getCurrentFolder);
-  const searchText = useAppSelector(getSearchText);
-  const mediaTypes = useAppSelector(getMediaTypes);
-
-  return <Results
-    key={currentFolder.id + searchText + mediaTypes.join('+') + ''}
-    currentFolder={currentFolder}
-    searchText={searchText}
-    mediaTypes={mediaTypes}
-    {...props} />;
-};
-
-export default ResultsWrapper;
+export default Results;

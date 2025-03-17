@@ -1,12 +1,7 @@
 /* eslint-disable @typescript-eslint/no-use-before-define */
 
 import { ASSETS_FEATURE_STORAGE_KEY_IMPORT_PROXY } from '@/store/assets/assets.slice';
-import { StringTable } from '@/types/common';
-import { AssetImage, MediaType } from '@/types/search';
 import { StorageType } from '@/types/storage';
-
-import { UniqueArray } from './array';
-import { IsStringFilled } from './string';
 
 const DATA_EXPIRE_TIME_POSTFIX = '_valid_until';
 const DEFAULT_EXPIRED_DURATION = 1 * 24 * 60 * 60 * 1000; // 1 Day
@@ -52,11 +47,6 @@ const createCookie = (
 const getCookie = (key: string) => {
   const nameEQ = key + '=';
   const ca = document.cookie.split(';');
-  // for (let i = 0; i < ca.length; i++) {
-  //   let c = ca[i];
-  //   while (c.startsWith(' ')) c = c.substring(1, c.length);
-  //   if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length, c.length);
-  // }
   for (const c of ca) {
     const cookie = c.trim();
     if (cookie.startsWith(nameEQ)) {
@@ -192,28 +182,3 @@ export const deleteData = (key: string) => {
 export const GetDocTypeProxyKey = (docType: string) => {
   return ASSETS_FEATURE_STORAGE_KEY_IMPORT_PROXY + '_' + docType;
 };
-
-/**
- * Get the proxy preference from storage.
- * @param {AssetImage[]} selectedAssets 
- * @returns {StringTable | null} Object contain mapping between DocType and Proxy from preference (Stored in local storage).
- */
-export const GetProxyPreferenceFromStorage = async (selectedAssets?: AssetImage[]): Promise<Partial<StringTable>> => {
-  let selectedDocTypes: string[] = [];
-  if (selectedAssets) {
-    selectedDocTypes = UniqueArray(selectedAssets, (asset) => asset.docType).map(asset => asset.docType);
-  } else {
-    selectedDocTypes = Object.values(MediaType);
-  }
-  const proxiesPreference = await Promise.all(selectedDocTypes.map(docType => getData(GetDocTypeProxyKey(docType))));
-  return proxiesPreference.reduce((prev, curr, index) => {
-    if (IsStringFilled(curr)) {
-      return {
-        ...prev,
-        [selectedDocTypes[index]]: curr,
-      };
-    }
-    return prev;
-  }, {});
-};
-

@@ -11,7 +11,7 @@ import {
 
 import { getRequestUrl } from './getRequestUrl';
 
-interface CortexFetchOptions extends RequestInit {
+type CortexFetchOptions = RequestInit & {
   /**
    * Time out in milliseconds
    */
@@ -23,7 +23,7 @@ interface CortexFetchOptions extends RequestInit {
    * The token will be refreshed similar to the logic in AppBaseQuery
    */
   retryWhenUnauthorize?: boolean
-}
+};
 
 const mutex = new Mutex();
 
@@ -138,7 +138,7 @@ const fetchWithTimeout = async (resource: RequestInfo | URL, options?: RequestIn
  */
 export const cortexFetch = async (resource: string, options?: CortexFetchOptions) => {
   const { retryWhenUnauthorize = true } = options || {};
-  const authState = (store.getState() as RootState)[AUTH_FEATURE_KEY];
+  const authState = store.getState()[AUTH_FEATURE_KEY];
   resource = getRequestUrl(authState.siteUrl, resource, authState.accessToken);
   const response = await fetchWithTimeout(resource, options);
 

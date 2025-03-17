@@ -3,7 +3,7 @@
  * @param arr array to check
  * @returns 
  */
-export const HasElements = (arr: object | undefined | null): boolean => {
+export const hasElements = (arr: object | undefined | null): boolean => {
   return !!arr && Object.keys(arr).length > 0;
 };
 
@@ -13,7 +13,7 @@ export const HasElements = (arr: object | undefined | null): boolean => {
  * @param keyGenerator - A callback function that generates a unique key for each element.
  * @returns A new array with unique elements.
  */
-export const UniqueArray = <T>(arr: T[], keyGenerator: (element: T) => string = (element) => element as string): T[] => {
+export const uniqueArray = <T>(arr: T[], keyGenerator: (element: T) => string = (element) => element as string): T[] => {
   const uniqueElements: { [key: string]: T } = {};
 
   arr.forEach((element) => {

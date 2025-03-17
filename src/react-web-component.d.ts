@@ -1,17 +1,20 @@
 /* eslint-disable */
               import { HTMLAttributes, DetailedHTMLProps } from 'react';
               
-          import { CxIcon, CxIconButton, CxAlert, CxAnimatedImage, CxAnimation, CxAvatar, CxBadge, CxBreadcrumbItem, CxBreadcrumb, CxSpinner, CxButton, CxButtonGroup, CxCard, CxCarouselItem, CxCarousel, CxPopup, CxTooltip, CxTypography, CxCheckbox, CxMenuItem, CxMenu, CxInput, CxDropdown, CxDivider, CxVisuallyHidden, CxColorPicker, CxCopyButton, CxDetails, CxDialog, CxDrawer, CxElementClamp, CxFormatBytes, CxFormatDate, CxFormatNumber, CxImageComparer, CxInclude, CxResizeObserver, CxLineClamp, CxMenuLabel, CxMenuSection, CxMutationObserver, CxOption, CxTag, CxSelect, CxTreeItem, CxPagination, CxProgressBar, CxProgressRing, CxQrCode, CxRadio, CxRadioButton, CxRadioCard, CxRadioGroup, CxRange, CxRating, CxRelativeTime, CxSkeleton, CxSplitPanel, CxStep, CxStepper, CxSwitch, CxTab, CxTabPanel, CxTabGroup, CxTextarea, CxTree, CxGrid, CxGridItem, CxGraphView, CxClusterManagement, CxMultiSelect, CxTemplateSwitcher, CxTextToSpeech, CxDownloader } from './web-component';
+          import { CxIcon, CxIconButton, CxAlert, CxAnimatedImage, CxAnimation, CxAvatar, CxBadge, CxBreadcrumbItem, CxBreadcrumb, CxSpinner, CxButton, CxButtonGroup, CxCard, CxCarouselItem, CxCarousel, CxPopup, CxTooltip, CxMarkdown, CxTypography, CxCheckbox, CxMenuItem, CxMenu, CxInput, CxDropdown, CxDivider, CxVisuallyHidden, CxColorPicker, CxCopyButton, CxDetails, CxDialog, CxDrawer, CxElementClamp, CxFormatBytes, CxFormatDate, CxFormatNumber, CxHubConnection, CxImageComparer, CxInclude, CxInputGroup, CxResizeObserver, CxLineClamp, CxMenuLabel, CxMenuSection, CxMutationObserver, CxOption, CxTag, CxSelect, CxTreeItem, CxPagination, CxProgressBar, CxProgressRing, CxQrCode, CxRadio, CxRadioButton, CxRadioCard, CxRadioGroup, CxRange, CxRating, CxRelativeTime, CxSkeleton, CxSpace, CxSplitPanel, CxStep, CxStepper, CxSwitch, CxTab, CxTabPanel, CxTabGroup, CxTextarea, CxTree, CxGrid, CxGridItem, CxChatbot, CxGraphView, CxStepperWizard, CxClusterManagement, CxMultiSelect, CxTemplateSwitcher, CxTextToSpeech, CxDownloader } from './web-component';
         
               
+            export type CxMarkdownRendererObject = {  };
+            export type CxChatbotChatbotEvent = { event: string; excludedFromPurposes: string[]; label: string; };
             export type CxGraphViewWorkflow = { data: CxGraphViewData; description: string; id: string; links: CxGraphViewEdge[]; name: string; node_types: CxGraphViewRecord; nodes: CxGraphViewNode[]; type: string; };
             export type CxGraphViewData = { fromTransition: string; name: string; source: string; transitions: CxGraphViewTransition[]; };
             export type CxGraphViewTransition = { description: string; icon: string; icon_rotation: number; id: string; name: string; required: boolean; type: string; };
             export type CxGraphViewEdge = { fromNode: string; fromTransition: string; icon: string; iconRotation: number; toNode: string; };
             export type CxGraphViewRecord = dictionary;
             export type CxGraphViewNodeType = { allows_loop: boolean; color: string; icon: string; name: string; };
-            export type CxGraphViewNode = { category: string; color: string; data: CxGraphViewData; description: string; icon: string; id: string; messages: string[]; name: string; state: 'Error'; summaries: CxGraphViewSummary[]; type: 'Action' | 'Decision' | 'Status' | 'Trigger' | 'Ghost'; };
+            export type CxGraphViewNode = { category: string; color: string; data: CxGraphViewData; description: string; icon: string; id: string; messages: string[]; name: string; state: 'Error'; summaries: CxGraphViewSummary[]; type: 'Action' | 'Decision' | 'Status' | 'Trigger' | 'Ghost'; unordered: boolean; unorderedText: string; };
             export type CxGraphViewSummary = { icon: string; texts: string[]; };
+            export type CxStepperWizardStepData = { color: string; description: string; icon: string; iconVariant: 'outlined' | 'filled' | 'fa'; id: string; name: string; readonly: boolean; state: 'Done' | 'Active' | 'None' | 'Disabled'; };
             export type CxMultiSelectColumnData = { id: string; items: { group: string; id: string; index: string; text: string; tooltip: string; type: string; }[]; sort: boolean; title: string; };
             export type CxTemplateSwitcherTemplateSwitcherProps = { VFormID: string; categories: CxTemplateSwitcherCategory[]; defaultDirectionWhenSortChange: string; defaultSettings: CxTemplateSwitcherSettings; defaultSortForResequence: string; disabledCountForViews: string[]; disabledDeployStackForViews: string[]; disabledGroupByForViews: string[]; disabledSeeThruForViews: string[]; disabledSortForViews: string[]; events: CxTemplateSwitcherEvents; forceSortOrderWhenSeethruOff: string; groupBy: CxTemplateSwitcherOption[]; hideDeployStackForViews: string[]; hideGroupByForViews: string[]; initSettings: CxTemplateSwitcherSettings; itemsPerPage: CxTemplateSwitcherOption[]; moreOptions: CxTemplateSwitcherMoreOptions; sections: CxTemplateSwitcherSectionOption[]; sortOrder: CxTemplateSwitcherSortOrder[]; view: CxTemplateSwitcherOption[]; };
             export type CxTemplateSwitcherCategory = { id: string; name: string; };
@@ -22,6 +25,7 @@
             export type CxTemplateSwitcherMoreOptions = dictionary;
             export type CxTemplateSwitcherSectionOption = { id: string; name: string; };
             export type CxTemplateSwitcherSortOrder = { category: string; eventName: string; id: string; isSetting: boolean; name: string; selectedTip: string; subCategory: string; unselectedTip: string; direction: CxTemplateSwitcherOption[]; };
+            export type CxTextToSpeechTextToSpeechData = { HtmlData: string; SsmlData: { LanguageCode: string; Name: string; SsmlText: string; }; };
             export type CxDownloaderExecutionContext = { defaultDownloadFolder: CxDownloaderRaw; downloadRequestedEvent: CxDownloaderEvent; instructionsURL: CxDownloaderRaw; isReady: CxDownloaderRaw; locationPickedEvent: CxDownloaderEvent; locationRequestedEvent: CxDownloaderEvent; openDirectoryPickerAction: CxDownloaderAction; openDownloaderEvent: CxDownloaderEvent; promptAction: CxDownloaderAction; promptRepliedEvent: CxDownloaderEvent; userID: CxDownloaderIdentifier; configurationData: CxDownloaderConfigurationData; };
             export type CxDownloaderRaw = { value: string; };
             export type CxDownloaderEvent = {  };
@@ -119,6 +123,18 @@
           * The class of the Font Awesome icon to draw
         */
         iconClass?: string;
+        /**
+          * The button's size.
+        */
+        size?: 'small' | 'medium' | 'large' | 'x-large';
+        /**
+          * Draws an outlined button.
+        */
+        outline?: boolean;
+        /**
+          * Draws a circular icon button.
+        */
+        circle?: boolean;
         /**
           * Make localization attributes reactive
         */
@@ -954,6 +970,45 @@
  *  active.
         */
         hoverBridge?: boolean;
+        /**
+          * Make localization attributes reactive
+        */
+        dir?: string;
+        /**
+          * 
+        */
+        lang?: string;
+            } 
+            /**
+              * @summary Renders markdown passed in as a string. cx-markdown is a Light DOM element, so can be styled
+ *  from outside the Shadow DOM.
+ * 
+ *  @event cx-ready - Emitted when the markdown has been rendered.
+            */
+            interface CxMarkdownAttributes extends HTMLAttributes<CxMarkdown> {
+              
+        /**
+          * The class name to apply to the root element. As this is a light DOM element, it can be styled
+ *  from outside the Shadow DOM.
+        */
+        classname?: string;
+        /**
+          * 
+        */
+        liveScript?: boolean;
+        /**
+          * The markdown to render.
+        */
+        markdown?: string;
+        /**
+          * A marked renderer object to use when rendering the markdown. This overrides the current renderer
+ *  only for those methods that are specifically defined on the passed in renderer object.
+        */
+        renderer?: CxMarkdownRendererObject;
+        /**
+          * Extensions to add to the marked parser.
+        */
+        extensions?: { name: string; level: 'block' | 'inline'; childTokens: string[]; } | { name: string; } | { name: string; level: 'block' | 'inline'; childTokens: string[]; }[];
         /**
           * Make localization attributes reactive
         */
@@ -1817,6 +1872,11 @@
         */
         noHeader?: boolean;
         /**
+          * Determines how the popup is positioned. The `absolute` strategy works well in most cases, but if overflow is
+ *  clipped, using a `fixed` position strategy can often workaround it.
+        */
+        strategy?: 'absolute' | 'fixed';
+        /**
           * Make localization attributes reactive
         */
         dir?: string;
@@ -2130,6 +2190,37 @@
         lang?: string;
             } 
             /**
+              * @summary The `cx-hub-connection` component is used to establish a connection to a SignalR hub.
+ *  https://learn.microsoft.com/en-us/javascript/api/%40microsoft/signalr/hubconnection?view=signalr-js-latest
+            */
+            interface CxHubConnectionAttributes extends HTMLAttributes<CxHubConnection> {
+              
+        /**
+          * The url of the HubConnection to the server.
+        */
+        baseUrl?: string;
+        /**
+          * Default interval at which to ping the server in milliseconds.
+        */
+        keepAliveIntervalInMilliseconds?: number;
+        /**
+          * A boolean value that determines whether the negotiation step should be skipped when connecting to the server.
+        */
+        skipNegotiation?: boolean;
+        /**
+          * 
+        */
+        connectMode?: 'auto' | 'manual';
+        /**
+          * Make localization attributes reactive
+        */
+        dir?: string;
+        /**
+          * 
+        */
+        lang?: string;
+            } 
+            /**
               * @summary Compare visual differences between similar photos with a sliding panel.
  * 
  *  @dependency cx-icon
@@ -2186,6 +2277,29 @@
  *  code and can result in XSS attacks.
         */
         allowScripts?: boolean;
+        /**
+          * Make localization attributes reactive
+        */
+        dir?: string;
+        /**
+          * 
+        */
+        lang?: string;
+            } 
+            /**
+              * @summary Input groups can be used to group related inputs into sections.
+ * 
+ *  @slot - One or more `cx-input` elements to display in the input group.
+ * 
+ *  @csspart base - The component's base wrapper.
+            */
+            interface CxInputGroupAttributes extends HTMLAttributes<CxInputGroup> {
+              
+        /**
+          * A label to use for the input group. This won't be displayed on the screen, but it will be announced by assistive
+ *  devices when interacting with the control and is strongly recommended.
+        */
+        label?: string;
         /**
           * Make localization attributes reactive
         */
@@ -2567,6 +2681,10 @@
         */
         inputBehavior?: 'select' | 'filter';
         /**
+          * 
+        */
+        stayOpenOnSelect?: boolean;
+        /**
           * Make localization attributes reactive
         */
         dir?: string;
@@ -2628,6 +2746,10 @@
           * Disables the tree item.
         */
         disabled?: boolean;
+        /**
+          * Makes the tree item readonly
+        */
+        readonly?: boolean;
         /**
           * Enables lazy loading behavior.
         */
@@ -3210,6 +3332,46 @@
         lang?: string;
             } 
             /**
+              * @summary SpacingContainer allows for flexible layout spacing between child elements, vertically or horizontally, with varying sizes.
+ * 
+ *  @csspart base - The component's base container, applying flex layout.
+            */
+            interface CxSpaceAttributes extends HTMLAttributes<CxSpace> {
+              
+        /**
+          * When set, and in vertical orientation, the child elements will stretch to fill the width of the container.
+        */
+        block?: boolean;
+        /**
+          * The direction of the spacing container. This will determine if the child elements are spaced vertically or horizontally.
+        */
+        direction?: 'horizontal' | 'vertical';
+        /**
+          * The spacing between child elements
+        */
+        spacing?: 'small' | 'medium' | 'large' | 'x-large' | '3x-small' | '2x-small' | 'x-small' | '2x-large' | '3x-large' | '4x-large';
+        /**
+          * The wrap behavior of the container.
+        */
+        wrap?: 'wrap' | 'nowrap' | 'wrap-reverse';
+        /**
+          * Proxy for justify-content CSS property.
+        */
+        justifyContent?: 'normal' | 'center' | 'right' | 'left' | 'start' | 'end' | 'flex-start' | 'flex-end' | 'space-between' | 'space-around' | 'space-evenly' | 'stretch';
+        /**
+          * Proxy for align-items CSS property.
+        */
+        alignItems?: 'normal' | 'center' | 'start' | 'end' | 'flex-start' | 'flex-end' | 'stretch' | 'baseline';
+        /**
+          * Make localization attributes reactive
+        */
+        dir?: string;
+        /**
+          * 
+        */
+        lang?: string;
+            } 
+            /**
               * @summary Split panels display two adjacent panels, allowing the user to reposition them.
  * 
  *  @event cx-reposition - Emitted when the divider's position changes.
@@ -3296,6 +3458,10 @@
         /**
           * 
         */
+        readonly?: boolean;
+        /**
+          * 
+        */
         error?: boolean;
         /**
           * 
@@ -3314,6 +3480,14 @@
         */
         progress?: number;
         /**
+          * 
+        */
+        color?: string;
+        /**
+          * 
+        */
+        round?: boolean;
+        /**
           * Make localization attributes reactive
         */
         dir?: string;
@@ -3327,6 +3501,14 @@
             */
             interface CxStepperAttributes extends HTMLAttributes<CxStepper> {
               
+        /**
+          * 
+        */
+        direction?: 'horizontal' | 'vertical';
+        /**
+          * 
+        */
+        itemsPerRow?: number;
         /**
           * Make localization attributes reactive
         */
@@ -3739,7 +3921,11 @@
         /**
           * Defines the flex-wrap style property.
         */
-        wrap?: 'nowrap' | 'wrap' | 'wrap-reverse';
+        wrap?: 'wrap' | 'nowrap' | 'wrap-reverse';
+        /**
+          * Whether to use the "@container" query or not.
+        */
+        useContainer?: boolean;
         /**
           * Make localization attributes reactive
         */
@@ -3779,6 +3965,98 @@
         */
         xl?: string;
         /**
+          * 
+        */
+        useContainer?: boolean;
+        /**
+          * Make localization attributes reactive
+        */
+        dir?: string;
+        /**
+          * 
+        */
+        lang?: string;
+            } 
+            /**
+              * @summary A chatbot component to interact with Cortex AI Assistant.
+ * 
+ *  @dependency cx-tooltip
+ *  @dependency cx-icon-button
+ *  @dependency cx-markdown
+ *  @dependency cx-icon
+ *  @dependency cx-typography
+ *  @dependency cx-checkbox
+ *  @dependency cx-menu
+ *  @dependency cx-menu-item
+ *  @dependency cx-input
+ *  @dependency cx-badge
+ *  @dependency cx-dropdown
+ *  @dependency cx-button
+ *  @dependency cx-divider
+            */
+            interface CxChatbotAttributes extends HTMLAttributes<CxChatbot> {
+              
+        /**
+          * The conversation ID to connect to the chatbot
+        */
+        conversationId?: string;
+        /**
+          * The title of the chatbot
+        */
+        conversationTitle?: string;
+        /**
+          * The purpose of the conversation
+        */
+        conversationPurpose?: string;
+        /**
+          * The name of the chatbot
+        */
+        botName?: string;
+        /**
+          * The name of the user
+        */
+        userName?: string;
+        /**
+          * The events to show in the chatbot's menu
+        */
+        events?: CxChatbotChatbotEvent[];
+        /**
+          * The connection URL to the chatbot
+        */
+        connectionURL?: string;
+        /**
+          * Make localization attributes reactive
+        */
+        dir?: string;
+        /**
+          * 
+        */
+        lang?: string;
+            } 
+            /**
+              * @summary
+ * 
+ *  @event
+            */
+            interface CxGraphViewAttributes extends HTMLAttributes<CxGraphView> {
+              
+        /**
+          * 
+        */
+        data?: CxGraphViewWorkflow;
+        /**
+          * 
+        */
+        readonly?: boolean;
+        /**
+          * 
+        */
+        hideControls?: boolean;
+        /**
+          * 
+        */
+        renderDelay?: number;
+        /**
           * Make localization attributes reactive
         */
         dir?: string;
@@ -3790,8 +4068,16 @@
             /**
               * 
             */
-            interface CxGraphViewAttributes extends HTMLAttributes<CxGraphView> {
+            interface CxStepperWizardAttributes extends HTMLAttributes<CxStepperWizard> {
               
+        /**
+          * 
+        */
+        data?: CxStepperWizardStepData[];
+        /**
+          * 
+        */
+        itemsPerRow?: number;
         /**
           * Make localization attributes reactive
         */
@@ -3863,7 +4149,11 @@
         /**
           * 
         */
-        ignoreTypes?: string[];
+        configurable?: boolean;
+        /**
+          * 
+        */
+        ignoredTypes?: string[];
         /**
           * Make localization attributes reactive
         */
@@ -3930,7 +4220,7 @@
         /**
           * 
         */
-        ssmlData?: { LanguageCode: string; Name: string; SsmlText: string; };
+        data?: CxTextToSpeechTextToSpeechData;
         /**
           * 
         */
@@ -3943,6 +4233,10 @@
           * 
         */
         componentTitle?: string;
+        /**
+          * 
+        */
+        maxHeight?: string;
         /**
           * 
         */
@@ -4001,11 +4295,11 @@
         */
         lang?: string;
             }
-              export type CxIconProps = DetailedHTMLProps<CxIconAttributes, CxIcon> & {class?: string};export type CxIconButtonProps = DetailedHTMLProps<CxIconButtonAttributes, CxIconButton> & {class?: string};export type CxAlertProps = DetailedHTMLProps<CxAlertAttributes, CxAlert> & {class?: string};export type CxAnimatedImageProps = DetailedHTMLProps<CxAnimatedImageAttributes, CxAnimatedImage> & {class?: string};export type CxAnimationProps = DetailedHTMLProps<CxAnimationAttributes, CxAnimation> & {class?: string};export type CxAvatarProps = DetailedHTMLProps<CxAvatarAttributes, CxAvatar> & {class?: string};export type CxBadgeProps = DetailedHTMLProps<CxBadgeAttributes, CxBadge> & {class?: string};export type CxBreadcrumbItemProps = DetailedHTMLProps<CxBreadcrumbItemAttributes, CxBreadcrumbItem> & {class?: string};export type CxBreadcrumbProps = DetailedHTMLProps<CxBreadcrumbAttributes, CxBreadcrumb> & {class?: string};export type CxSpinnerProps = DetailedHTMLProps<CxSpinnerAttributes, CxSpinner> & {class?: string};export type CxButtonProps = DetailedHTMLProps<CxButtonAttributes, CxButton> & {class?: string};export type CxButtonGroupProps = DetailedHTMLProps<CxButtonGroupAttributes, CxButtonGroup> & {class?: string};export type CxCardProps = DetailedHTMLProps<CxCardAttributes, CxCard> & {class?: string};export type CxCarouselItemProps = DetailedHTMLProps<CxCarouselItemAttributes, CxCarouselItem> & {class?: string};export type CxCarouselProps = DetailedHTMLProps<CxCarouselAttributes, CxCarousel> & {class?: string};export type CxPopupProps = DetailedHTMLProps<CxPopupAttributes, CxPopup> & {class?: string};export type CxTooltipProps = DetailedHTMLProps<CxTooltipAttributes, CxTooltip> & {class?: string};export type CxTypographyProps = DetailedHTMLProps<CxTypographyAttributes, CxTypography> & {class?: string};export type CxCheckboxProps = DetailedHTMLProps<CxCheckboxAttributes, CxCheckbox> & {class?: string};export type CxMenuItemProps = DetailedHTMLProps<CxMenuItemAttributes, CxMenuItem> & {class?: string};export type CxMenuProps = DetailedHTMLProps<CxMenuAttributes, CxMenu> & {class?: string};export type CxInputProps = DetailedHTMLProps<CxInputAttributes, CxInput> & {class?: string};export type CxDropdownProps = DetailedHTMLProps<CxDropdownAttributes, CxDropdown> & {class?: string};export type CxDividerProps = DetailedHTMLProps<CxDividerAttributes, CxDivider> & {class?: string};export type CxVisuallyHiddenProps = DetailedHTMLProps<CxVisuallyHiddenAttributes, CxVisuallyHidden> & {class?: string};export type CxColorPickerProps = DetailedHTMLProps<CxColorPickerAttributes, CxColorPicker> & {class?: string};export type CxCopyButtonProps = DetailedHTMLProps<CxCopyButtonAttributes, CxCopyButton> & {class?: string};export type CxDetailsProps = DetailedHTMLProps<CxDetailsAttributes, CxDetails> & {class?: string};export type CxDialogProps = DetailedHTMLProps<CxDialogAttributes, CxDialog> & {class?: string};export type CxDrawerProps = DetailedHTMLProps<CxDrawerAttributes, CxDrawer> & {class?: string};export type CxElementClampProps = DetailedHTMLProps<CxElementClampAttributes, CxElementClamp> & {class?: string};export type CxFormatBytesProps = DetailedHTMLProps<CxFormatBytesAttributes, CxFormatBytes> & {class?: string};export type CxFormatDateProps = DetailedHTMLProps<CxFormatDateAttributes, CxFormatDate> & {class?: string};export type CxFormatNumberProps = DetailedHTMLProps<CxFormatNumberAttributes, CxFormatNumber> & {class?: string};export type CxImageComparerProps = DetailedHTMLProps<CxImageComparerAttributes, CxImageComparer> & {class?: string};export type CxIncludeProps = DetailedHTMLProps<CxIncludeAttributes, CxInclude> & {class?: string};export type CxResizeObserverProps = DetailedHTMLProps<CxResizeObserverAttributes, CxResizeObserver> & {class?: string};export type CxLineClampProps = DetailedHTMLProps<CxLineClampAttributes, CxLineClamp> & {class?: string};export type CxMenuLabelProps = DetailedHTMLProps<CxMenuLabelAttributes, CxMenuLabel> & {class?: string};export type CxMenuSectionProps = DetailedHTMLProps<CxMenuSectionAttributes, CxMenuSection> & {class?: string};export type CxMutationObserverProps = DetailedHTMLProps<CxMutationObserverAttributes, CxMutationObserver> & {class?: string};export type CxOptionProps = DetailedHTMLProps<CxOptionAttributes, CxOption> & {class?: string};export type CxTagProps = DetailedHTMLProps<CxTagAttributes, CxTag> & {class?: string};export type CxSelectProps = DetailedHTMLProps<CxSelectAttributes, CxSelect> & {class?: string};export type CxTreeItemProps = DetailedHTMLProps<CxTreeItemAttributes, CxTreeItem> & {class?: string};export type CxPaginationProps = DetailedHTMLProps<CxPaginationAttributes, CxPagination> & {class?: string};export type CxProgressBarProps = DetailedHTMLProps<CxProgressBarAttributes, CxProgressBar> & {class?: string};export type CxProgressRingProps = DetailedHTMLProps<CxProgressRingAttributes, CxProgressRing> & {class?: string};export type CxQrCodeProps = DetailedHTMLProps<CxQrCodeAttributes, CxQrCode> & {class?: string};export type CxRadioProps = DetailedHTMLProps<CxRadioAttributes, CxRadio> & {class?: string};export type CxRadioButtonProps = DetailedHTMLProps<CxRadioButtonAttributes, CxRadioButton> & {class?: string};export type CxRadioCardProps = DetailedHTMLProps<CxRadioCardAttributes, CxRadioCard> & {class?: string};export type CxRadioGroupProps = DetailedHTMLProps<CxRadioGroupAttributes, CxRadioGroup> & {class?: string};export type CxRangeProps = DetailedHTMLProps<CxRangeAttributes, CxRange> & {class?: string};export type CxRatingProps = DetailedHTMLProps<CxRatingAttributes, CxRating> & {class?: string};export type CxRelativeTimeProps = DetailedHTMLProps<CxRelativeTimeAttributes, CxRelativeTime> & {class?: string};export type CxSkeletonProps = DetailedHTMLProps<CxSkeletonAttributes, CxSkeleton> & {class?: string};export type CxSplitPanelProps = DetailedHTMLProps<CxSplitPanelAttributes, CxSplitPanel> & {class?: string};export type CxStepProps = DetailedHTMLProps<CxStepAttributes, CxStep> & {class?: string};export type CxStepperProps = DetailedHTMLProps<CxStepperAttributes, CxStepper> & {class?: string};export type CxSwitchProps = DetailedHTMLProps<CxSwitchAttributes, CxSwitch> & {class?: string};export type CxTabProps = DetailedHTMLProps<CxTabAttributes, CxTab> & {class?: string};export type CxTabPanelProps = DetailedHTMLProps<CxTabPanelAttributes, CxTabPanel> & {class?: string};export type CxTabGroupProps = DetailedHTMLProps<CxTabGroupAttributes, CxTabGroup> & {class?: string};export type CxTextareaProps = DetailedHTMLProps<CxTextareaAttributes, CxTextarea> & {class?: string};export type CxTreeProps = DetailedHTMLProps<CxTreeAttributes, CxTree> & {class?: string};export type CxGridProps = DetailedHTMLProps<CxGridAttributes, CxGrid> & {class?: string};export type CxGridItemProps = DetailedHTMLProps<CxGridItemAttributes, CxGridItem> & {class?: string};export type CxGraphViewProps = DetailedHTMLProps<CxGraphViewAttributes, CxGraphView> & {class?: string};export type CxClusterManagementProps = DetailedHTMLProps<CxClusterManagementAttributes, CxClusterManagement> & {class?: string};export type CxMultiSelectProps = DetailedHTMLProps<CxMultiSelectAttributes, CxMultiSelect> & {class?: string};export type CxTemplateSwitcherProps = DetailedHTMLProps<CxTemplateSwitcherAttributes, CxTemplateSwitcher> & {class?: string};export type CxTextToSpeechProps = DetailedHTMLProps<CxTextToSpeechAttributes, CxTextToSpeech> & {class?: string};export type CxDownloaderProps = DetailedHTMLProps<CxDownloaderAttributes, CxDownloader> & {class?: string};
+              export type CxIconProps = DetailedHTMLProps<CxIconAttributes, CxIcon> & {class?: string};export type CxIconButtonProps = DetailedHTMLProps<CxIconButtonAttributes, CxIconButton> & {class?: string};export type CxAlertProps = DetailedHTMLProps<CxAlertAttributes, CxAlert> & {class?: string};export type CxAnimatedImageProps = DetailedHTMLProps<CxAnimatedImageAttributes, CxAnimatedImage> & {class?: string};export type CxAnimationProps = DetailedHTMLProps<CxAnimationAttributes, CxAnimation> & {class?: string};export type CxAvatarProps = DetailedHTMLProps<CxAvatarAttributes, CxAvatar> & {class?: string};export type CxBadgeProps = DetailedHTMLProps<CxBadgeAttributes, CxBadge> & {class?: string};export type CxBreadcrumbItemProps = DetailedHTMLProps<CxBreadcrumbItemAttributes, CxBreadcrumbItem> & {class?: string};export type CxBreadcrumbProps = DetailedHTMLProps<CxBreadcrumbAttributes, CxBreadcrumb> & {class?: string};export type CxSpinnerProps = DetailedHTMLProps<CxSpinnerAttributes, CxSpinner> & {class?: string};export type CxButtonProps = DetailedHTMLProps<CxButtonAttributes, CxButton> & {class?: string};export type CxButtonGroupProps = DetailedHTMLProps<CxButtonGroupAttributes, CxButtonGroup> & {class?: string};export type CxCardProps = DetailedHTMLProps<CxCardAttributes, CxCard> & {class?: string};export type CxCarouselItemProps = DetailedHTMLProps<CxCarouselItemAttributes, CxCarouselItem> & {class?: string};export type CxCarouselProps = DetailedHTMLProps<CxCarouselAttributes, CxCarousel> & {class?: string};export type CxPopupProps = DetailedHTMLProps<CxPopupAttributes, CxPopup> & {class?: string};export type CxTooltipProps = DetailedHTMLProps<CxTooltipAttributes, CxTooltip> & {class?: string};export type CxMarkdownProps = DetailedHTMLProps<CxMarkdownAttributes, CxMarkdown> & {class?: string};export type CxTypographyProps = DetailedHTMLProps<CxTypographyAttributes, CxTypography> & {class?: string};export type CxCheckboxProps = DetailedHTMLProps<CxCheckboxAttributes, CxCheckbox> & {class?: string};export type CxMenuItemProps = DetailedHTMLProps<CxMenuItemAttributes, CxMenuItem> & {class?: string};export type CxMenuProps = DetailedHTMLProps<CxMenuAttributes, CxMenu> & {class?: string};export type CxInputProps = DetailedHTMLProps<CxInputAttributes, CxInput> & {class?: string};export type CxDropdownProps = DetailedHTMLProps<CxDropdownAttributes, CxDropdown> & {class?: string};export type CxDividerProps = DetailedHTMLProps<CxDividerAttributes, CxDivider> & {class?: string};export type CxVisuallyHiddenProps = DetailedHTMLProps<CxVisuallyHiddenAttributes, CxVisuallyHidden> & {class?: string};export type CxColorPickerProps = DetailedHTMLProps<CxColorPickerAttributes, CxColorPicker> & {class?: string};export type CxCopyButtonProps = DetailedHTMLProps<CxCopyButtonAttributes, CxCopyButton> & {class?: string};export type CxDetailsProps = DetailedHTMLProps<CxDetailsAttributes, CxDetails> & {class?: string};export type CxDialogProps = DetailedHTMLProps<CxDialogAttributes, CxDialog> & {class?: string};export type CxDrawerProps = DetailedHTMLProps<CxDrawerAttributes, CxDrawer> & {class?: string};export type CxElementClampProps = DetailedHTMLProps<CxElementClampAttributes, CxElementClamp> & {class?: string};export type CxFormatBytesProps = DetailedHTMLProps<CxFormatBytesAttributes, CxFormatBytes> & {class?: string};export type CxFormatDateProps = DetailedHTMLProps<CxFormatDateAttributes, CxFormatDate> & {class?: string};export type CxFormatNumberProps = DetailedHTMLProps<CxFormatNumberAttributes, CxFormatNumber> & {class?: string};export type CxHubConnectionProps = DetailedHTMLProps<CxHubConnectionAttributes, CxHubConnection> & {class?: string};export type CxImageComparerProps = DetailedHTMLProps<CxImageComparerAttributes, CxImageComparer> & {class?: string};export type CxIncludeProps = DetailedHTMLProps<CxIncludeAttributes, CxInclude> & {class?: string};export type CxInputGroupProps = DetailedHTMLProps<CxInputGroupAttributes, CxInputGroup> & {class?: string};export type CxResizeObserverProps = DetailedHTMLProps<CxResizeObserverAttributes, CxResizeObserver> & {class?: string};export type CxLineClampProps = DetailedHTMLProps<CxLineClampAttributes, CxLineClamp> & {class?: string};export type CxMenuLabelProps = DetailedHTMLProps<CxMenuLabelAttributes, CxMenuLabel> & {class?: string};export type CxMenuSectionProps = DetailedHTMLProps<CxMenuSectionAttributes, CxMenuSection> & {class?: string};export type CxMutationObserverProps = DetailedHTMLProps<CxMutationObserverAttributes, CxMutationObserver> & {class?: string};export type CxOptionProps = DetailedHTMLProps<CxOptionAttributes, CxOption> & {class?: string};export type CxTagProps = DetailedHTMLProps<CxTagAttributes, CxTag> & {class?: string};export type CxSelectProps = DetailedHTMLProps<CxSelectAttributes, CxSelect> & {class?: string};export type CxTreeItemProps = DetailedHTMLProps<CxTreeItemAttributes, CxTreeItem> & {class?: string};export type CxPaginationProps = DetailedHTMLProps<CxPaginationAttributes, CxPagination> & {class?: string};export type CxProgressBarProps = DetailedHTMLProps<CxProgressBarAttributes, CxProgressBar> & {class?: string};export type CxProgressRingProps = DetailedHTMLProps<CxProgressRingAttributes, CxProgressRing> & {class?: string};export type CxQrCodeProps = DetailedHTMLProps<CxQrCodeAttributes, CxQrCode> & {class?: string};export type CxRadioProps = DetailedHTMLProps<CxRadioAttributes, CxRadio> & {class?: string};export type CxRadioButtonProps = DetailedHTMLProps<CxRadioButtonAttributes, CxRadioButton> & {class?: string};export type CxRadioCardProps = DetailedHTMLProps<CxRadioCardAttributes, CxRadioCard> & {class?: string};export type CxRadioGroupProps = DetailedHTMLProps<CxRadioGroupAttributes, CxRadioGroup> & {class?: string};export type CxRangeProps = DetailedHTMLProps<CxRangeAttributes, CxRange> & {class?: string};export type CxRatingProps = DetailedHTMLProps<CxRatingAttributes, CxRating> & {class?: string};export type CxRelativeTimeProps = DetailedHTMLProps<CxRelativeTimeAttributes, CxRelativeTime> & {class?: string};export type CxSkeletonProps = DetailedHTMLProps<CxSkeletonAttributes, CxSkeleton> & {class?: string};export type CxSpaceProps = DetailedHTMLProps<CxSpaceAttributes, CxSpace> & {class?: string};export type CxSplitPanelProps = DetailedHTMLProps<CxSplitPanelAttributes, CxSplitPanel> & {class?: string};export type CxStepProps = DetailedHTMLProps<CxStepAttributes, CxStep> & {class?: string};export type CxStepperProps = DetailedHTMLProps<CxStepperAttributes, CxStepper> & {class?: string};export type CxSwitchProps = DetailedHTMLProps<CxSwitchAttributes, CxSwitch> & {class?: string};export type CxTabProps = DetailedHTMLProps<CxTabAttributes, CxTab> & {class?: string};export type CxTabPanelProps = DetailedHTMLProps<CxTabPanelAttributes, CxTabPanel> & {class?: string};export type CxTabGroupProps = DetailedHTMLProps<CxTabGroupAttributes, CxTabGroup> & {class?: string};export type CxTextareaProps = DetailedHTMLProps<CxTextareaAttributes, CxTextarea> & {class?: string};export type CxTreeProps = DetailedHTMLProps<CxTreeAttributes, CxTree> & {class?: string};export type CxGridProps = DetailedHTMLProps<CxGridAttributes, CxGrid> & {class?: string};export type CxGridItemProps = DetailedHTMLProps<CxGridItemAttributes, CxGridItem> & {class?: string};export type CxChatbotProps = DetailedHTMLProps<CxChatbotAttributes, CxChatbot> & {class?: string};export type CxGraphViewProps = DetailedHTMLProps<CxGraphViewAttributes, CxGraphView> & {class?: string};export type CxStepperWizardProps = DetailedHTMLProps<CxStepperWizardAttributes, CxStepperWizard> & {class?: string};export type CxClusterManagementProps = DetailedHTMLProps<CxClusterManagementAttributes, CxClusterManagement> & {class?: string};export type CxMultiSelectProps = DetailedHTMLProps<CxMultiSelectAttributes, CxMultiSelect> & {class?: string};export type CxTemplateSwitcherProps = DetailedHTMLProps<CxTemplateSwitcherAttributes, CxTemplateSwitcher> & {class?: string};export type CxTextToSpeechProps = DetailedHTMLProps<CxTextToSpeechAttributes, CxTextToSpeech> & {class?: string};export type CxDownloaderProps = DetailedHTMLProps<CxDownloaderAttributes, CxDownloader> & {class?: string};
               declare module "react" {
                 namespace JSX {
                   interface IntrinsicElements {
-                    ['cx-icon']: CxIconProps;['cx-icon-button']: CxIconButtonProps;['cx-alert']: CxAlertProps;['cx-animated-image']: CxAnimatedImageProps;['cx-animation']: CxAnimationProps;['cx-avatar']: CxAvatarProps;['cx-badge']: CxBadgeProps;['cx-breadcrumb-item']: CxBreadcrumbItemProps;['cx-breadcrumb']: CxBreadcrumbProps;['cx-spinner']: CxSpinnerProps;['cx-button']: CxButtonProps;['cx-button-group']: CxButtonGroupProps;['cx-card']: CxCardProps;['cx-carousel-item']: CxCarouselItemProps;['cx-carousel']: CxCarouselProps;['cx-popup']: CxPopupProps;['cx-tooltip']: CxTooltipProps;['cx-typography']: CxTypographyProps;['cx-checkbox']: CxCheckboxProps;['cx-menu-item']: CxMenuItemProps;['cx-menu']: CxMenuProps;['cx-input']: CxInputProps;['cx-dropdown']: CxDropdownProps;['cx-divider']: CxDividerProps;['cx-visually-hidden']: CxVisuallyHiddenProps;['cx-color-picker']: CxColorPickerProps;['cx-copy-button']: CxCopyButtonProps;['cx-details']: CxDetailsProps;['cx-dialog']: CxDialogProps;['cx-drawer']: CxDrawerProps;['cx-element-clamp']: CxElementClampProps;['cx-format-bytes']: CxFormatBytesProps;['cx-format-date']: CxFormatDateProps;['cx-format-number']: CxFormatNumberProps;['cx-image-comparer']: CxImageComparerProps;['cx-include']: CxIncludeProps;['cx-resize-observer']: CxResizeObserverProps;['cx-line-clamp']: CxLineClampProps;['cx-menu-label']: CxMenuLabelProps;['cx-menu-section']: CxMenuSectionProps;['cx-mutation-observer']: CxMutationObserverProps;['cx-option']: CxOptionProps;['cx-tag']: CxTagProps;['cx-select']: CxSelectProps;['cx-tree-item']: CxTreeItemProps;['cx-pagination']: CxPaginationProps;['cx-progress-bar']: CxProgressBarProps;['cx-progress-ring']: CxProgressRingProps;['cx-qr-code']: CxQrCodeProps;['cx-radio']: CxRadioProps;['cx-radio-button']: CxRadioButtonProps;['cx-radio-card']: CxRadioCardProps;['cx-radio-group']: CxRadioGroupProps;['cx-range']: CxRangeProps;['cx-rating']: CxRatingProps;['cx-relative-time']: CxRelativeTimeProps;['cx-skeleton']: CxSkeletonProps;['cx-split-panel']: CxSplitPanelProps;['cx-step']: CxStepProps;['cx-stepper']: CxStepperProps;['cx-switch']: CxSwitchProps;['cx-tab']: CxTabProps;['cx-tab-panel']: CxTabPanelProps;['cx-tab-group']: CxTabGroupProps;['cx-textarea']: CxTextareaProps;['cx-tree']: CxTreeProps;['cx-grid']: CxGridProps;['cx-grid-item']: CxGridItemProps;['cx-graph-view']: CxGraphViewProps;['cx-cluster-management']: CxClusterManagementProps;['cx-multi-select']: CxMultiSelectProps;['cx-template-switcher']: CxTemplateSwitcherProps;['cx-text-to-speech']: CxTextToSpeechProps;['cx-downloader']: CxDownloaderProps;
+                    ['cx-icon']: CxIconProps;['cx-icon-button']: CxIconButtonProps;['cx-alert']: CxAlertProps;['cx-animated-image']: CxAnimatedImageProps;['cx-animation']: CxAnimationProps;['cx-avatar']: CxAvatarProps;['cx-badge']: CxBadgeProps;['cx-breadcrumb-item']: CxBreadcrumbItemProps;['cx-breadcrumb']: CxBreadcrumbProps;['cx-spinner']: CxSpinnerProps;['cx-button']: CxButtonProps;['cx-button-group']: CxButtonGroupProps;['cx-card']: CxCardProps;['cx-carousel-item']: CxCarouselItemProps;['cx-carousel']: CxCarouselProps;['cx-popup']: CxPopupProps;['cx-tooltip']: CxTooltipProps;['cx-markdown']: CxMarkdownProps;['cx-typography']: CxTypographyProps;['cx-checkbox']: CxCheckboxProps;['cx-menu-item']: CxMenuItemProps;['cx-menu']: CxMenuProps;['cx-input']: CxInputProps;['cx-dropdown']: CxDropdownProps;['cx-divider']: CxDividerProps;['cx-visually-hidden']: CxVisuallyHiddenProps;['cx-color-picker']: CxColorPickerProps;['cx-copy-button']: CxCopyButtonProps;['cx-details']: CxDetailsProps;['cx-dialog']: CxDialogProps;['cx-drawer']: CxDrawerProps;['cx-element-clamp']: CxElementClampProps;['cx-format-bytes']: CxFormatBytesProps;['cx-format-date']: CxFormatDateProps;['cx-format-number']: CxFormatNumberProps;['cx-hub-connection']: CxHubConnectionProps;['cx-image-comparer']: CxImageComparerProps;['cx-include']: CxIncludeProps;['cx-input-group']: CxInputGroupProps;['cx-resize-observer']: CxResizeObserverProps;['cx-line-clamp']: CxLineClampProps;['cx-menu-label']: CxMenuLabelProps;['cx-menu-section']: CxMenuSectionProps;['cx-mutation-observer']: CxMutationObserverProps;['cx-option']: CxOptionProps;['cx-tag']: CxTagProps;['cx-select']: CxSelectProps;['cx-tree-item']: CxTreeItemProps;['cx-pagination']: CxPaginationProps;['cx-progress-bar']: CxProgressBarProps;['cx-progress-ring']: CxProgressRingProps;['cx-qr-code']: CxQrCodeProps;['cx-radio']: CxRadioProps;['cx-radio-button']: CxRadioButtonProps;['cx-radio-card']: CxRadioCardProps;['cx-radio-group']: CxRadioGroupProps;['cx-range']: CxRangeProps;['cx-rating']: CxRatingProps;['cx-relative-time']: CxRelativeTimeProps;['cx-skeleton']: CxSkeletonProps;['cx-space']: CxSpaceProps;['cx-split-panel']: CxSplitPanelProps;['cx-step']: CxStepProps;['cx-stepper']: CxStepperProps;['cx-switch']: CxSwitchProps;['cx-tab']: CxTabProps;['cx-tab-panel']: CxTabPanelProps;['cx-tab-group']: CxTabGroupProps;['cx-textarea']: CxTextareaProps;['cx-tree']: CxTreeProps;['cx-grid']: CxGridProps;['cx-grid-item']: CxGridItemProps;['cx-chatbot']: CxChatbotProps;['cx-graph-view']: CxGraphViewProps;['cx-stepper-wizard']: CxStepperWizardProps;['cx-cluster-management']: CxClusterManagementProps;['cx-multi-select']: CxMultiSelectProps;['cx-template-switcher']: CxTemplateSwitcherProps;['cx-text-to-speech']: CxTextToSpeechProps;['cx-downloader']: CxDownloaderProps;
                   }
                 }
               }

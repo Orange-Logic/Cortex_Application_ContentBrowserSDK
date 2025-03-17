@@ -7,12 +7,8 @@ import { App } from '@/App';
 import { AppContextType } from '@/AppContext';
 import { GlobalConfigContext, ImageCardDisplayInfo } from '@/GlobalConfigContext';
 import { store } from '@/store';
-import {
-  enableOnlyIIIFPrefix, resetImportStatus, setStoredProxiesPreference,
-} from '@/store/assets/assets.slice';
+import { resetImportStatus } from '@/store/assets/assets.slice';
 import { initAuthInfoFromCache, setUserConfigSiteUrl } from '@/store/auth/auth.slice';
-import { setExtraFields } from '@/store/search/search.slice';
-import { GetProxyPreferenceFromStorage } from '@/utils/storage';
 
 declare global {
   interface Window {
@@ -20,10 +16,15 @@ declare global {
       help: () => void,
       open: (config: {
         /**
-         * Callback when asset(s) selected
+         * Callback when asset(s) selected (deprecated)
          * @returns 
          */
         onImageSelected: AppContextType['onImageSelected'];
+        /**
+         * Callback when asset(s) selected
+         * @returns 
+         */
+        onAssetSelected: AppContextType['onAssetSelected'];
         /**
          * Callback when we have any error while using asset picker
          */
@@ -77,9 +78,42 @@ declare global {
          * By default, it will be the `pluginName`
          */
         pluginShortName?: string;
+
+        /**
+         * Whether to search in drive or not (used for File on demand)
+         * default to false
+         */
+        searchInDrive?: boolean;
+        /**
+         * The CTA text for the asset picker
+         * default to "Insert"
+         */
+        ctaText?: string;
+        /**
+         * The persist mode for the asset picker which will prevent the picker from closing after selecting asset
+         * default to false
+         */
+        persistMode?: boolean;
+        /**
+         * The available subtypes for the asset picker
+         */
+        availableDocTypes?: string[];
+        /**
+         * The supported subtypes for inserting representative image
+         */
+        availableRepresentativeSubtypes?: string[];
+        /**
+         * The flag to show the collection
+         */
+        showCollections?: boolean;
       }) => void,
+      close: () => void,
       /**
-       * Global function which mirrored the behavior of onImageSelected
+       * Global function which mirrored the behavior of onAssetSelected
+       */
+      _onAssetSelected?: AppContextType['onAssetSelected'],
+      /**
+       * Global function which mirrored the behavior of onImageSelected (deprecated)
        */
       _onImageSelected?: AppContextType['onImageSelected'],
       /**
@@ -102,7 +136,7 @@ window.CortexAssetPicker = {
   help: () => {
     console.log(`/* Cortex Asset Picker Help */
     window.CortexAssetPicker.open({
-      onImageSelected: (images) => {
+      onAssetSelected: (images) => {
         // Do something with image
         console.log(images);
       },
@@ -121,26 +155,35 @@ window.CortexAssetPicker = {
         tags: true,
       },
       pluginName: "Generic Asset Browser",
-      pluginShortName: "GAB"
+      pluginShortName: "GAB",
+      searchInDrive: false,
+      ctaText: "Insert",
+      persistMode: false,
     });`);
   },
   open: ({ 
+    onAssetSelected,
     onImageSelected, 
     onError, 
     onClose,
+    availableRepresentativeSubtypes,
+    availableDocTypes,
     baseUrl, 
-    onlyIIIFPrefix,
-    multiSelect, 
-    containerId, 
-    extraFields, 
+    containerId,
+    ctaText,
     displayInfo = {
       title: true,
       dimension: true,
       fileSize: true,
       tags: true,
     },
+    extraFields, 
+    multiSelect,
+    persistMode,
     pluginName,
     pluginShortName,
+    showCollections,
+    searchInDrive,
   }) => {
     let container = containerId && document.getElementById(containerId);
     if (!containerId) {
@@ -169,28 +212,22 @@ window.CortexAssetPicker = {
       store.dispatch(setUserConfigSiteUrl(baseUrl));
     }
     store.dispatch(initAuthInfoFromCache());
-    if (extraFields) {
-      store.dispatch(setExtraFields(extraFields));
-    }
-    if (typeof onlyIIIFPrefix === 'boolean' && onlyIIIFPrefix) {
-      store.dispatch(enableOnlyIIIFPrefix());
-    }
-    GetProxyPreferenceFromStorage().then(preference => store.dispatch(setStoredProxiesPreference(preference)));
 
     const errorHandler         = (typeof onError === 'function' && !!onError) ? onError : console.log;
+    const assetSelectedHandler = (typeof onAssetSelected === 'function' && !!onAssetSelected) ? onAssetSelected : console.log;
     const imageSelectedHandler = (typeof onImageSelected === 'function' && !!onImageSelected) ? onImageSelected : console.log;
     const handleClose = () => {
-      root.unmount();
-
       store.dispatch(resetImportStatus());
-
+      root.unmount();
       // Reset these function when close the GAB
+      window.CortexAssetPicker._onAssetSelected = undefined;
       window.CortexAssetPicker._onImageSelected = undefined;
       window.CortexAssetPicker._onError         = undefined;
       window.CortexAssetPicker._onClose         = undefined;
 
       onClose?.();
     };
+    window.CortexAssetPicker._onAssetSelected = assetSelectedHandler;
     window.CortexAssetPicker._onImageSelected = imageSelectedHandler;
     window.CortexAssetPicker._onError         = errorHandler;
     window.CortexAssetPicker._onClose         = handleClose;
@@ -198,21 +235,32 @@ window.CortexAssetPicker = {
     root.render(
       <Provider store={store}>
         <GlobalConfigContext.Provider value={{
+          availableDocTypes,
+          availableRepresentativeSubtypes,
+          ctaText: ctaText ?? 'Insert',
           displayInfo,
+          persistMode: !!persistMode,
           pluginInfo: {
             pluginName,
             pluginShortName: pluginShortName ?? pluginName,
           },
           isGABPopedup: !containerId,
+          searchInDrive: !!searchInDrive,
+          showCollections: !!showCollections,
         }}>
           <App
-            multiSelect={multiSelect}
             containerId={containerId}
+            extraFields={extraFields}
+            multiSelect={multiSelect}
             onError={errorHandler}
+            onAssetSelected={assetSelectedHandler}
             onImageSelected={imageSelectedHandler}
             onClose={handleClose} />
         </GlobalConfigContext.Provider>
       </Provider>,
     );
+  },
+  close: () => {
+    window.CortexAssetPicker._onClose?.();
   },
 };

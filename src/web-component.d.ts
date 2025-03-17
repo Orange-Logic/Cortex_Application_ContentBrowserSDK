@@ -1,12 +1,22 @@
 /* eslint-disable */
+import { BoardItem as BoardItem_2 } from 'packages/molecules/src/board/types';
 import { CSSResult } from 'lit';
 import { CSSResultGroup } from 'lit';
+import { default as default_2 } from 'sortablejs';
+import { default as default_3 } from 'react';
+import { Edge as Edge_2 } from '@xyflow/react';
+import { ExecutionContext } from './ExecutionContext';
 import { LitElement } from 'lit';
+import { MenuData as MenuData_2 } from 'packages/molecules/src/view-and-sort/view-and-sort.types';
+import { Node as Node_3 } from '@xyflow/react';
 import { PropertyDeclaration } from 'lit';
 import { PropertyValueMap } from 'lit';
+import { PropertyValues } from 'lit';
 import { ReactiveController } from 'lit';
 import { ReactiveControllerHost } from 'lit';
 import { RendererObject } from 'marked';
+import * as signalR from '@microsoft/signalr';
+import { StepData } from './stepper-wizard.types';
 import { TemplateResult } from 'lit';
 import { TokenizerAndRendererExtension } from 'marked';
 
@@ -170,6 +180,22 @@ declare const backOutUp: {
 
 export declare type BaseVariant = 'primary' | 'success' | 'neutral' | 'warning' | 'danger';
 
+declare namespace BoardComponentTypes {
+    export {
+        BoardItem
+    }
+}
+export { BoardComponentTypes }
+
+declare interface BoardItem {
+    group: string;
+    id: string;
+    index?: string;
+    text: string;
+    tooltip: string;
+    type?: string;
+}
+
 declare const bounce: ({
     easing: string;
     offset: number;
@@ -315,6 +341,49 @@ declare const bounceOutUp: ({
 })[];
 
 declare type ButtonVariant = BaseVariant | 'default' | 'text' | 'tertiary';
+
+declare type Category = {
+    id: string;
+    name: string;
+};
+
+declare namespace ChatbotComponentTypes {
+    export {
+        ChatbotEvent,
+        Reference,
+        Message,
+        MessageRole
+    }
+}
+export { ChatbotComponentTypes }
+
+declare type ChatbotEvent = {
+    callback: (messageContent: string) => void;
+    event: string;
+    excludedFromPurposes?: string[];
+    label: string;
+};
+
+declare type ClusterData = {
+    services: Service[];
+};
+
+declare namespace ClusterManagerComponentTypes {
+    export {
+        Service,
+        ClusterData,
+        GetClusterDataFunction,
+        UpdateServiceFunction
+    }
+}
+export { ClusterManagerComponentTypes }
+
+declare type ColumnData = {
+    id: string;
+    items: BoardItem_2[];
+    sort?: boolean;
+    title: string;
+};
 
 export declare const componentStyles: CSSResult;
 
@@ -592,6 +661,97 @@ export declare class CxBadge extends CortexElement {
 export declare type CxBlurEvent = CustomEvent<Record<PropertyKey, never>>;
 
 /**
+ * @summary Board is a list of items that can be reordered by dragging and dropping them.
+ *
+ * @event {{ items: string[] }} cx-sort-change - Emitted when the list items changes.
+ */
+export declare class CxBoard extends CortexElement {
+    static styles: CSSResult;
+    private readonly localize;
+    board: HTMLElement;
+    searchInput: CxInput;
+    searchInputClear: CxIconButton;
+    list: HTMLElement;
+    selectAllCheckBox: HTMLElement;
+    title: string;
+    name: string;
+    ignoreTypes: string[];
+    data: BoardItem[];
+    sort: boolean;
+    group: boolean;
+    configurable: boolean;
+    all: boolean;
+    items: BoardItem[];
+    private _allItems;
+    get allItems(): BoardItem[];
+    private _filteredItems;
+    get filteredItems(): BoardItem[];
+    /** The selected items in the board. */
+    private _selectedItems;
+    get selectedItems(): Record<string, boolean>;
+    searchValue: string;
+    private sortable;
+    private _totalCount;
+    private _indexMap;
+    get totalCount(): number;
+    private isDragging;
+    private start;
+    private end;
+    private previous;
+    get isAllSelected(): boolean;
+    get isPartiallySelected(): boolean;
+    /** Handles the update of items in the board. */
+    private handleUpdateEvent;
+    private handleSelectedChange;
+    private handleItemConfigure;
+    private handleListScroll;
+    private handleSearchChanged;
+    private handleSearchClear;
+    private concatGroupItems;
+    onSearchValueChanged(): void;
+    onItemsChanged(): void;
+    handleAdd(evt: default_2.SortableEvent): void;
+    handleEnd(evt: default_2.SortableEvent): Promise<void>;
+    handleRemove(evt: default_2.SortableEvent): void;
+    handleSelect(evt: default_2.SortableEvent): void;
+    handleStart(evt: default_2.SortableEvent): void;
+    handleUpdate(evt: default_2.SortableEvent): void;
+    deselectAll(): void;
+    selectAll(): void;
+    handleSelectAll(): void;
+    onAllChanged(): void;
+    private initSortable;
+    /** Initializes the sortable functionality for the list element. */
+    firstUpdated(): void;
+    disconnectedCallback(): void;
+    render(): TemplateResult;
+}
+
+export declare class CxBoardListItem extends CortexElement {
+    static styles: CSSResult;
+    configButton: CxIconButton;
+    textElement: HTMLElement;
+    tooltipElement: CxTooltip;
+    controlElement: HTMLElement;
+    text: string;
+    tooltip: string;
+    readonly: boolean;
+    placeholder: boolean;
+    selected: boolean;
+    configurable: boolean;
+    disabledTooltip: boolean;
+    isGroup: boolean;
+    private timeout;
+    private onConfigButtonClick;
+    private onTextMouseEnter;
+    private onTextMouseLeave;
+    handleDisabledTooltipChange(): void;
+    firstUpdated(): Promise<void>;
+    disconnectedCallback(): void;
+    render(): TemplateResult;
+}
+
+/**
  * @summary Breadcrumbs provide a group of links so users can easily navigate a website's hierarchy.
  *
  * @slot - One or more breadcrumb items to display.
@@ -756,6 +916,7 @@ export declare class CxButton extends CortexElement implements ShoelaceFormContr
     /** Gets the validation message */
     get validationMessage(): string;
     firstUpdated(): void;
+    syncStyles(): void;
     private handleBlur;
     private handleFocus;
     private handleClick;
@@ -962,6 +1123,83 @@ export declare class CxCarouselItem extends CortexElement {
 export declare type CxChangeEvent = CustomEvent<Record<PropertyKey, never>>;
 
 /**
+ * @summary A chatbot component to interact with Cortex AI Assistant.
+ *
+ * @dependency cx-tooltip
+ * @dependency cx-icon-button
+ * @dependency cx-markdown
+ * @dependency cx-icon
+ * @dependency cx-typography
+ * @dependency cx-checkbox
+ * @dependency cx-menu
+ * @dependency cx-menu-item
+ * @dependency cx-input
+ * @dependency cx-badge
+ * @dependency cx-dropdown
+ * @dependency cx-button
+ * @dependency cx-divider
+ *
+ */
+export declare class CxChatbot extends CortexElement {
+    private readonly localize;
+    static readonly styles: CSSResultGroup;
+    chatbot: HTMLDivElement;
+    overlay: HTMLDivElement;
+    minimizedContent: HTMLDivElement;
+    messagesContainer: HTMLDivElement;
+    messageInput: CxInput;
+    private isFullscreen;
+    private isMinimized;
+    private isOpen;
+    private isTyping;
+    private message;
+    private lastMessage;
+    private messages;
+    private connection;
+    private pingInterval;
+    private botMessage;
+    /** The conversation ID to connect to the chatbot */
+    conversationId: string;
+    /** The title of the chatbot */
+    conversationTitle: string;
+    /** The purpose of the conversation */
+    conversationPurpose: string;
+    /** The name of the chatbot */
+    botName: string;
+    /** The name of the user */
+    userName: string;
+    /** The events to show in the chatbot's menu */
+    events: ChatbotEvent[];
+    /** The connection URL to the chatbot */
+    connectionURL: string;
+    protected firstUpdated(_changedProperties: PropertyValues): void;
+    connect({ botName, connection, conversationId, conversationPurpose, }: {
+        botName?: string;
+        connection?: string | signalR.HubConnection;
+        conversationId?: string;
+        conversationPurpose?: string;
+    }): void;
+    show(): void;
+    hide(): void;
+    toggleFullScreen(): void;
+    pingConnection(): void;
+    adjustScroll(): Promise<void>;
+    private sendMessage;
+    private closeConnection;
+    animateChatbot(): void;
+    private renderTyping;
+    private renderReferencePopup;
+    private renderReferenceFooter;
+    private renderMarkdown;
+    private renderMessage;
+    private renderMessageInput;
+    private renderCloseButton;
+    private renderExpandedContent;
+    private renderMinimizedContent;
+    render(): TemplateResult;
+}
+
+/**
  * @summary Checkboxes allow the user to toggle an option on or off.
  *
  * @dependency cx-icon
@@ -1056,6 +1294,72 @@ export declare class CxCheckbox extends CortexElement implements ShoelaceFormCon
 export declare type CxClearEvent = CustomEvent<Record<PropertyKey, never>>;
 
 export declare type CxCloseEvent = CustomEvent<Record<PropertyKey, never>>;
+
+/**
+ * @summary Widget for managing cluster. Pure web component version of orangelogic.react.clustermanagement.
+ *
+ * @event cx-refresh - Emitted when a data refresh has been made.
+ *
+ * @csspart base - The component's base wrapper.
+ * @csspart spinner - The spinner that gets displayed when no data is available yet.
+ * @csspart alert - The alert that gets displayed when an error occurs.
+ * @csspart service - The container that wraps around each service.
+ * @csspart service__label - The label for each service.
+ * @csspart service__range - The wrapper around each service's range sliders.
+ * @csspart service__running-range - Each service's range slider for the currently running count.
+ * @csspart service__desired-range - Each service's range slider for the desired count.
+ * @csspart status - The container that wraps the status date and refresh button.
+ * @csspart status__refresh-button - The button to refresh the data.
+ * @csspart status__refresh-spinner - The spinner that gets displayed when data is being refreshed.
+ * @csspart dialog - The dialog that gets displayed when confirming a change.
+ * @csspart dialog__confirm-button - The confirm button inside the confirmation dialog.
+ * @csspart dialog__cancel-button - The cancel button inside the confirmation dialog.
+ *
+ * @dependency cx-alert
+ * @dependency cx-icon
+ * @dependency cx-spinner
+ * @dependency cx-range
+ * @dependency cx-icon-button
+ * @dependency cx-dialog
+ * @dependency cx-format-date
+ */
+export declare class CxClusterManagement extends CortexElement {
+    static styles: CSSResultGroup;
+    private intervalIdRefresh;
+    private readonly localize;
+    dialog: CxDialog;
+    refreshDate: CxFormatDate;
+    private _status;
+    get status(): "error" | "loading" | "ready";
+    _isRefreshing: boolean;
+    get isRefreshing(): boolean;
+    private errorObject;
+    private clusterData;
+    private sliderDesiredCount;
+    private confirmCount;
+    /** How many seconds between each automatic data refresh */
+    refreshInterval: number;
+    /** A function used to get cluster data. We call this function every data refresh. */
+    getClusterData: GetClusterDataFunction;
+    /** A function used to update a service's count. Returns the updated service data. */
+    updateService: UpdateServiceFunction;
+    /** A function to clean up resources. Gets called when this component disconnects/unmounts. */
+    cleanUp: () => void;
+    firstUpdated(): void;
+    disconnectedCallback(): void;
+    refreshStatus(): Promise<void>;
+    private setStateForService;
+    private confirmCallback;
+    private handleChangeCommitted;
+    private handleChange;
+    private handleDialogConfirm;
+    private handleDialogCancel;
+    renderConfirm(): TemplateResult<1>;
+    renderLoading(): TemplateResult<1>;
+    renderError(): TemplateResult<1>;
+    renderService(currentService: Service): TemplateResult<1>;
+    render(): TemplateResult<1>;
+}
 
 export declare type CxCollapseEvent = CustomEvent<Record<PropertyKey, never>>;
 
@@ -1222,6 +1526,7 @@ export declare class CxColorPicker extends CortexElement implements ShoelaceForm
     private handleGridKeyDown;
     private handleInputChange;
     private handleInputInput;
+    private debouncedSetColor;
     private handleInputKeyDown;
     private handleInputInvalid;
     private handleTouchMove;
@@ -1469,6 +1774,11 @@ export declare class CxDialog extends CortexElement {
      * accessible way for users to dismiss the dialog.
      */
     noHeader: boolean;
+    /**
+     * Determines how the popup is positioned. The `absolute` strategy works well in most cases, but if overflow is
+     * clipped, using a `fixed` position strategy can often workaround it.
+     */
+    strategy: 'absolute' | 'fixed';
     firstUpdated(): void;
     disconnectedCallback(): void;
     private requestClose;
@@ -1496,6 +1806,193 @@ export declare class CxDivider extends CortexElement {
     vertical: boolean;
     connectedCallback(): void;
     handleVerticalChange(): void;
+}
+
+/**
+ * `CxDocsExample` is a custom element that renders a code example along with a toggleable code block.
+ * It allows users to view and copy the code snippet and see a live demo of the markup.
+ *
+ * The element works by extracting HTML content placed inside it (light DOM),
+ * processing this content to remove unnecessary wrappers or adjust formatting,
+ * and then displaying both the live content and its corresponding code in a formatted manner.
+ *
+ * @example
+ * Example 1: Adding a div with slot="html"
+ * This example demonstrates how to ensure that your content is slotted correctly.
+ *
+ * <cx-docs-example>
+ *   <p slot="html">Your content here</p>
+ * </cx-docs-example>
+ *
+ * @example
+ * Example 2: Adding the slot to an existing div
+ * This shows how to add the slot attribute if your content does not contain a wrapper element.
+ * Note that in this case, the div will be stripped out of the code block on display.
+ *
+ * <cx-docs-example>
+ *   <div slot="html">
+ *     <existing-component></existing-component>
+ *     <existing-component></existing-component>
+ *   </div>
+ * </cx-docs-example>
+ *
+ * @example
+ * Example 3: Executing a script in the same context
+ * This illustrates that a script tag included in the markup will be executed in the same context.
+ * Note that you do not need to slot the script tag.
+ *
+ * <cx-docs-example>
+ *   <div class="example-3" slot="html">
+ *   </div>
+ *
+ *   <script>
+ *     const el = document.querySelector('.example-3'); // works!
+ *   </script>
+ * </cx-docs-example>
+ */
+export declare class CxDocsExample extends CortexElement {
+    static styles: CSSResult;
+    private readonly localize;
+    /**
+     * Stores all the code markup contained within the component's light DOM.
+     */
+    markup: string;
+    /**
+     * Whether or not the code block is open.
+     */
+    isOpen: boolean;
+    resizer: HTMLElement;
+    preview: HTMLElement;
+    connectedCallback(): void;
+    handleToggle(): void;
+    handleResizerDrag(event: MouseEvent | TouchEvent): void;
+    render(): TemplateResult;
+}
+
+/**
+ * @summary Downloader, but web component.
+ *
+ * @dependency cx-icon-button
+ * @dependency cx-input
+ * @dependency cx-icon
+ * @dependency cx-button
+ * @dependency cx-spinner
+ * @dependency cx-tooltip
+ * @dependency cx-menu
+ * @dependency cx-menu-item
+ * @dependency cx-switch
+ * @dependency cx-range
+ * @dependency cx-dropdown
+ * @dependency cx-progress-bar
+ * @dependency cx-badge
+ * @dependency cx-dialog
+ * @dependency cx-divider
+ * @dependency cx-checkbox
+ * @dependency cx-pagination
+ * @dependency cx-typography
+ *
+ */
+export declare class CxDownloader extends CortexElement {
+    static readonly styles: CSSResultGroup;
+    private manager;
+    private fileEventsQueue;
+    private cleanupHandlers;
+    private readonly localize;
+    downloader: HTMLDivElement;
+    searchInput: CxInput;
+    data: ExecutionContext;
+    workerURL: string;
+    private _coordinates;
+    get coordinates(): {
+        x: number;
+        y: number;
+    };
+    private isFullscreen;
+    private isRocketMode;
+    private isVisible;
+    private chunkSize;
+    private _downloadingFiles;
+    get downloadingFiles(): DownloadItem[];
+    set downloadingFiles(newDownloadingFiles: DownloadItem[]);
+    private allFiles;
+    private sortedFiles;
+    private pageIndex;
+    private rowsPerPage;
+    private filteredFiles;
+    private _loading;
+    get loading(): boolean;
+    private errorMessage;
+    private bandWidth;
+    private defaultDownloadFolderName;
+    private filterOptions;
+    private isPausing;
+    private isResuming;
+    private isClearing;
+    private isCancelling;
+    private isRetrying;
+    private isSearchOpen;
+    private totalSize;
+    updateTotalSize(): Promise<void>;
+    private countByStatus;
+    updateCountByStatus(): Promise<void>;
+    private isAllDownloadingFilesCompleted;
+    updateIsAllDownloadingFilesCompleted(): Promise<void>;
+    cleanup(): void;
+    connectedCallback(): void;
+    disconnectedCallback(): void;
+    protected firstUpdated(_changedProperties: PropertyValues): void;
+    private buildDownloadManager;
+    initDownloadManager(): Promise<void>;
+    updateAllFiles(newAllFiles: Record<string, DownloadItem>): void;
+    fetchAllFiles(): Promise<void>;
+    updateFilesInterval: NodeJS.Timer | null;
+    setUpdateFilesInterval(): void;
+    checkDefaultRootNameInterval: NodeJS.Timer | null;
+    setCheckDefaultRootNameInterval(): void;
+    cancelSingle: (id: string) => void;
+    onCancelAll: () => Promise<void>;
+    onClear: (id: string) => void;
+    onClearAll: () => Promise<void>;
+    onPause: (id: string) => void;
+    onPauseAll: () => Promise<void>;
+    onResume: (id: string) => void;
+    onResumeAll: () => Promise<void>;
+    onRetry: (id: string) => void;
+    onRetryAll: () => Promise<void>;
+    selectDefaultRoot: () => void;
+    removeDefaultRoot: () => void;
+    updateSortedFiles(): Promise<void>;
+    animateDownloader(): void;
+    handleDrag(e: PointerEvent): void;
+    hide(): void;
+    show(): void;
+    getDownloadingFilesFromLocalStorage(): void;
+    onFilter(key: keyof DownloadItem, value: any): void;
+    updateFilteredFiles(): void;
+    renderSearch(): TemplateResult<1>;
+    renderMassActions(): TemplateResult<1>;
+    renderChunkSizeMarks(): TemplateResult<1>;
+    renderSettingsButton(): TemplateResult;
+    renderExpandButton(): TemplateResult;
+    renderCloseButton(): TemplateResult;
+    renderProgressBar({ progress, showProgress, size, status, unit, }: {
+        progress: number;
+        showProgress?: boolean;
+        size: number;
+        status: STATUS | null;
+        unit: string;
+    }): TemplateResult;
+    renderTableHead(): TemplateResult;
+    renderItemActions({ id, status, }: {
+        id: string;
+        status: STATUS;
+    }): TemplateResult;
+    renderTableRow(rowProps: DownloadItem): TemplateResult;
+    renderTableView(): TemplateResult;
+    renderBandWidth(showLabel?: boolean): TemplateResult;
+    renderFullView(): TemplateResult;
+    renderSmallView(): TemplateResult;
+    render(): TemplateResult;
 }
 
 export declare type CxDragEnd = CustomEvent<Record<PropertyKey, never>>;
@@ -1883,6 +2380,51 @@ export declare class CxFormatNumber extends CortexElement {
 }
 
 /**
+ * @summary
+ *
+ * @event
+ */
+export declare class CxGraphView extends CortexElement {
+    static styles: CSSResult[];
+    private readonly localize;
+    data: Workflow;
+    readonly: boolean;
+    hideControls: boolean;
+    renderDelay: number;
+    handleAddNode(params: CxGraphViewAddNodeParams): void;
+    handleSelectNode(params: CxGraphViewSelectNodeParams): void;
+    handleSelectEdge(params: CxGraphViewSelectEdgeParams): void;
+    handlePaneClick(params: CxGraphViewPaneClickParams): void;
+    handleUnlink(params: Edge): void;
+    addNodes(nodes: Node_2[] | Node_2): void;
+    addEdges(edges: Edge[] | Edge): void;
+    removeNodes(nodeId: string | string[]): void;
+    removeEdges(link: Edge | Edge[]): void;
+    updateNodeData(nodeId: string, data: Node_2): void;
+    getData(): Workflow;
+    render(): TemplateResult<1>;
+}
+
+declare type CxGraphViewAddNodeParams = {
+    sourceNode: string;
+    targetNode?: string;
+    transition?: string;
+    type: string;
+};
+
+declare type CxGraphViewPaneClickParams = {
+    event: default_3.MouseEvent;
+};
+
+declare type CxGraphViewSelectEdgeParams = {
+    edges: Edge[];
+};
+
+declare type CxGraphViewSelectNodeParams = {
+    nodes: string[];
+};
+
+/**
  * @summary The responsive layout grid adapts to screen size and orientation, ensuring consistency across layouts.
  *
  * @slot - The component's main content.
@@ -1904,6 +2446,9 @@ export declare class CxGrid extends CortexElement {
     rowSpacing: string | number;
     /** Defines the flex-wrap style property.*/
     wrap: 'nowrap' | 'wrap' | 'wrap-reverse';
+    /** Whether to use the "@container" query or not. */
+    useContainer: boolean;
+    private handleSlotChange;
     render(): TemplateResult<1>;
 }
 
@@ -1921,6 +2466,7 @@ export declare class CxGridItem extends CortexElement {
     md: number | null | boolean | 'auto';
     lg: number | null | boolean | 'auto';
     xl: number | null | boolean | 'auto';
+    useContainer: boolean;
     handleXsChange(): void;
     render(): TemplateResult<1>;
 }
@@ -1931,6 +2477,47 @@ export declare type CxHoverEvent = CustomEvent<{
     phase: 'start' | 'move' | 'end';
     value: number;
 }>;
+
+/**
+ * @summary The `cx-hub-connection` component is used to establish a connection to a SignalR hub.
+ * https://learn.microsoft.com/en-us/javascript/api/%40microsoft/signalr/hubconnection?view=signalr-js-latest
+ */
+export declare class CxHubConnection extends CortexElement {
+    private connection;
+    /**
+     * In case the connection is re-established, we need to re-register the event listeners.
+     * This set stores the names of the method names that are being watched.
+     */
+    private readonly watchedMethods;
+    /** The url of the HubConnection to the server. */
+    baseUrl: string;
+    /** Default interval at which to ping the server in milliseconds. */
+    keepAliveIntervalInMilliseconds: number;
+    /** A boolean value that determines whether the negotiation step should be skipped when connecting to the server. */
+    skipNegotiation: boolean;
+    /** The transport type for the connection. */
+    transport: signalR.HttpTransportType;
+    connectMode: 'manual' | 'auto';
+    connectedCallback(): void;
+    private readonly emitEvent;
+    private registerEventListeners;
+    onBaseUrlChanged(): void;
+    /** Starts the connection.
+     * @returns A Promise that resolves when the connection is successfully started, or rejects with an error.
+     */
+    start(): Promise<void>;
+    /** Stops the connection.
+     * @returns A Promise that resolves when the connection is successfully stopped, or rejects with an error.
+     */
+    stop(): Promise<void>;
+    /**
+     * Invokes a hub method on the server using the specified method name and arguments.
+     * @param methodName The name of the server method to invoke.
+     * @param args The arguments to pass to the server method.
+     * @returns A Promise that resolves with the result of the server method (if any), or rejects with an error.
+     */
+    invoke(methodName: string, ...args: any[]): Promise<any>;
+}
 
 /**
  * @summary Icons are symbols that can be used to represent various options within an application.
@@ -1999,6 +2586,16 @@ export declare class CxIconButton extends CortexElement {
     disabled: boolean;
     /** The class of the Font Awesome icon to draw */
     iconClass: string;
+    /** The button's size. */
+    size: 'small' | 'medium' | 'large' | 'x-large';
+    /** Draws an outlined button. */
+    outline: boolean;
+    /**
+     * Draws a circular icon button.
+     */
+    circle: boolean;
+    firstUpdated(): void;
+    syncStyles(): void;
     private handleBlur;
     private handleFocus;
     private handleClick;
@@ -2294,7 +2891,32 @@ export declare class CxInput extends CortexElement implements ShoelaceFormContro
 
 export declare type CxInputEvent = CustomEvent<Record<PropertyKey, never>>;
 
+/**
+ * @summary Input groups can be used to group related inputs into sections.
+ *
+ * @slot - One or more `<cx-input>` elements to display in the input group.
+ *
+ * @csspart base - The component's base wrapper.
+ */
+export declare class CxInputGroup extends CortexElement {
+    static readonly styles: CSSResultGroup;
+    defaultSlot: HTMLSlotElement;
+    /**
+     * A label to use for the input group. This won't be displayed on the screen, but it will be announced by assistive
+     * devices when interacting with the control and is strongly recommended.
+     */
+    label: string;
+    private handleFocus;
+    private handleBlur;
+    private handleMouseOver;
+    private handleMouseOut;
+    private handleSlotChange;
+    render(): TemplateResult;
+}
+
 export declare type CxInvalidEvent = CustomEvent<Record<PropertyKey, never>>;
+
+export declare type CxInvokedEvent = CustomEvent<Record<PropertyKey, any>>;
 
 export declare type CxKeydownEvent = CustomEvent<Record<PropertyKey, never>>;
 
@@ -2512,6 +3134,33 @@ export declare class CxMenuSection extends CortexElement {
     label: string;
     connectedCallback(): void;
     render(): TemplateResult<1>;
+}
+
+/**
+ * @summary Multi-select allows the user to select multiple items from a list. The items can be moved between two columns. The user can move items between the columns by dragging and dropping them.
+ * @element cx-multi-select
+ *
+ * @event {{ items: BoardItem[], name: string }} cx-multi-select-change - Emitted when the list items change.
+ */
+export declare class CxMultiSelect extends CortexElement {
+    static styles: CSSResult;
+    private readonly localize;
+    multiSelect: HTMLElement;
+    board1: CxBoard;
+    board2: CxBoard;
+    firstColumnData: ColumnData;
+    secondColumnData: ColumnData;
+    configurable: boolean;
+    ignoreTypes: string[];
+    private itemMap;
+    selectedItems: Record<string, string[]>;
+    private handleBoardChange;
+    private handleSelectedChange;
+    private handleMoveItems;
+    onDataChange(): void;
+    firstUpdated(): void;
+    disconnectedCallback(): void;
+    render(): TemplateResult;
 }
 
 export declare type CxMutationEvent = CustomEvent<{
@@ -2775,6 +3424,7 @@ export declare class CxPopup extends CortexElement {
      * make the popup half the width of the available space.
      */
     autoWidthFactor: number;
+    private get isSizeMiddleWareUsed();
     connectedCallback(): Promise<void>;
     disconnectedCallback(): void;
     protected firstUpdated(): void;
@@ -3505,6 +4155,7 @@ export declare class CxSelect extends CortexElement implements ShoelaceFormContr
      * @returns The value
      */
     getOptionValue: (option: HTMLElement) => string;
+    stayOpenOnSelect: boolean;
     /** Gets the validity state object */
     get validity(): ValidityState;
     /** Gets the validation message */
@@ -3640,7 +4291,7 @@ export declare type CxSlideChangeEvent = CustomEvent<{
  * @csspart base - The component's base container, applying flex layout.
  */
 export declare class CxSpace extends CortexElement {
-    static styles: CSSResultGroup;
+    static readonly styles: CSSResultGroup;
     /**
      * When set, and in vertical orientation, the child elements will stretch to fill the width of the container.
      */
@@ -3650,9 +4301,21 @@ export declare class CxSpace extends CortexElement {
      */
     direction: 'vertical' | 'horizontal';
     /**
-     * The size of the spacing container. This will determine the amount of space between child elements.
+     * The spacing between child elements
      */
-    size: 'small' | 'medium' | 'large';
+    spacing: SpacingProp;
+    /**
+     * The wrap behavior of the container.
+     */
+    wrap: 'wrap' | 'nowrap' | 'wrap-reverse';
+    /**
+     * Proxy for justify-content CSS property.
+     */
+    justifyContent: 'start' | 'end' | 'flex-start' | 'flex-end' | 'center' | 'left' | 'right' | 'normal' | 'space-between' | 'space-around' | 'space-evenly' | 'stretch';
+    /**
+     * Proxy for align-items CSS property.
+     */
+    alignItems: 'normal' | 'center' | 'start' | 'end' | 'baseline' | 'stretch' | 'flex-start' | 'flex-end';
     render(): TemplateResult<1>;
 }
 
@@ -3747,21 +4410,38 @@ export declare type CxStartEvent = CustomEvent<Record<PropertyKey, never>>;
 
 export declare class CxStep extends CortexElement {
     static styles: CSSResult[];
+    private step;
     active: boolean;
     completed: boolean;
     disabled: boolean;
+    readonly: boolean;
     error: boolean;
     index: number;
     last: boolean;
     helpText: string;
     progress: number;
+    color: string;
+    round: boolean;
+    firstUpdated(): void;
+    private handleClick;
+    private renderDefaultStep;
+    private renderRoundStep;
     render(): TemplateResult;
 }
 
 export declare class CxStepper extends CortexElement {
-    static styles: CSSResult;
+    static styles: CSSResult[];
     private stepSlot;
+    direction: 'horizontal' | 'vertical';
+    itemsPerRow: number;
     private handleSlotChange;
+    render(): TemplateResult;
+}
+
+export declare class CxStepperWizard extends CortexElement {
+    static styles: CSSResultGroup;
+    data: StepData[];
+    itemsPerRow: number;
     render(): TemplateResult;
 }
 
@@ -4038,6 +4718,50 @@ export declare class CxTag extends CortexElement {
 }
 
 /**
+ * @class CxTemplateSwitcher
+ * @extends CortexElement
+ * @summary Custom web component for switching templates in the Cortex application. The component manages various settings and menu configurations for different views, sort orders, and other options.
+ *
+ * @property {TemplateSwitcherProps} data - The data object containing initial settings and other configurations.
+ * @property {boolean | null} forcedSortOrder - Indicates if the sort order is forced.
+ * @property {string | null} forcedSortOrderReason - The reason for forcing the sort order.
+ * @property {MenuData} _menu - Internal state to store the menu data.
+ * @property {Settings} _settings - Internal state to store the settings.
+ * @property {boolean} _loading - Internal state to indicate if the component is loading.
+ *
+ * @method handleDataChange - Handles changes to the `data` property and updates settings accordingly.
+ * @method handleSettingsChange - Handles changes to the `_settings` property and updates the menu.
+ * @method handleAddCortexEvent - Adds a Cortex event using the provided event name and value.
+ * @method handleItemSelect - Handles item selection events and updates settings or triggers events.
+ * @method firstUpdated - Lifecycle method called after the component is first updated.
+ * @method disconnectedCallback - Lifecycle method called when the component is disconnected from the DOM.
+ * @method render - Renders the component's template.
+ *
+ * @event {{ item: MenuItem }} cx-select - Emitted when a menu item is selected.
+ */
+export declare class CxTemplateSwitcher extends CortexElement {
+    private readonly localize;
+    viewAndSort: CxViewAndSort;
+    data: TemplateSwitcherProps;
+    forcedSortOrder: boolean | null;
+    forcedSortOrderReason: string | null;
+    label: string;
+    private _loading;
+    private _menu;
+    get menu(): MenuData_2;
+    private _settings;
+    get settings(): Settings;
+    private iconMap;
+    handleDataChange(): void;
+    handleSettingsChange(): void;
+    handleAddCortexEvent(eventName: string, value: string, isSetting?: boolean): void;
+    handleItemSelect(event: CustomEvent): void;
+    firstUpdated(): void;
+    disconnectedCallback(): void;
+    render(): TemplateResult;
+}
+
+/**
  * @summary Textareas collect data from the user and allow multiple lines of text.
  *
  * @slot label - The textarea's label. Alternatively, you can use the `label` attribute.
@@ -4163,6 +4887,88 @@ export declare class CxTextarea extends CortexElement implements ShoelaceFormCon
     /** Sets a custom validation message. Pass an empty string to restore validity. */
     setCustomValidity(message: string): void;
     render(): TemplateResult<1>;
+}
+
+export declare class CxTextToSpeech extends CortexElement {
+    static styles: CSSResult;
+    private readonly localize;
+    private readonly acceptedFileTypes;
+    private textEditorContainer;
+    private form;
+    private bubbleMenu;
+    private importDialog;
+    private fileInput;
+    data: TextToSpeechData | null;
+    editable: boolean;
+    autofocus: boolean;
+    recordId: undefined;
+    fileName: undefined;
+    componentTitle: string;
+    height: undefined;
+    width: undefined;
+    maxHeight: string;
+    maxWidth: undefined;
+    minWidth: undefined;
+    minHeight: string;
+    mock: boolean;
+    private textEditor;
+    private voices;
+    private voice;
+    private gender;
+    private language;
+    private speed;
+    private audio;
+    private isSpeaking;
+    private loading;
+    private previewLoading;
+    private lastPosition;
+    private isSelectionEmpty;
+    private bubbleMenuType;
+    private timeCode;
+    private savedData;
+    private provider;
+    get 'is-unsaved'(): boolean | null;
+    get isUnsaved(): boolean | null;
+    get 'current-data'(): TextToSpeechData;
+    get currentData(): TextToSpeechData;
+    private isSsmlDataNotChanged;
+    private saveData;
+    onKeyDown: (event: KeyboardEvent) => void;
+    onBubbleMenuOpened(): void;
+    firstUpdated(): void;
+    disconnectedCallback(): void;
+    onDataChange(): void;
+    onVoicesChange(): void;
+    private get selectedVoice();
+    private get unsupportedSsmlTags();
+    openImportDialog(event: any): void;
+    closeImportDialog(): void;
+    confirmImport(): void;
+    private onAudioTimeUpdate;
+    private onAudioEnded;
+    pauseAudio(): void;
+    endAudio(): void;
+    playAudio(): void;
+    startNewAudio(blob: Blob): void;
+    addAudioEventListeners(): void;
+    removeAudioEventListeners(): void;
+    handleInsertBreak(): void;
+    private getEditorHTML;
+    private getSelectedHTML;
+    speak(): Promise<void>;
+    private clearInput;
+    private loadContentFromFile;
+    saveSSML(): Promise<void>;
+    private renderControls;
+    private renderBreakControls;
+    private renderBreakMenu;
+    private renderSayAsMenu;
+    private renderPreviewButtonContent;
+    private renderTimeCode;
+    private renderGlobalControls;
+    private renderInfo;
+    private renderImportFileConfirmDialog;
+    render(): TemplateResult;
 }
 
 /**
@@ -4367,6 +5173,8 @@ export declare class CxTreeItem extends CortexElement {
     selected: boolean;
     /** Disables the tree item. */
     disabled: boolean;
+    /** Makes the tree item readonly */
+    readonly: boolean;
     /** Enables lazy loading behavior. */
     lazy: boolean;
     defaultSlot: HTMLSlotElement;
@@ -4401,6 +5209,30 @@ export declare class CxTypography extends CortexElement {
 }
 
 /**
+ * @summary A dropdown menu that accepts a JSON string to render menu items for the template switcher dropdown.
+ *
+ * @event {{ item: MenuItem }} cx-select - Emitted when a menu item is selected.
+ */
+export declare class CxViewAndSort extends CortexElement {
+    static readonly styles: CSSResultGroup;
+    private readonly localize;
+    dropdown: CxDropdown;
+    items: MenuData;
+    label: string;
+    handleSelectChanged(e: CxSelectEvent): void;
+    debouncedHandleSelectChanged: (...args: any[]) => void;
+    onSelectChanged(e: CxSelectEvent): void;
+    onDropdownShow(e: CxShowEvent): void;
+    onDropdownAfterHide(e: CxAfterHideEvent): void;
+    hide(): void;
+    firstUpdated(): void;
+    disconnectedCallback(): void;
+    render(): TemplateResult<1>;
+    renderMenuSection(section: MenuSection): TemplateResult;
+    renderMenuItem(item: MenuItem, isHorizontal?: boolean, tooltip?: string): TemplateResult;
+}
+
+/**
  * @summary The visually hidden utility makes content accessible to assistive devices without displaying it on the screen.
  *
  * @slot - The content to be visually hidden.
@@ -4408,6 +5240,42 @@ export declare class CxTypography extends CortexElement {
 export declare class CxVisuallyHidden extends CortexElement {
     static styles: CSSResultGroup;
     render(): TemplateResult<1>;
+}
+
+declare type Data = {
+    fromTransition?: string | null;
+    name?: string | null;
+    source?: string | null;
+    transitions?: Transition[] | null;
+};
+
+declare namespace DownloaderComponentTypes {
+    export {
+        STATUS,
+        UNIT,
+        DownloadItem,
+        DownloadFileStateDetails,
+        OpenDirectoryPickerFunction
+    }
+}
+export { DownloaderComponentTypes }
+
+declare enum DownloadFileStateDetails {
+    MissingFileErrorMessage = "MissingFileErrorMessage",
+    NetworkErrorMessage = "NetworkErrorMessage",
+    NotEnoughStorageErrorMessage = "NotEnoughStorageErrorMessage"
+}
+
+declare interface DownloadItem {
+    createDate: number;
+    id: string;
+    name: string;
+    path: string;
+    progress: number;
+    size: number;
+    status: STATUS;
+    statusDetails: string;
+    unit: UNIT;
 }
 
 declare const easings: {
@@ -4444,6 +5312,14 @@ declare const easings: {
 
 declare type EasingTypes = EnumOrString<keyof typeof animations.easings>;
 
+declare type Edge = {
+    fromNode: string;
+    fromTransition?: string;
+    icon?: string;
+    iconRotation?: number;
+    toNode: string;
+};
+
 declare interface ElementAnimation {
     keyframes: Keyframe[];
     options?: KeyframeAnimationOptions;
@@ -4451,6 +5327,13 @@ declare interface ElementAnimation {
 }
 
 export declare type EnumOrString<T> = T | FakeString;
+
+declare type EventOption = {
+    delay: string;
+    returnType: string;
+};
+
+declare type Events = Record<string, EventOption>;
 
 declare type EventTypeDoesNotRequireDetail<T> = T extends keyof GlobalEventHandlersEventMap ? GlobalEventHandlersEventMap[T] extends CustomEvent<Record<PropertyKey, unknown>> ? GlobalEventHandlersEventMap[T] extends CustomEvent<Record<PropertyKey, never>> ? T : Partial<GlobalEventHandlersEventMap[T]['detail']> extends GlobalEventHandlersEventMap[T]['detail'] ? T : never : T : T;
 
@@ -4727,6 +5610,27 @@ declare const flipOutY: ({
     transform: string;
 })[];
 
+declare type FlowEdgeData = Edge & {
+    isContextMenuOpen?: boolean;
+    isHovered?: boolean;
+    offset?: number;
+};
+
+declare type FlowNodeData = Data & {
+    category?: string | null;
+    color?: string | null;
+    description?: string | null;
+    icon?: string | null;
+    id: string;
+    isHighlighted?: boolean;
+    label?: string | null;
+    messages?: string[] | null;
+    state?: State | null;
+    summaries?: Summary[];
+    unordered?: boolean | null;
+    unorderedText?: string | null;
+};
+
 declare type FormatDateDay = 'numeric' | '2-digit';
 
 declare type FormatDateEra = 'long' | 'short' | 'narrow';
@@ -4825,6 +5729,11 @@ declare interface FormControlControllerOptions {
     value: (input: ShoelaceFormControl) => unknown | unknown[];
 }
 
+declare const GenderMap: {
+    readonly '1': "MALE";
+    readonly '2': "FEMALE";
+};
+
 /** Gets an element's animation. Falls back to the default if no animation is found. */
 export declare function getAnimation(el: Element, animationName: string, options: GetAnimationOptions): ElementAnimation;
 
@@ -4839,10 +5748,32 @@ declare interface GetAnimationOptions {
     dir: string;
 }
 
+declare type GetClusterDataFunction = () => ClusterData | Promise<ClusterData>;
+
 declare type GetCustomEventType<T> = T extends keyof GlobalEventHandlersEventMap ? GlobalEventHandlersEventMap[T] extends CustomEvent<unknown> ? GlobalEventHandlersEventMap[T] : CustomEvent<unknown> : CustomEvent<unknown>;
 
 /** Gets a list of all supported easing function names. */
 export declare function getEasingNames(): string[];
+
+declare namespace GraphViewComponentTypes {
+    export {
+        Edge,
+        FlowEdgeData,
+        Transition,
+        Permission,
+        NodeType,
+        Data,
+        Summary,
+        FlowNodeData,
+        Node_2 as Node,
+        Workflow,
+        HierarchyData,
+        NodeHierarchyDataMap,
+        MappedEdge,
+        MappedNode
+    }
+}
+export { GraphViewComponentTypes }
 
 declare const headShake: {
     offset: number;
@@ -4853,6 +5784,13 @@ declare const heartBeat: {
     offset: number;
     transform: string;
 }[];
+
+declare type HierarchyData = {
+    depth: number;
+    height: number;
+    id: string;
+    parent: string | null;
+};
 
 declare const hinge: ({
     easing: string;
@@ -4938,11 +5876,64 @@ declare const lightSpeedOutRight: ({
     transform: string;
 })[];
 
+declare type MappedEdge = Edge_2<FlowEdgeData>;
+
+declare type MappedNode = Node_3<FlowNodeData>;
+
 declare type Mark = {
     hidden: boolean;
     label: string;
     value: number;
 };
+
+declare type MenuData = MenuSection[];
+
+declare type MenuItem = {
+    checked?: boolean;
+    disabled?: boolean;
+    divider?: boolean;
+    eventName?: string;
+    forceHighlight?: boolean;
+    group?: string;
+    hidden?: boolean;
+    icon?: string | TemplateResult;
+    iconVariant?: string;
+    label: string;
+    labelAsSelected?: boolean;
+    selected?: boolean;
+    selectedTip?: string | null;
+    submenu?: MenuSection[];
+    type?: 'switch' | 'button';
+    unselectedTip?: string | null;
+    value: string;
+};
+
+declare type MenuSection = {
+    horizontal?: boolean;
+    items: MenuItem[];
+    selected?: string;
+    title?: string;
+    tooltip?: string;
+};
+
+declare type Message = {
+    content: string;
+    events?: Array<{
+        callback: (messageContent: string) => void;
+        label: string;
+    }>;
+    finished?: boolean;
+    isEndOfRole?: boolean;
+    isStartOfRole?: boolean;
+    references?: Reference[];
+    role: MessageRole;
+};
+
+declare enum MessageRole {
+    ASSISTANT = "assistant",
+    SYSTEM = "system",
+    USER = "user"
+}
 
 declare class Modal {
     element: HTMLElement;
@@ -4969,10 +5960,73 @@ declare class Modal {
     private handleKeyUp;
 }
 
+declare type MoreOptions = Record<string, Option_2>;
+
+declare namespace MultiSelectComponentTypes {
+    export {
+        ColumnData
+    }
+}
+export { MultiSelectComponentTypes }
+
+declare type Node_2 = {
+    category?: string | null;
+    color?: string | null;
+    data: Data | null;
+    description?: string | null;
+    icon?: string | null;
+    id: string;
+    messages?: string[] | null;
+    name?: string | null;
+    state?: State | null;
+    summaries?: Summary[];
+    type: 'Action' | 'Decision' | 'Status' | 'Trigger' | 'Ghost' | null;
+    unordered?: boolean | null;
+    unorderedText?: string | null;
+};
+
+declare type NodeHierarchyDataMap = Record<string, HierarchyData>;
+
+declare type NodeType = {
+    allows_loop?: boolean;
+    color: string;
+    icon: string;
+    name: string;
+};
+
+declare type OpenDirectoryPickerFunction = (args: {
+    containerName: string;
+    transactionID: string;
+}) => void;
+
+declare type Option_2 = {
+    category: string | null;
+    eventName: string;
+    id: string;
+    isSetting: boolean | null;
+    name: string;
+    selectedTip?: string | null;
+    subCategory: string | null;
+    unselectedTip?: string | null;
+};
+
+declare type Permission = {
+    id: string;
+    rights: string;
+};
+
 declare const pulse: {
     offset: number;
     transform: string;
 }[];
+
+declare type Reference = {
+    href: string;
+    id: string;
+    source: string;
+    summary: string;
+    title: string;
+};
 
 declare const rollIn: {
     offset: number;
@@ -5075,6 +6129,19 @@ declare const rubberBand: {
     transform: string;
 }[];
 
+declare type SectionOption = {
+    id: string;
+    name: string;
+};
+
+declare type Service = {
+    desiredCount: number;
+    maxNodeCount: number;
+    minNodeCount: number;
+    runningCount: number;
+    serviceId: string;
+};
+
 /** Sets a custom animation for the specified element. */
 export declare function setAnimation(el: Element, animationName: string, animation: ElementAnimation | null): void;
 
@@ -5083,6 +6150,19 @@ export declare function setAnimation(el: Element, animationName: string, animati
  * for secondary animations, e.g. `dialog.show` and `dialog.overlay.show`. For modifiers, use `drawer.showTop`.
  */
 export declare function setDefaultAnimation(animationName: string, animation: ElementAnimation | null): void;
+
+declare type Settings = {
+    darkMode: boolean | null;
+    deployStack: boolean;
+    direction: string;
+    groupBy: string;
+    itemsPerPage: string;
+    resequence: boolean;
+    seeThru: boolean | null;
+    showBinnedAssets: boolean;
+    sortOrder: string;
+    view: string;
+};
 
 declare const shake: {
     offset: number;
@@ -5201,6 +6281,28 @@ declare const slideOutUp: ({
     visibility: string;
 })[];
 
+declare type SortOrder = Option_2 & {
+    direction: Option_2[] | null;
+};
+
+declare type SpacingProp = '3x-small' | '2x-small' | 'x-small' | 'small' | 'medium' | 'large' | 'x-large' | '2x-large' | '3x-large' | '4x-large';
+
+declare type State = 'Error';
+
+declare enum STATUS {
+    Assembling = "assembling",
+    Cancelled = "cancelled",
+    Completed = "completed",
+    Downloading = "downloading",
+    Failed = "failed",
+    Paused = "paused"
+}
+
+declare type Summary = {
+    icon: string;
+    texts: string[];
+};
+
 declare const swing: {
     offset: number;
     transform: string;
@@ -5211,7 +6313,91 @@ declare const tada: {
     transform: string;
 }[];
 
+declare namespace TemplateSwitcherComponentTypes {
+    export {
+        Settings,
+        Category,
+        Option_2 as Option,
+        TemplateSwitcherProps
+    }
+}
+export { TemplateSwitcherComponentTypes }
+
+declare type TemplateSwitcherProps = {
+    VFormID: string;
+    categories?: Category[];
+    defaultDirectionWhenSortChange: string;
+    defaultSettings: Settings;
+    defaultSortForResequence: string;
+    disabledCountForViews?: string[];
+    disabledDeployStackForViews?: string[];
+    disabledGroupByForViews?: string[];
+    disabledSeeThruForViews?: string[];
+    disabledSortForViews?: string[];
+    events: Events;
+    forceSortOrderWhenSeethruOff: string;
+    groupBy: Option_2[] | null;
+    hideDeployStackForViews?: string[];
+    hideGroupByForViews?: string[];
+    initSettings: Settings;
+    itemsPerPage: Option_2[];
+    moreOptions: MoreOptions;
+    sections: SectionOption[];
+    sortOrder: SortOrder[];
+    view: Option_2[];
+};
+
+declare namespace TextToSpeechComponentTypes {
+    export {
+        Voice,
+        GenderMap,
+        TuneOptions,
+        TextToSpeechData
+    }
+}
+export { TextToSpeechComponentTypes }
+
+declare type TextToSpeechData = {
+    HtmlData: string;
+    SsmlData: {
+        LanguageCode: string;
+        Name: string;
+        SsmlGender: 1 | 2;
+        SsmlText: string;
+    };
+};
+
+declare type Transition = {
+    description?: string | null;
+    icon?: string | null;
+    icon_rotation?: number | null;
+    id: string;
+    name?: string;
+    required?: boolean;
+    type?: string | null;
+};
+
 declare type TreeSelection = 'single' | 'multiple' | 'leaf';
+
+declare type TuneOptions = {
+    ssmlTagName: string;
+};
+
+declare enum UNIT {
+    B = "B",
+    Gb = "GB",
+    Kb = "KB",
+    Mb = "MB"
+}
+
+declare type UpdateServiceFunction = (params: {
+    desiredCount: number;
+    serviceId: string;
+}) => {
+    service: Service;
+} | Promise<{
+    service: Service;
+}>;
 
 declare enum Variant {
     BODY1 = "body1",
@@ -5226,10 +6412,27 @@ declare enum Variant {
     SMALL = "small"
 }
 
+declare namespace ViewAndSortComponentTypes {
+    export {
+        MenuItem,
+        MenuSection,
+        MenuData
+    }
+}
+export { ViewAndSortComponentTypes }
+
 declare interface VirtualElement {
     contextElement?: Element;
     getBoundingClientRect: () => DOMRect;
 }
+
+declare type Voice = {
+    isPremiumVoice?: boolean;
+    languageCodes: string[];
+    name: string;
+    ssmlGender: string;
+    unsupportedSsmlTags?: string[];
+};
 
 declare type WithRequired<T, K extends keyof T> = T & {
     [P in K]-?: T[P];
@@ -5239,6 +6442,17 @@ declare const wobble: {
     offset: number;
     transform: string;
 }[];
+
+declare type Workflow = {
+    data: Data | null;
+    description: string | null;
+    id: string | null;
+    links: Edge[] | null;
+    name: string | null;
+    node_types: Record<string, NodeType> | null;
+    nodes: Node_2[] | null;
+    type: string | null;
+};
 
 declare const zoomIn: ({
     offset: number;
@@ -5318,295 +6532,8 @@ export { }
 
 
 declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-after-expand': CxAfterExpandEvent;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-after-collapse': CxAfterCollapseEvent;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-blur': CxBlurEvent;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-after-show': CxAfterShowEvent;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-cancel': CxCancelEvent;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-clear': CxClearEvent;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-after-hide': CxAfterHideEvent;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-change': CxChangeEvent;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-close': CxCloseEvent;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-copy': CxCopyEvent;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-error': CxErrorEvent;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-collapse': CxCollapseEvent;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-focus': CxFocusEvent;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-expand': CxExpandEvent;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-finish': CxFinishEvent;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-hide': CxHideEvent;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-input': CxInputEvent;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-initial-focus': CxInitialFocusEvent;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-hover': CxHoverEvent;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-invalid': CxInvalidEvent;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-keydown': CxKeydownEvent;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-lazy-change': CxLazyChangeEvent;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-lazy-load': CxLazyLoadEvent;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-ready': CxReadyEvent;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-remove': CxRemoveEvent;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-reposition': CxRepositionEvent;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-load': CxLoadEvent;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-mutation': CxMutationEvent;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-request-close': CxRequestCloseEvent;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-resize': CxResizeEvent;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-selection-change': CxSelectionChangeEvent;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-show': CxShowEvent;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-select': CxSelectEvent;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-slide-change': CxSlideChangeEvent;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-start': CxStartEvent;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-page-change': CxPageChangeEvent;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-tab-show': CxTabShowEvent;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-tab-hide': CxTabHideEvent;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-swatch-add': CxSwatchAddEvent;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-drag-start': CxDragStart;
-    }
-}
-
-
-declare global {
     interface HTMLElementTagNameMap {
-        'cx-alert': CxAlert;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-drag-end': CxDragEnd;
+        'cx-avatar': CxAvatar;
     }
 }
 
@@ -5620,21 +6547,7 @@ declare global {
 
 declare global {
     interface HTMLElementTagNameMap {
-        'cx-animation': CxAnimation;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-refresh': CxRefreshEvent;
-    }
-}
-
-
-declare global {
-    interface HTMLElementTagNameMap {
-        'cx-badge': CxBadge;
+        'cx-alert': CxAlert;
     }
 }
 
@@ -5648,14 +6561,14 @@ declare global {
 
 declare global {
     interface HTMLElementTagNameMap {
-        'cx-avatar': CxAvatar;
+        'cx-animation': CxAnimation;
     }
 }
 
 
 declare global {
     interface HTMLElementTagNameMap {
-        'cx-breadcrumb-item': CxBreadcrumbItem;
+        'cx-badge': CxBadge;
     }
 }
 
@@ -5669,7 +6582,14 @@ declare global {
 
 declare global {
     interface HTMLElementTagNameMap {
-        'cx-carousel-item': CxCarouselItem;
+        'cx-button-group': CxButtonGroup;
+    }
+}
+
+
+declare global {
+    interface HTMLElementTagNameMap {
+        'cx-breadcrumb-item': CxBreadcrumbItem;
     }
 }
 
@@ -5683,14 +6603,21 @@ declare global {
 
 declare global {
     interface HTMLElementTagNameMap {
-        'cx-checkbox': CxCheckbox;
+        'cx-carousel-item': CxCarouselItem;
     }
 }
 
 
 declare global {
     interface HTMLElementTagNameMap {
-        'cx-button-group': CxButtonGroup;
+        'cx-carousel': CxCarousel;
+    }
+}
+
+
+declare global {
+    interface HTMLElementTagNameMap {
+        'cx-checkbox': CxCheckbox;
     }
 }
 
@@ -5725,13 +6652,6 @@ declare global {
 
 declare global {
     interface HTMLElementTagNameMap {
-        'cx-carousel': CxCarousel;
-    }
-}
-
-
-declare global {
-    interface HTMLElementTagNameMap {
         'cx-divider': CxDivider;
     }
 }
@@ -5756,6 +6676,13 @@ declare global {
 
 declare global {
     interface HTMLElementTagNameMap {
+        'cx-format-bytes': CxFormatBytes;
+    }
+}
+
+
+declare global {
+    interface HTMLElementTagNameMap {
         'cx-element-clamp': CxElementClamp;
     }
 }
@@ -5770,21 +6697,7 @@ declare global {
 
 declare global {
     interface HTMLElementTagNameMap {
-        'cx-format-bytes': CxFormatBytes;
-    }
-}
-
-
-declare global {
-    interface HTMLElementTagNameMap {
         'cx-format-number': CxFormatNumber;
-    }
-}
-
-
-declare global {
-    interface HTMLElementTagNameMap {
-        'cx-icon': CxIcon;
     }
 }
 
@@ -5798,7 +6711,28 @@ declare global {
 
 declare global {
     interface HTMLElementTagNameMap {
+        'cx-icon': CxIcon;
+    }
+}
+
+
+declare global {
+    interface HTMLElementTagNameMap {
+        'cx-hub-connection': CxHubConnection;
+    }
+}
+
+
+declare global {
+    interface HTMLElementTagNameMap {
         'cx-image-comparer': CxImageComparer;
+    }
+}
+
+
+declare global {
+    interface HTMLElementTagNameMap {
+        'cx-include': CxInclude;
     }
 }
 
@@ -5812,7 +6746,7 @@ declare global {
 
 declare global {
     interface HTMLElementTagNameMap {
-        'cx-include': CxInclude;
+        'cx-input-group': CxInputGroup;
     }
 }
 
@@ -5840,14 +6774,14 @@ declare global {
 
 declare global {
     interface HTMLElementTagNameMap {
-        'cx-menu-item': CxMenuItem;
+        'cx-menu-label': CxMenuLabel;
     }
 }
 
 
 declare global {
     interface HTMLElementTagNameMap {
-        'cx-menu-label': CxMenuLabel;
+        'cx-menu-item': CxMenuItem;
     }
 }
 
@@ -5861,14 +6795,14 @@ declare global {
 
 declare global {
     interface HTMLElementTagNameMap {
-        'cx-option': CxOption;
+        'cx-mutation-observer': CxMutationObserver;
     }
 }
 
 
 declare global {
     interface HTMLElementTagNameMap {
-        'cx-mutation-observer': CxMutationObserver;
+        'cx-option': CxOption;
     }
 }
 
@@ -5938,14 +6872,14 @@ declare global {
 
 declare global {
     interface HTMLElementTagNameMap {
-        'cx-range': CxRange;
+        'cx-rating': CxRating;
     }
 }
 
 
 declare global {
     interface HTMLElementTagNameMap {
-        'cx-rating': CxRating;
+        'cx-range': CxRange;
     }
 }
 
@@ -5959,14 +6893,14 @@ declare global {
 
 declare global {
     interface HTMLElementTagNameMap {
-        'cx-select': CxSelect;
+        'cx-resize-observer': CxResizeObserver;
     }
 }
 
 
 declare global {
     interface HTMLElementTagNameMap {
-        'cx-resize-observer': CxResizeObserver;
+        'cx-select': CxSelect;
     }
 }
 
@@ -5995,6 +6929,13 @@ declare global {
 declare global {
     interface HTMLElementTagNameMap {
         'cx-split-panel': CxSplitPanel;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-step-select': CxStepSelect;
     }
 }
 
@@ -6036,14 +6977,14 @@ declare global {
 
 declare global {
     interface HTMLElementTagNameMap {
-        'cx-tab-panel': CxTabPanel;
+        'cx-tag': CxTag;
     }
 }
 
 
 declare global {
     interface HTMLElementTagNameMap {
-        'cx-tag': CxTag;
+        'cx-tab-panel': CxTabPanel;
     }
 }
 
@@ -6057,14 +6998,14 @@ declare global {
 
 declare global {
     interface HTMLElementTagNameMap {
-        'cx-tree': CxTree;
+        'cx-tooltip': CxTooltip;
     }
 }
 
 
 declare global {
     interface HTMLElementTagNameMap {
-        'cx-tooltip': CxTooltip;
+        'cx-tree': CxTree;
     }
 }
 
@@ -6105,6 +7046,362 @@ declare global {
 
 
 declare global {
+    interface Window {
+        Matrix3: any;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-multi-select-change': CxMultiSelectChangeEvent;
+    }
+}
+
+
+declare global {
+    interface Window {
+        Param: any;
+        Utils: any;
+        tabId: string;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-after-collapse': CxAfterCollapseEvent;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-after-expand': CxAfterExpandEvent;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-after-show': CxAfterShowEvent;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-after-hide': CxAfterHideEvent;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-blur': CxBlurEvent;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-cancel': CxCancelEvent;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-change': CxChangeEvent;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-clear': CxClearEvent;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-collapse': CxCollapseEvent;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-close': CxCloseEvent;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-copy': CxCopyEvent;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-error': CxErrorEvent;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-expand': CxExpandEvent;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-finish': CxFinishEvent;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-focus': CxFocusEvent;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-hide': CxHideEvent;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-hover': CxHoverEvent;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-initial-focus': CxInitialFocusEvent;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-input': CxInputEvent;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-invalid': CxInvalidEvent;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-keydown': CxKeydownEvent;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-lazy-load': CxLazyLoadEvent;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-lazy-change': CxLazyChangeEvent;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-mutation': CxMutationEvent;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-load': CxLoadEvent;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-ready': CxReadyEvent;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-remove': CxRemoveEvent;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-reposition': CxRepositionEvent;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-request-close': CxRequestCloseEvent;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-resize': CxResizeEvent;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-select': CxSelectEvent;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-selection-change': CxSelectionChangeEvent;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-show': CxShowEvent;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-page-change': CxPageChangeEvent;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-slide-change': CxSlideChangeEvent;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-start': CxStartEvent;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-tab-show': CxTabShowEvent;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-tab-hide': CxTabHideEvent;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-swatch-add': CxSwatchAddEvent;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-drag-end': CxDragEnd;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-refresh': CxRefreshEvent;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        [eventName: string]: eventName extends `cx-invoked${string}` ? CxInvokedEvent : never;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-drag-start': CxDragStart;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-board-change': CxBoardChangeEvent;
+        'cx-board-item-added': CxBoardItemAddedEvent;
+        'cx-board-item-removed': CxBoardItemRemovedEvent;
+        'cx-board-selected-change': CxBoardSelectedChangeEvent;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-board-item-checkbox-click': CxBoardItemCheckboxClickEvent;
+        'cx-board-item-label-click': CxBoardItemLabelClickEvent;
+        'cx-multi-select-configure': CxMultiSelectConfigureEvent;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-action-dropdown-hide': CxActionDropdown;
+        'cx-action-dropdown-show': CxActionDropdown;
+        'cx-graph-view-add-node': CxGraphViewAddNodeEvent;
+        'cx-graph-view-pane-click': CxGraphViewPaneClickEvent;
+        'cx-graph-view-select-edge': CxGraphViewSelectEdgeEvent;
+        'cx-graph-view-select-node': CxGraphViewSelectNodeEvent;
+        'cx-graph-view-unlink': CxGraphViewUnlinkEvent;
+    }
+}
+
+
+declare global {
     interface HTMLElementTagNameMap {
         'cx-menu-label': CxMenuLabel;
     }
@@ -6134,14 +7431,29 @@ declare global {
 
 declare global {
     interface HTMLElementTagNameMap {
-        'cx-tab-group': CxTabGroup;
+        'cx-tab': CxTab;
     }
 }
 
 
 declare global {
     interface HTMLElementTagNameMap {
-        'cx-tab': CxTab;
+        'cx-tab-group': CxTabGroup;
+    }
+}
+
+declare module '@tiptap/core' {
+    interface Commands<ReturnType> {
+        tune: {
+            setBreakNode: (someProp?: any) => ReturnType;
+            setEmphasis: (someProp?: any) => ReturnType;
+            setProsody: (someProp?: any) => ReturnType;
+            setSayAs: (someProp?: any) => ReturnType;
+            unsetBreakNode: (someProp?: any) => ReturnType;
+            unsetEmphasis: (someProp?: any) => ReturnType;
+            unsetProsody: (someProp?: any) => ReturnType;
+            unsetSayAs: (someProp?: any) => ReturnType;
+        };
     }
 }
 

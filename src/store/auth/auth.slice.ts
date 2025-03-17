@@ -1,11 +1,10 @@
 import type { PayloadAction } from '@reduxjs/toolkit';
 import { RootState } from '@/store';
 import { resetImportStatus } from '@/store/assets/assets.slice';
-import { resetSearchState } from '@/store/search/search.slice';
 import { GetAccessKeyRes, GetAccessKeyResponseCode, OAuthRes } from '@/types/auth';
 import { getRequestUrl } from '@/utils/getRequestUrl';
 import { deleteData, getData, storeData } from '@/utils/storage';
-import { RandomString } from '@/utils/string';
+import { generateRandomString } from '@/utils/string';
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 
 import {
@@ -54,7 +53,7 @@ export const authSlice = createSlice({
       state.userConfigSiteUrl = action.payload;
     },
     generateNonce: (state) => {
-      state.nonce = RandomString(12);
+      state.nonce = generateRandomString(12);
     },
     logout: (state) => {
       state.status = 'unauthenticated';
@@ -183,7 +182,6 @@ export const oAuth = createAsyncThunk<OAuthRes, { siteUrl: string }>(
       }
 
       // Login successfully, reset other state
-      dispatch(resetSearchState());
       dispatch(resetImportStatus());
 
       return getOAuthResult as OAuthRes;
@@ -245,8 +243,6 @@ export const initAuthInfoFromCache = createAsyncThunk(
         return rejectWithValue('Unable to recover access key');
       }
 
-      // Login successfully, reset other state
-      dispatch(resetSearchState());
       dispatch(resetImportStatus());
     } catch (exception) {
       return rejectWithValue((exception as Error).message);
