@@ -2,7 +2,6 @@ import { CSSProperties, FC, useCallback, useEffect, useRef, useState } from 'rea
 
 import OtherPreview from '@/components/Result/AssetPreview/OtherPreview';
 import { MediaType } from '@/types/search';
-import { FORMAT_DIALOG_PREVIEW_SIZE } from '@/utils/constants';
 
 import { Container } from './Previewer.styled';
 
@@ -24,16 +23,21 @@ const Previewer: FC<Props> = ({
   },
   onLoad,
 }) => {
-  const [height, setHeight] = useState(FORMAT_DIALOG_PREVIEW_SIZE);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
 
   useEffect(() => {
-    setIsLoading(true);
+    if (asset.imageUrl) {
+      setIsLoading(true);
+    }
   }, [asset.imageUrl]);
 
   const renderPreview = useCallback(() => {
+    if (!loadable) {
+      return;
+    }
+
     if (asset.docType === MediaType.Video && asset.videoUrl) {
       return (
         <video
@@ -49,7 +53,6 @@ const Previewer: FC<Props> = ({
           }}
           onLoadedMetadata={(e) => {
             setIsLoading(false);
-            setHeight(e.currentTarget.offsetHeight);
             onLoad?.({
               width: e.currentTarget.videoWidth,
               height: e.currentTarget.videoHeight,
@@ -70,14 +73,12 @@ const Previewer: FC<Props> = ({
             maxWidth: '100%',
             maxHeight: '100%',
             objectFit: 'contain',
-            opacity: isLoading ? 0 : 1,
           }}
           onLoad={() => {
             if (!imageRef.current) {
               return;
             }
             setIsLoading(false);
-            setHeight(Math.min(imageRef.current.offsetHeight, FORMAT_DIALOG_PREVIEW_SIZE));
             onLoad?.({
               width: imageRef.current.naturalWidth,
               height: imageRef.current.naturalHeight,
@@ -87,7 +88,6 @@ const Previewer: FC<Props> = ({
       );
     }
 
-    setIsLoading(false);
     return (
       <OtherPreview
         type={asset.docType}
@@ -98,16 +98,11 @@ const Previewer: FC<Props> = ({
         } as CSSProperties}
       />
     );
-  }, [asset.docType, asset.imageUrl, asset.videoUrl, isLoading, onLoad]);
+  }, [asset.docType, asset.imageUrl, asset.videoUrl, loadable, onLoad]);
 
   return (
-      <Container
-        ref={containerRef}
-        style={{
-          height: `${height}px`,
-        }}
-      >
-        {loadable && renderPreview()}
+      <Container ref={containerRef}>
+        {renderPreview()}
         {isLoading && (
           <div className="loading">
             <cx-skeleton className="loading__skeleton"></cx-skeleton>

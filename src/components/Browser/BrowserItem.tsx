@@ -9,12 +9,14 @@ type Props = {
   folder: Folder;
   currentFolderID: string;
   searchText?: string;
+  useSession?: string;
 };
 
 export const BrowserItem: FC<Props> = ({
   folder,
   currentFolderID,
   searchText,
+  useSession,
 }) => {
   const [isDefined, setIsDefined] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -27,7 +29,7 @@ export const BrowserItem: FC<Props> = ({
     isLoading,
     isFetching,
     isUninitialized,
-  } = useGetFoldersQuery({ folder, searchText: searchText ?? '' }, { skip: !isExpanded });
+  } = useGetFoldersQuery({ folder, searchText: searchText ?? '', useSession }, { skip: !isExpanded });
 
   const mayHaveChildren = !folder || isLoading || isFetching || isUninitialized;
   const hasChildren = folders && folders.length > 0 && !(isLoading || isUninitialized);

@@ -66,12 +66,11 @@ const CropPreviewer = forwardRef<CropPreviewerHandle, Props>(({
       if (loadable) {
         onLoadingChange(true);
         const { width: newWidth, height: newHeight } = calculateAspectRatioFit(image.width, image.height, width, height);
-        const { url: imageUrl, height: imageHeight } = await resizeImage(url,
+        const { url: imageUrl } = await resizeImage(url,
           newWidth,
           newHeight,
           containerRef.current?.clientWidth ?? window.innerWidth, FORMAT_DIALOG_PREVIEW_SIZE,
         );
-        containerRef.current?.style.setProperty('height', `${imageHeight}px`);
         setResizedImage(imageUrl);
         onLoadingChange(false);
       } else {

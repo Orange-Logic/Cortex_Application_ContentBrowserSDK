@@ -16,11 +16,21 @@ type Props = {
   focusInput?: boolean;
   open: boolean;
   showCollections?: boolean;
+  useSession?: string;
   onFolderSelect?: (selectedFolder: Folder) => void;
   onClose: () => void;
 };
 
-const Browser: FC<Props> = ({ collectionPath, currentFolder, focusInput, open, showCollections, onFolderSelect, onClose }) => {    
+const Browser: FC<Props> = ({
+  collectionPath,
+  currentFolder,
+  focusInput,
+  open,
+  showCollections,
+  useSession,
+  onFolderSelect,
+  onClose,
+}) => {
   const [searchText, setSearchText] = useState('');
   const [isDefined, setIsDefined] = useState(false);
 
@@ -38,8 +48,7 @@ const Browser: FC<Props> = ({ collectionPath, currentFolder, focusInput, open, s
       setIsDefined(true);
     });
   }, []);
-  
-  
+
   useEffect(() => {
     const searchInput = searchRef.current;
     if (!searchInput) return;
@@ -50,12 +59,12 @@ const Browser: FC<Props> = ({ collectionPath, currentFolder, focusInput, open, s
       }
     }, 300);
     searchInput.addEventListener('cx-input', onSearchInput);
-      
+
     return () => {
       searchInput.removeEventListener('cx-input', onSearchInput);
     };
   }, [isDefined, searchText]);
-  
+
   useEffect(() => {
     const drawer = drawerRef.current;
     if (!drawer) return;
@@ -74,22 +83,29 @@ const Browser: FC<Props> = ({ collectionPath, currentFolder, focusInput, open, s
     isLoading: isLoadingFolders,
     isFetching: isFetchingFolders,
     isError: isErrorFolders,
-  } = useGetFoldersQuery({ folder: RootFolder, searchText });
+  } = useGetFoldersQuery({ folder: RootFolder, searchText, useSession });
 
   const {
     data: collections,
     isLoading: isLoadingCollections,
     isFetching: isFetchingCollections,
     isError: isErrorCollections,
-  } = useGetCollectionsQuery(collectionPath ? {
-    folder: collectionPath,
-  } : skipToken);
+  } = useGetCollectionsQuery(
+    collectionPath
+      ? {
+        folder: collectionPath,
+        useSession,
+      }
+      : skipToken,
+  );
 
   useEffect(() => {
     const tree = treeRef.current;
     if (!tree) return;
     const onTreeSelect = (e: CxSelectionChangeEvent) => {
-      const folder = JSON.parse(e.detail.selection[0].dataset.value ?? '{}') as Folder;
+      const folder = JSON.parse(
+        e.detail.selection[0].dataset.value ?? '{}',
+      ) as Folder;
       onFolderSelect?.(folder);
     };
     tree.addEventListener('cx-selection-change', onTreeSelect);
@@ -120,6 +136,7 @@ const Browser: FC<Props> = ({ collectionPath, currentFolder, focusInput, open, s
           key={folder.id}
           folder={folder}
           currentFolderID={currentFolder.id}
+          useSession={useSession}
         />
       ));
     } else if (isErrorFolders) {
@@ -128,10 +145,15 @@ const Browser: FC<Props> = ({ collectionPath, currentFolder, focusInput, open, s
       );
     }
 
-    return (
-      <cx-typography variant="body3">No folders found</cx-typography>
-    );
-  }, [isLoadingFolders, isFetchingFolders, isErrorFolders, folders, currentFolder.id]);
+    return <cx-typography variant="body3">No folders found</cx-typography>;
+  }, [
+    isLoadingFolders,
+    isFetchingFolders,
+    isErrorFolders,
+    folders,
+    currentFolder.id,
+    useSession,
+  ]);
 
   const renderCollections = useCallback(() => {
     if (isLoadingCollections || isFetchingCollections) {
@@ -140,10 +162,7 @@ const Browser: FC<Props> = ({ collectionPath, currentFolder, focusInput, open, s
       ));
     } else if (collections && collections.length > 0) {
       return collections?.map((collection) => (
-        <cx-menu-item
-          key={collection.id}
-          value={JSON.stringify(collection)}
-        >
+        <cx-menu-item key={collection.id} value={JSON.stringify(collection)}>
           <cx-icon slot="prefix" name="collections"></cx-icon>
           {collection.title}
         </cx-menu-item>
@@ -156,10 +175,13 @@ const Browser: FC<Props> = ({ collectionPath, currentFolder, focusInput, open, s
       );
     }
 
-    return (
-      <cx-typography variant="body3">No collections found</cx-typography>
-    );
-  }, [isLoadingCollections, isFetchingCollections, isErrorCollections, collections]);
+    return <cx-typography variant="body3">No collections found</cx-typography>;
+  }, [
+    isLoadingCollections,
+    isFetchingCollections,
+    isErrorCollections,
+    collections,
+  ]);
 
   return (
     <Drawer
@@ -197,7 +219,10 @@ const Browser: FC<Props> = ({ collectionPath, currentFolder, focusInput, open, s
               <cx-typography slot="summary" variant="body3">
                 Collections
               </cx-typography>
-              <cx-menu ref={collectionRef} className="browser__collections__menu">
+              <cx-menu
+                ref={collectionRef}
+                className="browser__collections__menu"
+              >
                 {renderCollections()}
               </cx-menu>
             </cx-details>

@@ -217,6 +217,13 @@
               Note: The subtypes are case-sensitive.
             </small>
           </p>
+        </li>
+        <li>
+          <b>useSession</b>
+          <p>
+            The session id to use for the asset picker
+          </p>
+        </li>
       </ul>
   </div>
 
@@ -249,6 +256,7 @@
         searchInDrive: false,
         showCollections: true,
         supportedRepresentativeSubtypes: ['Images', 'Videos', 'Audio', 'Others'],
+        useSession: '',
       };
       document.getElementById("content").innerHTML = JSON.stringify(config, function(key, value) {
         if (typeof value === "function") {

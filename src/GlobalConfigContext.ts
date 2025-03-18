@@ -22,6 +22,7 @@ export type GlobalConfigContextType = {
   isGABPopedup: boolean;
   searchInDrive: boolean;
   showCollections?: boolean;
+  useSession?: string;
 };
 
 export const GlobalConfigContext = createContext<GlobalConfigContextType>({

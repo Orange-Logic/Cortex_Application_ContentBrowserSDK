@@ -106,6 +106,10 @@ declare global {
          * The flag to show the collection
          */
         showCollections?: boolean;
+        /**
+         * The session id to use for the asset picker
+         */
+        useSession?: string
       }) => void,
       close: () => void,
       /**
@@ -184,6 +188,7 @@ window.CortexAssetPicker = {
     pluginShortName,
     showCollections,
     searchInDrive,
+    useSession,
   }) => {
     let container = containerId && document.getElementById(containerId);
     if (!containerId) {
@@ -247,6 +252,7 @@ window.CortexAssetPicker = {
           isGABPopedup: !containerId,
           searchInDrive: !!searchInDrive,
           showCollections: !!showCollections,
+          useSession,
         }}>
           <App
             containerId={containerId}

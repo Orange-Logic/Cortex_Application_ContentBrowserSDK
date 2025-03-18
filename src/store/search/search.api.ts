@@ -85,12 +85,13 @@ export const searchApi = createApi({
       query: ({
         folder,
         searchText,
+        useSession,
       }: {
         folder: Folder;
         searchText: string;
-      }) => ({
-        url: '/webapi/extensibility/integrations/gab/assetbrowser/getcontent_4bw_v1',
-        params: [
+        useSession?: string;
+      }) => {
+        const params = [
           [
             'extraFilters',
             resolveFolderExtraFilters(searchText),
@@ -101,8 +102,17 @@ export const searchApi = createApi({
           ['objectRecordID', folder.id],
           ['orderBy', NATURAL_SORT_ORDER_REFERENCE_ID],
           ['seeThru', !isNullOrWhiteSpace(searchText)],
-        ],
-      }),
+        ];
+
+        if (useSession) {
+          params.push(['UseSession', useSession]);
+        }
+
+        return {
+          url: '/webapi/extensibility/integrations/gab/assetbrowser/getcontent_4bw_v1',
+          params,
+        };
+      },
       transformResponse: (
         response: GetContentResponse,
         _meta,
@@ -133,16 +143,25 @@ export const searchApi = createApi({
     getCollections: builder.query({
       query: ({
         folder,
-      }) => ({
-        url: '/webapi/extensibility/integrations/gab/assetbrowser/getcontent_4bw_v1',
-        params: [
+        useSession,
+      }) => {
+        const params = [
           ['fields', FIELD_CORTEX_PATH],
           ['fields', FIELD_DOC_TYPE],
           ['fields', FIELD_TITLE_WITH_FALLBACK],
           ['seeThru', true],
           ['subtypeCriteria', folder],
-        ],
-      }),
+        ];
+
+        if (useSession) {
+          params.push(['UseSession', useSession]);
+        }
+
+        return {
+          url: '/webapi/extensibility/integrations/gab/assetbrowser/getcontent_4bw_v1',
+          params,
+        };
+      },
       transformResponse: (
         response: GetContentResponse,
         _meta,
@@ -177,6 +196,7 @@ export const searchApi = createApi({
         sortOrder,
         statuses,
         visibilityClasses,
+        useSession,
       }: GetContentRequest) => {
         const mappedMediaTypes = mediaTypes.map((mediaType) => ['subtypeCriteria', mediaType]);
         const params = [
@@ -207,6 +227,9 @@ export const searchApi = createApi({
         ];
         if (mappedMediaTypes.length) {
           params.push(...mappedMediaTypes);
+        }
+        if (useSession) {
+          params.push(['UseSession', useSession]);
         }
         return {
           url: '/webapi/extensibility/integrations/gab/assetbrowser/getcontent_4bw_v1',
@@ -269,23 +292,10 @@ export const searchApi = createApi({
         return endpointName;
       },
     }),
-    getContent: builder.query({
-      query: (
-        objectRecordID: string,
-        seeThru?: boolean,
-        fields?: string[],
-      ) => ({
-        url: '/webapi/extensibility/integrations/gab/assetbrowser/getcontent_4bw_v1',
-        params: { objectRecordID, seeThru, fields },
-      }),
-      transformResponse: (response: GetContentResponse) => {
-        return response.contentItems;
-      },
-    }),
   }),
 });
 
 // Export hooks for usage in functional components, which are
 // auto-generated based on the defined endpoints
-export const { useGetFoldersQuery, useGetCollectionsQuery, useGetAssetsQuery, useGetContentQuery } =
+export const { useGetFoldersQuery, useGetCollectionsQuery, useGetAssetsQuery } =
   searchApi;

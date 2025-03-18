@@ -6,8 +6,6 @@ import { cortexFetch } from '@/utils/api';
 import { assetsApi } from './assets.api';
 import { TrackingParameter, Transformation, TransformationAction } from '@/types/assets';
 
-const USE_SESSION = process.env.REACT_APP_USE_SESSION;
-
 export const getAssetLinks = async (
   {
     assets,
@@ -16,6 +14,7 @@ export const getAssetLinks = async (
     transformations,
     parameters,
     extension,
+    useSession,
   }: {
     assets: Asset[];
     extraFields?: string;
@@ -25,11 +24,12 @@ export const getAssetLinks = async (
     maxWidth?: number;
     maxHeight?: number;
     extension?: string;
+    useSession?: string;
   },
 ): Promise<GetAssetLinkResponse[]> => {
   let baseUrl = '/webapi/extensibility/integrations/gab/assetbrowser/GetAssetLink_4by?';
-  if (USE_SESSION) {
-    baseUrl += `UseSession=${USE_SESSION}&`;
+  if (useSession) {
+    baseUrl += `UseSession=${useSession}&`;
   }
   if (extraFields) {
     baseUrl += `ExtraFields=${extraFields}&`;

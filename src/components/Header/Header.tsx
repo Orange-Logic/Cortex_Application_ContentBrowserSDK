@@ -17,23 +17,32 @@ const Header: FC<Props> = ({ bordered, children, onMenuClick, onLogout }) => {
   const { isGABPopedup } = useContext(GlobalConfigContext);
   const { onClose } = useContext(AppContext);
   const { data, isFetching, isLoading } = useGetUserInfoQuery({});
-  
+
   const Dropdown = useMemo(() => {
     return isLoading || isFetching ? (
-        <cx-skeleton></cx-skeleton>
+      <cx-skeleton></cx-skeleton>
     ) : (
       <cx-dropdown distance={4}>
-        <cx-avatar slot="trigger" label="User avatar"></cx-avatar>
+        <cx-avatar
+          slot="trigger"
+          label="User avatar"
+          image={data?.avatar}
+          loading="lazy"
+        ></cx-avatar>
         <cx-menu>
           <cx-menu-item>
             {data?.fullName}
             <cx-avatar
               slot="prefix"
               label="User avatar"
-              style={{
-                '--size': 'var(--cx-font-size-x-large)',
-              } as CSSProperties}>
-            </cx-avatar>
+              image={data?.avatar}
+              loading="lazy"
+              style={
+                {
+                  '--size': 'var(--cx-font-size-x-large)',
+                } as CSSProperties
+              }
+            ></cx-avatar>
           </cx-menu-item>
           <cx-divider></cx-divider>
           <cx-menu-item value="logout" onClick={onLogout}>
@@ -43,7 +52,7 @@ const Header: FC<Props> = ({ bordered, children, onMenuClick, onLogout }) => {
         </cx-menu>
       </cx-dropdown>
     );
-  }, [isLoading, isFetching, data?.fullName, onLogout]);
+  }, [isLoading, isFetching, data?.avatar, data?.fullName, onLogout]);
 
   return (
     <Container direction="vertical" spacing="small" bordered={bordered}>

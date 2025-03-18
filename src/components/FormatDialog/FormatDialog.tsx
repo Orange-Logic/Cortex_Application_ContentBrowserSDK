@@ -709,7 +709,7 @@ const FormatDialog: FC<Props> = ({
     const supportedATS = allowCustomFormat && extensions.includes(
       selectedAsset ? `.${selectedAsset.extension}` : '',
     );
-    const supportedProxies = availableProxies && Object.keys(availableProxies).length > 0;
+    const supportedProxies = availableProxies && Object.values(availableProxies).flat().length > 0;
 
     const renderBody = () => {
       let previewer =  null;
@@ -750,7 +750,7 @@ const FormatDialog: FC<Props> = ({
                 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
             }}
             onLoad={(size) => {
-              if (selectedAsset?.width && selectedAsset?.height) {
+              if ((selectedAsset?.width && selectedAsset?.height) || !selectedAsset?.imageUrl) {
                 return;
               }
               

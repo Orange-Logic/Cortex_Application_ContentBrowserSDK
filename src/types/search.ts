@@ -44,6 +44,7 @@ export type GetContentRequest = {
   sortOrder?: string;
   statuses: string[];
   visibilityClasses: string[];
+  useSession?: string;
 };
 
 export type GetAssetLinkResponse = {

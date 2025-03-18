@@ -4,8 +4,6 @@ import { AppBaseQuery } from '@/utils/api';
 import { hasElements, uniqueArray } from '@/utils/array';
 import { createApi } from '@reduxjs/toolkit/query/react';
 
-const USE_SESSION = process.env.REACT_APP_USE_SESSION;
-
 const Parameters = {
   AssetLink_BO_Data_ExtensionsThatSupportTransformationUsingATS: 'AssetLink_BO.Data.ExtensionsThatSupportTransformationUsingATS',
   AssetLink_BO_Data_EnableATSInGetLink: 'AssetLink_BO.Data.EnableATSInGetLink',
@@ -17,6 +15,7 @@ const Parameters = {
 type GetAvailableProxiesRequest = {
   assetImages?: Asset[];
   docTypes?: string[];
+  useSession?: string;
 };
 
 /**
@@ -51,17 +50,24 @@ const sanitizeSortOrder = (sortOrder: string) => {
  * @param {GetAvailableProxiesRequest} 
  * @returns {string[][]}
  */
-const getAvailableProxiesAPIParams = ({ assetImages, docTypes }: GetAvailableProxiesRequest): string[][] => {
+const getAvailableProxiesAPIParams = ({ assetImages, docTypes, useSession }: GetAvailableProxiesRequest): string[][] => {
+  let result = [];
   if (!hasElements(assetImages)) {
     docTypes = hasElements(docTypes) ? docTypes : Object.values(MediaType);
 
-    return uniqueArray(docTypes as string[]).map(docType => ['DocTypes', docType]);
+    result = uniqueArray(docTypes as string[]).map(docType => ['DocTypes', docType]);
   } else {
     const assetDocTypes = uniqueArray(assetImages as Asset[], (asset) => asset.docType)
       .map(asset => ['DocTypes', asset.docType]);
 
-    return (assetImages as Asset[]).map(asset => ['RecordIDs', asset.id]).concat(assetDocTypes);
+    result = (assetImages as Asset[]).map(asset => ['RecordIDs', asset.id]).concat(assetDocTypes);
   }
+
+  if (useSession) {
+    result.push(['UseSession', useSession]);
+  }
+
+  return result;
 };
 
 // Define a service using a base URL and expected endpoints
@@ -84,8 +90,10 @@ export const assetsApi = createApi({
       supportedExtensions: string[];
       supportedRepresentativeSubtypes: string[];
       supportedDocTypes: string[];
-    }, void>({
-      query: () => {
+    }, {
+      useSession?: string;
+    }>({
+      query: ({ useSession }) => {
         const params = [
           [
             'Paths',
@@ -99,8 +107,8 @@ export const assetsApi = createApi({
           ],
         ];
 
-        if (USE_SESSION) {
-          params.push(['UseSession', USE_SESSION]);
+        if (useSession) {
+          params.push(['UseSession', useSession]);
         }
 
         return {
@@ -119,10 +127,12 @@ export const assetsApi = createApi({
       },
       providesTags: ['Parameters'],
     }),
-    getSortOrders: builder.query<Record<string, SortOrder[]>, void>({
-      query: () => ({
+    getSortOrders: builder.query<Record<string, SortOrder[]>, {
+      useSession?: string;
+    }>({
+      query: ({ useSession }) => ({
         url: '/webapi/objectmanagement/sortorders_49V_v1',
-        params: USE_SESSION ? [['UseSession', USE_SESSION]] : [],
+        params: useSession ? [['UseSession', useSession]] : [],
       }),
       providesTags: ['SortOrders'],
       transformResponse: (response: { sortOrders: SortOrder[] }) => {

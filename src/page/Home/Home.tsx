@@ -179,12 +179,15 @@ const HomePage: FC<Props> = () => {
     persistMode,
     searchInDrive,
     showCollections,
+    useSession,
   } = useContext(GlobalConfigContext);
   const { extraFields } = useContext(AppContext);
   const { data: availableProxies } = useGetAvailableProxiesQuery(state.selectedAsset ? {
     assetImages: state.selectedAsset ? [state.selectedAsset] : [],
   } : skipToken);
-  const { data: params } = useGetParametersQuery();
+  const { data: params } = useGetParametersQuery({
+    useSession,
+  });
   const {
     ATSEnabled,
     collectionPath,
@@ -192,7 +195,9 @@ const HomePage: FC<Props> = () => {
     supportedRepresentativeSubtypes,
     supportedDocTypes,
   } = params || {};
-  const { data: sortOrders } = useGetSortOrdersQuery();
+  const { data: sortOrders } = useGetSortOrdersQuery({
+    useSession,
+  });
 
   const containerRef = useRef<HTMLDivElement>(null);
   const resizeObserverRef = useRef<CxResizeObserver>(null);
@@ -225,6 +230,7 @@ const HomePage: FC<Props> = () => {
     sortOrder: selectedSortOrder.id,
     statuses: state.statuses ?? [],
     visibilityClasses: state.visibilityClasses,
+    useSession,
   } : skipToken);
 
   useEffect(() => {
@@ -427,6 +433,7 @@ const HomePage: FC<Props> = () => {
           currentFolder={state.currentFolder}
           open={state.openBrowser}
           showCollections={showCollections}
+          useSession={useSession}
           onFolderSelect={onFolderSelect}
           onClose={() => dispatch({ type: 'SET_OPEN_BROWSER', payload: false })}
         />
