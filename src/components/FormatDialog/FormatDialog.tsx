@@ -825,8 +825,8 @@ const FormatDialog: FC<Props> = ({
                           return {
                             value: `${name}-${proxy.proxyName}`,
                             name: proxy.proxyLabel,
-                            width: proxy.width,
-                            height: proxy.height,
+                            width: proxy.formatWidth,
+                            height: proxy.formatHeight,
                             extension: proxy.extension,
                             docType,
                           };
