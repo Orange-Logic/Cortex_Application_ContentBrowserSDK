@@ -104,7 +104,7 @@ const initialState: State = {
     width: 0,
     height: 0,
   },
-  selectedProxy: '',
+  selectedProxy: 'TRX',
   selectedFormat: {
     url: '',
     width: 0,
@@ -430,7 +430,7 @@ const FormatDialog: FC<Props> = ({
       if (value) {
         const allProxies = Object.entries(availableProxies ?? {}).map(
           ([_, proxies]) =>
-            Object.entries(proxies).map(([name, proxy]) => `${name}-${proxy.proxyName}`),
+            Object.values(proxies).map((proxy) => proxy.proxyName),
         );
 
         if (!allProxies.flat().includes(value)) {
@@ -811,10 +811,10 @@ const FormatDialog: FC<Props> = ({
                     ([docType, proxies]) => (
                       <ProxyMenu
                         key={docType}
-                        items={Object.entries(proxies).map(([name, proxy]) => {
+                        items={Object.entries(proxies).map(([, proxy]) => {
                           if (proxy.proxyName === 'TRX' && selectedAsset) {
                             return {
-                              value: `${name}-${proxy.proxyName}`,
+                              value: proxy.proxyName,
                               name: proxy.proxyLabel,
                               width: selectedAsset.width,
                               height: selectedAsset.height,
@@ -823,7 +823,7 @@ const FormatDialog: FC<Props> = ({
                             };
                           }
                           return {
-                            value: `${name}-${proxy.proxyName}`,
+                            value: proxy.proxyName,
                             name: proxy.proxyLabel,
                             width: proxy.formatWidth,
                             height: proxy.formatHeight,
@@ -964,14 +964,13 @@ const FormatDialog: FC<Props> = ({
           style={{ flex: 1 }}
           onClick={() => {
             if (state.selectedProxy) {
-              const [, name] = state.selectedProxy.split('-');
               if (!selectedAsset?.docType) {
                 return;
               }
 
               onProxyConfirm({
                 value: {
-                  [selectedAsset.docType]: name,
+                  [selectedAsset.docType]: state.selectedProxy,
                 },
                 parameters: state.enabledTracking
                   ? state.trackingParameters

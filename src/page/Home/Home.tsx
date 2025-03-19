@@ -14,7 +14,7 @@ import {
   useGetAvailableProxiesQuery, useGetParametersQuery, useGetSortOrdersQuery,
 } from '@/store/assets/assets.api';
 import { importAssets, resetImportStatus } from '@/store/assets/assets.slice';
-import { authenticatedSelector, logout } from '@/store/auth/auth.slice';
+import { authenticatedSelector, logout, siteUrlSelector } from '@/store/auth/auth.slice';
 import { useGetAssetsQuery } from '@/store/search/search.api';
 import { explorePath, RootFolder } from '@/store/search/search.slice';
 import {
@@ -171,6 +171,7 @@ const reducer = (state: State, action: Action): State => {
 const HomePage: FC<Props> = () => {
   const [state, dispatch] = useReducer(reducer, initialState);
   const authenticated = useAppSelector(authenticatedSelector);
+  const siteUrl = useAppSelector(siteUrlSelector);
   const {
     availableRepresentativeSubtypes,
     availableDocTypes,
@@ -459,6 +460,7 @@ const HomePage: FC<Props> = () => {
           />
         </Header>
         <Browser
+          site={siteUrl}
           collectionPath={collectionPath}
           currentFolder={state.currentFolder}
           open={state.openBrowser}

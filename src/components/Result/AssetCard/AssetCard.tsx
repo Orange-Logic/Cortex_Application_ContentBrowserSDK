@@ -110,7 +110,7 @@ const AssetCard: FC<Props> = ({
         </ArrayClamp>
       )}
       {(displayInfo.dimension || displayInfo.fileSize) && (
-        <cx-space spacing="small" alignItems="center">
+        <cx-space spacing="small" alignItems="center" wrap="nowrap">
           {displayInfo.dimension && Boolean(Number(asset.width)) && Boolean(Number(asset.height)) && (
             <cx-line-clamp lines={1}>
               <cx-typography variant="small">

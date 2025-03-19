@@ -16,6 +16,7 @@ type Props = {
   focusInput?: boolean;
   open: boolean;
   showCollections?: boolean;
+  site?: string;
   useSession?: string;
   onFolderSelect?: (selectedFolder: Folder) => void;
   onClose: () => void;
@@ -27,6 +28,7 @@ const Browser: FC<Props> = ({
   focusInput,
   open,
   showCollections,
+  site,
   useSession,
   onFolderSelect,
   onClose,
@@ -83,7 +85,14 @@ const Browser: FC<Props> = ({
     isLoading: isLoadingFolders,
     isFetching: isFetchingFolders,
     isError: isErrorFolders,
+    refetch: refetchFolders,
   } = useGetFoldersQuery({ folder: RootFolder, searchText, useSession });
+
+  useEffect(() => {
+    if (site) {
+      refetchFolders();
+    }
+  }, [site, refetchFolders]);
 
   const {
     data: collections,
