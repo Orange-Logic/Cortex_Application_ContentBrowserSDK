@@ -1,4 +1,4 @@
-import { FC, useEffect, useRef, useState } from 'react';
+import { FC, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useGetFoldersQuery } from '@/store/search/search.api';
 import { Folder } from '@/types/search';
@@ -34,6 +34,17 @@ export const BrowserItem: FC<Props> = ({
   const mayHaveChildren = !folder || isLoading || isFetching || isUninitialized;
   const hasChildren = folders && folders.length > 0 && !(isLoading || isUninitialized);
   const lazy = !lazyLoaded && !hasChildren && !mayHaveChildren;
+
+  const highlightedTitle = useMemo(() => {
+    if (!searchText) return folder.title;
+    const searchWords = searchText.toLowerCase().split(' ').filter(Boolean);
+    const regex = new RegExp(`(${searchWords.join('|')})`, 'gi');
+    const parts = folder.title.split(regex);
+
+    return parts.map((part, index) =>
+      searchWords.includes(part.toLowerCase()) ? <strong key={index}>{part}</strong> : part,
+    );
+  }, [folder.title, searchText]);
 
   useEffect(() => {
     Promise.all([
@@ -75,7 +86,7 @@ export const BrowserItem: FC<Props> = ({
       lazy={!lazyLoaded}
     >
       <cx-icon name="folder"></cx-icon>
-      {folder.title}
+      <cx-line-clamp lines={1}>{highlightedTitle}</cx-line-clamp>
       {folders?.map((item) => (
         <BrowserItem
           key={item.id}

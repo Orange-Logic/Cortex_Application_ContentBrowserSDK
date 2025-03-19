@@ -133,9 +133,6 @@ export const searchApi = createApi({
                 ).replace(/^Root\//i, ''),
                 parents: [...arg.folder.parents, arg.folder],
               };
-            })
-            .filter((item) => {
-              return item.title.toLowerCase().includes(arg.searchText.toLowerCase());
             }) ?? []
         );
       },

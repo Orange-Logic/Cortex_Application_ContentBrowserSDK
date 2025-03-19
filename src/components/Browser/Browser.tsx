@@ -136,6 +136,7 @@ const Browser: FC<Props> = ({
           key={folder.id}
           folder={folder}
           currentFolderID={currentFolder.id}
+          searchText={searchText}
           useSession={useSession}
         />
       ));
@@ -152,6 +153,7 @@ const Browser: FC<Props> = ({
     isErrorFolders,
     folders,
     currentFolder.id,
+    searchText,
     useSession,
   ]);
 
