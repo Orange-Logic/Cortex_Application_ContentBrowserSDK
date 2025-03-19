@@ -71,15 +71,6 @@ export const Card = styled('cx-card')<CxCardProps>`
     }
   }
 
-  .asset-card__size {
-    line-height: normal;
-
-    &::part(base) {
-      display: flex;
-      gap: 1px;
-    }
-  }
-
   .asset-card__button {
     &::part(base) {
       font-size: var(--cx-font-size-medium);

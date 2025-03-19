@@ -46,7 +46,7 @@ const AssetCard: FC<Props> = ({
   }, [onMount, id]);
 
   const tags = useMemo(() => {
-    return asset?.tags?.split(',').map((s) => s.trim()) ?? [];
+    return asset?.tags.length > 0 ? asset?.tags.split(',').map((s) => s.trim()) : [];
   }, [asset?.tags]);
 
   const getTagTitle = useCallback((index: number) => {
@@ -87,7 +87,7 @@ const AssetCard: FC<Props> = ({
           </cx-tooltip>
         )}
       </cx-space>
-      {displayInfo.tags && (
+      {displayInfo.tags && tags.length > 0 && (
         <ArrayClamp
           className="asset-card__tags"
           separator=" "
@@ -110,10 +110,10 @@ const AssetCard: FC<Props> = ({
         </ArrayClamp>
       )}
       {(displayInfo.dimension || displayInfo.fileSize) && (
-        <cx-space spacing="small">
+        <cx-space spacing="small" alignItems="center">
           {displayInfo.dimension && Boolean(Number(asset.width)) && Boolean(Number(asset.height)) && (
             <cx-line-clamp lines={1}>
-              <cx-typography variant="small" className="asset-card__size">
+              <cx-typography variant="small">
                 <span>{asset.width}</span>x<span>{asset.height}</span>
               </cx-typography>
             </cx-line-clamp>
@@ -126,6 +126,17 @@ const AssetCard: FC<Props> = ({
             </cx-line-clamp>
           )}
         </cx-space>
+      )}
+      {/* Placeholder to keep the card size consistent */}
+      {displayInfo.tags && tags.length === 0 && (
+        <ArrayClamp
+          className="asset-card__tags"
+          separator=" "
+          tooltipSeparator=", "
+          getChildString={getTagTitle}
+        >
+          <span></span>
+        </ArrayClamp>
       )}
     </Card>
   );
