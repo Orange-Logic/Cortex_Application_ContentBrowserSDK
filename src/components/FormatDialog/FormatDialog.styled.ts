@@ -60,6 +60,10 @@ export const Dialog = styled('cx-dialog')<CxDialogProps>`
   cx-menu-item::part(checked-icon) {
     display: none;
   }
+
+  cx-line-clamp {
+    word-break: break-all;
+  }
 `;
 
 export const Drawer = styled('cx-drawer')<CxDrawerProps>`
@@ -115,5 +119,9 @@ export const Drawer = styled('cx-drawer')<CxDrawerProps>`
 
   cx-menu-item::part(checked-icon) {
     display: none;
+  }
+
+  cx-line-clamp {
+    word-break: break-all;
   }
 `;
