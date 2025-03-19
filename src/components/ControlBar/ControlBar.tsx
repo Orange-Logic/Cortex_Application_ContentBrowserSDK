@@ -373,7 +373,11 @@ const ControlBar: FC<Props> = ({
 
   return (
     <Container>
-      <FlexWrapper>
+      <FlexWrapper
+        style={{
+          flex: 1,
+        }}
+      >
         <cx-input
           ref={searchRef}
           defaultValue={searchText}
@@ -394,9 +398,18 @@ const ControlBar: FC<Props> = ({
           </div>
           {renderAppliedFilters()}
           {renderFacet(facets?.type ?? {}, TYPE.type, mediaTypes)}
-          {renderFacet(facets?.visibilityClass ?? {}, TYPE.visibilityClass, visibilityClasses)}
+          {renderFacet(
+            facets?.visibilityClass ?? {},
+            TYPE.visibilityClass,
+            visibilityClasses,
+          )}
           {renderFacet(facets?.status ?? {}, TYPE.status, statuses)}
-          {renderFacet(facets?.extension ?? {}, TYPE.extension, extensions, false)}
+          {renderFacet(
+            facets?.extension ?? {},
+            TYPE.extension,
+            extensions,
+            false,
+          )}
         </cx-dropdown>
       </FlexWrapper>
       <FlexWrapper>

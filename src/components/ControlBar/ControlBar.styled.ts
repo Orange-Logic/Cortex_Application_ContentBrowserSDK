@@ -10,9 +10,9 @@ export const Container = styled.div`
   --details-width: 354px;
 
   cx-input {
-    width: 40vw;
+    min-width: 160px;
     max-width: 300px;
-    max-width: 100%;
+    width: 100%;
   }
 
   cx-menu-item.selected::part(label),
