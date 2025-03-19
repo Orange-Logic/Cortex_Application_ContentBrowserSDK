@@ -76,16 +76,27 @@ export const getAssetLinks = async (
 
     transformations?.forEach(({ key, value }) => {
       if (key === TransformationAction.Resize) {
-        const validTransformations = [{
-          key: 're_w_',
-          value: value.width,
-        }, {
-          key: 're_h_',
-          value: value.height,
-        },  {
-          key: 're_rm_',
-          value: 'stretch',
-        }].filter(item => item.value !== undefined);
+        const validTransformations = [
+          ...[
+            {
+              key: 're_w_',
+              value: value.width,
+            },
+            {
+              key: 're_h_',
+              value: value.height,
+            },
+          ]
+            .filter((item) => item.value !== undefined)
+            .map((item) => ({
+              key: item.key,
+              value: Math.round(Number(item.value)),
+            })),
+          {
+            key: 're_rm_',
+            value: 'stretch',
+          },
+        ];
   
         validTransformations.forEach(({ key: vKey, value: vValue }, index) => {
           imageUrl += `${vKey}${vValue}${index < validTransformations.length - 1 ? ',' : ''}`;
@@ -95,22 +106,35 @@ export const getAssetLinks = async (
       }
   
       if (key === TransformationAction.Crop) {
-        const validTransformations = [{
-          key: 'c_w_',
-          value: value.width,
-        }, {
-          key: 'c_h_',
-          value: value.height,
-        }, {
-          key: 'c_x_',
-          value: value.x,
-        }, {
-          key: 'c_y_',
-          value: value.y,
-        }, {
-          key: 'c_whu_',
-          value: 'pixel',
-        }].filter(item => item.value !== undefined);
+        const validTransformations = [
+          ...[
+            {
+              key: 'c_w_',
+              value: value.width,
+            },
+            {
+              key: 'c_h_',
+              value: value.height,
+            },
+            {
+              key: 'c_x_',
+              value: value.x,
+            },
+            {
+              key: 'c_y_',
+              value: value.y,
+            },
+          ]
+            .filter((item) => item.value !== undefined)
+            .map((item) => ({
+              key: item.key,
+              value: Math.round(Number(item.value)),
+            })),
+          {
+            key: 'c_whu_',
+            value: 'pixel',
+          },
+        ];
   
         validTransformations.forEach(({ key: vKey, value: vValue }, index) => {
           imageUrl += `${vKey}${vValue}${index < validTransformations.length - 1 ? ',' : ''}`;
@@ -123,7 +147,7 @@ export const getAssetLinks = async (
         const validTransformations = [{
           key: 'r_a_',
           value: value.rotation,
-        }].filter(item => item.value !== undefined);
+        }].filter(item => item.value !== undefined).map(item => ({ key: item.key, value: Math.round(Number(item.value)) }));
   
         validTransformations.forEach(({ key: vKey, value: vValue }, index) => {
           imageUrl += `${vKey}${vValue}${index < validTransformations.length - 1 ? ',' : ''}`;
