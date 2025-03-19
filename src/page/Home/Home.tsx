@@ -11,9 +11,7 @@ import Results from '@/components/Result/Result';
 import { GlobalConfigContext } from '@/GlobalConfigContext';
 import { useAppDispatch, useAppSelector } from '@/store';
 import {
-  useGetParametersQuery,
-  useGetAvailableProxiesQuery,
-  useGetSortOrdersQuery,
+  useGetAvailableProxiesQuery, useGetParametersQuery, useGetSortOrdersQuery,
 } from '@/store/assets/assets.api';
 import { importAssets, resetImportStatus } from '@/store/assets/assets.slice';
 import { authenticatedSelector, logout } from '@/store/auth/auth.slice';
@@ -23,6 +21,7 @@ import {
   Asset, Filter, Folder, GetAssetLinkResponse, GridView, SortDirection,
 } from '@/types/search';
 import { PAGE_SIZE } from '@/utils/constants';
+import { getData, storeData } from '@/utils/storage';
 import { CxResizeEvent, CxResizeObserver } from '@/web-component';
 import { skipToken } from '@reduxjs/toolkit/query';
 
@@ -201,6 +200,7 @@ const HomePage: FC<Props> = () => {
 
   const containerRef = useRef<HTMLDivElement>(null);
   const resizeObserverRef = useRef<CxResizeObserver>(null);
+  const loadedFromStorage = useRef(false);
   const appDispatch = useAppDispatch();
 
   const mappedMediaTypes = useMemo(() => {
@@ -236,6 +236,23 @@ const HomePage: FC<Props> = () => {
   useEffect(() => {
     if (authenticated) {
       dispatch({ type: 'RESET_SEARCH' });
+
+      Promise.all([
+        getData('selectedSortOrder'),
+        getData('selectedSortDirection'),
+        getData('selectedView'),
+      ]).then(([sortOrder, sortDirection, view]) => {
+        if (sortOrder) {
+          dispatch({ type: 'SET_SORT_ORDER', payload: sortOrder });
+        }
+        if (sortDirection === 'ascending' || sortDirection === 'descending') {
+          dispatch({ type: 'SET_SORT_DIRECTION', payload: sortDirection });
+        }
+        if (typeof view === 'string') {
+          dispatch({ type: 'SET_VIEW', payload: view as GridView });
+        }
+        loadedFromStorage.current = true;
+      });
     }
   }, [authenticated]);
 
@@ -269,6 +286,16 @@ const HomePage: FC<Props> = () => {
       resizeObserver.removeEventListener('cx-resize', onResize);
     };
   }, []);
+
+  useEffect(() => {
+    if (!loadedFromStorage.current) {
+      return;
+    }
+
+    storeData('selectedSortOrder', state.sortOrder);
+    storeData('selectedSortDirection', state.sortDirection);
+    storeData('selectedView', state.view);
+  }, [state.view, state.sortOrder, state.sortDirection]);
 
   const isMobile = state.containerSize.width <= 400;
 
