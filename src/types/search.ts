@@ -3,6 +3,7 @@ export type Folder = {
   title: string;
   docType: string;
   path: string[];
+  parents: Folder[];
   fullPath: string;
 };
 

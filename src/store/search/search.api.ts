@@ -120,17 +120,20 @@ export const searchApi = createApi({
       ): Folder[] => {
         return (
           response.contentItems
-            ?.map((item) => ({
-              id: item.recordID,
-              title:
-                GetValueByKeyCaseInsensitive(item.fields, FIELD_TITLE_WITH_FALLBACK) ?? '',
-              docType:
-                GetValueByKeyCaseInsensitive(item.fields, FIELD_DOC_TYPE) ?? '',
-              path: [...arg.folder.path, arg.folder.title],
-              fullPath: (
-                GetValueByKeyCaseInsensitive(item.fields, FIELD_CORTEX_PATH) ?? ''
-              ).replace(/^Root\//i, ''),
-            }))
+            ?.map((item) => {
+              return {
+                id: item.recordID,
+                title:
+                  GetValueByKeyCaseInsensitive(item.fields, FIELD_TITLE_WITH_FALLBACK) ?? '',
+                docType:
+                  GetValueByKeyCaseInsensitive(item.fields, FIELD_DOC_TYPE) ?? '',
+                path: [...arg.folder.path, arg.folder.title],
+                fullPath: (
+                  GetValueByKeyCaseInsensitive(item.fields, FIELD_CORTEX_PATH) ?? ''
+                ).replace(/^Root\//i, ''),
+                parents: [...arg.folder.parents, arg.folder],
+              };
+            })
             .filter((item) => {
               return item.title.toLowerCase().includes(arg.searchText.toLowerCase());
             }) ?? []
@@ -178,6 +181,7 @@ export const searchApi = createApi({
               fullPath: (
                 GetValueByKeyCaseInsensitive(item.fields, FIELD_CORTEX_PATH) ?? ''
               ).replace(/^Root\//i, ''),
+              parents: [],
             })) ?? []
         );
       },

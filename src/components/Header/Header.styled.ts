@@ -41,4 +41,12 @@ export const Container = styled('cx-space')<CxSpaceProps & { bordered?: boolean 
     align-items: center;
     width: fit-content;
   }
+
+  .header__title__content {
+    &::part(base) {
+      font-size: var(--cx-font-size-large);
+      font-weight: var(--cx-font-weight-semibold);
+      line-height: var(--cx-line-height-large);
+    }
+  }
 `;

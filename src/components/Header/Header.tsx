@@ -1,22 +1,58 @@
-import { CSSProperties, useContext, useMemo, ReactNode, FC } from 'react';
+import { CSSProperties, FC, MouseEventHandler, ReactNode, useCallback, useContext, useMemo } from 'react';
 
 import { AppContext } from '@/AppContext';
 import { GlobalConfigContext } from '@/GlobalConfigContext';
 import { useGetUserInfoQuery } from '@/store/user/user.api';
+import { Folder } from '@/types/search';
 
 import { Container } from './Header.styled';
+import { CxBreadcrumbItem } from '@/web-component';
 
 type Props = {
   bordered?: boolean;
   children?: ReactNode;
+  currentFolder: Folder;
+  onFolderSelect?: (folder: Folder) => void;
   onMenuClick: () => void;
   onLogout: () => void;
 };
 
-const Header: FC<Props> = ({ bordered, children, onMenuClick, onLogout }) => {
+const Header: FC<Props> = ({ bordered, children, currentFolder, onFolderSelect, onMenuClick, onLogout }) => {
   const { isGABPopedup } = useContext(GlobalConfigContext);
   const { onClose } = useContext(AppContext);
   const { data, isFetching, isLoading } = useGetUserInfoQuery({});
+
+  const onBreadcrumbItemClick: MouseEventHandler<CxBreadcrumbItem> = useCallback((e) => {
+    const value = (e.target as HTMLElement).dataset.value;
+    if (value && onFolderSelect) {
+      onFolderSelect(JSON.parse(value));
+    }
+  }, [onFolderSelect]);
+
+  const title = useMemo(() => {
+    if (!currentFolder.fullPath) {
+      return <cx-typography variant="h4">Generic Asset Browser</cx-typography>;
+    }
+
+    return (
+      <cx-breadcrumb>
+        <span slot="separator">/</span>
+        {[...currentFolder.parents, currentFolder].map((folder) => {
+          const value = JSON.stringify(folder);
+          return (
+            <cx-breadcrumb-item
+              key={folder.title}
+              className="header__title__content"
+              data-value={value}
+              onClick={onBreadcrumbItemClick}
+            >
+              {folder.title || 'Root'}
+            </cx-breadcrumb-item>
+          );
+        })}
+      </cx-breadcrumb>
+    );
+  }, [currentFolder, onBreadcrumbItemClick]);
 
   const Dropdown = useMemo(() => {
     return isLoading || isFetching ? (
@@ -63,7 +99,7 @@ const Header: FC<Props> = ({ bordered, children, onMenuClick, onLogout }) => {
             label="Menu"
             onClick={onMenuClick}
           ></cx-icon-button>
-          <cx-typography variant="h4">Library</cx-typography>
+          {title}
         </div>
         <div className="header__menu">
           {Dropdown}

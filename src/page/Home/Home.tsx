@@ -400,6 +400,8 @@ const HomePage: FC<Props> = () => {
       <Container ref={containerRef}>
         <Header
           bordered={state.hasScrolled}
+          currentFolder={state.currentFolder}
+          onFolderSelect={onFolderSelect}
           onMenuClick={() =>
             dispatch({ type: 'SET_OPEN_BROWSER', payload: true })
           }

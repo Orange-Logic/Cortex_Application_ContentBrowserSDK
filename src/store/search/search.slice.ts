@@ -7,6 +7,7 @@ export const RootFolder: Folder = Object.freeze({
   title: '',
   docType: 'Story',
   path: [],
+  parents: [],
   fullPath: '',
 });
 
