@@ -161,12 +161,20 @@ const Browser: FC<Props> = ({
         <cx-skeleton key={index}></cx-skeleton>
       ));
     } else if (collections && collections.length > 0) {
-      return collections?.map((collection) => (
-        <cx-menu-item key={collection.id} value={JSON.stringify(collection)}>
-          <cx-icon slot="prefix" name="collections"></cx-icon>
-          {collection.title}
-        </cx-menu-item>
-      ));
+      return collections?.map((collection) => {
+        const isSelected = currentFolder.id === collection.id;
+
+        return (  
+          <cx-menu-item
+            key={collection.id}
+            value={JSON.stringify(collection)}
+            className={`${isSelected ? 'selected' : ''}`}
+          >
+            <cx-icon slot="prefix" name="collections"></cx-icon>
+            {collection.title}
+          </cx-menu-item>
+        );
+      });
     } else if (isErrorCollections) {
       return (
         <cx-typography variant="body3">
@@ -176,12 +184,7 @@ const Browser: FC<Props> = ({
     }
 
     return <cx-typography variant="body3">No collections found</cx-typography>;
-  }, [
-    isLoadingCollections,
-    isFetchingCollections,
-    isErrorCollections,
-    collections,
-  ]);
+  }, [isLoadingCollections, isFetchingCollections, collections, isErrorCollections, currentFolder.id]);
 
   return (
     <Drawer

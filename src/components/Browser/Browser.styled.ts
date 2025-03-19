@@ -57,10 +57,20 @@ export const Drawer = styled('cx-drawer')<CxDrawerProps>`
       &::part(base) {
         border-radius: var(--cx-border-radius-large);
         font-size: var(--cx-font-size-medium);
-        padding: var(--cx-spacing-2x-small) 0;
+        padding: var(--cx-spacing-2x-small) var(--cx-spacing-small);
       }
       &::part(checked-icon) {
         display: none;
+      }
+
+      &.selected::part(base) {
+        background-color: var(--cx-color-primary-50);
+      }
+
+      &.selected::part(label),
+      &.selected::part(prefix),
+      &.selected::part(suffix) {
+        color: var(--cx-color-primary-600);
       }
     }
   }

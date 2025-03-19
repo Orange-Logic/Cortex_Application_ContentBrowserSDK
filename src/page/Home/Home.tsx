@@ -350,6 +350,7 @@ const HomePage: FC<Props> = () => {
       if (explorePath.fulfilled.match(resultAction)) {
         dispatch({ type: 'SET_CURRENT_FOLDER', payload: folder });
         dispatch({ type: 'SET_SELECTED_ASSET', payload: null });
+        dispatch({ type: 'SET_OPEN_BROWSER', payload: false });
       }
     },
     [appDispatch, state.currentFolder.fullPath],
