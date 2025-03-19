@@ -10,4 +10,5 @@ export const FIELD_MAX_WIDTH = 'CoreField.MaxWidth';
 export const FIELD_SCRUB_URL = 'ScrubURL';
 export const FIELD_SUBTYPE = 'CoreField.DocSubType';
 export const FIELD_TITLE_WITH_FALLBACK = 'CoreField.TitleWithFallback';
+export const FIELD_HAS_BROWSER_CHILDREN = 'Document.HasBrowserChildren';
 export const MESSAGE_NEW_LINE = '\n';

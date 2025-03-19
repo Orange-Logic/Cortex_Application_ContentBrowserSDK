@@ -5,6 +5,7 @@ export type Folder = {
   path: string[];
   parents: Folder[];
   fullPath: string;
+  hasChildren: boolean;
 };
 
 export type Asset = {

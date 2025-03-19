@@ -3,6 +3,7 @@ import _camelCase from 'lodash-es/camelCase';
 
 import {
   DEFAULT_VIEW_SIZE, FIELD_CORTEX_PATH, FIELD_DOC_TYPE, FIELD_EXTENSION, FIELD_FILE_SIZE,
+  FIELD_HAS_BROWSER_CHILDREN,
   FIELD_IDENTIFIER, FIELD_KEYWORDS, FIELD_MAX_HEIGHT, FIELD_MAX_WIDTH, FIELD_SCRUB_URL, FIELD_SUBTYPE, FIELD_TITLE_WITH_FALLBACK,
 } from '@/consts/data';
 import { Asset, Folder, GetContentRequest, GetContentResponse } from '@/types/search';
@@ -99,6 +100,7 @@ export const searchApi = createApi({
           ['fields', FIELD_CORTEX_PATH],
           ['fields', FIELD_DOC_TYPE],
           ['fields', FIELD_TITLE_WITH_FALLBACK],
+          ['fields', FIELD_HAS_BROWSER_CHILDREN],
           ['objectRecordID', folder.id],
           ['orderBy', NATURAL_SORT_ORDER_REFERENCE_ID],
           ['seeThru', !isNullOrWhiteSpace(searchText)],
@@ -132,6 +134,7 @@ export const searchApi = createApi({
                   GetValueByKeyCaseInsensitive(item.fields, FIELD_CORTEX_PATH) ?? ''
                 ).replace(/^Root\//i, ''),
                 parents: [...arg.folder.parents, arg.folder],
+                hasChildren: (GetValueByKeyCaseInsensitive(item.fields, FIELD_HAS_BROWSER_CHILDREN) ?? '0') === '1' ? true : false,
               };
             }) ?? []
         );
@@ -179,6 +182,7 @@ export const searchApi = createApi({
                 GetValueByKeyCaseInsensitive(item.fields, FIELD_CORTEX_PATH) ?? ''
               ).replace(/^Root\//i, ''),
               parents: [],
+              hasChildren: false,
             })) ?? []
         );
       },

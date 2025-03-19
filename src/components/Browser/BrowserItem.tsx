@@ -20,20 +20,12 @@ export const BrowserItem: FC<Props> = ({
 }) => {
   const [isDefined, setIsDefined] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
-  const [lazyLoaded, setLazyLoaded] = useState(false);
   const treeItemRef = useRef<CxTreeItem>(null);
   const isSelected = currentFolderID === folder.id;
 
   const {
     data: folders,
-    isLoading,
-    isFetching,
-    isUninitialized,
   } = useGetFoldersQuery({ folder, searchText: searchText ?? '', useSession }, { skip: !isExpanded });
-
-  const mayHaveChildren = !folder || isLoading || isFetching || isUninitialized;
-  const hasChildren = folders && folders.length > 0 && !(isLoading || isUninitialized);
-  const lazy = !lazyLoaded && !hasChildren && !mayHaveChildren;
 
   const highlightedTitle = useMemo(() => {
     if (!searchText) return folder.title;
@@ -59,7 +51,6 @@ export const BrowserItem: FC<Props> = ({
     if (!treeItem) return;
     const onExpand = () => {
       setIsExpanded(true);
-      setLazyLoaded(true);
     };
     const onCollapse = (e: CxCollapseEvent) => {
       if (e.detail.target === treeItemRef.current) {
@@ -81,9 +72,9 @@ export const BrowserItem: FC<Props> = ({
     <cx-tree-item
       ref={treeItemRef}
       data-value={JSON.stringify(folder)}
-      expanded={isExpanded && !lazy}
+      expanded={isExpanded}
       selected={isSelected}
-      lazy={!lazyLoaded}
+      lazy={folder.hasChildren}
     >
       <cx-icon name="folder"></cx-icon>
       <cx-line-clamp lines={1}>{highlightedTitle}</cx-line-clamp>

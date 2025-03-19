@@ -9,6 +9,7 @@ export const RootFolder: Folder = Object.freeze({
   path: [],
   parents: [],
   fullPath: '',
+  hasChildren: true,
 });
 
 // #region Thunk
