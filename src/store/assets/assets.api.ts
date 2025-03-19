@@ -5,11 +5,11 @@ import { hasElements, uniqueArray } from '@/utils/array';
 import { createApi } from '@reduxjs/toolkit/query/react';
 
 const Parameters = {
-  AssetLink_BO_Data_ExtensionsThatSupportTransformationUsingATS: 'AssetLink_BO.Data.ExtensionsThatSupportTransformationUsingATS',
-  AssetLink_BO_Data_EnableATSInGetLink: 'AssetLink_BO.Data.EnableATSInGetLink',
-  GenericAssetBrowser_BO_Data_CollectionSubtypeCriteria: 'GenericAssetBrowser_BO.Data.Config.CollectionSubtypeCriteria',
-  GenericAssetBrowser_BO_Data_Config_SupportDocTypes: 'GenericAssetBrowser_BO.Data.Config.SupportDocTypes',
-  GenericAssetBrowser_BO_Data_Config_RepresentativeSupportedDocSubType: 'GenericAssetBrowser_BO.Data.Config.RepresentativeSupportedDocSubType',
+  ExtensionsThatSupportTransformationUsingATS: 'ExtensionsThatSupportTransformationUsingATS',
+  EnableATSInGetLink: 'EnableATSInGetLink',
+  CollectionSubtypeCriteria: 'CollectionSubtypeCriteria',
+  SupportDocTypes: 'SupportDocTypes',
+  RepresentativeSupportedDocSubType: 'RepresentativeSupportedDocSubType',
 };
 
 type GetAvailableProxiesRequest = {
@@ -94,35 +94,24 @@ export const assetsApi = createApi({
       useSession?: string;
     }>({
       query: ({ useSession }) => {
-        const params = [
-          [
-            'Paths',
-            [
-              Parameters.AssetLink_BO_Data_ExtensionsThatSupportTransformationUsingATS,
-              Parameters.AssetLink_BO_Data_EnableATSInGetLink,
-              Parameters.GenericAssetBrowser_BO_Data_CollectionSubtypeCriteria,
-              Parameters.GenericAssetBrowser_BO_Data_Config_SupportDocTypes,
-              Parameters.GenericAssetBrowser_BO_Data_Config_RepresentativeSupportedDocSubType,
-            ].join(','),
-          ],
-        ];
+        const params = [];
 
         if (useSession) {
           params.push(['UseSession', useSession]);
         }
 
         return {
-          url: '/webapi/configuration/parameters/get_45F_v1',
+          url: '/webapi/configuration/parameters/getparameters_412Z_v1',
           params,
         };
       },
       transformResponse: (response: Record<string, string>) => {
         return {
-          ATSEnabled: response[Parameters.AssetLink_BO_Data_EnableATSInGetLink].toLowerCase() === 'true',
-          collectionPath: response[Parameters.GenericAssetBrowser_BO_Data_CollectionSubtypeCriteria]?.toLowerCase() ?? '',
-          supportedDocTypes: response[Parameters.GenericAssetBrowser_BO_Data_Config_SupportDocTypes]?.split(/\r?\n/) ?? [],
-          supportedExtensions: response[Parameters.AssetLink_BO_Data_ExtensionsThatSupportTransformationUsingATS]?.split('\n') ?? [],
-          supportedRepresentativeSubtypes: response[Parameters.GenericAssetBrowser_BO_Data_Config_RepresentativeSupportedDocSubType]?.split('\r\n') ?? [],
+          ATSEnabled: response[Parameters.EnableATSInGetLink].toLowerCase() === 'true',
+          collectionPath: response[Parameters.CollectionSubtypeCriteria]?.toLowerCase() ?? '',
+          supportedDocTypes: response[Parameters.SupportDocTypes]?.split(/\r?\n/) ?? [],
+          supportedExtensions: response[Parameters.ExtensionsThatSupportTransformationUsingATS]?.split('\n') ?? [],
+          supportedRepresentativeSubtypes: response[Parameters.RepresentativeSupportedDocSubType]?.split('\r\n') ?? [],
         };
       },
       providesTags: ['Parameters'],
