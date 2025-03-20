@@ -16,7 +16,7 @@ type Props = {
 const RestoreSession: FC<Props> = ({ onCancel }) => {
   return (
     <ConnectingBackground onCancel={onCancel}>
-      <cx-typography variant="h1">
+      <cx-typography variant="h3">
         Trying to restore your previous session
       </cx-typography>
     </ConnectingBackground>
@@ -27,7 +27,7 @@ const RequestLogin: FC<Props> = ({ onCancel }) => {
   const siteUrl = useAppSelector(siteUrlSelector);
   return (
     <ConnectingBackground onCancel={onCancel}>
-      <cx-typography variant="h1">
+      <cx-typography variant="h3">
         Requesting login url from {siteUrl}
       </cx-typography>
     </ConnectingBackground>
@@ -55,7 +55,7 @@ const WaitForAuthorize: FC<Props> = ({ onCancel }) => {
       }
       onCancel={onCancel}
     >
-      <cx-typography variant="h1">
+      <cx-typography variant="h3">
         Please authorize the Google Addon through Cortex
       </cx-typography>
       <cx-typography variant="body2">

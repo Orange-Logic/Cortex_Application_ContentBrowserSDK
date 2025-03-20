@@ -32,7 +32,6 @@ export const Container = styled('cx-space')<CxSpaceProps & { bordered?: boolean 
   .header__title {
     display: flex;
     align-items: center;
-    gap: var(--cx-spacing-x-small);
   }
 
   .header__menu {
@@ -40,13 +39,5 @@ export const Container = styled('cx-space')<CxSpaceProps & { bordered?: boolean 
     gap: var(--cx-spacing-2x-small);
     align-items: center;
     width: fit-content;
-  }
-
-  .header__title__content {
-    &::part(base) {
-      font-size: var(--cx-font-size-large);
-      font-weight: var(--cx-font-weight-semibold);
-      line-height: var(--cx-line-height-large);
-    }
   }
 `;

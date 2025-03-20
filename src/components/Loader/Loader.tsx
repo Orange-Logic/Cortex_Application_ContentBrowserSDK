@@ -9,12 +9,7 @@ type Props = {
 
 const Loader: FC<Props> = ({ message, children }) => {
   return (
-    <cx-space
-      style={{
-        flexDirection: 'column',
-        alignItems: 'center',
-      }}
-    >
+    <cx-space direction="vertical" alignItems="center">
       <cx-spinner
         style={
           {

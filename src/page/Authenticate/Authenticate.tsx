@@ -77,6 +77,7 @@ const AuthenticatePage = () => {
         backgroundSize: 'contain',
         display: 'flex',
         inset: 0,
+        padding: 'var(--cx-spacing-x-small)',
         position: 'absolute',
       }}
     >
@@ -88,15 +89,14 @@ const AuthenticatePage = () => {
           height: '100%',
           alignItems: 'center',
           justifyContent: 'center',
+          textAlign: 'center',
           width: '100%',
         }}
       >
         <cx-space
           direction="vertical"
           spacing="medium"
-          style={{
-            alignItems: 'center',
-          }}
+          alignItems="center"
         >
           <cx-typography variant="h2">
             Welcome to the OrangeDAM Asset Browser
@@ -123,8 +123,8 @@ const AuthenticatePage = () => {
             }}
           ></cx-input>
           <cx-space
+            justifyContent="flex-end"
             style={{
-              justifyContent: 'flex-end',
               width: '100%',
             }}
           >

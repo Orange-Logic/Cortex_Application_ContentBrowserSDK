@@ -74,7 +74,7 @@ export const BrowserItem: FC<Props> = ({
       data-value={JSON.stringify(folder)}
       expanded={isExpanded}
       selected={isSelected}
-      lazy={folder.hasChildren}
+      lazy={folder.hasChildren && !folders?.length}
     >
       <cx-icon name="folder"></cx-icon>
       <cx-line-clamp lines={1}>{highlightedTitle}</cx-line-clamp>
