@@ -26,6 +26,7 @@ type Props = {
   variant?: 'dialog' | 'drawer';
   onClose: () => void;
   onProxyConfirm: (value: {
+    extension: string;
     value: Record<string, string>;
     parameters?: TrackingParameter[];
     useRepresentative?: boolean;
@@ -430,7 +431,7 @@ const FormatDialog: FC<Props> = ({
       if (value) {
         const allProxies = Object.entries(availableProxies ?? {}).map(
           ([_, proxies]) =>
-            Object.values(proxies).map((proxy) => proxy.proxyName),
+            Object.values(proxies).map((proxy) => `${proxy.proxyName}-${proxy.extension?.substring(1) ?? selectedAsset?.extension}`),
         );
 
         if (!allProxies.flat().includes(value)) {
@@ -450,7 +451,7 @@ const FormatDialog: FC<Props> = ({
       dialog?.removeEventListener('cx-select', onProxySelect);
       drawer?.removeEventListener('cx-select', onProxySelect);
     };
-  }, [isDefined, state.enabledTracking, state.useRepresentative, setDefaultValues, availableProxies ]);
+  }, [isDefined, state.enabledTracking, state.useRepresentative, setDefaultValues, availableProxies, selectedAsset?.extension]);
 
   useEffect(() => {
     setDefaultValues();
@@ -814,7 +815,7 @@ const FormatDialog: FC<Props> = ({
                         items={Object.entries(proxies).map(([, proxy]) => {
                           if (proxy.proxyName === 'TRX' && selectedAsset) {
                             return {
-                              value: proxy.proxyName,
+                              value: `${proxy.proxyName}-${selectedAsset.extension}`,
                               name: proxy.proxyLabel,
                               width: selectedAsset.width,
                               height: selectedAsset.height,
@@ -823,7 +824,7 @@ const FormatDialog: FC<Props> = ({
                             };
                           }
                           return {
-                            value: proxy.proxyName,
+                            value: `${proxy.proxyName}-${proxy.extension?.substring(1)}`,
                             name: proxy.proxyLabel,
                             width: proxy.formatWidth,
                             height: proxy.formatHeight,
@@ -968,9 +969,12 @@ const FormatDialog: FC<Props> = ({
                 return;
               }
 
+              const [proxyName, extension] = state.selectedProxy.split('-');
+
               onProxyConfirm({
+                extension,
                 value: {
-                  [selectedAsset.docType]: state.selectedProxy,
+                  [selectedAsset.docType]: proxyName,
                 },
                 parameters: state.enabledTracking
                   ? state.trackingParameters

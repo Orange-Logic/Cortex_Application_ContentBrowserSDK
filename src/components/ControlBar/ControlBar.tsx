@@ -1,19 +1,14 @@
-import _capitalize from 'lodash-es/capitalize';
 import _debounce from 'lodash-es/debounce';
 import { FC, useCallback, useEffect, useRef, useState } from 'react';
 
 import { Filter, GridView, SortDirection } from '@/types/search';
 import {
-  CxChangeEvent,
-  CxDropdown,
-  CxInput,
-  CxRemoveEvent,
-  CxSelectEvent,
-  CxSelectionChangeEvent,
+  CxChangeEvent, CxDropdown, CxInput, CxRemoveEvent, CxSelectEvent, CxSelectionChangeEvent,
 } from '@/web-component';
 
 import { sortDirections, sortOrders, views } from './ControlBar.constants';
 import { Container } from './ControlBar.styled';
+import Facet from './Facet';
 
 const TYPE = {
   type: 'type',
@@ -25,7 +20,7 @@ const TYPE = {
 type Props = {
   allowSorting: boolean;
   currentCount: number;
-  disabled: boolean;
+  loading: boolean;
   extensions: string[];
   facets?: Record<string, Record<string, number>>;
   isSeeThrough: boolean;
@@ -48,7 +43,7 @@ type Props = {
 const ControlBar: FC<Props> = ({
   allowSorting,
   currentCount,
-  disabled,
+  loading,
   extensions,
   facets,
   isSeeThrough,
@@ -65,6 +60,13 @@ const ControlBar: FC<Props> = ({
   onChangeNewlySelectedFacet,
 }) => {
   const [isDefined, setIsDefined] = useState(false);
+  const [newlyChangedOption, setNewlyChangedOption] = useState<{
+    type?: string;
+    value?: string;
+  }>({
+    type: undefined,
+    value: undefined,
+  });
   const searchRef = useRef<CxInput>(null);
   const filterDropdownRef = useRef<CxDropdown>(null);
   const viewDropdownRef = useRef<CxDropdown>(null);
@@ -151,13 +153,17 @@ const ControlBar: FC<Props> = ({
     };
     const onFilterSelectionChange = (e: CxSelectionChangeEvent) => {
       const facet = (e.target as HTMLElement).dataset.facet;
+      setNewlyChangedOption({
+        type: 'filter',
+        value: facet,
+      });
+      onChangeNewlySelectedFacet(facet ?? '');
+
       const newSelection = e.detail.selection.reduce(
         (acc, item) => {
           const type = item.dataset.type;
           const value = item.dataset.value;
           
-          onChangeNewlySelectedFacet(type || '');
-
           if (!value) {
             return acc;
           }
@@ -199,8 +205,16 @@ const ControlBar: FC<Props> = ({
       }
 
       if (type === 'sort-direction') {
+        setNewlyChangedOption({
+          type: 'sortDirection',
+          value,
+        });
         onSettingChange('sortDirection', value as 'ascending' | 'descending');
       } else if (type === 'sort-order') {
+        setNewlyChangedOption({
+          type: 'sortOrder',
+          value,
+        });
         onSettingChange('sortOrder', value);
       }
     };
@@ -214,14 +228,7 @@ const ControlBar: FC<Props> = ({
       filterDropdown?.removeEventListener('cx-remove', onFilterRemove);
       sortDropdown?.removeEventListener('cx-select', onSortSelect);
     };
-  }, [
-    isDefined,
-    extensions,
-    mediaTypes,
-    statuses,
-    visibilityClasses,
-    onSettingChange,
-  ]);
+  }, [isDefined, extensions, mediaTypes, statuses, visibilityClasses, onSettingChange, onChangeNewlySelectedFacet]);
 
   const renderAppliedFilters = useCallback(() => {
     const appliedFilersCount = mediaTypes.length + visibilityClasses.length + statuses.length + extensions.length;
@@ -230,8 +237,16 @@ const ControlBar: FC<Props> = ({
       <cx-details
         open
         className={`filter-details ${appliedFilersCount === 0 ? 'filter-details--empty' : ''}`.trim()}
-        summary={'Applied filters' + (appliedFilersCount > 0 ? ` (${appliedFilersCount})` : '')}
       >
+        <cx-space
+          slot="summary"
+          alignItems="center"
+          spacing="x-small"
+          wrap="nowrap"
+        >
+          <span>Applied filters {appliedFilersCount > 0 ? ` (${appliedFilersCount})` : ''}</span>
+          {loading && newlyChangedOption.type === 'filter' && <cx-spinner></cx-spinner>}
+        </cx-space>
         <cx-space direction="horizontal" spacing="small">
           {mediaTypes.map((item) => (
             <cx-tag
@@ -276,107 +291,7 @@ const ControlBar: FC<Props> = ({
         </cx-space>
       </cx-details>
     );
-  }, [extensions, mediaTypes, statuses, visibilityClasses]);
-
-  const renderFacet = (
-    facet: Record<string, number>,
-    type: string,
-    collections: string[],
-    capitalize = true,
-  ) => {
-    if (!facet || Object.values(facet).length === 0) {
-      return null;
-    }
-
-    // The current facet value is flat. If a facet includes the ">>" character, it means it's a subtype, and the parent type is the value before ">>". We need to group them.
-    // For example, "contact >> email", "contact >> phone", and "contact >> address" should be grouped as "contact" => { email: 10, phone: 5, address: 3 }
-    const mappedSubtypes = Object.entries(facet).reduce(
-      (acc, [key, value]) => {
-        const [parent, subtype] = key.split('>>');
-        if (subtype) {
-          if (!acc[parent]) {
-            acc[parent] = {};
-          }
-          (acc[parent] as Record<string, number>)[subtype] = value;
-        } else {
-          acc[key] = value;
-        }
-        return acc;
-      },
-      {} as Record<string, Record<string, number> | number>,
-    );
-    return (
-      <cx-details
-        open
-        className="filter-details"
-        summary={_capitalize(type)}
-      >
-        <cx-space direction="vertical">
-        <cx-tree selection="multiple" data-facet={type}>
-            {Object.entries(mappedSubtypes).map(([key, value]) => {
-              if (typeof value === 'object') {
-                return (
-                  <cx-tree-item
-                    key={key}
-                    data-value={key}
-                    data-type={type}
-                    readonly={disabled}
-                    selected={collections.includes(key)}
-                  >
-                    {/* <cx-checkbox
-                      key={key}
-                      value={key}
-                      data-type={type}
-                      checked={collections.includes(key)}
-                    > */}
-                      {capitalize ? _capitalize(key) : key}
-                    {/* </cx-checkbox> */}
-                    {Object.entries(value).map(([subtype, count]) => (
-                      <cx-tree-item
-                        key={subtype}
-                        data-value={`${key}>>${subtype}`}
-                        data-type={type}
-                        readonly={disabled}
-                        selected={collections.includes(`${key}>>${subtype}`)}
-                      >
-                        {/* <cx-checkbox
-                          key={subtype}
-                          value={subtype}
-                          data-type={type}
-                          checked={collections.includes(subtype)}
-                        > */}
-                          {capitalize ? _capitalize(subtype) : subtype} (
-                          {count})
-                        {/* </cx-checkbox> */}
-                      </cx-tree-item>
-                    ))}
-                  </cx-tree-item>
-                );
-              }
-              return (
-                <cx-tree-item
-                  key={key}
-                  data-value={key}
-                  data-type={type}
-                  readonly={disabled}
-                  selected={collections.includes(key)}
-                >
-                  {/* <cx-checkbox
-                    key={key}
-                    value={key}
-                    data-type={type}
-                    checked={collections.includes(key)}
-                  > */}
-                    {capitalize ? _capitalize(key) : key} ({value})
-                  {/* </cx-checkbox> */}
-                </cx-tree-item>
-              );
-            })}
-          </cx-tree>
-        </cx-space>
-      </cx-details>
-    );
-  };
+  }, [extensions, loading, mediaTypes, newlyChangedOption.type, statuses, visibilityClasses]);
 
   return (
     <Container>
@@ -407,19 +322,31 @@ const ControlBar: FC<Props> = ({
             </cx-tooltip>
           </div>
           {renderAppliedFilters()}
-          {renderFacet(facets?.type ?? {}, TYPE.type, mediaTypes)}
-          {renderFacet(
-            facets?.visibilityClass ?? {},
-            TYPE.visibilityClass,
-            visibilityClasses,
-          )}
-          {renderFacet(facets?.status ?? {}, TYPE.status, statuses)}
-          {renderFacet(
-            facets?.extension ?? {},
-            TYPE.extension,
-            extensions,
-            false,
-          )}
+          <Facet
+            key={TYPE.type}
+            facet={facets?.type ?? {}}
+            type={TYPE.type}
+            collections={mediaTypes}
+          />
+          <Facet
+            key={TYPE.visibilityClass}
+            facet={facets?.visibilityClass ?? {}}
+            type={TYPE.visibilityClass}
+            collections={visibilityClasses}
+          />
+          <Facet
+            key={TYPE.status}
+            facet={facets?.status ?? {}}
+            type={TYPE.status}
+            collections={statuses}
+          />
+          <Facet
+            key={TYPE.extension}
+            facet={facets?.extension ?? {}}
+            type={TYPE.extension}
+            collections={extensions}
+            capitalize={false}
+          />
         </cx-dropdown>
       </cx-space>
       <cx-space
@@ -500,7 +427,13 @@ const ControlBar: FC<Props> = ({
                 class={sortDirection === item.value ? 'selected' : ''}
               >
                 {item.value.replace(/\b\w/g, (char) => char.toUpperCase())}
-                {<item.icon></item.icon>}
+                {loading &&
+                newlyChangedOption.type === 'sortDirection' &&
+                newlyChangedOption.value === item.value ? (
+                  <cx-spinner slot="prefix"></cx-spinner>
+                  ) : (
+                  <item.icon></item.icon>
+                  )}
               </cx-menu-item>
             ))}
             <cx-divider></cx-divider>
@@ -512,12 +445,16 @@ const ControlBar: FC<Props> = ({
                 class={sortOrder === item.key ? 'selected' : ''}
               >
                 {item.label.replace(/\b\w/g, (char) => char.toUpperCase())}
-                {
+                {loading &&
+                newlyChangedOption.type === 'sortOrder' &&
+                newlyChangedOption.value === item.key ? (
+                  <cx-spinner slot="prefix"></cx-spinner>
+                  ) : (
                   <cx-icon
                     slot="prefix"
                     name={sortOrder === item.key ? 'check' : ''}
                   ></cx-icon>
-                }
+                  )}
               </cx-menu-item>
             ))}
           </cx-menu>

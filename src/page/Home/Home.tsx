@@ -1,5 +1,5 @@
 import _intersection from 'lodash-es/intersection';
-import _omit from 'lodash-es/omit';
+import isEqual from 'lodash-es/isEqual';
 import { FC, useCallback, useContext, useEffect, useMemo, useReducer, useRef } from 'react';
 
 import { AppContext } from '@/AppContext';
@@ -41,6 +41,7 @@ type State = {
   extensions: string[];
   facets: Record<string, Record<string, number>>;
   hasScrolled: boolean;
+  isLoading: boolean;
   isSeeThrough: boolean;
   mediaTypes: string[];
   openBrowser: boolean;
@@ -65,6 +66,7 @@ type Action =
   | { type: 'SET_FACETS'; payload: Record<string, Record<string, number>> }
   | { type: 'SET_FILTERS'; payload: Filter }
   | { type: 'SET_HAS_SCROLLED'; payload: boolean }
+  | { type: 'SET_IS_LOADING'; payload: boolean }
   | { type: 'SET_IS_SEE_THROUGH'; payload: boolean }
   | { type: 'SET_OPEN_BROWSER'; payload: boolean }
   | { type: 'SET_PAGE'; payload: number }
@@ -86,6 +88,7 @@ const initialState: State = {
   extensions: [],
   facets: {},
   hasScrolled: false,
+  isLoading: false,
   isSeeThrough: true,
   mediaTypes: [],
   openBrowser: false,
@@ -127,6 +130,8 @@ const reducer = (state: State, action: Action): State => {
     }
     case 'SET_HAS_SCROLLED':
       return { ...state, hasScrolled: action.payload };
+    case 'SET_IS_LOADING':
+      return { ...state, isLoading: action.payload };
     case 'SET_IS_SEE_THROUGH':
       return { ...state, isSeeThrough: action.payload, page: 0 };
     case 'SET_OPEN_BROWSER':
@@ -195,7 +200,10 @@ const HomePage: FC<Props> = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const resizeObserverRef = useRef<CxResizeObserver>(null);
   const loadedFromStorage = useRef(false);
+  const facetsRef = useRef<Record<string, Record<string, number>>>({});
   const appDispatch = useAppDispatch();
+
+  facetsRef.current = state.facets;
 
   const mappedMediaTypes = useMemo(() => {
     const globalIntersection = availableDocTypes?.length ? _intersection(availableDocTypes, supportedDocTypes) : supportedDocTypes;
@@ -214,7 +222,7 @@ const HomePage: FC<Props> = () => {
     );
   }, [sortOrders, state.sortDirection, state.sortOrder]);
 
-  const { data, isFetching, isLoading, isError } = useGetAssetsQuery(selectedSortOrder && mappedMediaTypes?.length ? {
+  const { data, isFetching, isError } = useGetAssetsQuery(selectedSortOrder && mappedMediaTypes?.length ? {
     extensions: state.extensions,
     folderID: state.currentFolder.id,
     isSeeThrough: state.isSeeThrough,
@@ -227,6 +235,26 @@ const HomePage: FC<Props> = () => {
     useSession,
   } : skipToken);
 
+  useEffect(() => {
+    // isFetching is constantly switched between true and false due to the changed parameters
+    // Set isLoading to true when isFetching is true for at least 200ms and set it to false when isFetching is false for at least 200ms
+    let timer = null;
+
+    if (isFetching) {
+      dispatch({ type: 'SET_IS_LOADING', payload: true });
+    } else {
+      timer = setTimeout(() => {
+        dispatch({ type: 'SET_IS_LOADING', payload: isFetching });
+      }, 200);
+    }
+
+    return () => {
+      if (timer) {
+        clearTimeout(timer);
+      }
+    };
+  }, [isFetching]);
+  
   useEffect(() => {
     if (authenticated) {
       dispatch({ type: 'RESET_SEARCH' });
@@ -343,40 +371,43 @@ const HomePage: FC<Props> = () => {
       dispatch({ type: 'SET_CURRENT_COUNT', payload: newData.currentCount });
       if (state.shouldResetFilters) {
         dispatch({ type: 'SET_FACETS', payload: newData.facets });
+      } else if (state.newlySelectedFacet === '') {
+        dispatch({ type: 'SET_FACETS', payload: newData.facets });
       } else {
-        if (state.newlySelectedFacet === '') {
-          dispatch({ type: 'SET_FACETS', payload: newData.facets });
-        } else {
-          const newFacets: Record<string, Record<string, number>> = {};
-          Object.entries(state.facets).forEach(([filter, facets]) => {
-            newFacets[filter] = {};
-            if (filter !== state.newlySelectedFacet) {
-              Object.keys(facets).forEach((facet) => {
-                if (newData?.facets?.[filter]?.[facet]) {
-                  newFacets[filter][facet] = newData.facets[filter][facet];
-                }
-              });
-            } else {
-              Object.keys(facets).forEach((facet) => {
-                newFacets[filter][facet] = state.facets?.[filter]?.[facet];
-              });
-            }
-          });
-          Object.entries(newData.facets).forEach(([filter, facets]) => {
-            if (!newFacets[filter]) {
-              newFacets[filter] = {};
-            }
+        const newFacets: Record<string, Record<string, number>> = {};
+        Object.entries(facetsRef.current).forEach(([filter, facets]) => {
+          newFacets[filter] = {};
+          if (filter !== state.newlySelectedFacet) {
             Object.keys(facets).forEach((facet) => {
-              newFacets[filter][facet] = newData.facets?.[filter]?.[facet];
+              if (newData?.facets?.[filter]?.[facet]) {
+                newFacets[filter][facet] = newData.facets[filter][facet];
+              }
             });
+          } else {
+            Object.keys(facets).forEach((facet) => {
+              newFacets[filter][facet] = facetsRef.current?.[filter]?.[facet];
+            });
+          }
+        });
+        Object.entries(newData.facets).forEach(([filter, facets]) => {
+          if (!newFacets[filter]) {
+            newFacets[filter] = {};
+          }
+          Object.keys(facets).forEach((facet) => {
+            newFacets[filter][facet] = newData.facets?.[filter]?.[facet];
           });
-          dispatch({
-            type: 'SET_FACETS',
-            payload: {
-              ...newFacets,
-            },
-          });
+        });
+
+        if (isEqual(newFacets, facetsRef.current)) {
+          return;
         }
+
+        dispatch({
+          type: 'SET_FACETS',
+          payload: {
+            ...newFacets,
+          },
+        });
       }
       
       dispatch({ type: 'SET_TOTAL_COUNT', payload: newData.totalCount });
@@ -428,9 +459,9 @@ const HomePage: FC<Props> = () => {
     [data, state.page, state.totalCount],
   );
 
-  const setNewlySelectedFacet = (newFacet: string) => {
+  const setNewlySelectedFacet = useCallback((newFacet: string) => {
     dispatch({ type: 'SET_NEWLY_SELECTED_FACET', payload: newFacet });
-  };
+  }, []);
 
   useEffect(() => {
     if (onDataChange) {
@@ -463,12 +494,11 @@ const HomePage: FC<Props> = () => {
         >
           <ControlBar
             allowSorting={selectedSortOrder?.sortDirection !== 'Mono'}
-            disabled={isLoading || isFetching}
             currentCount={state.currentCount}
             extensions={state.extensions}
             facets={state.facets}
-            onChangeNewlySelectedFacet={setNewlySelectedFacet}
             isSeeThrough={state.isSeeThrough}
+            loading={state.isLoading}
             mediaTypes={state.mediaTypes}
             searchValue={state.searchText}
             sortDirection={state.sortDirection}
@@ -477,6 +507,7 @@ const HomePage: FC<Props> = () => {
             totalCount={state.totalCount}
             view={state.view}
             visibilityClasses={state.visibilityClasses}
+            onChangeNewlySelectedFacet={setNewlySelectedFacet}
             onSearchChange={onSearchChange}
             onSettingChange={onSettingChange}
           />
@@ -503,7 +534,7 @@ const HomePage: FC<Props> = () => {
           }
           hasNextPage={hasNextPage || false}
           isError={isError}
-          isLoading={isLoading || isFetching}
+          isLoading={state.isLoading}
           items={data?.items || []}
           selectedAsset={state.selectedAsset}
           view={state.view}
@@ -532,13 +563,14 @@ const HomePage: FC<Props> = () => {
           onClose={() =>
             dispatch({ type: 'SET_SELECTED_ASSET', payload: null })
           }
-          onProxyConfirm={async ({ value, parameters, useRepresentative }) => {
+          onProxyConfirm={async ({ extension, value, parameters, useRepresentative }) => {
             if (!state.selectedAsset) {
               return;
             }
 
             const images = await appDispatch(
               importAssets({
+                extension,
                 extraFields,
                 parameters,
                 proxiesPreference: value,

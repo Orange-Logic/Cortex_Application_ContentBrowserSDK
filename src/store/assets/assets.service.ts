@@ -70,8 +70,6 @@ export const getAssetLinks = async (
 
     if (transformations && transformations.length > 0) {
       imageUrl += '/t/';
-    } else {
-      imageUrl += '/';
     }
 
     transformations?.forEach(({ key, value }) => {
@@ -157,7 +155,11 @@ export const getAssetLinks = async (
       }
     });
 
-    imageUrl += `${asset.identifier}.${extension ?? asset.extension}`;
+    if (transformations && transformations.length > 0) {
+      imageUrl += `${asset.identifier}`;
+    }
+
+    imageUrl += `.${extension ?? asset.extension}`;
 
     if (parameters && parameters.length > 0) {
       imageUrl += '?';
