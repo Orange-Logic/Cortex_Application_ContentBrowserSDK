@@ -38,7 +38,6 @@ type State = {
   };
   currentCount: number;
   currentFolder: Folder;
-  defaultMediaTypeFacets: Record<string, number>;
   extensions: string[];
   facets: Record<string, Record<string, number>>;
   hasScrolled: boolean;
@@ -55,6 +54,7 @@ type State = {
   totalCount: number;
   view: GridView;
   visibilityClasses: string[];
+  newlySelectedFacet: string;
 };
 
 type Action =
@@ -62,7 +62,6 @@ type Action =
   | { type: 'SET_CONTAINER_SIZE'; payload: { width: number; height: number } }
   | { type: 'SET_CURRENT_COUNT'; payload: number }
   | { type: 'SET_CURRENT_FOLDER'; payload: Folder }
-  | { type: 'SET_DEFAULT_MEDIA_TYPE_FACETS'; payload: Record<string, number> }
   | { type: 'SET_FACETS'; payload: Record<string, Record<string, number>> }
   | { type: 'SET_FILTERS'; payload: Filter }
   | { type: 'SET_HAS_SCROLLED'; payload: boolean }
@@ -74,7 +73,8 @@ type Action =
   | { type: 'SET_SORT_DIRECTION'; payload: 'ascending' | 'descending' }
   | { type: 'SET_SORT_ORDER'; payload: string }
   | { type: 'SET_TOTAL_COUNT'; payload: number }
-  | { type: 'SET_VIEW'; payload: GridView };
+  | { type: 'SET_VIEW'; payload: GridView }
+  | { type: 'SET_NEWLY_SELECTED_FACET'; payload: string };
 
 const initialState: State = {
   containerSize: {
@@ -83,7 +83,6 @@ const initialState: State = {
   },
   currentCount: 0,
   currentFolder: RootFolder,
-  defaultMediaTypeFacets: {},
   extensions: [],
   facets: {},
   hasScrolled: false,
@@ -100,6 +99,7 @@ const initialState: State = {
   totalCount: 0,
   view: GridView.Medium,
   visibilityClasses: [],
+  newlySelectedFacet:'', 
 };
 
 const reducer = (state: State, action: Action): State => {
@@ -109,20 +109,11 @@ const reducer = (state: State, action: Action): State => {
     case 'SET_CURRENT_COUNT':
       return { ...state, currentCount: action.payload };
     case 'SET_CURRENT_FOLDER':
-      return { ...state, currentFolder: action.payload, page: 0 };
-    case 'SET_DEFAULT_MEDIA_TYPE_FACETS':
-      return { ...state, defaultMediaTypeFacets: action.payload };
+      return { ...state, currentFolder: action.payload, page: 0, shouldResetFilters: true };
     case 'SET_FACETS':
       return { ...state, facets: action.payload };
     case 'SET_FILTERS': {
-      let shouldResetFilters = true;
-      const isOnlyMediaTypesChanged =
-        Object.values(_omit(action.payload, 'mediaTypes')).every(
-          (value) => value.length === 0,
-        ) && action.payload.mediaTypes.length > 0;
-      if (isOnlyMediaTypesChanged) {
-        shouldResetFilters = false;
-      }
+      const shouldResetFilters = false;
 
       return {
         ...state,
@@ -163,6 +154,8 @@ const reducer = (state: State, action: Action): State => {
         selectedAsset: null,
         totalCount: 0,
       };
+    case 'SET_NEWLY_SELECTED_FACET':
+      return { ...state, newlySelectedFacet: action.payload };
     default:
       return state;
   }
@@ -340,7 +333,6 @@ const HomePage: FC<Props> = () => {
     },
     [],
   );
-
   const onDataChange = useCallback(
     (newData: {
       facets: Record<string, Record<string, number>>;
@@ -350,23 +342,46 @@ const HomePage: FC<Props> = () => {
     }) => {
       dispatch({ type: 'SET_CURRENT_COUNT', payload: newData.currentCount });
       if (state.shouldResetFilters) {
-        dispatch({
-          type: 'SET_DEFAULT_MEDIA_TYPE_FACETS',
-          payload: newData.facets.type,
-        });
         dispatch({ type: 'SET_FACETS', payload: newData.facets });
       } else {
-        dispatch({
-          type: 'SET_FACETS',
-          payload: {
-            ...newData.facets,
-            type: { ...state.defaultMediaTypeFacets, ...newData.facets.type },
-          },
-        });
+        if (state.newlySelectedFacet === '') {
+          dispatch({ type: 'SET_FACETS', payload: newData.facets });
+        } else {
+          const newFacets: Record<string, Record<string, number>> = {};
+          Object.entries(state.facets).forEach(([filter, facets]) => {
+            newFacets[filter] = {};
+            if (filter !== state.newlySelectedFacet) {
+              Object.keys(facets).forEach((facet) => {
+                if (newData?.facets?.[filter]?.[facet]) {
+                  newFacets[filter][facet] = newData.facets[filter][facet];
+                }
+              });
+            } else {
+              Object.keys(facets).forEach((facet) => {
+                newFacets[filter][facet] = state.facets?.[filter]?.[facet];
+              });
+            }
+          });
+          Object.entries(newData.facets).forEach(([filter, facets]) => {
+            if (!newFacets[filter]) {
+              newFacets[filter] = {};
+            }
+            Object.keys(facets).forEach((facet) => {
+              newFacets[filter][facet] = newData.facets?.[filter]?.[facet];
+            });
+          });
+          dispatch({
+            type: 'SET_FACETS',
+            payload: {
+              ...newFacets,
+            },
+          });
+        }
       }
+      
       dispatch({ type: 'SET_TOTAL_COUNT', payload: newData.totalCount });
     },
-    [state.defaultMediaTypeFacets, state.shouldResetFilters],
+    [state.shouldResetFilters, state.newlySelectedFacet],
   );
 
   const onFolderSelect = useCallback(
@@ -413,6 +428,10 @@ const HomePage: FC<Props> = () => {
     [data, state.page, state.totalCount],
   );
 
+  const setNewlySelectedFacet = (newFacet: string) => {
+    dispatch({ type: 'SET_NEWLY_SELECTED_FACET', payload: newFacet });
+  };
+
   useEffect(() => {
     if (onDataChange) {
       onDataChange({
@@ -448,6 +467,7 @@ const HomePage: FC<Props> = () => {
             currentCount={state.currentCount}
             extensions={state.extensions}
             facets={state.facets}
+            onChangeNewlySelectedFacet={setNewlySelectedFacet}
             isSeeThrough={state.isSeeThrough}
             mediaTypes={state.mediaTypes}
             searchValue={state.searchText}

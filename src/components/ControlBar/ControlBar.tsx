@@ -42,6 +42,7 @@ type Props = {
     setting: string,
     value: GridView | SortDirection | Filter | string | boolean | string[]
   ) => void;
+  onChangeNewlySelectedFacet: (value: string) => void;
 };
 
 const ControlBar: FC<Props> = ({
@@ -61,6 +62,7 @@ const ControlBar: FC<Props> = ({
   visibilityClasses,
   onSearchChange,
   onSettingChange,
+  onChangeNewlySelectedFacet,
 }) => {
   const [isDefined, setIsDefined] = useState(false);
   const searchRef = useRef<CxInput>(null);
@@ -112,6 +114,7 @@ const ControlBar: FC<Props> = ({
       const target = e.target as HTMLElement;
       const type = target.dataset.type;
       const value = target.dataset.value;
+      onChangeNewlySelectedFacet('');
 
       if (!value) {
         return;
@@ -147,10 +150,13 @@ const ControlBar: FC<Props> = ({
       });
     };
     const onFilterSelectionChange = (e: CxSelectionChangeEvent) => {
+      const facet = (e.target as HTMLElement).dataset.facet;
       const newSelection = e.detail.selection.reduce(
         (acc, item) => {
           const type = item.dataset.type;
           const value = item.dataset.value;
+          
+          onChangeNewlySelectedFacet(type || '');
 
           if (!value) {
             return acc;
@@ -175,10 +181,10 @@ const ControlBar: FC<Props> = ({
 
           return acc;
         }, {
-          extensions: [] as string[],
-          mediaTypes: [] as string[],
-          visibilityClasses: [] as string[],
-          statuses: [] as string[],
+          extensions: facet === TYPE.extension ? [] as string[] : extensions,
+          mediaTypes: facet === TYPE.type ? [] as string[] : mediaTypes,
+          visibilityClasses: facet === TYPE.visibilityClass ? [] as string[] : visibilityClasses,
+          statuses: facet === TYPE.status ? [] as string[] : statuses,
         },
       );
 
@@ -222,6 +228,7 @@ const ControlBar: FC<Props> = ({
 
     return (
       <cx-details
+        open
         className={`filter-details ${appliedFilersCount === 0 ? 'filter-details--empty' : ''}`.trim()}
         summary={'Applied filters' + (appliedFilersCount > 0 ? ` (${appliedFilersCount})` : '')}
       >
@@ -298,14 +305,14 @@ const ControlBar: FC<Props> = ({
       },
       {} as Record<string, Record<string, number> | number>,
     );
-
     return (
       <cx-details
+        open
         className="filter-details"
         summary={_capitalize(type)}
       >
         <cx-space direction="vertical">
-          <cx-tree selection="multiple">
+        <cx-tree selection="multiple" data-facet={type}>
             {Object.entries(mappedSubtypes).map(([key, value]) => {
               if (typeof value === 'object') {
                 return (

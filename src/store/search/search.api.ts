@@ -50,9 +50,6 @@ const resolveAssetExtraFilters = ({
     if (extensions.length > 1) {
       extensionsQuery = `(${extensionsQuery})`;
     }
-    if (statusQuery) {
-      extensionsQuery = ` AND ${extensionsQuery}`;
-    }
   }
 
   let visibilityClassesQuery = '';
@@ -63,17 +60,13 @@ const resolveAssetExtraFilters = ({
     if (visibilityClasses.length > 1) {
       visibilityClassesQuery = `(${visibilityClassesQuery})`;
     }
-    if (statusQuery || extensionsQuery) {
-      visibilityClassesQuery = ` AND ${visibilityClassesQuery}`;
-    }
   }
   
+  const searchTextQuery = isNullOrWhiteSpace(searchText) ? '' : `Text:${searchText}`;
+  
+  const filters = [statusQuery, extensionsQuery, visibilityClassesQuery, searchTextQuery].filter(filter => filter.length > 0);
 
-  let searchTextQuery = isNullOrWhiteSpace(searchText) ? '' : `Text:${searchText}`;
-  if (statusQuery || extensionsQuery || visibilityClassesQuery) {
-    searchTextQuery = ` AND ${searchTextQuery}`;
-  }
-  return `${statusQuery}${extensionsQuery}${visibilityClassesQuery}${searchTextQuery}`;
+  return filters.join(' AND ');
 };
 
 // Define a service using a base URL and expected endpoints
