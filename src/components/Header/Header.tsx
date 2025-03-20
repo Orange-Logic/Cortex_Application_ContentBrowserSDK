@@ -23,7 +23,11 @@ const Header: FC<Props> = ({ bordered, children, currentFolder, onHomeSelect, on
 
   const title = useMemo(() => {
     if (!currentFolder.fullPath) {
-      return <cx-typography variant="h4">Generic Asset Browser</cx-typography>;
+      return (
+        <cx-line-clamp lines={1}>
+          <cx-typography variant="h4">Generic Asset Browser</cx-typography>
+        </cx-line-clamp>
+      );
     }
 
     return (
@@ -74,7 +78,7 @@ const Header: FC<Props> = ({ bordered, children, currentFolder, onHomeSelect, on
 
   return (
     <Container direction="vertical" spacing="small" bordered={bordered}>
-      <div className="header">
+      <cx-space className="header" justifyContent="space-between" alignItems="center" spacing="2x-small">
         <div className="header__title">
           <cx-icon-button
             name="menu"
@@ -89,7 +93,7 @@ const Header: FC<Props> = ({ bordered, children, currentFolder, onHomeSelect, on
             <cx-icon-button name="close" label="Close" onClick={onClose}></cx-icon-button>
           )}
         </div>
-      </div>
+      </cx-space>
       {children}
     </Container>
   );

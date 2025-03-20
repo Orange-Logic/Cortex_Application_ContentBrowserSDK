@@ -13,7 +13,7 @@ import {
 } from '@/web-component';
 
 import { sortDirections, sortOrders, views } from './ControlBar.constants';
-import { Container, FlexWrapper } from './ControlBar.styled';
+import { Container } from './ControlBar.styled';
 
 const TYPE = {
   type: 'type',
@@ -373,7 +373,10 @@ const ControlBar: FC<Props> = ({
 
   return (
     <Container>
-      <FlexWrapper
+      <cx-space
+        alignItems="center"
+        spacing="2x-small"
+        wrap="nowrap"
         style={{
           flex: 1,
         }}
@@ -411,8 +414,13 @@ const ControlBar: FC<Props> = ({
             false,
           )}
         </cx-dropdown>
-      </FlexWrapper>
-      <FlexWrapper>
+      </cx-space>
+      <cx-space
+        alignItems="center"
+        spacing="2x-small"
+        wrap="nowrap"
+        style={{ marginLeft: 'auto' }}
+      >
         <cx-line-clamp lines={1}>
           <cx-typography variant="body3">
             {currentCount} of {totalCount}
@@ -507,7 +515,7 @@ const ControlBar: FC<Props> = ({
             ))}
           </cx-menu>
         </cx-dropdown>
-      </FlexWrapper>
+      </cx-space>
     </Container>
   );
 };

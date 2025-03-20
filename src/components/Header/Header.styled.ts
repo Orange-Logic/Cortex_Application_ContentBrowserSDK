@@ -24,8 +24,7 @@ export const Container = styled('cx-space')<CxSpaceProps & { bordered?: boolean 
   }
 
   .header {
-    display: flex;
-    justify-content: space-between;
+    flex-wrap: nowrap;
     width: 100%;
   }
 

@@ -3,6 +3,7 @@ import styled from 'styled-components';
 export const Container = styled.div`
   display: flex;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: var(--cx-spacing-small);
   width: 100%;
 
@@ -12,7 +13,7 @@ export const Container = styled.div`
   cx-input {
     min-width: 160px;
     max-width: 300px;
-    width: 100%;
+    flex: 1;
   }
 
   cx-menu-item.selected::part(label),
@@ -73,10 +74,4 @@ export const Container = styled.div`
       display: none;
     }
   }
-`;
-
-export const FlexWrapper = styled.div`
-  display: flex;
-  align-items: center;
-  gap: var(--cx-spacing-2x-small);
 `;

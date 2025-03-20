@@ -4,9 +4,11 @@ import styled from 'styled-components';
 export const Dialog = styled('cx-dialog')<CxDialogProps>`
   --body-spacing: var(--cx-spacing-small);
   --max-height: 100%;
+  --width: 90%;
 
   &::part(panel) {
-    max-height: calc(var(--max-height) - var(--cx-spacing-2x-large))
+    max-height: calc(var(--max-height) - var(--cx-spacing-2x-large));
+    max-width: 520px;
   }
 
   &::part(body) {

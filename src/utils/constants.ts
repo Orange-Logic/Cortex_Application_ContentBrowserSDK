@@ -9,3 +9,4 @@ export const LOGIN_GRAPHICS_TOP_COLOR_BASE64 =
 export const PAGE_SIZE = 10;
 export const ASSET_CARD_SIZE = 350;
 export const FORMAT_DIALOG_PREVIEW_SIZE = 350;
+export const MOBILE_THRESHOLD = 480;

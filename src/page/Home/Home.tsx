@@ -20,7 +20,7 @@ import { explorePath, RootFolder } from '@/store/search/search.slice';
 import {
   Asset, Filter, Folder, GetAssetLinkResponse, GridView, SortDirection,
 } from '@/types/search';
-import { PAGE_SIZE } from '@/utils/constants';
+import { MOBILE_THRESHOLD, PAGE_SIZE } from '@/utils/constants';
 import { getData, storeData } from '@/utils/storage';
 import { CxResizeEvent, CxResizeObserver } from '@/web-component';
 import { skipToken } from '@reduxjs/toolkit/query';
@@ -298,7 +298,7 @@ const HomePage: FC<Props> = () => {
     storeData('selectedView', state.view);
   }, [state.view, state.sortOrder, state.sortDirection]);
 
-  const isMobile = state.containerSize.width <= 400;
+  const isMobile = state.containerSize.width <= MOBILE_THRESHOLD;
 
   const onItemSelect = (item: Asset) => {
     dispatch({ type: 'SET_SELECTED_ASSET', payload: item });
