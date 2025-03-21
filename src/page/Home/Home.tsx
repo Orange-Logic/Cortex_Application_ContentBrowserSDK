@@ -478,6 +478,7 @@ const HomePage: FC<Props> = () => {
     <cx-resize-observer ref={resizeObserverRef}>
       <Container ref={containerRef}>
         <Header
+          authenticated={authenticated}
           bordered={state.hasScrolled}
           currentFolder={state.currentFolder}
           onHomeSelect={() => {

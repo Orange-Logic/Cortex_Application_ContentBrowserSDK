@@ -5,7 +5,7 @@ import { useAppSelector } from '@/store';
 import { authenticatedSelector } from '@/store/auth/auth.slice';
 
 const Authenticate = lazy(() => import('@/page/Authenticate'));
-const HomePage = lazy(() => import('@/page/Home'));
+const Home = lazy(() => import('@/page/Home'));
 
 type Props = {
   multiSelect?: boolean;
@@ -16,7 +16,7 @@ const AssetsPicker: FC<Props> = ({ multiSelect } : Props) => {
 
   return (
     <Suspense fallback={<Loader />}>
-      {isAuthenticated ? <HomePage multiSelect={multiSelect} /> : <Authenticate />}
+      {isAuthenticated ? <Home multiSelect={multiSelect} /> : <Authenticate />}
     </Suspense>
   );
 };

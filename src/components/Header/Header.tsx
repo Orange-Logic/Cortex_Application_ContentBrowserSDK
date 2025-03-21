@@ -1,4 +1,4 @@
-import { CSSProperties, FC, ReactNode, useContext, useMemo } from 'react';
+import { CSSProperties, FC, ReactNode, useContext, useEffect, useMemo } from 'react';
 
 import { AppContext } from '@/AppContext';
 import { GlobalConfigContext } from '@/GlobalConfigContext';
@@ -8,6 +8,7 @@ import { Folder } from '@/types/search';
 import { Container } from './Header.styled';
 
 type Props = {
+  authenticated: boolean;
   bordered?: boolean;
   children?: ReactNode;
   currentFolder: Folder;
@@ -16,10 +17,24 @@ type Props = {
   onLogout: () => void;
 };
 
-const Header: FC<Props> = ({ bordered, children, currentFolder, onHomeSelect, onMenuClick, onLogout }) => {
+const Header: FC<Props> = ({
+  authenticated,
+  bordered,
+  children,
+  currentFolder,
+  onHomeSelect,
+  onMenuClick,
+  onLogout,
+}) => {
   const { isGABPopedup } = useContext(GlobalConfigContext);
   const { onClose } = useContext(AppContext);
-  const { data, isFetching, isLoading } = useGetUserInfoQuery({});
+  const { data, isFetching, isLoading, refetch: refetchUserInfo } = useGetUserInfoQuery({});
+
+  useEffect(() => {
+    if (authenticated) {
+      refetchUserInfo();
+    }
+  }, [authenticated, refetchUserInfo]);
 
   const title = useMemo(() => {
     if (!currentFolder.fullPath) {
@@ -31,7 +46,7 @@ const Header: FC<Props> = ({ bordered, children, currentFolder, onHomeSelect, on
     }
 
     return (
-      <cx-space direction="horizontal" alignItems="center" spacing="2x-small">
+      <cx-space direction="horizontal" align-items="center" spacing="2x-small">
         <cx-tooltip content="Home">
           <cx-icon-button name="home" onClick={onHomeSelect}></cx-icon-button>
         </cx-tooltip>
@@ -78,7 +93,12 @@ const Header: FC<Props> = ({ bordered, children, currentFolder, onHomeSelect, on
 
   return (
     <Container direction="vertical" spacing="small" bordered={bordered}>
-      <cx-space className="header" justifyContent="space-between" alignItems="center" spacing="2x-small">
+      <cx-space
+        className="header"
+        justify-content="space-between"
+        align-items="center"
+        spacing="2x-small"
+      >
         <div className="header__title">
           <cx-icon-button
             name="menu"
@@ -90,7 +110,11 @@ const Header: FC<Props> = ({ bordered, children, currentFolder, onHomeSelect, on
         <div className="header__menu">
           {Dropdown}
           {isGABPopedup && (
-            <cx-icon-button name="close" label="Close" onClick={onClose}></cx-icon-button>
+            <cx-icon-button
+              name="close"
+              label="Close"
+              onClick={onClose}
+            ></cx-icon-button>
           )}
         </div>
       </cx-space>
