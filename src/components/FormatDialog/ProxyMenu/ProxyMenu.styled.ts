@@ -25,6 +25,10 @@ export const Container = styled('cx-menu')<CxMenuProps>`
     }
 
     &::part(suffix) {
+      color: var(--cx-color-neutral-600);
+    }
+
+    .icon--primary {
       color: var(--cx-color-primary);
     }
 
@@ -61,6 +65,7 @@ export const Container = styled('cx-menu')<CxMenuProps>`
     }
 
     .proxy__details {
+      --color: var(--cx-color-neutral-500);
       &::part(base) {
         display: flex;
         align-items: center;
@@ -73,7 +78,7 @@ export const Container = styled('cx-menu')<CxMenuProps>`
       width: 3px;
       height: 3px;
       border-radius: 50%;
-      background-color: var(--cx-color-neutral);
+      background-color: var(--cx-color-neutral-500);
     }
 
     &:not(:last-child) {

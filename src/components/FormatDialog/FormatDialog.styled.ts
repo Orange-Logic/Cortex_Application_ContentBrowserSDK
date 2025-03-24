@@ -66,6 +66,10 @@ export const Dialog = styled('cx-dialog')<CxDialogProps>`
   cx-line-clamp {
     word-break: break-all;
   }
+
+  .asset-name {
+    color: var(--cx-color-neutral-500);
+  }
 `;
 
 export const Drawer = styled('cx-drawer')<CxDrawerProps>`
@@ -125,5 +129,9 @@ export const Drawer = styled('cx-drawer')<CxDrawerProps>`
 
   cx-line-clamp {
     word-break: break-all;
+  }
+
+  .asset-name {
+    --color: var(--cx-color-neutral-500);
   }
 `;

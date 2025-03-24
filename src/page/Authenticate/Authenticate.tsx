@@ -96,7 +96,7 @@ const AuthenticatePage = () => {
         <cx-space
           direction="vertical"
           spacing="medium"
-          alignItems="center"
+          align-items="center"
         >
           <cx-typography variant="h2">
             Welcome to the OrangeDAM Asset Browser
@@ -123,7 +123,7 @@ const AuthenticatePage = () => {
             }}
           ></cx-input>
           <cx-space
-            justifyContent="flex-end"
+            justify-content="flex-end"
             style={{
               width: '100%',
             }}

@@ -712,6 +712,8 @@ const FormatDialog: FC<Props> = ({
     );
     const supportedProxies = availableProxies && Object.values(availableProxies).flat().length > 0;
 
+    const showCustomDimension = state.selectedFormat.width && state.selectedFormat.height && state.useCustomRendition;
+
     const renderBody = () => {
       let previewer =  null;
       let rendition = null;
@@ -815,7 +817,7 @@ const FormatDialog: FC<Props> = ({
                         items={Object.entries(proxies).map(([, proxy]) => {
                           if (proxy.proxyName === 'TRX' && selectedAsset) {
                             return {
-                              value: `${proxy.proxyName}-${selectedAsset.extension}`,
+                              value: `${proxy.proxyName}`,
                               name: proxy.proxyLabel,
                               width: selectedAsset.width,
                               height: selectedAsset.height,
@@ -853,21 +855,36 @@ const FormatDialog: FC<Props> = ({
                 {supportedATS && (
                   <ProxyMenu items={[]} selectedItem={state.selectedProxy}>
                     <cx-menu-item value="custom">
-                      <cx-icon slot="prefix" name="crop_rotate"></cx-icon>
-                      <cx-typography
-                        variant="body3"
-                        className={`proxy__name ${
-                          state.useCustomRendition ? 'selected' : ''
-                        }`}
-                      >
-                        Custom format
-                      </cx-typography>
-                      {
-                        <cx-icon
-                          slot="suffix"
-                          name={state.useCustomRendition ? 'check' : ''}
-                        ></cx-icon>
-                      }
+                      <cx-icon slot="prefix" name="crop_rotate" className='icon--large'></cx-icon>
+                      <div>
+                        <cx-typography
+                          variant="body3"
+                          className={`proxy__name ${
+                            state.useCustomRendition ? 'selected' : ''
+                          }`}
+                        >
+                          Custom format
+                        </cx-typography>
+                        {showCustomDimension && (
+                          <cx-typography variant="body3" className="proxy__details">
+                            {state.selectedFormat.width} x {state.selectedFormat.height}
+                            {state.selectedFormat.extension && (
+                              <div className="proxy__extension-dot"></div>
+                            )}
+                            {state.selectedFormat.extension?.replace(/^\./, '').toUpperCase()}
+                          </cx-typography>
+                        )}
+                      </div>
+                      <cx-icon
+                        slot="suffix"
+                        name={state.useCustomRendition ? 'edit' : ''}
+                        className='icon--large'
+                      ></cx-icon>
+                      <cx-icon
+                        slot="suffix"
+                        name={state.useCustomRendition ? 'check' : ''}
+                        className='icon--large icon--primary'
+                      ></cx-icon>
                     </cx-menu-item>
                   </ProxyMenu>
                 )}
@@ -1003,7 +1020,7 @@ const FormatDialog: FC<Props> = ({
       <>
         <cx-space slot="label" direction="vertical" spacing="2x-small">
           <cx-typography variant="h4">Formats</cx-typography>
-          <cx-typography variant="body3">
+          <cx-typography variant="body3" className='asset-name'>
             <cx-line-clamp lines={1}>{selectedAsset?.name}</cx-line-clamp>
           </cx-typography>
         </cx-space>

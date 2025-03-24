@@ -39,7 +39,7 @@ const Facet: FC<Props> = ({
     <cx-details open className="filter-details">
       <cx-space
         slot="summary"
-        alignItems="center"
+        align-items="center"
         spacing="x-small"
         wrap="nowrap"
       >

@@ -11,8 +11,8 @@ const ConnectingBackground: FC<Props> = ({ children, footer, onCancel }) => {
     <cx-space
       direction="vertical"
       spacing="large"
-      alignItems="center"
-      justifyContent="center"
+      align-items="center"
+      justify-content="center"
       style={{
         height: '100%',
         overflowY: 'auto',
@@ -22,7 +22,7 @@ const ConnectingBackground: FC<Props> = ({ children, footer, onCancel }) => {
     >
       {children}
 
-      <cx-space direction="vertical" alignItems="center">
+      <cx-space direction="vertical" align-items="center">
         <cx-spinner
           style={{
             '--indicator-color': 'var(--cx-color-neutral)',

@@ -88,4 +88,11 @@ export const Card = styled('cx-card')<CxCardProps>`
       max-width: 100%;
     }
   }
+
+  .asset-card__secondary-info {
+    color: var(--cx-color-neutral-500);
+    * {
+      line-height: var(--cx-line-height-small);
+    }
+  }
 `;

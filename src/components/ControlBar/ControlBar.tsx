@@ -240,7 +240,7 @@ const ControlBar: FC<Props> = ({
       >
         <cx-space
           slot="summary"
-          alignItems="center"
+          align-items="center"
           spacing="x-small"
           wrap="nowrap"
         >
@@ -254,6 +254,7 @@ const ControlBar: FC<Props> = ({
               removable
               data-value={item}
               data-type={TYPE.type}
+              size='small'
             >
               {item.toLowerCase()}
             </cx-tag>
@@ -264,6 +265,7 @@ const ControlBar: FC<Props> = ({
               removable
               data-value={item}
               data-type={TYPE.visibilityClass}
+              size='small'
             >
               {item.toLowerCase()}
             </cx-tag>
@@ -274,6 +276,7 @@ const ControlBar: FC<Props> = ({
               removable
               data-value={item}
               data-type={TYPE.status}
+              size='small'
             >
               {item.toLowerCase()}
             </cx-tag>
@@ -284,6 +287,7 @@ const ControlBar: FC<Props> = ({
               removable
               data-value={item}
               data-type={TYPE.extension}
+              size='small'
             >
               {item.toLowerCase()}
             </cx-tag>
@@ -296,8 +300,8 @@ const ControlBar: FC<Props> = ({
   return (
     <Container>
       <cx-space
-        alignItems="center"
-        spacing="2x-small"
+        align-items="center"
+        spacing="x-small"
         wrap="nowrap"
         style={{
           flex: 1,
@@ -308,8 +312,9 @@ const ControlBar: FC<Props> = ({
           defaultValue={searchText}
           placeholder="Search..."
           clearable
+          className='search-input'
         >
-          <cx-icon name="search" slot="prefix"></cx-icon>
+          <cx-icon name="search" slot="prefix" className="icon--large"></cx-icon>
         </cx-input>
         <cx-dropdown ref={filterDropdownRef}>
           <div slot="trigger">
@@ -350,8 +355,8 @@ const ControlBar: FC<Props> = ({
         </cx-dropdown>
       </cx-space>
       <cx-space
-        alignItems="center"
-        spacing="2x-small"
+        align-items="center"
+        spacing="x-small"
         wrap="nowrap"
         style={{ marginLeft: 'auto' }}
       >

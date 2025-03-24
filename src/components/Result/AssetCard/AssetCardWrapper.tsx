@@ -123,7 +123,7 @@ export const AssetCardWrapper: FC<Props> = ({
     } else if (!isLoadingData) {
       return (
         <div className="wrapper__content__empty">
-          <NoResult icon="folder_off" message="No matching results" />
+          <NoResult icon="search_off" message="No matching results" />
         </div>
       );
     }

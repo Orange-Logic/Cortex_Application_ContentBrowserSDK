@@ -52,6 +52,7 @@ export const Container = styled.div`
 
       &::part(item--selected) {
         background-color: transparent;
+        color: var(--cx-color-neutral-700);
       }
     }
   }

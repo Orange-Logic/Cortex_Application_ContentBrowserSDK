@@ -9,7 +9,7 @@ type Props = {
 
 const Loader: FC<Props> = ({ message, children }) => {
   return (
-    <cx-space direction="vertical" alignItems="center">
+    <cx-space direction="vertical" align-items="center">
       <cx-spinner
         style={
           {

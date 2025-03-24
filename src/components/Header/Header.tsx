@@ -12,7 +12,6 @@ type Props = {
   bordered?: boolean;
   children?: ReactNode;
   currentFolder: Folder;
-  onHomeSelect?: () => void;
   onMenuClick: () => void;
   onLogout: () => void;
 };
@@ -22,7 +21,6 @@ const Header: FC<Props> = ({
   bordered,
   children,
   currentFolder,
-  onHomeSelect,
   onMenuClick,
   onLogout,
 }) => {
@@ -47,13 +45,10 @@ const Header: FC<Props> = ({
 
     return (
       <cx-space direction="horizontal" align-items="center" spacing="2x-small">
-        <cx-tooltip content="Home">
-          <cx-icon-button name="home" onClick={onHomeSelect}></cx-icon-button>
-        </cx-tooltip>
         <cx-typography variant="h4">{currentFolder.title}</cx-typography>
       </cx-space>
     );
-  }, [currentFolder, onHomeSelect]);
+  }, [currentFolder]);
 
   const Dropdown = useMemo(() => {
     return isLoading || isFetching ? (
@@ -93,19 +88,16 @@ const Header: FC<Props> = ({
 
   return (
     <Container direction="vertical" spacing="small" bordered={bordered}>
-      <cx-space
-        className="header"
-        justify-content="space-between"
-        align-items="center"
-        spacing="2x-small"
-      >
+      <cx-space className="header" justify-content="space-between" align-items="center">
         <div className="header__title">
-          <cx-icon-button
-            name="menu"
-            label="Menu"
-            onClick={onMenuClick}
-          ></cx-icon-button>
-          {title}
+          <cx-space className="header" justify-content="space-between" align-items="center" spacing="x-small">
+            <cx-icon-button
+              name="menu"
+              label="Menu"
+              onClick={onMenuClick}
+            ></cx-icon-button>
+            {title}
+          </cx-space>
         </div>
         <div className="header__menu">
           {Dropdown}

@@ -220,8 +220,9 @@ const Browser: FC<Props> = ({
             placeholder="Search..."
             clearable
             autoFocus={focusInput}
+            className='search-input'
           >
-            <cx-icon name="search" slot="prefix"></cx-icon>
+            <cx-icon name="search" slot="prefix" className="icon--large"></cx-icon>
           </cx-input>
           <div className="browser__folders">
             <cx-tree ref={treeRef}>{renderFolders()}</cx-tree>

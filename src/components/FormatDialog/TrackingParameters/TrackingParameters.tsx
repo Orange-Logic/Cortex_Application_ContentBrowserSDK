@@ -26,7 +26,7 @@ const TrackingParameters: FC<Props> = ({
   return (
     <cx-space direction="vertical" spacing="medium" className="dialog__tracking">
       {values.map((param, index) => (
-        <cx-space key={index} spacing="small" wrap="nowrap" alignItems="center">
+        <cx-space key={index} spacing="small" wrap="nowrap" align-items="center">
           <cx-input-group>
             <cx-input
               label="Key"

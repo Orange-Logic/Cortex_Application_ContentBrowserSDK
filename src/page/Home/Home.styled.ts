@@ -10,4 +10,22 @@ export const Container = styled.div`
   overflow: hidden;
   position: relative;
   transition: opacity ease-in 0.2s;
+
+  .icon--large {
+    font-size: var(--cx-input-font-size-large);
+  }
+
+  .search-input{
+    &::part(input) {
+      padding-right: var(--cx-spacing-x-small);
+      padding-left: var(--cx-spacing-x-small);
+    }
+  }
+
+  cx-line-clamp {
+    line-height: var(--cx-line-height-small);
+    &::part(content) {
+      line-height: var(--cx-line-height-small);
+    }
+  }
 `;
