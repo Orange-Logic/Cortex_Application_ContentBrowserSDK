@@ -1,3 +1,4 @@
+import { forwardRef } from 'react';
 import AutoSizer, { Size } from 'react-virtualized-auto-sizer';
 
 import NoResult from '@/components/NoResult';
@@ -18,7 +19,7 @@ type ResultsProps = {
   onScroll: (e: MouseEvent) => void;
 };
 
-const Results = ({
+const Results = forwardRef<HTMLDivElement, ResultsProps>(({
   selectedAsset,
   view,
   hasNextPage,
@@ -28,7 +29,7 @@ const Results = ({
   onItemSelect,
   onLoadMore,
   onScroll,
-}: ResultsProps) => {
+}, ref) => {
   if (isError) {
     return (
       <NoResult
@@ -39,7 +40,7 @@ const Results = ({
   }
 
   return (
-    <Container>
+    <Container ref={ref}>
       <AutoSizer>
         {({ height, width }: Size) => (
           <AssetCardWrapper
@@ -58,6 +59,6 @@ const Results = ({
       </AutoSizer>
     </Container>
   );
-};
+});
 
 export default Results;

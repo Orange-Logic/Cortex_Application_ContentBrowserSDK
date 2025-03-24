@@ -1,5 +1,5 @@
 import _intersection from 'lodash-es/intersection';
-import isEqual from 'lodash-es/isEqual';
+import _isEqual from 'lodash-es/isEqual';
 import { FC, useCallback, useContext, useEffect, useMemo, useReducer, useRef } from 'react';
 
 import { AppContext } from '@/AppContext';
@@ -46,6 +46,7 @@ type State = {
   mediaTypes: string[];
   openBrowser: boolean;
   page: number;
+  pageSize: number;
   searchText: string;
   selectedAsset: Asset | null;
   shouldResetFilters: boolean;
@@ -70,6 +71,7 @@ type Action =
   | { type: 'SET_IS_SEE_THROUGH'; payload: boolean }
   | { type: 'SET_OPEN_BROWSER'; payload: boolean }
   | { type: 'SET_PAGE'; payload: number }
+  | { type: 'SET_PAGE_SIZE'; payload: number }
   | { type: 'SET_SEARCH_TEXT'; payload: string }
   | { type: 'SET_SELECTED_ASSET'; payload: Asset | null }
   | { type: 'SET_SORT_DIRECTION'; payload: 'ascending' | 'descending' }
@@ -93,6 +95,7 @@ const initialState: State = {
   mediaTypes: [],
   openBrowser: false,
   page: 0,
+  pageSize: PAGE_SIZE,
   searchText: '',
   selectedAsset: null,
   shouldResetFilters: true,
@@ -136,8 +139,19 @@ const reducer = (state: State, action: Action): State => {
       return { ...state, isSeeThrough: action.payload, page: 0 };
     case 'SET_OPEN_BROWSER':
       return { ...state, openBrowser: action.payload };
-    case 'SET_PAGE':
-      return { ...state, page: state.page + action.payload };
+    case 'SET_PAGE':{
+      let newPage = state.page + action.payload;
+      const newStart = newPage * PAGE_SIZE;
+
+      // Check if the new page is already loaded
+      if (newStart < state.pageSize) {
+        // If the new page is already loaded, set the page to the last page
+        newPage = state.pageSize / PAGE_SIZE;
+      }
+      return { ...state, page: newPage };
+    }
+    case 'SET_PAGE_SIZE':
+      return { ...state, pageSize: action.payload };
     case 'SET_SEARCH_TEXT':
       return { ...state, page: 0, searchText: action.payload };
     case 'SET_SELECTED_ASSET':
@@ -180,7 +194,7 @@ const HomePage: FC<Props> = () => {
     useSession,
   } = useContext(GlobalConfigContext);
   const { extraFields } = useContext(AppContext);
-  const { data: availableProxies } = useGetAvailableProxiesQuery(state.selectedAsset ? {
+  const { data: availableProxies, isFetching: isFetchingAvailableProxies } = useGetAvailableProxiesQuery(state.selectedAsset ? {
     assetImages: state.selectedAsset ? [state.selectedAsset] : [],
   } : skipToken);
   const { data: params } = useGetParametersQuery({
@@ -198,7 +212,9 @@ const HomePage: FC<Props> = () => {
   });
 
   const containerRef = useRef<HTMLDivElement>(null);
-  const resizeObserverRef = useRef<CxResizeObserver>(null);
+  const resultRef = useRef<HTMLDivElement>(null);
+  const containerResizeObserverRef = useRef<CxResizeObserver>(null);
+  const resultResizeObserverRef = useRef<CxResizeObserver>(null);
   const loadedFromStorage = useRef(false);
   const facetsRef = useRef<Record<string, Record<string, number>>>({});
   const appDispatch = useAppDispatch();
@@ -228,6 +244,7 @@ const HomePage: FC<Props> = () => {
     isSeeThrough: state.isSeeThrough,
     mediaTypes: mappedMediaTypes,
     page: state.page,
+    pageSize: state.pageSize,
     searchText: state.searchText,
     sortOrder: selectedSortOrder.id,
     statuses: state.statuses ?? [],
@@ -279,7 +296,7 @@ const HomePage: FC<Props> = () => {
   }, [authenticated]);
 
   useEffect(() => {
-    const resizeObserver = resizeObserverRef.current;
+    const resizeObserver = containerResizeObserverRef.current;
     if (!resizeObserver) {
       return;
     }
@@ -345,10 +362,9 @@ const HomePage: FC<Props> = () => {
             payload: value as SortDirection,
           });
           break;
-        case 'sortOrder': {
+        case 'sortOrder':
           dispatch({ type: 'SET_SORT_ORDER', payload: value.toString() });
           break;
-        }
         case 'isSeeThrough':
           dispatch({ type: 'SET_IS_SEE_THROUGH', payload: Boolean(value) });
           break;
@@ -398,7 +414,7 @@ const HomePage: FC<Props> = () => {
           });
         });
 
-        if (isEqual(newFacets, facetsRef.current)) {
+        if (_isEqual(newFacets, facetsRef.current)) {
           return;
         }
 
@@ -432,6 +448,7 @@ const HomePage: FC<Props> = () => {
 
   const onLoadMore = useCallback(() => {
     dispatch({ type: 'SET_PAGE', payload: 1 });
+    dispatch({ type: 'SET_PAGE_SIZE', payload: PAGE_SIZE });
   }, []);
 
   const onScroll = useCallback((e: MouseEvent) => {
@@ -474,8 +491,60 @@ const HomePage: FC<Props> = () => {
     }
   }, [data, onDataChange]);
 
+  useEffect(() => {
+    const container = resultRef.current;
+    const resizeObserver = resultResizeObserverRef.current;
+    if (!resizeObserver || !container) {
+      return;
+    }
+
+    const handleResize = () => {
+      const containerWidth = container.clientWidth || 0;
+      const containerHeight = container.clientHeight || 0;
+      const gutter = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--cx-spacing-medium'), 10);
+      let breakpoint;
+      if (state.view === GridView.Small) {
+        breakpoint = 130;
+      } else if (state.view === GridView.Medium) {
+        breakpoint = 190;
+      } else {
+        breakpoint = 302;
+      }
+      const columnCount = Math.max(1, Math.ceil((containerWidth + gutter) / (breakpoint + gutter)));
+      const rowCount = Math.ceil(containerHeight / (breakpoint + gutter));
+      const newPageSize = Math.ceil((rowCount * columnCount) / PAGE_SIZE + 1) * PAGE_SIZE;
+      if (newPageSize !== state.pageSize) {
+        dispatch({ type: 'SET_PAGE_SIZE', payload: newPageSize });
+      }
+    };
+
+    const onResize = (e: CxResizeEvent) => {
+      const entries = e.detail.entries;
+
+      if (state.page > 0) {
+        return;
+      }
+
+      window.requestAnimationFrame((): void | undefined => {
+        if (!Array.isArray(entries) || !entries.length) {
+          return;
+        }
+        if (entries[0].target === container) {
+          handleResize();
+        }
+      });
+    };
+
+    resizeObserver.addEventListener('cx-resize', onResize);
+    handleResize();
+
+    return () => {
+      resizeObserver.removeEventListener('cx-resize', onResize);
+    };
+  }, [state.page, state.pageSize, state.view]);
+
   return (
-    <cx-resize-observer ref={resizeObserverRef}>
+    <cx-resize-observer ref={containerResizeObserverRef}>
       <Container ref={containerRef}>
         <Header
           authenticated={authenticated}
@@ -520,29 +589,32 @@ const HomePage: FC<Props> = () => {
           onFolderSelect={onFolderSelect}
           onClose={() => dispatch({ type: 'SET_OPEN_BROWSER', payload: false })}
         />
-        <Results
-          key={
-            state.currentFolder.id +
-            state.searchText +
-            state.mediaTypes.join('+') +
-            state.extensions.join('+') +
-            state.statuses.join('+') +
-            state.visibilityClasses.join('+') +
-            state.isSeeThrough
-          }
-          hasNextPage={hasNextPage || false}
-          isError={isError}
-          isLoading={state.isLoading}
-          items={data?.items || []}
-          selectedAsset={state.selectedAsset}
-          view={state.view}
-          onItemSelect={onItemSelect}
-          onLoadMore={onLoadMore}
-          onScroll={onScroll}
-        />
+        <cx-resize-observer ref={resultResizeObserverRef}>
+          <Results
+            ref={resultRef}
+            key={
+              state.currentFolder.id +
+              state.searchText +
+              state.mediaTypes.join('+') +
+              state.extensions.join('+') +
+              state.statuses.join('+') +
+              state.visibilityClasses.join('+') +
+              state.isSeeThrough
+            }
+            hasNextPage={hasNextPage || false}
+            isError={isError}
+            isLoading={state.isLoading}
+            items={data?.items || []}
+            selectedAsset={state.selectedAsset}
+            view={state.view}
+            onItemSelect={onItemSelect}
+            onLoadMore={onLoadMore}
+            onScroll={onScroll}
+          />
+        </cx-resize-observer>
         <FormatDialog
           allowCustomFormat={!!ATSEnabled}
-          availableProxies={availableProxies?.proxiesForDocType}
+          availableProxies={isFetchingAvailableProxies ? undefined : availableProxies?.proxiesForDocType}
           ctaText={ctaText}
           extensions={supportedExtensions ?? []}
           maxHeight={state.containerSize.height}

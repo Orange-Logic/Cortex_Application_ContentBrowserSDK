@@ -42,6 +42,7 @@ export type GetContentRequest = {
   isSeeThrough: boolean;
   mediaTypes: string[];
   page: number;
+  pageSize: number;
   searchText: string;
   sortOrder?: string;
   statuses: string[];

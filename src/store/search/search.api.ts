@@ -8,7 +8,6 @@ import {
 } from '@/consts/data';
 import { Asset, Folder, GetContentRequest, GetContentResponse } from '@/types/search';
 import { AppBaseQuery, GetValueByKeyCaseInsensitive } from '@/utils/api';
-import { PAGE_SIZE } from '@/utils/constants';
 import { isNullOrWhiteSpace } from '@/utils/string';
 import { createApi } from '@reduxjs/toolkit/query/react';
 
@@ -190,6 +189,7 @@ export const searchApi = createApi({
         isSeeThrough,
         mediaTypes,
         page,
+        pageSize,
         searchText,
         sortOrder,
         statuses,
@@ -220,8 +220,8 @@ export const searchApi = createApi({
           ],
           ['orderBy', sortOrder],
           ['seeThru', isSeeThrough],
-          ['start', page * PAGE_SIZE],
-          ['limit', PAGE_SIZE],
+          ['start', page * pageSize],
+          ['limit', pageSize],
         ];
         if (mappedMediaTypes.length) {
           params.push(...mappedMediaTypes);

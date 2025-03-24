@@ -68,8 +68,6 @@ export const AssetCardWrapper: FC<Props> = ({
         breakpoint = 302;
       }
 
-
-
       if (hasNextPage) {
         const columnCount = calculateColumnCount();
         const rowCount = Math.ceil(items.length / columnCount);
@@ -82,7 +80,6 @@ export const AssetCardWrapper: FC<Props> = ({
     };
 
     window.addEventListener('resize', handleResize);
-    handleResize();
 
     return () => {
       window.removeEventListener('resize', handleResize);
