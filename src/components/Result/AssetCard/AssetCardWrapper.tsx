@@ -49,11 +49,11 @@ export const AssetCardWrapper: FC<Props> = ({
   const calculateColumnCount = useCallback(() => {
     const actualWidth = ref.current?.getScrollableTarget()?.children[0].clientWidth ?? width;
     if (view === GridView.Small) {
-      return Math.max(1, Math.floor((actualWidth + gutter) / (130 + gutter)));
+      return Math.max(1, Math.ceil((actualWidth + gutter) / (130 + gutter)));
     } else if (view === GridView.Medium) {
-      return Math.max(1, Math.floor((actualWidth + gutter) / (190 + gutter)));
+      return Math.max(1, Math.ceil((actualWidth + gutter) / (190 + gutter)));
     } else {
-      return Math.max(1, Math.floor((actualWidth + gutter) / (302 + gutter)));
+      return Math.max(1, Math.ceil((actualWidth + gutter) / (302 + gutter)));
     }
   }, [gutter, view, width]);
 
