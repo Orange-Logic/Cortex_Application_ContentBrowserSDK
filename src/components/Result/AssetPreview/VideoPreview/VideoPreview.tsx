@@ -1,4 +1,4 @@
-import { FC, useEffect, useRef } from 'react';
+import { FC, useCallback, useEffect, useRef, useState } from 'react';
 
 import { CxProgressBar } from '@/web-component';
 
@@ -17,7 +17,9 @@ const ViewPreview: FC<Props> = ({
   onError,
   onLoaded,
 }) => {
+  const [assetDirection, setAssetDirection] = useState<'vertical' | 'horizontal'>('horizontal');
   const containerRef = useRef<HTMLDivElement>(null);
+  const imageRef = useRef<HTMLImageElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const progressBarRef = useRef<CxProgressBar>(null);
 
@@ -68,40 +70,43 @@ const ViewPreview: FC<Props> = ({
     };
   }, [thumbnailOnly, thumbnailUrl]);
 
-  useEffect(() => {
-    const video = videoRef.current;
+  const onLoadAsset = useCallback(() => {
+    onLoaded();
 
-    if (!video) {
-      return;
+    if (videoRef.current) {
+      const { videoWidth, videoHeight } = videoRef.current;
+      setAssetDirection(videoWidth > videoHeight ? 'horizontal' : 'vertical');
     }
 
-    video.addEventListener('loadeddata', onLoaded);
-
-    return () => {
-      video.removeEventListener('loadeddata', onLoaded);
-    };
-  }, [thumbnailOnly, onLoaded]);
+    if (imageRef.current) {
+      const { naturalWidth, naturalHeight } = imageRef.current;
+      setAssetDirection(naturalWidth > naturalHeight ? 'horizontal' : 'vertical');
+    }
+  }, [onLoaded]);
 
   return (
-    <div ref={containerRef}>
+    <div
+      ref={containerRef}
+      className={`asset-preview__representative asset-preview__representative--${assetDirection}`}
+    >
       {url && !thumbnailOnly ? (
         <video
           ref={videoRef}
-          className="asset-preview__representative"
           src={url}
           poster={thumbnailUrl}
+          onLoadedMetadata={onLoadAsset}
           onError={() => {
-            onLoaded();
+            onError();
           }}
         >
           <track default kind="captions" srcLang="en" />
         </video>
       ) : (
         <img
-          className="asset-preview__representative"
+          ref={imageRef}
           src={thumbnailUrl}
           alt="Asset preview"
-          onLoad={onLoaded}
+          onLoad={onLoadAsset}
           onError={onError}
         />
       )}

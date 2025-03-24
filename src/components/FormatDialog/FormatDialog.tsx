@@ -1,10 +1,14 @@
-import { CSSProperties, FC, useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
+import {
+  CSSProperties, FC, useCallback, useEffect, useMemo, useReducer, useRef, useState,
+} from 'react';
 
+import { useGetVideoUrlQuery } from '@/store/assets/assets.api';
 import { TrackingParameter, Transformation, TransformationAction, Unit } from '@/types/assets';
-import { Asset } from '@/types/search';
+import { Asset, MediaType } from '@/types/search';
 import { convertPixelsToAspectRatio } from '@/utils/number';
 import { rotateBox } from '@/utils/rotate';
 import { CxDialog, CxDrawer, CxSelectEvent } from '@/web-component';
+import { skipToken } from '@reduxjs/toolkit/query';
 
 import CropPreviewer, { CropPreviewerHandle } from './CropPreviewer';
 import CustomRendition from './CustomRendition';
@@ -301,6 +305,12 @@ const FormatDialog: FC<Props> = ({
   const dialogRef = useRef<CxDialog>(null);
   const drawerRef = useRef<CxDrawer>(null);
   const previewerRef = useRef<CropPreviewerHandle>(null);
+
+  const { data: videoUrl, isFetching, isError } = useGetVideoUrlQuery(
+    selectedAsset?.docType === MediaType.Video
+      ? { id: selectedAsset?.id ?? '' }
+      : skipToken,
+  );
 
   const setDefaultValues = useCallback(() => {
     if (!selectedAsset) {
@@ -718,7 +728,7 @@ const FormatDialog: FC<Props> = ({
       let previewer =  null;
       let rendition = null;
 
-      if (state.selectedFormat.width && state.selectedFormat.height) {
+      if (state.selectedFormat.width && state.selectedFormat.height && selectedAsset?.docType !== MediaType.Video) {
         previewer = (
           <CropPreviewer
             ref={previewerRef}
@@ -749,9 +759,10 @@ const FormatDialog: FC<Props> = ({
             asset={{
               docType: selectedAsset?.docType,
               imageUrl: selectedAsset?.imageUrl,
-              videoUrl:
-                'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+              videoUrl,
             }}
+            isError={isError}
+            isFetching={isFetching}
             onLoad={(size) => {
               if ((selectedAsset?.width && selectedAsset?.height) || !selectedAsset?.imageUrl) {
                 return;
@@ -1035,8 +1046,11 @@ const FormatDialog: FC<Props> = ({
     availableProxies,
     ctaText,
     extensions,
+    isError,
+    isFetching,
     searchInDrive,
     selectedAsset,
+    videoUrl,
     supportedRepresentative,
     onClose,
     onCropChange,

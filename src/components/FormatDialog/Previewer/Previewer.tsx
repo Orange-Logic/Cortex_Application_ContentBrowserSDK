@@ -11,7 +11,9 @@ type Props = {
     docType?: MediaType;
     imageUrl?: string;
     videoUrl?: string;
-  }
+  };
+  isError?: boolean;
+  isFetching?: boolean;
   onLoad?: ({ width, height }: { width: number, height: number }) => void;
 };
 
@@ -21,6 +23,8 @@ const Previewer: FC<Props> = ({
     docType: MediaType.Image,
     imageUrl: '',
   },
+  isError = false,
+  isFetching,
   onLoad,
 }) => {
   const [isLoading, setIsLoading] = useState(false);
@@ -28,14 +32,31 @@ const Previewer: FC<Props> = ({
   const imageRef = useRef<HTMLImageElement>(null);
 
   useEffect(() => {
-    if (asset.imageUrl) {
+    if (asset.imageUrl || isFetching) {
       setIsLoading(true);
     }
-  }, [asset.imageUrl]);
+  }, [asset.imageUrl, isFetching]);
 
   const renderPreview = useCallback(() => {
     if (!loadable) {
       return;
+    }
+
+    const otherPreview = (
+      <OtherPreview
+        type={asset.docType}
+        style={
+          {
+            '--text-font-size': 'var(--cx-font-size-x-large)',
+            '--icon-font-size': '56px',
+            '--gap': 'var(--cx-spacing-small)',
+          } as CSSProperties
+        }
+      />
+    );
+
+    if (isError) {
+      return otherPreview;
     }
 
     if (asset.docType === MediaType.Video && asset.videoUrl) {
@@ -88,17 +109,8 @@ const Previewer: FC<Props> = ({
       );
     }
 
-    return (
-      <OtherPreview
-        type={asset.docType}
-        style={{
-          '--text-font-size': 'var(--cx-font-size-x-large)',
-          '--icon-font-size': '56px',
-          '--gap': 'var(--cx-spacing-small)',
-        } as CSSProperties}
-      />
-    );
-  }, [asset.docType, asset.imageUrl, asset.videoUrl, loadable, onLoad]);
+    return otherPreview;
+  }, [asset.docType, asset.imageUrl, asset.videoUrl, isError, loadable, onLoad]);
 
   return (
       <Container ref={containerRef}>

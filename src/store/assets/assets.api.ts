@@ -134,6 +134,24 @@ export const assetsApi = createApi({
         }, {} as Record<string, SortOrder[]>);
       },
     }),
+    getVideoUrl: builder.query<string, { id: string; useSession?: string }>({
+      query: ({ id, useSession }) => {
+        const params = [['RecordID', id], ['Proxy', 'WebHigh']];
+        if (useSession) {
+          params.push(['UseSession', useSession]);
+        }
+        return {
+          url: '/webapi/extensibility/integrations/gab/assetbrowser/GetAssetLink_4by?',
+          params,
+        };
+      },
+      transformResponse: (response: { imageUrl: string }) => {
+        return response.imageUrl;
+      },
+      serializeQueryArgs: ({ queryArgs }) => {
+        return queryArgs.id;
+      },
+    }),
   }),
 });
 
@@ -145,4 +163,5 @@ export const {
   useGetAvailableProxiesQuery,
   useGetParametersQuery,
   useGetSortOrdersQuery,
+  useGetVideoUrlQuery,
 } = assetsApi;

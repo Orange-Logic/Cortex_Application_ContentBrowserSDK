@@ -12,8 +12,21 @@ export const Container = styled.div`
   }
 
   .asset-preview__representative {
-    max-width: 100%;
-    max-height: 100%;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .asset-preview__representative--horizontal > * {
+    width: 100%;
+    height: auto;
+  }
+
+  .asset-preview__representative--vertical > * {
+    width: auto;
+    height: 100%;
   }
 
   .asset-preview__image-skeleton {
