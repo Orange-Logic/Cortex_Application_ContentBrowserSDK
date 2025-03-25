@@ -4,11 +4,13 @@ import { FC, useCallback, useEffect, useRef, useState } from 'react';
 import { useGetCollectionsQuery, useGetFoldersQuery } from '@/store/search/search.api';
 import { RootFolder } from '@/store/search/search.slice';
 import { Folder } from '@/types/search';
-import { CxChangeEvent, CxDrawer, CxInput, CxMenu, CxSelectEvent, CxSelectionChangeEvent, CxTree } from '@/web-component';
+import {
+  CxChangeEvent, CxDrawer, CxInput, CxMenu, CxSelectEvent, CxSelectionChangeEvent, CxTree,
+} from '@/web-component';
+import { skipToken } from '@reduxjs/toolkit/query';
 
 import { Drawer } from './Browser.styled';
 import BrowserItem from './BrowserItem';
-import { skipToken } from '@reduxjs/toolkit/query';
 
 type Props = {
   collectionPath?: string;
@@ -56,7 +58,7 @@ const Browser: FC<Props> = ({
     if (!searchInput) return;
     const onSearchInput = _debounce((e: CxChangeEvent) => {
       const value = (e.target as CxInput).value;
-      if (searchText !== value) {
+      if (searchText !== value && (value.length > 2 || value.length === 0)) {
         setSearchText(value);
       }
     }, 500);
