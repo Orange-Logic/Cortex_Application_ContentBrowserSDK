@@ -284,6 +284,10 @@ const reducer = (state: State, action: Action): State => {
   }
 };
 
+const getProxyValue = (proxy: Record<string, string>, fallbackExtension: string) => {
+  return proxy.proxyName === 'TRX' ? proxy.proxyName : `${proxy.proxyName}-${proxy.extension?.substring(1) ?? fallbackExtension}`;
+};
+
 const FormatDialog: FC<Props> = ({
   allowCustomFormat,
   availableProxies,
@@ -441,7 +445,7 @@ const FormatDialog: FC<Props> = ({
       if (value) {
         const allProxies = Object.entries(availableProxies ?? {}).map(
           ([_, proxies]) =>
-            Object.values(proxies).map((proxy) => `${proxy.proxyName}-${proxy.extension?.substring(1) ?? selectedAsset?.extension}`),
+            Object.values(proxies).map((proxy) => getProxyValue(proxy, selectedAsset?.extension ?? '')),
         );
 
         if (!allProxies.flat().includes(value)) {
@@ -828,7 +832,7 @@ const FormatDialog: FC<Props> = ({
                         items={Object.entries(proxies).map(([, proxy]) => {
                           if (proxy.proxyName === 'TRX' && selectedAsset) {
                             return {
-                              value: `${proxy.proxyName}`,
+                              value: getProxyValue(proxy, selectedAsset.extension ?? ''),
                               name: proxy.proxyLabel,
                               width: selectedAsset.width,
                               height: selectedAsset.height,
@@ -837,7 +841,7 @@ const FormatDialog: FC<Props> = ({
                             };
                           }
                           return {
-                            value: `${proxy.proxyName}-${proxy.extension?.substring(1)}`,
+                            value: getProxyValue(proxy, selectedAsset?.extension ?? ''),
                             name: proxy.proxyLabel,
                             width: proxy.formatWidth,
                             height: proxy.formatHeight,

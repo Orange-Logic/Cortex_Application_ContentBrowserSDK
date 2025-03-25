@@ -63,6 +63,10 @@ export const Container = styled.div`
     }
   }
 
+  .filter-details .clear-all-button {
+    margin-top: var(--cx-spacing-small);
+  }
+
   .menu-item--switch {
     &::part(label) {
       display: flex;

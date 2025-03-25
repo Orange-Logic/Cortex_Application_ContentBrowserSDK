@@ -125,13 +125,22 @@ export const assetsApi = createApi({
       }),
       providesTags: ['SortOrders'],
       transformResponse: (response: { sortOrders: SortOrder[] }) => {
-        return response.sortOrders.reduce((acc, item) => {
+        const value = response.sortOrders.reduce((acc, item) => {
           const id = sanitizeSortOrder(item.name);
           
           acc[id] = [...(acc[id] ?? []), item];
     
           return acc;
         }, {} as Record<string, SortOrder[]>);
+
+        Object.keys(value).forEach((key) => {
+          const sortOrder = value[key];
+          if (sortOrder.length === 1) {
+            sortOrder[0].sortDirection = 'Mono';
+          }
+        });
+
+        return value;
       },
     }),
     getVideoUrl: builder.query<string, { id: string; useSession?: string }>({

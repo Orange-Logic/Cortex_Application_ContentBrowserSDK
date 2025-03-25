@@ -295,9 +295,36 @@ const ControlBar: FC<Props> = ({
             </cx-tag>
           ))}
         </cx-space>
+        {appliedFilersCount > 0 && (
+          <cx-button 
+            variant="text"
+            className='clear-all-button'
+            onClick={() => {
+              onChangeNewlySelectedFacet('');
+              onSettingChange('filter', {
+                mediaTypes: [],
+                visibilityClasses: [],
+                statuses: [],
+                extensions: [],
+              });
+            }}
+          >
+            Clear all
+            <cx-icon slot="prefix" name="clear" label="Clear"></cx-icon>
+          </cx-button>
+        )}
       </cx-details>
     );
-  }, [extensions, loading, mediaTypes, newlyChangedOption.type, statuses, visibilityClasses]);
+  }, [
+    extensions,
+    loading,
+    mediaTypes,
+    newlyChangedOption.type,
+    statuses,
+    visibilityClasses,
+    onChangeNewlySelectedFacet,
+    onSettingChange,
+  ]);
 
   return (
     <Container>

@@ -413,7 +413,7 @@ const HomePage: FC<Props> = () => {
     } else {
       breakpoint = 302;
     }
-    const columnCount = Math.max(1, Math.ceil((containerWidth + gutter) / (breakpoint + gutter)));
+    const columnCount = Math.max(1, Math.floor((containerWidth + gutter) / (breakpoint + gutter)));
     const rowCount = Math.ceil(containerHeight / (breakpoint + gutter));
     const newPageSize = Math.ceil((rowCount * columnCount) / PAGE_SIZE + 1) * PAGE_SIZE;
     setIsResized(true);
