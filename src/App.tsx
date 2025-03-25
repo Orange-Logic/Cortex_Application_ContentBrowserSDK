@@ -55,7 +55,7 @@ export const App: FC<Props> = ({
     });
 
     const script = document.createElement('script');
-    script.src = 'https://design-system.orangelogic.com/entry.1.0.170.js';
+    script.src = 'https://design-system.orangelogic.com/entry.1.0.175.js';
     script.type = 'module';
     document.head.appendChild(script);
 
