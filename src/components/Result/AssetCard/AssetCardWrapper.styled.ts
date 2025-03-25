@@ -26,4 +26,8 @@ export const Container = styled.div`
       font-size: var(--cx-font-size-3x-large),
     }
   }
+
+  .asset-card__masonry > div {
+    align-items: center;
+  }
 `;

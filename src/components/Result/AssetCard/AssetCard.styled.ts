@@ -1,6 +1,8 @@
 import styled from 'styled-components';
 
+import { ASSET_SIZE } from '@/consts/asset';
 import { CxCardProps } from '@/react-web-component';
+import { GridView } from '@/types/search';
 
 export const Card = styled('cx-card')<CxCardProps>`
   &.asset-card {
@@ -9,6 +11,7 @@ export const Card = styled('cx-card')<CxCardProps>`
     --border-width: 0;
     --padding: 0;
     --image-border-radius: var(--cx-border-radius-medium);
+    width: 100%;
 
     &::part(base) {
       box-shadow: none;
@@ -37,6 +40,18 @@ export const Card = styled('cx-card')<CxCardProps>`
 
     cx-space {
       justify-content: space-between;
+    }
+
+    &.asset-card--small {
+      max-width: ${ASSET_SIZE[GridView.Small].maxWidth}px;
+    }
+
+    &.asset-card--medium {
+      max-width: ${ASSET_SIZE[GridView.Medium].maxWidth}px;
+    }
+
+    &.asset-card--large {
+      max-width: ${ASSET_SIZE[GridView.Large].maxWidth}px;
     }
   }
 

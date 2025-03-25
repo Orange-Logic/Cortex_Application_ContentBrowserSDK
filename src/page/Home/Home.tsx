@@ -48,6 +48,7 @@ import { CxResizeEvent, CxResizeObserver } from '@/web-component';
 import { skipToken } from '@reduxjs/toolkit/query';
 
 import { Container } from './Home.styled';
+import { ASSET_SIZE } from '@/consts/asset';
 
 type Props = {
   multiSelect?: boolean;
@@ -405,14 +406,7 @@ const HomePage: FC<Props> = () => {
     lastHeightRef.current = containerHeight;
     lastWidthRef.current = containerWidth;
     const gutter = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--cx-spacing-medium'), 10);
-    let breakpoint;
-    if (viewRef.current === GridView.Small) {
-      breakpoint = 130;
-    } else if (viewRef.current === GridView.Medium) {
-      breakpoint = 190;
-    } else {
-      breakpoint = 302;
-    }
+    const breakpoint = ASSET_SIZE[viewRef.current]?.minWidth || ASSET_SIZE[GridView.Large].minWidth;
     const columnCount = Math.max(1, Math.floor((containerWidth + gutter) / (breakpoint + gutter)));
     const rowCount = Math.ceil(containerHeight / (breakpoint + gutter));
     const newPageSize = Math.ceil((rowCount * columnCount) / PAGE_SIZE + 1) * PAGE_SIZE;

@@ -56,9 +56,21 @@ const AssetCard: FC<Props> = ({
     return '';
   }, [displayInfo.tags, tags]);
 
+  const assetClassNames = useMemo(() => {
+    const classNames: Record<string, boolean> = {
+      'asset-card': true,
+      selected: isSelected,
+      'asset-card--small': view === GridView.Small,
+      'asset-card--medium': view === GridView.Medium,
+      'asset-card--large': view === GridView.Large,
+    };
+
+    return Object.keys(classNames).filter((key) => classNames[key]).join(' ');
+  }, [isSelected, view]);
+
   return (
     <Card
-      className={`asset-card ${isSelected ? 'selected' : ''}`}
+      className={assetClassNames}
       onClick={() => {
         onItemSelect(asset);
       }}

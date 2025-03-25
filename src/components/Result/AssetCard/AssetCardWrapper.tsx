@@ -8,6 +8,7 @@ import { Asset, GridView } from '@/types/search';
 
 import AssetCard from './AssetCard';
 import { Container } from './AssetCardWrapper.styled';
+import { ASSET_SIZE } from '@/consts/asset';
 
 type Props = {
   // Are there more items to load?
@@ -50,13 +51,8 @@ export const AssetCardWrapper = forwardRef<HTMLDivElement, Props>(({
 
   const calculateColumnCount = useCallback(() => {
     const actualWidth = infiniteScrollRef.current?.getScrollableTarget()?.children[0].clientWidth ?? width;
-    if (view === GridView.Small) {
-      return Math.max(1, Math.floor((actualWidth + gutter) / (130 + gutter)));
-    } else if (view === GridView.Medium) {
-      return Math.max(1, Math.floor((actualWidth + gutter) / (190 + gutter)));
-    } else {
-      return Math.max(1, Math.floor((actualWidth + gutter) / (302 + gutter)));
-    }
+    const breakPoint = ASSET_SIZE[view]?.minWidth || ASSET_SIZE[GridView.Large].minWidth;
+    return Math.max(1, Math.floor((actualWidth + gutter) / (breakPoint + gutter)));
   }, [gutter, view, width]);
 
 
@@ -73,7 +69,7 @@ export const AssetCardWrapper = forwardRef<HTMLDivElement, Props>(({
           next={onLoadMore}
           onScroll={onScroll}
         >
-          <Masonry columnsCount={calculateColumnCount()} gutter={`${gutter}px`}>
+          <Masonry columnsCount={calculateColumnCount()} gutter={`${gutter}px`} className='asset-card__masonry'>
             {items.map((item) => (
               <AssetCard
                 id={item.id}
