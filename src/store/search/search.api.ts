@@ -188,7 +188,7 @@ export const searchApi = createApi({
         folderID,
         isSeeThrough,
         mediaTypes,
-        page,
+        start,
         pageSize,
         searchText,
         sortOrder,
@@ -220,7 +220,7 @@ export const searchApi = createApi({
           ],
           ['orderBy', sortOrder],
           ['seeThru', isSeeThrough],
-          ['start', page * pageSize],
+          ['start', start],
           ['limit', pageSize],
         ];
         if (mappedMediaTypes.length) {
@@ -266,7 +266,6 @@ export const searchApi = createApi({
             id: arg.folderID,
             isSeeThrough: arg.isSeeThrough,
             mediaTypes: arg.mediaTypes,
-            page: arg.page,
             searchText: arg.searchText,
             sortOrder: arg.sortOrder,
             statuses: arg.statuses,
@@ -276,7 +275,7 @@ export const searchApi = createApi({
         ];
       },
       merge: (currentCachedData, responseData, request) => {
-        if (request.arg.page > 0) {
+        if (request.arg.start > 0) {
           currentCachedData.items.push(...responseData.items);
           return currentCachedData;
         } else {
@@ -286,8 +285,18 @@ export const searchApi = createApi({
       forceRefetch({ currentArg, previousArg }) {
         return currentArg !== previousArg;
       },
-      serializeQueryArgs: ({ endpointName }) => {
-        return endpointName;
+      serializeQueryArgs: ({ endpointName, queryArgs }) => {
+        return {
+          endpointName,
+          extensions: queryArgs.extensions,
+          id: queryArgs.folderID,
+          isSeeThrough: queryArgs.isSeeThrough,
+          mediaTypes: queryArgs.mediaTypes,
+          searchText: queryArgs.searchText,
+          sortOrder: queryArgs.sortOrder,
+          statuses: queryArgs.statuses,
+          type: 'ImagesInFolders',
+        };
       },
     }),
   }),

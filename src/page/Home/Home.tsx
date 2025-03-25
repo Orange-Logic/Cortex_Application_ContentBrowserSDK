@@ -1,24 +1,46 @@
+import _debounce from 'lodash-es/debounce';
 import _intersection from 'lodash-es/intersection';
 import _isEqual from 'lodash-es/isEqual';
-import { FC, useCallback, useContext, useEffect, useMemo, useReducer, useRef } from 'react';
+import {
+  FC,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+} from 'react';
+import AutoSizer from 'react-virtualized-auto-sizer';
 
 import { AppContext } from '@/AppContext';
 import { Browser } from '@/components/Browser';
 import ControlBar from '@/components/ControlBar';
 import FormatDialog from '@/components/FormatDialog';
 import Header from '@/components/Header/Header';
-import Results from '@/components/Result/Result';
+import AssetCardWrapper from '@/components/Result/AssetCard';
 import { GlobalConfigContext } from '@/GlobalConfigContext';
 import { useAppDispatch, useAppSelector } from '@/store';
 import {
-  useGetAvailableProxiesQuery, useGetParametersQuery, useGetSortOrdersQuery,
+  useGetAvailableProxiesQuery,
+  useGetParametersQuery,
+  useGetSortOrdersQuery,
 } from '@/store/assets/assets.api';
 import { importAssets, resetImportStatus } from '@/store/assets/assets.slice';
-import { authenticatedSelector, logout, siteUrlSelector } from '@/store/auth/auth.slice';
+import {
+  authenticatedSelector,
+  logout,
+  siteUrlSelector,
+} from '@/store/auth/auth.slice';
 import { useGetAssetsQuery } from '@/store/search/search.api';
 import { explorePath, RootFolder } from '@/store/search/search.slice';
 import {
-  Asset, Filter, Folder, GetAssetLinkResponse, GridView, SortDirection,
+  Asset,
+  Filter,
+  Folder,
+  GetAssetLinkResponse,
+  GridView,
+  SortDirection,
 } from '@/types/search';
 import { MOBILE_THRESHOLD, PAGE_SIZE } from '@/utils/constants';
 import { getData, storeData } from '@/utils/storage';
@@ -45,8 +67,9 @@ type State = {
   isSeeThrough: boolean;
   mediaTypes: string[];
   openBrowser: boolean;
-  page: number;
+  start: number;
   pageSize: number;
+  maxPageSize: number;
   searchText: string;
   selectedAsset: Asset | null;
   shouldResetFilters: boolean;
@@ -70,8 +93,11 @@ type Action =
   | { type: 'SET_IS_LOADING'; payload: boolean }
   | { type: 'SET_IS_SEE_THROUGH'; payload: boolean }
   | { type: 'SET_OPEN_BROWSER'; payload: boolean }
-  | { type: 'SET_PAGE'; payload: number }
-  | { type: 'SET_PAGE_SIZE'; payload: number }
+  | { type: 'SET_START'; payload: number }
+  | { type: 'SET_PAGE_SIZE'; payload: {
+    pageSize: number;
+    returnToFirstPage: boolean;
+  } }
   | { type: 'SET_SEARCH_TEXT'; payload: string }
   | { type: 'SET_SELECTED_ASSET'; payload: Asset | null }
   | { type: 'SET_SORT_DIRECTION'; payload: 'ascending' | 'descending' }
@@ -94,8 +120,9 @@ const initialState: State = {
   isSeeThrough: true,
   mediaTypes: [],
   openBrowser: false,
-  page: 0,
-  pageSize: PAGE_SIZE,
+  start: 0,
+  pageSize: 0,
+  maxPageSize: 0,
   searchText: '',
   selectedAsset: null,
   shouldResetFilters: true,
@@ -109,13 +136,17 @@ const initialState: State = {
 };
 
 const reducer = (state: State, action: Action): State => {
+  const resetPageState = {
+    start: 0,
+    pageSize: state.maxPageSize,
+  };
   switch (action.type) {
     case 'SET_CONTAINER_SIZE':
       return { ...state, containerSize: action.payload };
     case 'SET_CURRENT_COUNT':
       return { ...state, currentCount: action.payload };
     case 'SET_CURRENT_FOLDER':
-      return { ...state, currentFolder: action.payload, page: 0, shouldResetFilters: true };
+      return { ...state, currentFolder: action.payload, shouldResetFilters: true, ...resetPageState };
     case 'SET_FACETS':
       return { ...state, facets: action.payload };
     case 'SET_FILTERS': {
@@ -123,12 +154,12 @@ const reducer = (state: State, action: Action): State => {
 
       return {
         ...state,
-        page: 0,
         mediaTypes: action.payload.mediaTypes,
         visibilityClasses: action.payload.visibilityClasses,
         shouldResetFilters,
         statuses: action.payload.statuses,
         extensions: action.payload.extensions,
+        ...resetPageState,
       };
     }
     case 'SET_HAS_SCROLLED':
@@ -136,30 +167,29 @@ const reducer = (state: State, action: Action): State => {
     case 'SET_IS_LOADING':
       return { ...state, isLoading: action.payload };
     case 'SET_IS_SEE_THROUGH':
-      return { ...state, isSeeThrough: action.payload, page: 0 };
+      return { ...state, isSeeThrough: action.payload, ...resetPageState };
     case 'SET_OPEN_BROWSER':
       return { ...state, openBrowser: action.payload };
-    case 'SET_PAGE':{
-      let newPage = state.page + action.payload;
-      const newStart = newPage * PAGE_SIZE;
-
-      // Check if the new page is already loaded
-      if (newStart < state.pageSize) {
-        // If the new page is already loaded, set the page to the last page
-        newPage = state.pageSize / PAGE_SIZE;
-      }
-      return { ...state, page: newPage };
+    case 'SET_START':{
+      return { ...state, start: state.start + state.pageSize, pageSize: PAGE_SIZE };
     }
     case 'SET_PAGE_SIZE':
-      return { ...state, pageSize: action.payload };
+      const result = { ...state, pageSize: action.payload.pageSize, maxPageSize: action.payload.pageSize };
+      if (action.payload.returnToFirstPage) {
+        result.start = 0;
+      } else {
+        result.start = state.start + state.pageSize;
+        result.pageSize = Math.abs(action.payload.pageSize - result.start);
+      }
+      return result;
     case 'SET_SEARCH_TEXT':
-      return { ...state, page: 0, searchText: action.payload };
+      return { ...state,  ...resetPageState, searchText: action.payload };
     case 'SET_SELECTED_ASSET':
       return { ...state, selectedAsset: action.payload };
     case 'SET_SORT_DIRECTION':
-      return { ...state, page: 0, sortDirection: action.payload };
+      return { ...state,  ...resetPageState, sortDirection: action.payload };
     case 'SET_SORT_ORDER':
-      return { ...state, page: 0, sortOrder: action.payload };
+      return { ...state,  ...resetPageState, sortOrder: action.payload };
     case 'SET_TOTAL_COUNT':
       return { ...state, totalCount: action.payload };
     case 'SET_VIEW':
@@ -178,6 +208,11 @@ const reducer = (state: State, action: Action): State => {
     default:
       return state;
   }
+};
+
+type Rect = {
+  width: number;
+  height: number;
 };
 
 const HomePage: FC<Props> = () => {
@@ -211,15 +246,21 @@ const HomePage: FC<Props> = () => {
     useSession,
   });
 
+  const [isResized, setIsResized] = useState(false);
+
   const containerRef = useRef<HTMLDivElement>(null);
   const resultRef = useRef<HTMLDivElement>(null);
   const containerResizeObserverRef = useRef<CxResizeObserver>(null);
-  const resultResizeObserverRef = useRef<CxResizeObserver>(null);
   const loadedFromStorage = useRef(false);
   const facetsRef = useRef<Record<string, Record<string, number>>>({});
   const appDispatch = useAppDispatch();
 
+  const pageSizeRef = useRef(state.pageSize);
+  const viewRef = useRef(state.view);
+  const isWindowResizing = useRef(false);
   facetsRef.current = state.facets;
+  viewRef.current = state.view;
+  pageSizeRef.current = state.pageSize;
 
   const mappedMediaTypes = useMemo(() => {
     const globalIntersection = availableDocTypes?.length ? _intersection(availableDocTypes, supportedDocTypes) : supportedDocTypes;
@@ -238,12 +279,12 @@ const HomePage: FC<Props> = () => {
     );
   }, [sortOrders, state.sortDirection, state.sortOrder]);
 
-  const { data, isFetching, isError } = useGetAssetsQuery(selectedSortOrder && mappedMediaTypes?.length ? {
+  const { data, isFetching, isError } = useGetAssetsQuery(isResized && selectedSortOrder && mappedMediaTypes?.length ? {
     extensions: state.extensions,
     folderID: state.currentFolder.id,
     isSeeThrough: state.isSeeThrough,
     mediaTypes: mappedMediaTypes,
-    page: state.page,
+    start: state.start,
     pageSize: state.pageSize,
     searchText: state.searchText,
     sortOrder: selectedSortOrder.id,
@@ -347,6 +388,70 @@ const HomePage: FC<Props> = () => {
     dispatch({ type: 'SET_SEARCH_TEXT', payload: value });
   }, []);
 
+  const lastHeightRef = useRef(0);
+  const lastWidthRef = useRef(0);
+  const handleResize = useCallback((rect: Rect, options?:{ returnToFirstPage?: boolean, force?: boolean }) => {
+    const { width, height } = rect;
+    const containerWidth = width || 0;
+    const containerHeight = height || 0;
+    if (containerWidth * containerHeight === 0 || !loadedFromStorage.current) {
+      return;
+    }
+    const lastHeight = lastHeightRef.current;
+    const lastWidth = lastWidthRef.current;
+    if (Math.abs(lastHeight - containerHeight) < 10 && Math.abs(lastWidth - containerWidth) < 10 && !options?.force) {
+      return;
+    }
+    lastHeightRef.current = containerHeight;
+    lastWidthRef.current = containerWidth;
+    const gutter = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--cx-spacing-medium'), 10);
+    let breakpoint;
+    if (viewRef.current === GridView.Small) {
+      breakpoint = 130;
+    } else if (viewRef.current === GridView.Medium) {
+      breakpoint = 190;
+    } else {
+      breakpoint = 302;
+    }
+    const columnCount = Math.max(1, Math.ceil((containerWidth + gutter) / (breakpoint + gutter)));
+    const rowCount = Math.ceil(containerHeight / (breakpoint + gutter));
+    const newPageSize = Math.ceil((rowCount * columnCount) / PAGE_SIZE + 1) * PAGE_SIZE;
+    setIsResized(true);
+    if (newPageSize !== pageSizeRef.current) {
+      dispatch({
+        type: 'SET_PAGE_SIZE',
+        payload: {
+          pageSize: newPageSize,
+          returnToFirstPage: !!options?.returnToFirstPage,
+        },
+      });
+    }
+  }, []);
+
+  const debouncedHandleResize = useMemo(() => {
+    return _debounce(handleResize, 300, {
+      leading: false,
+    });
+  }, [handleResize]);
+
+ 
+
+  useEffect(() => {
+    if (loadedFromStorage.current) {
+      const container = resultRef.current;
+      viewRef.current = state.view;
+      if (container) {
+        debouncedHandleResize({
+          width: container.clientWidth,
+          height: container.clientHeight,
+        }, {
+          returnToFirstPage: true,
+          force: true,
+        });
+      }
+    }
+  }, [debouncedHandleResize, state.view]);
+
   const onSettingChange = useCallback(
     (
       setting: string,
@@ -447,8 +552,11 @@ const HomePage: FC<Props> = () => {
   );
 
   const onLoadMore = useCallback(() => {
-    dispatch({ type: 'SET_PAGE', payload: 1 });
-    dispatch({ type: 'SET_PAGE_SIZE', payload: PAGE_SIZE });
+    if (isWindowResizing.current) {
+      isWindowResizing.current = false;
+      return;
+    }
+    dispatch({ type: 'SET_START', payload: 1 });
   }, []);
 
   const onScroll = useCallback((e: MouseEvent) => {
@@ -472,8 +580,8 @@ const HomePage: FC<Props> = () => {
   }, [persistMode]);
 
   const hasNextPage = useMemo(
-    () => (data ? (state.page + 1) * PAGE_SIZE < state.totalCount : false),
-    [data, state.page, state.totalCount],
+    () => (data ? state.start + state.pageSize < state.totalCount : false),
+    [data, state.pageSize, state.start, state.totalCount],
   );
 
   const setNewlySelectedFacet = useCallback((newFacet: string) => {
@@ -492,56 +600,14 @@ const HomePage: FC<Props> = () => {
   }, [data, onDataChange]);
 
   useEffect(() => {
-    const container = resultRef.current;
-    const resizeObserver = resultResizeObserverRef.current;
-    if (!resizeObserver || !container) {
-      return;
-    }
-
-    const handleResize = () => {
-      const containerWidth = container.clientWidth || 0;
-      const containerHeight = container.clientHeight || 0;
-      const gutter = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--cx-spacing-medium'), 10);
-      let breakpoint;
-      if (state.view === GridView.Small) {
-        breakpoint = 130;
-      } else if (state.view === GridView.Medium) {
-        breakpoint = 190;
-      } else {
-        breakpoint = 302;
-      }
-      const columnCount = Math.max(1, Math.ceil((containerWidth + gutter) / (breakpoint + gutter)));
-      const rowCount = Math.ceil(containerHeight / (breakpoint + gutter));
-      const newPageSize = Math.ceil((rowCount * columnCount) / PAGE_SIZE + 1) * PAGE_SIZE;
-      if (newPageSize !== state.pageSize) {
-        dispatch({ type: 'SET_PAGE_SIZE', payload: newPageSize });
-      }
+    const onWindowResize = () => {
+      isWindowResizing.current = true;
     };
-
-    const onResize = (e: CxResizeEvent) => {
-      const entries = e.detail.entries;
-
-      if (state.page > 0) {
-        return;
-      }
-
-      window.requestAnimationFrame((): void | undefined => {
-        if (!Array.isArray(entries) || !entries.length) {
-          return;
-        }
-        if (entries[0].target === container) {
-          handleResize();
-        }
-      });
-    };
-
-    resizeObserver.addEventListener('cx-resize', onResize);
-    handleResize();
-
+    window.addEventListener('resize', onWindowResize);
     return () => {
-      resizeObserver.removeEventListener('cx-resize', onResize);
+      window.removeEventListener('resize', onWindowResize);
     };
-  }, [state.page, state.pageSize, state.view]);
+  }, []);
 
   return (
     <cx-resize-observer ref={containerResizeObserverRef}>
@@ -589,29 +655,49 @@ const HomePage: FC<Props> = () => {
           onFolderSelect={onFolderSelect}
           onClose={() => dispatch({ type: 'SET_OPEN_BROWSER', payload: false })}
         />
-        <cx-resize-observer ref={resultResizeObserverRef}>
-          <Results
-            ref={resultRef}
-            key={
-              state.currentFolder.id +
-              state.searchText +
-              state.mediaTypes.join('+') +
-              state.extensions.join('+') +
-              state.statuses.join('+') +
-              state.visibilityClasses.join('+') +
-              state.isSeeThrough
-            }
-            hasNextPage={hasNextPage || false}
-            isError={isError}
-            isLoading={state.isLoading}
-            items={data?.items || []}
-            selectedAsset={state.selectedAsset}
-            view={state.view}
-            onItemSelect={onItemSelect}
-            onLoadMore={onLoadMore}
-            onScroll={onScroll}
-          />
-        </cx-resize-observer>
+        <div style={{
+          flex: 1,
+          padding: '0 var(--cx-spacing-medium)',
+          position: 'relative',
+        }}>
+          <AutoSizer onResize={debouncedHandleResize}>
+            {({ height, width }: Rect) => {
+              return (
+                <div 
+                  style={{
+                    height: height + 'px',
+                    width: width + 'px',
+                  }}
+                >
+                  <AssetCardWrapper
+                    ref={resultRef}
+                    isError={isError}
+                    hasNextPage={hasNextPage}
+                    height={height}
+                    isLoadingData={state.isLoading}
+                    items={data?.items || []}
+                    selectedAsset={state.selectedAsset}
+                    view={state.view}
+                    width={width}
+                    onItemSelect={onItemSelect}
+                    onLoadMore={onLoadMore}
+                    onScroll={onScroll}
+                    key={
+                      state.currentFolder.id +
+                      state.searchText +
+                      state.mediaTypes.join('+') +
+                      state.extensions.join('+') +
+                      state.statuses.join('+') +
+                      state.visibilityClasses.join('+') +
+                      state.isSeeThrough +
+                      state.view
+                    }
+                  />
+                </div>
+              );
+            }}
+          </AutoSizer>
+        </div>
         <FormatDialog
           allowCustomFormat={!!ATSEnabled}
           availableProxies={isFetchingAvailableProxies ? undefined : availableProxies?.proxiesForDocType}

@@ -71,6 +71,10 @@ export const Card = styled('cx-card')<CxCardProps>`
     }
   }
 
+  .asset-card__name--right {
+    text-align: right;
+  }
+
   .asset-card__button {
     &::part(base) {
       font-size: var(--cx-font-size-medium);
@@ -93,6 +97,9 @@ export const Card = styled('cx-card')<CxCardProps>`
     color: var(--cx-color-neutral-500);
     * {
       line-height: var(--cx-line-height-small);
+    }
+    .asset-card__placeholder {
+      visibility: hidden;
     }
   }
 `;

@@ -41,7 +41,7 @@ export type GetContentRequest = {
   folderID: string;
   isSeeThrough: boolean;
   mediaTypes: string[];
-  page: number;
+  start: number;
   pageSize: number;
   searchText: string;
   sortOrder?: string;
