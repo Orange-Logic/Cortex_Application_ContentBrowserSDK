@@ -636,6 +636,7 @@ const HomePage: FC<Props> = () => {
             searchValue={state.searchText}
             sortDirection={state.sortDirection}
             sortOrder={state.sortOrder}
+            sortOrders={sortOrders}
             statuses={state.statuses}
             totalCount={state.totalCount}
             view={state.view}

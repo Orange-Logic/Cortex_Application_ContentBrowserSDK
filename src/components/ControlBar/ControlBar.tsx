@@ -1,12 +1,12 @@
-import _debounce from 'lodash-es/debounce';
 import { FC, useCallback, useEffect, useRef, useState } from 'react';
 
+import { SortOrder } from '@/types/assets';
 import { Filter, GridView, SortDirection } from '@/types/search';
 import {
   CxChangeEvent, CxDropdown, CxInput, CxRemoveEvent, CxSelectEvent, CxSelectionChangeEvent,
 } from '@/web-component';
 
-import { sortDirections, sortOrders, views } from './ControlBar.constants';
+import { sortDirections, views } from './ControlBar.constants';
 import { Container } from './ControlBar.styled';
 import Facet from './Facet';
 
@@ -28,6 +28,7 @@ type Props = {
   searchValue: string;
   sortDirection: 'ascending' | 'descending';
   sortOrder: string;
+  sortOrders?: Record<string, SortOrder[]>;
   statuses: string[];
   totalCount: number;
   view: GridView;
@@ -51,6 +52,7 @@ const ControlBar: FC<Props> = ({
   searchValue: searchText,
   sortDirection,
   sortOrder,
+  sortOrders,
   statuses,
   totalCount,
   view,
@@ -81,16 +83,16 @@ const ControlBar: FC<Props> = ({
   }, []);
 
   useEffect(() => {
-    const onSearchInput = _debounce((e: CxChangeEvent) => {
+    const onSearchInput = (e: CxChangeEvent) => {
       const value = (e.target as CxInput).value;
       if (searchText !== value) {
         onSearchChange(value);
       }
-    }, 300);
+    };
     const searchInput = searchRef.current;
-    searchInput?.addEventListener('cx-input', onSearchInput);
+    searchInput?.addEventListener('cx-change', onSearchInput);
     return () => {
-      searchInput?.removeEventListener('cx-input', onSearchInput);
+      searchInput?.removeEventListener('cx-change', onSearchInput);
     };
   }, [isDefined, searchText, onSearchChange]);
 
@@ -442,22 +444,22 @@ const ControlBar: FC<Props> = ({
               </cx-menu-item>
             ))}
             <cx-divider></cx-divider>
-            {sortOrders.map((item) => (
+            {Object.keys(sortOrders ?? {}).map((item) => (
               <cx-menu-item
-                key={item.key}
+                key={item}
                 data-type="sort-order"
-                value={item.key}
-                class={sortOrder === item.key ? 'selected' : ''}
+                value={item}
+                class={sortOrder === item ? 'selected' : ''}
               >
-                {item.label.replace(/\b\w/g, (char) => char.toUpperCase())}
+                {item.replace(/\b\w/g, (char) => char.toUpperCase())}
                 {loading &&
                 newlyChangedOption.type === 'sortOrder' &&
-                newlyChangedOption.value === item.key ? (
+                newlyChangedOption.value === item ? (
                   <cx-spinner slot="prefix"></cx-spinner>
                   ) : (
                   <cx-icon
                     slot="prefix"
-                    name={sortOrder === item.key ? 'check' : ''}
+                    name={sortOrder === item ? 'check' : ''}
                   ></cx-icon>
                   )}
               </cx-menu-item>

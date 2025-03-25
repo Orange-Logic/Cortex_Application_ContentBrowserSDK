@@ -52,32 +52,6 @@ export const sortDirections = [{
   icon: DescendingIcon,
 }];
 
-export const sortOrders = [{
-  key: 'relevancy',
-  label: 'Relevancy',
-}, {
-  key: 'editor choice',
-  label: 'Editor choice',
-}, {
-  key: 'date created',
-  label: 'Date created',
-}, {
-  key: 'file name',
-  label: 'Filename',
-}, {
-  key: 'file size',
-  label: 'File size',
-}, {
-  key: 'last changed',
-  label: 'Date last edited',
-}, {
-  key: 'indexed date',
-  label: 'Date started',
-}, {
-  key: 'most popular',
-  label: 'Most popular',
-}];
-
 export const views = [{
   value: GridView.Small,
   label: 'Small labeled',

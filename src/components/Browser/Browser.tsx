@@ -59,7 +59,7 @@ const Browser: FC<Props> = ({
       if (searchText !== value) {
         setSearchText(value);
       }
-    }, 300);
+    }, 500);
     searchInput.addEventListener('cx-input', onSearchInput);
 
     return () => {
