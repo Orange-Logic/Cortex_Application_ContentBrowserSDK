@@ -422,7 +422,9 @@ const FormatDialog: FC<Props> = ({
 
       if (value === 'custom') {
         dispatch({ type: 'SET_SHOW_CUSTOM_RENDITION', payload: true });
-        setDefaultValues();
+        if (!state.useCustomRendition) {
+          setDefaultValues();
+        }
         return;
       }
 
@@ -445,7 +447,9 @@ const FormatDialog: FC<Props> = ({
       if (value) {
         const allProxies = Object.entries(availableProxies ?? {}).map(
           ([_, proxies]) =>
-            Object.values(proxies).map((proxy) => getProxyValue(proxy, selectedAsset?.extension ?? '')),
+            Object.values(proxies).map((proxy) =>
+              getProxyValue(proxy, selectedAsset?.extension ?? ''),
+            ),
         );
 
         if (!allProxies.flat().includes(value)) {
@@ -465,7 +469,15 @@ const FormatDialog: FC<Props> = ({
       dialog?.removeEventListener('cx-select', onProxySelect);
       drawer?.removeEventListener('cx-select', onProxySelect);
     };
-  }, [isDefined, state.enabledTracking, state.useRepresentative, setDefaultValues, availableProxies, selectedAsset?.extension]);
+  }, [
+    isDefined,
+    state.enabledTracking,
+    state.useCustomRendition,
+    state.useRepresentative,
+    setDefaultValues,
+    availableProxies,
+    selectedAsset?.extension,
+  ]);
 
   useEffect(() => {
     setDefaultValues();
