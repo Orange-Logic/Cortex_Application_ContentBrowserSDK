@@ -634,6 +634,13 @@ const HomePage: FC<Props> = () => {
 
   }, [availableProxies, isFetchingAvailableProxies]);
 
+  useEffect(() =>{
+    if (!state.selectedAsset) {
+      // If no asset is selected, set this to ShowDialog so the dialog can be shown when there is no need to fetch availableProxies.
+      setShowFormatLoader(FormatLoaderState.ShowDialog);
+    }
+  }, [state.selectedAsset]);
+
   return (
     <cx-resize-observer ref={containerResizeObserverRef}>
       <Container ref={containerRef}>
