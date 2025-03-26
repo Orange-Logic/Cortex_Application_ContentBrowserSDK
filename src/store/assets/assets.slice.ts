@@ -55,6 +55,7 @@ GetAssetLinkResponse[],
   selectedAsset: Asset;
   transformations?: Transformation[];
   useRepresentative?: boolean;
+  useSession?: string;
 }
 >(
   `${ASSETS_FEATURE_KEY}/importAssets`,
@@ -69,6 +70,7 @@ GetAssetLinkResponse[],
       selectedAsset,
       transformations,
       useRepresentative,
+      useSession,
     },
   ) => {
 
@@ -81,6 +83,7 @@ GetAssetLinkResponse[],
       maxWidth,
       maxHeight,
       extension,
+      useSession,
     });
 
     if (useRepresentative) {

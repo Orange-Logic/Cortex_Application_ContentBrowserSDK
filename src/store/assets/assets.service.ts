@@ -161,12 +161,20 @@ export const getAssetLinks = async (
 
     imageUrl += `.${extension ?? asset.extension}`;
 
-    if (parameters && parameters.length > 0) {
-      imageUrl += '?';
+    const queryParams: string[] = [];
 
-      parameters.forEach(({ key, value }, index) => {
-        imageUrl += `${encodeURIComponent(key.trim())}=${encodeURIComponent(value.trim())}${index < parameters.length - 1 ? '&' : ''}`;
+    if (parameters && parameters.length > 0) {
+      parameters.forEach(({ key, value }) => {
+        queryParams.push(`${encodeURIComponent(key.trim())}=${encodeURIComponent(value.trim())}`);
       });
+    }
+
+    if (useSession) {
+      queryParams.push(`UseSession=${useSession}`);
+    }
+
+    if (queryParams.length > 0) {
+      imageUrl += `?${queryParams.join('&')}`;
     }
     
     (responseData as GetAssetLinkResponse).imageUrl = imageUrl;

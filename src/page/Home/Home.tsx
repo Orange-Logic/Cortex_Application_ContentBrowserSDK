@@ -727,6 +727,7 @@ const HomePage: FC<Props> = () => {
                 proxiesPreference: value,
                 selectedAsset: state.selectedAsset,
                 useRepresentative,
+                useSession,
               }),
             );
 
@@ -753,6 +754,7 @@ const HomePage: FC<Props> = () => {
                 maxWidth,
                 parameters,
                 selectedAsset: state.selectedAsset,
+                useSession,
                 transformations: value,
               }),
             );
