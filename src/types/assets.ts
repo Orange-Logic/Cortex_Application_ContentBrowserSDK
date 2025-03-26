@@ -52,3 +52,17 @@ export type SortOrder = {
   sortDirection: string;
   sortType: string;
 };
+
+
+/**
+* ShowDialog: no loader, the format dialog is ready to open
+* 
+* ShowLoader : show loader, hide the format dialog
+* 
+* Hide: hide loader, hide the format dialog
+*/
+export enum FormatLoaderState {
+  Hide = 'hide',
+  ShowLoader = 'show-loader',
+  ShowDialog = 'show-dialog',
+}

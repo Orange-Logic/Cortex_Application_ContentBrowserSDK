@@ -185,6 +185,17 @@ const reducer = (state: State, action: Action): State => {
     case 'CONFIRM_USE_CUSTOM_RENDITION':
       return {
         ...state,
+        cropSize: {
+          ...state.cropSize,
+          width: state.selectedFormat.width,
+          height: state.selectedFormat.height,
+        },
+        resizeSize: {
+          ...state.resizeSize,
+          width: state.selectedFormat.width,
+          height: state.selectedFormat.height,
+        },
+        rotation: 0,
         activeSetting: 'resize',
         showCustomRendition: false,
         useCustomRendition: true,
@@ -643,6 +654,8 @@ const FormatDialog: FC<Props> = ({
   );
 
   const onRotateChange = useCallback(async (rotation: number, shouldApply: boolean) => {
+    console.log(' onRotateChange ~ shouldApply:', shouldApply);
+
     dispatch({
       type: 'SET_ROTATION',
       payload: shouldApply ? 0 : rotation,

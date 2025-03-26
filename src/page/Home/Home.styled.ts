@@ -28,4 +28,19 @@ export const Container = styled.div`
       line-height: var(--cx-line-height-small);
     }
   }
+
+  .format-loader {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: var(--cx-color-neutral-0);
+    padding: var(--cx-spacing-x-small);
+    border-radius: var(--cx-border-radius-small);
+
+    cx-spinner{
+      --track-width: 0.2rem;
+      font-size: var(--cx-font-size-3x-large);
+    }
+  }
 `;

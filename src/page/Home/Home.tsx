@@ -49,6 +49,7 @@ import { skipToken } from '@reduxjs/toolkit/query';
 
 import { Container } from './Home.styled';
 import { ASSET_SIZE } from '@/consts/asset';
+import { FormatLoaderState } from '@/types/assets';
 
 type Props = {
   multiSelect?: boolean;
@@ -249,6 +250,8 @@ const HomePage: FC<Props> = () => {
 
   const [isResized, setIsResized] = useState(false);
 
+  const [showFormatLoader, setShowFormatLoader] = useState<FormatLoaderState>(FormatLoaderState.Hide);
+
   const containerRef = useRef<HTMLDivElement>(null);
   const resultRef = useRef<HTMLDivElement>(null);
   const containerResizeObserverRef = useRef<CxResizeObserver>(null);
@@ -262,6 +265,7 @@ const HomePage: FC<Props> = () => {
   facetsRef.current = state.facets;
   viewRef.current = state.view;
   pageSizeRef.current = state.pageSize;
+  const formatDialogTimeoutRef = useRef<number | null>(null);
 
   const mappedMediaTypes = useMemo(() => {
     const globalIntersection = availableDocTypes?.length ? _intersection(availableDocTypes, supportedDocTypes) : supportedDocTypes;
@@ -603,6 +607,33 @@ const HomePage: FC<Props> = () => {
     };
   }, []);
 
+  useEffect(() => {
+    const timeout = formatDialogTimeoutRef.current;
+    const clearTimeout = () => {
+      if (timeout) {
+        window.clearTimeout(timeout);
+      }
+    };
+    clearTimeout();
+
+    if (isFetchingAvailableProxies) {
+      setShowFormatLoader(FormatLoaderState.Hide); // Hide the loader and the dialog when starting to fetch proxies
+      formatDialogTimeoutRef.current = window.setTimeout(() => {
+        setShowFormatLoader(FormatLoaderState.ShowLoader); // Show loader after 800ms
+      }, 800);
+    } else if (!isFetchingAvailableProxies && availableProxies?.proxiesForDocType) {
+      if (formatDialogTimeoutRef.current) {
+        clearTimeout();
+        setShowFormatLoader(FormatLoaderState.ShowDialog); // Hide loader when proxies are fetched
+      }
+    }
+
+    return () => {
+      clearTimeout();
+    };
+
+  }, [availableProxies, isFetchingAvailableProxies]);
+
   return (
     <cx-resize-observer ref={containerResizeObserverRef}>
       <Container ref={containerRef}>
@@ -693,13 +724,18 @@ const HomePage: FC<Props> = () => {
             }}
           </AutoSizer>
         </div>
+        {showFormatLoader === FormatLoaderState.ShowLoader && (
+          <cx-space className='format-loader'>
+            <cx-spinner></cx-spinner>
+          </cx-space>
+        )}
         <FormatDialog
           allowCustomFormat={!!ATSEnabled}
           availableProxies={isFetchingAvailableProxies ? undefined : availableProxies?.proxiesForDocType}
           ctaText={ctaText}
           extensions={supportedExtensions ?? []}
           maxHeight={state.containerSize.height}
-          open={!!state.selectedAsset}
+          open={!!state.selectedAsset && showFormatLoader === FormatLoaderState.ShowDialog}
           searchInDrive={searchInDrive}
           selectedAsset={state.selectedAsset}
           supportedRepresentativeSubtypes={
