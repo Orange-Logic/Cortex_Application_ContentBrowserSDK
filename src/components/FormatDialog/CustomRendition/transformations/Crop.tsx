@@ -41,6 +41,10 @@ const Crop: FC<Props> = ({
   const formatSelectRef = useRef<CxSelect>(null);
 
   useEffect(() => {
+    setMode('free');
+  }, [open]);
+
+  useEffect(() => {
     Promise.all([
       customElements.whenDefined('cx-input'),
       customElements.whenDefined('cx-select'),
@@ -84,7 +88,7 @@ const Crop: FC<Props> = ({
         const [widthRatio, heightRatio] = value.split(':').map(Number);
         if (unit === Unit.Pixel) {
           // If image size is 1024x1024 and user selects 16:9, the new size should be 1024x576
-          const { width: newWidth, height: newHeight } = calculateAspectRatioFit(width, height, widthRatio, heightRatio);
+          const { width: newWidth, height: newHeight } = calculateAspectRatioFit(maxWidth, maxHeight, widthRatio, heightRatio);
           onChange(newWidth, newHeight, unit);
         } else {
           onChange(widthRatio, heightRatio, unit);
@@ -97,7 +101,7 @@ const Crop: FC<Props> = ({
     return () => {
       formatSelect.removeEventListener('cx-change', onModeChange);
     };
-  }, [isDefined, width, height, unit, onChange]);
+  }, [isDefined, maxWidth, maxHeight, unit, onChange]);
 
   const aspectRatio = useMemo(() => {
     return maxWidth / maxHeight;
