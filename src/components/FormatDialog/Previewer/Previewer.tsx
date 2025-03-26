@@ -30,12 +30,21 @@ const Previewer: FC<Props> = ({
   const [isLoading, setIsLoading] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
+  const [assetDirection, setAssetDirection] = useState<'vertical' | 'horizontal'>('horizontal');
 
   useEffect(() => {
     if (asset.imageUrl || isFetching) {
       setIsLoading(true);
     }
   }, [asset.imageUrl, isFetching]);
+
+  const onLoadAsset = useCallback((videoRect: { width: number, height: number }) => {
+    if (onLoad) {
+      onLoad(videoRect);
+    }
+
+    setAssetDirection(videoRect.width > videoRect.height ? 'horizontal' : 'vertical');
+  }, [onLoad]);
 
   const renderPreview = useCallback(() => {
     if (!loadable) {
@@ -71,10 +80,12 @@ const Previewer: FC<Props> = ({
             maxWidth: '100%',
             maxHeight: '100%',
             objectFit: 'contain',
+            width: assetDirection === 'horizontal' ? '100%' : 'auto',
+            height: assetDirection === 'vertical' ? '100%' : 'auto',
           }}
           onLoadedMetadata={(e) => {
             setIsLoading(false);
-            onLoad?.({
+            onLoadAsset({
               width: e.currentTarget.videoWidth,
               height: e.currentTarget.videoHeight,
             });
