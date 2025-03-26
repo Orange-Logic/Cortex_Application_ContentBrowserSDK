@@ -25,6 +25,7 @@ export const BrowserItem: FC<Props> = ({
 
   const {
     data: folders,
+    isFetching,
   } = useGetFoldersQuery({ folder, searchText: searchText ?? '', useSession }, { skip: !isExpanded });
 
   const highlightedTitle = useMemo(() => {
@@ -68,13 +69,17 @@ export const BrowserItem: FC<Props> = ({
     };
   }, [isDefined]);
 
+  // Lazy load if folder has children
+  // and (folders are not fetched yet or are fetching)
+  const isLazy = folder.hasChildren && (folders === undefined || isFetching);
+
   return (
     <cx-tree-item
       ref={treeItemRef}
       data-value={JSON.stringify(folder)}
       expanded={isExpanded}
       selected={isSelected}
-      lazy={folder.hasChildren && !folders?.length}
+      lazy={isLazy}
     >
       <cx-icon name="folder"></cx-icon>
       <cx-line-clamp lines={1}>{highlightedTitle}</cx-line-clamp>
