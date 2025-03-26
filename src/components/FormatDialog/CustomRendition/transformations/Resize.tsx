@@ -10,6 +10,10 @@ type Props = {
   open: boolean;
   width: number;
   height: number;
+  lastAppliedSetting: {
+    width: number;
+    height: number;
+  };
   maxWidth: number;
   maxHeight: number;
   unit: Unit;
@@ -21,7 +25,7 @@ type Props = {
   onApply: () => void;
 };
 
-const Resize: FC<Props> = ({ open, width, height, maxWidth, maxHeight, unit, onChange, onApply }) => {
+const Resize: FC<Props> = ({ open, width, height, lastAppliedSetting, maxWidth, maxHeight, unit, onChange, onApply }) => {
   const [isDefined, setIsDefined] = useState(false);
   const [keepAspectRatio, setKeepAspectRatio] = useState(true);
   const unitSelectRef = useRef<CxSelect>(null);
@@ -59,6 +63,10 @@ const Resize: FC<Props> = ({ open, width, height, maxWidth, maxHeight, unit, onC
   const aspectRatio = useMemo(() => {
     return maxWidth / maxHeight;
   }, [maxWidth, maxHeight]);
+
+  const disabledApplyButton = useMemo(() => {
+    return (lastAppliedSetting.width === width && lastAppliedSetting.height === height);
+  }, [lastAppliedSetting.width, lastAppliedSetting.height, width, height]);
 
   const handleWidthChange = _debounce((e: FormEvent<CxInput>) => {
     const newWidth = Math.max(Number((e.target as HTMLInputElement).value), 1);
@@ -124,6 +132,7 @@ const Resize: FC<Props> = ({ open, width, height, maxWidth, maxHeight, unit, onC
         </cx-space>
         <cx-button
           variant="primary"
+          disabled={disabledApplyButton}
           style={{
             marginLeft: 'auto',
           }}

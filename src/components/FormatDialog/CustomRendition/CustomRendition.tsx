@@ -3,8 +3,8 @@ import { FC, useEffect, useRef } from 'react';
 import { Unit } from '@/types/assets';
 import { CxHideEvent, CxShowEvent } from '@/web-component';
 
-import { Crop, Extension, Resize, Rotate } from './transformations';
 import { Container } from './CustomRendition.styled';
+import { Crop, Extension, Resize, Rotate } from './transformations';
 
 type Props = {
   activeSetting: string;
@@ -23,6 +23,16 @@ type Props = {
     unit: Unit;
   };
   extension: string;
+  lastAppliedResize: {
+    width: number;
+    height: number;
+    unit: Unit;
+  };
+  lastAppliedCrop: {
+    width: number;
+    height: number;
+    unit: Unit;
+  };
   rotation: number;
   onResizeChange: (
     width: number,
@@ -47,6 +57,8 @@ const CustomRendition: FC<Props> = ({
   resize,
   crop,
   extension,
+  lastAppliedCrop,
+  lastAppliedResize,
   rotation,
   onResizeChange,
   onCropChange,
@@ -96,6 +108,7 @@ const CustomRendition: FC<Props> = ({
         open={activeSetting === 'resize'}
         width={resize.width}
         height={resize.height}
+        lastAppliedSetting={lastAppliedResize}
         maxWidth={imageSize.width}
         maxHeight={imageSize.height}
         unit={resize.unit}
@@ -106,6 +119,7 @@ const CustomRendition: FC<Props> = ({
         open={activeSetting === 'crop'}
         width={crop.width}
         height={crop.height}
+        lastAppliedSetting={lastAppliedCrop}
         maxWidth={resize.width}
         maxHeight={resize.height}
         unit={crop.unit}

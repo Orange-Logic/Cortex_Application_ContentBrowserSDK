@@ -64,6 +64,11 @@ type State = {
     height: number;
     unit: Unit;
   };
+  lastResizeSize: {
+    width: number;
+    height: number;
+    unit: Unit;
+  };
   cropSize: {
     width: number;
     height: number;
@@ -71,6 +76,11 @@ type State = {
     percentageHeight: number;
     x: number;
     y: number;
+    unit: Unit;
+  };
+  lastCropSize: {
+    width: number;
+    height: number;
     unit: Unit;
   };
   rotation: number;
@@ -92,6 +102,8 @@ type Action =
   | { type: 'SET_CROP_SIZE'; payload: Partial<State['cropSize']> }
   | { type: 'SET_DEFAULT_SIZE'; payload: Partial<State['defaultSize']> }
   | { type: 'SET_ENABLED_TRACKING'; payload: boolean }
+  | { type: 'SET_LAST_RESIZE_SIZE'; payload: Partial<State['lastResizeSize']> }
+  | { type: 'SET_LAST_CROP_SIZE'; payload: Partial<State['lastCropSize']> }
   | { type: 'SET_LOADING'; payload: boolean }
   | { type: 'SET_PREVIEW_LOADABLE'; payload: boolean }
   | { type: 'SET_RESIZE_SIZE'; payload: Partial<State['resizeSize']> }
@@ -124,6 +136,11 @@ const initialState: State = {
     height: 0,
     unit: Unit.Pixel,
   },
+  lastResizeSize: {
+    width: 0,
+    height: 0,
+    unit: Unit.Pixel,
+  },
   cropSize: {
     width: 0,
     height: 0,
@@ -131,6 +148,11 @@ const initialState: State = {
     percentageHeight: 0,
     x: 0,
     y: 0,
+    unit: Unit.Pixel,
+  },
+  lastCropSize: {
+    width: 0,
+    height: 0,
     unit: Unit.Pixel,
   },
   rotation: 0,
@@ -227,6 +249,22 @@ const reducer = (state: State, action: Action): State => {
       return {
         ...state,
         enabledTracking: action.payload,
+      };
+    case 'SET_LAST_CROP_SIZE':
+      return {
+        ...state,
+        lastCropSize: {
+          ...state.lastCropSize,
+          ...action.payload,
+        },
+      };
+    case 'SET_LAST_RESIZE_SIZE':
+      return {
+        ...state,
+        lastResizeSize: {
+          ...state.lastResizeSize,
+          ...action.payload,
+        },
       };
     case 'SET_LOADING':
       return {
@@ -365,6 +403,22 @@ const FormatDialog: FC<Props> = ({
     dispatch({
       type: 'SET_ROTATION',
       payload: 0,
+    });
+
+    dispatch({
+      type: 'SET_LAST_CROP_SIZE',
+      payload: {
+        width: state.defaultSize.width,
+        height: state.defaultSize.height,
+      },
+    });
+
+    dispatch({
+      type: 'SET_LAST_RESIZE_SIZE',
+      payload: {
+        width: state.defaultSize.width,
+        height: state.defaultSize.height,
+      },
     });
   }, [selectedAsset, state.defaultSize]);
 
@@ -579,6 +633,15 @@ const FormatDialog: FC<Props> = ({
           height: newFormatHeight,
         },
       });
+
+      dispatch({
+        type: 'SET_LAST_RESIZE_SIZE',
+        payload: {
+          width: newResizeWidth,
+          height: newResizeHeight,
+          unit,
+        },
+      });
     }
   }, [selectedAsset, state.defaultSize, state.resizeSize.unit]);
 
@@ -641,6 +704,15 @@ const FormatDialog: FC<Props> = ({
             x: newX,
             y: newY,
           },
+        },
+      });
+
+      dispatch({
+        type: 'SET_LAST_CROP_SIZE',
+        payload: {
+          width,
+          height,
+          unit,
         },
       });
     }
@@ -831,6 +903,8 @@ const FormatDialog: FC<Props> = ({
               height: state.cropSize.height,
               unit: state.cropSize.unit,
             }}
+            lastAppliedCrop={state.lastCropSize}
+            lastAppliedResize={state.lastResizeSize}
             rotation={state.rotation}
             extension={state.selectedFormat.extension}
             onResizeChange={onResizeChange}

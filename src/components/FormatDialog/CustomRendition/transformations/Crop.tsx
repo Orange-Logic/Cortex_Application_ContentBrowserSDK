@@ -13,6 +13,10 @@ type Props = {
   open: boolean;
   width: number;
   height: number;
+  lastAppliedSetting: {
+    width: number;
+    height: number;
+  }
   maxWidth: number;
   maxHeight: number;
   unit: Unit;
@@ -28,6 +32,7 @@ const Crop: FC<Props> = ({
   open,
   width,
   height,
+  lastAppliedSetting,
   maxWidth,
   maxHeight,
   unit,
@@ -106,6 +111,10 @@ const Crop: FC<Props> = ({
   const aspectRatio = useMemo(() => {
     return maxWidth / maxHeight;
   }, [maxWidth, maxHeight]);
+
+  const disabledApplyButton = useMemo(() => {
+    return (lastAppliedSetting.width === width && lastAppliedSetting.height === height);
+  }, [lastAppliedSetting.width, lastAppliedSetting.height, width, height]);
 
   const handleWidthChange = _debounce((e: FormEvent<CxInput>) => {
     const newWidth = Math.max(Math.min(Number((e.target as HTMLInputElement).value), maxWidth), 1);
@@ -188,6 +197,7 @@ const Crop: FC<Props> = ({
         </cx-space>
         <cx-button
           variant="primary"
+          disabled={disabledApplyButton}
           style={{
             marginLeft: 'auto',
           }}

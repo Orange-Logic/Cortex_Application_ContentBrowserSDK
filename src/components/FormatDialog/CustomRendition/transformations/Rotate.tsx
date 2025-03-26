@@ -71,6 +71,7 @@ const Rotate = ({ open, rotation, onChange, onApply }: Props) => {
         ></cx-input>
         <cx-button
           variant="primary"
+          disabled={rotation === 0}
           onClick={onApply}
         >
           Apply
