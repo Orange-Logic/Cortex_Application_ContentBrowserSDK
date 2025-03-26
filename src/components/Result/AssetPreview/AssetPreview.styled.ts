@@ -17,6 +17,7 @@ export const Container = styled.div`
     display: flex;
     align-items: center;
     justify-content: center;
+    object-fit: contain;
   }
   
   .asset-preview__representative--horizontal > * {
