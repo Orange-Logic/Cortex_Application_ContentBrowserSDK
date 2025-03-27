@@ -2,15 +2,9 @@ import _debounce from 'lodash-es/debounce';
 import _intersection from 'lodash-es/intersection';
 import _isEqual from 'lodash-es/isEqual';
 import {
-  FC,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useReducer,
-  useRef,
-  useState,
+  FC, useCallback, useContext, useEffect, useMemo, useReducer, useRef, useState,
 } from 'react';
+import { Size } from 'react-easy-crop';
 import AutoSizer from 'react-virtualized-auto-sizer';
 
 import { AppContext } from '@/AppContext';
@@ -19,28 +13,19 @@ import ControlBar from '@/components/ControlBar';
 import FormatDialog from '@/components/FormatDialog';
 import Header from '@/components/Header/Header';
 import AssetCardWrapper from '@/components/Result/AssetCard';
+import { ASSET_SIZE } from '@/consts/asset';
 import { GlobalConfigContext } from '@/GlobalConfigContext';
 import { useAppDispatch, useAppSelector } from '@/store';
 import {
-  useGetAvailableProxiesQuery,
-  useGetParametersQuery,
-  useGetSortOrdersQuery,
+  useGetAvailableProxiesQuery, useGetParametersQuery, useGetSortOrdersQuery,
 } from '@/store/assets/assets.api';
 import { importAssets } from '@/store/assets/assets.slice';
-import {
-  authenticatedSelector,
-  logout,
-  siteUrlSelector,
-} from '@/store/auth/auth.slice';
+import { authenticatedSelector, logout } from '@/store/auth/auth.slice';
 import { useGetAssetsQuery } from '@/store/search/search.api';
 import { explorePath, RootFolder } from '@/store/search/search.slice';
+import { FormatLoaderState } from '@/types/assets';
 import {
-  Asset,
-  Filter,
-  Folder,
-  GetAssetLinkResponse,
-  GridView,
-  SortDirection,
+  Asset, Filter, Folder, GetAssetLinkResponse, GridView, SortDirection,
 } from '@/types/search';
 import { MOBILE_THRESHOLD, PAGE_SIZE } from '@/utils/constants';
 import { getData, storeData } from '@/utils/storage';
@@ -48,8 +33,6 @@ import { CxResizeEvent, CxResizeObserver } from '@/web-component';
 import { skipToken } from '@reduxjs/toolkit/query';
 
 import { Container } from './Home.styled';
-import { ASSET_SIZE } from '@/consts/asset';
-import { FormatLoaderState } from '@/types/assets';
 
 type Props = {
   multiSelect?: boolean;
@@ -129,7 +112,7 @@ const initialState: State = {
   selectedAsset: null,
   shouldResetFilters: true,
   sortDirection: 'descending',
-  sortOrder: 'file name',
+  sortOrder: 'date created',
   statuses: [],
   totalCount: 0,
   view: GridView.Medium,
@@ -175,7 +158,7 @@ const reducer = (state: State, action: Action): State => {
     case 'SET_START':{
       return { ...state, start: state.start + state.pageSize, pageSize: PAGE_SIZE };
     }
-    case 'SET_PAGE_SIZE':
+    case 'SET_PAGE_SIZE': {
       const result = { ...state, pageSize: action.payload.pageSize, maxPageSize: action.payload.pageSize };
       if (action.payload.returnToFirstPage) {
         result.start = 0;
@@ -184,6 +167,7 @@ const reducer = (state: State, action: Action): State => {
         result.pageSize = Math.abs(action.payload.pageSize - result.start);
       }
       return result;
+    }
     case 'SET_SEARCH_TEXT':
       return { ...state,  ...resetPageState, searchText: action.payload };
     case 'SET_SELECTED_ASSET':
@@ -212,15 +196,9 @@ const reducer = (state: State, action: Action): State => {
   }
 };
 
-type Rect = {
-  width: number;
-  height: number;
-};
-
 const HomePage: FC<Props> = () => {
   const [state, dispatch] = useReducer(reducer, initialState);
   const authenticated = useAppSelector(authenticatedSelector);
-  const siteUrl = useAppSelector(siteUrlSelector);
   const {
     availableRepresentativeSubtypes,
     availableDocTypes,
@@ -395,7 +373,7 @@ const HomePage: FC<Props> = () => {
 
   const lastHeightRef = useRef(0);
   const lastWidthRef = useRef(0);
-  const handleResize = useCallback((rect: Rect, options?:{ returnToFirstPage?: boolean, force?: boolean }) => {
+  const handleResize = useCallback((rect: Size, options?:{ returnToFirstPage?: boolean, force?: boolean }) => {
     const { width, height } = rect;
     const containerWidth = width || 0;
     const containerHeight = height || 0;
@@ -692,7 +670,7 @@ const HomePage: FC<Props> = () => {
           position: 'relative',
         }}>
           <AutoSizer onResize={debouncedHandleResize}>
-            {({ height, width }: Rect) => {
+            {({ height, width }: Size) => {
               return (
                 <div 
                   style={{
