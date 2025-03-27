@@ -104,17 +104,6 @@ const CustomRendition: FC<Props> = ({
 
   return (
     <Container ref={containerRef}>
-      <Resize
-        open={activeSetting === 'resize'}
-        width={resize.width}
-        height={resize.height}
-        lastAppliedSetting={lastAppliedResize}
-        maxWidth={imageSize.width}
-        maxHeight={imageSize.height}
-        unit={resize.unit}
-        onChange={(width, height, unit) => onResizeChange(width, height, unit, false)}
-        onApply={() => onResizeChange(resize.width, resize.height, resize.unit, true)}
-      />
       <Crop
         open={activeSetting === 'crop'}
         width={crop.width}
@@ -125,6 +114,17 @@ const CustomRendition: FC<Props> = ({
         unit={crop.unit}
         onChange={(width, height, unit) => onCropChange(width, height, unit, false)}
         onApply={() => onCropChange(crop.width, crop.height, crop.unit, true)}
+      />
+      <Resize
+        open={activeSetting === 'resize'}
+        width={resize.width}
+        height={resize.height}
+        lastAppliedSetting={lastAppliedResize}
+        maxWidth={imageSize.width}
+        maxHeight={imageSize.height}
+        unit={resize.unit}
+        onChange={(width, height, unit) => onResizeChange(width, height, unit, false)}
+        onApply={() => onResizeChange(resize.width, resize.height, resize.unit, true)}
       />
       <Rotate
         open={activeSetting === 'rotate'}
