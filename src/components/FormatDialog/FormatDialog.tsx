@@ -861,6 +861,7 @@ const FormatDialog: FC<Props> = ({
               docType: selectedAsset?.docType,
               imageUrl: selectedAsset?.imageUrl,
               videoUrl,
+              extension: selectedAsset?.extension,
             }}
             isError={isError}
             isFetching={isFetching}

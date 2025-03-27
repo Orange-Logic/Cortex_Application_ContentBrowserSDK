@@ -5,10 +5,20 @@ import { Provider } from 'react-redux';
 
 import { App } from '@/App';
 import { AppContextType } from '@/AppContext';
-import { GlobalConfigContext, ImageCardDisplayInfo } from '@/GlobalConfigContext';
+import {
+  GlobalConfigContext,
+  ImageCardDisplayInfo,
+} from '@/GlobalConfigContext';
 import { store } from '@/store';
 import { resetImportStatus } from '@/store/assets/assets.slice';
-import { initAuthInfoFromCache, setUserConfigSiteUrl } from '@/store/auth/auth.slice';
+import {
+  initAuthInfoFromCache,
+  setUserConfigSiteUrl,
+} from '@/store/auth/auth.slice';
+
+import { assetsApi } from './store/assets/assets.api';
+import { searchApi } from './store/search/search.api';
+import { userApi } from './store/user/user.api';
 
 declare global {
   interface Window {
@@ -223,6 +233,9 @@ window.CortexAssetPicker = {
     const imageSelectedHandler = (typeof onImageSelected === 'function' && !!onImageSelected) ? onImageSelected : console.log;
     const handleClose = () => {
       store.dispatch(resetImportStatus());
+      store.dispatch(searchApi.util.resetApiState());
+      store.dispatch(assetsApi.util.resetApiState());
+      store.dispatch(userApi.util.resetApiState());
       root.unmount();
       // Reset these function when close the GAB
       window.CortexAssetPicker._onAssetSelected = undefined;

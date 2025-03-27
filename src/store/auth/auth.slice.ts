@@ -1,15 +1,26 @@
 import type { PayloadAction } from '@reduxjs/toolkit';
 import { RootState } from '@/store';
 import { resetImportStatus } from '@/store/assets/assets.slice';
-import { GetAccessKeyRes, GetAccessKeyResponseCode, OAuthRes } from '@/types/auth';
+import {
+  GetAccessKeyRes,
+  GetAccessKeyResponseCode,
+  OAuthRes,
+} from '@/types/auth';
 import { getRequestUrl } from '@/utils/getRequestUrl';
 import { deleteData, getData, storeData } from '@/utils/storage';
 import { generateRandomString } from '@/utils/string';
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 
+import { assetsApi } from '../assets/assets.api';
+import { searchApi } from '../search/search.api';
+import { userApi } from '../user/user.api';
 import {
-  abortAuthService, authAbortController, CANCEL_AUTH_MESSAGE, getAccessKeyService,
-  getAccessTokenService, requestAuthorizeService,
+  abortAuthService,
+  authAbortController,
+  CANCEL_AUTH_MESSAGE,
+  getAccessKeyService,
+  getAccessTokenService,
+  requestAuthorizeService,
 } from './auth.service';
 
 export const AUTH_FEATURE_KEY = 'auth';
@@ -183,6 +194,9 @@ export const oAuth = createAsyncThunk<OAuthRes, { siteUrl: string }>(
 
       // Login successfully, reset other state
       dispatch(resetImportStatus());
+      dispatch(searchApi.util.resetApiState());
+      dispatch(assetsApi.util.resetApiState());
+      dispatch(userApi.util.resetApiState());
 
       return getOAuthResult as OAuthRes;
     } catch (exception) {
@@ -244,6 +258,9 @@ export const initAuthInfoFromCache = createAsyncThunk(
       }
 
       dispatch(resetImportStatus());
+      dispatch(searchApi.util.resetApiState());
+      dispatch(assetsApi.util.resetApiState());
+      dispatch(userApi.util.resetApiState());
     } catch (exception) {
       return rejectWithValue((exception as Error).message);
     } finally {

@@ -26,7 +26,7 @@ import {
   useGetParametersQuery,
   useGetSortOrdersQuery,
 } from '@/store/assets/assets.api';
-import { importAssets, resetImportStatus } from '@/store/assets/assets.slice';
+import { importAssets } from '@/store/assets/assets.slice';
 import {
   authenticatedSelector,
   logout,
@@ -653,7 +653,6 @@ const HomePage: FC<Props> = () => {
           }
           onLogout={() => {
             appDispatch(logout());
-            appDispatch(resetImportStatus());
             dispatch({ type: 'RESET_SEARCH' });
           }}
         >
@@ -679,7 +678,6 @@ const HomePage: FC<Props> = () => {
           />
         </Header>
         <Browser
-          site={siteUrl}
           collectionPath={collectionPath}
           currentFolder={state.currentFolder}
           open={state.openBrowser}

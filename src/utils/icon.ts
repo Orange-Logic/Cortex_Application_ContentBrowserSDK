@@ -12,6 +12,10 @@ export const getMediaIcon = (type?: MediaType) => {
       return 'perm_media';
     case MediaType.Story:
       return 'article';
+    case MediaType.Video:
+      return 'video_file';
+    case MediaType.Image:
+      return 'photo';
     default:
       return 'file';
   }

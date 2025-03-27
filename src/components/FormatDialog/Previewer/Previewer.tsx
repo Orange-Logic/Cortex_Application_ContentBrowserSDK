@@ -11,6 +11,7 @@ type Props = {
     docType?: MediaType;
     imageUrl?: string;
     videoUrl?: string;
+    extension?: string;
   };
   isError?: boolean;
   isFetching?: boolean;
@@ -28,6 +29,7 @@ const Previewer: FC<Props> = ({
   onLoad,
 }) => {
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadFailed, setIsLoadFailed] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
   const [assetDirection, setAssetDirection] = useState<'vertical' | 'horizontal'>('horizontal');
@@ -35,6 +37,7 @@ const Previewer: FC<Props> = ({
   useEffect(() => {
     if (asset.imageUrl || isFetching) {
       setIsLoading(true);
+      setIsLoadFailed(false);
     }
   }, [asset.imageUrl, isFetching]);
 
@@ -61,10 +64,12 @@ const Previewer: FC<Props> = ({
             '--gap': 'var(--cx-spacing-small)',
           } as CSSProperties
         }
-      />
+      >
+        {asset.extension?.toUpperCase() || asset.docType}
+      </OtherPreview>
     );
 
-    if (isError) {
+    if (isError || isLoadFailed) {
       return otherPreview;
     }
 
@@ -89,6 +94,10 @@ const Previewer: FC<Props> = ({
               width: e.currentTarget.videoWidth,
               height: e.currentTarget.videoHeight,
             });
+          }}
+          onError={() => {
+            setIsLoading(false);
+            setIsLoadFailed(true);
           }}
         >
         </video>
@@ -116,12 +125,16 @@ const Previewer: FC<Props> = ({
               height: imageRef.current.naturalHeight,
             });
           }}
+          onError={() => {
+            setIsLoading(false);
+            setIsLoadFailed(true);
+          }}
         />
       );
     }
 
     return otherPreview;
-  }, [asset.docType, asset.imageUrl, asset.videoUrl, isError, loadable, onLoad]);
+  }, [asset.docType, asset.extension, asset.imageUrl, asset.videoUrl, assetDirection, isError, isLoadFailed, loadable, onLoad, onLoadAsset]);
 
   return (
       <Container ref={containerRef}>
