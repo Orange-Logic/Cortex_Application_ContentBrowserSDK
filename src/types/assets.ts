@@ -50,6 +50,7 @@ export type SortOrder = {
   legacyValue: string;
   name: string;
   sortDirection: string;
+  sortDirectionGroupKey: string;
   sortType: string;
 };
 

@@ -38,13 +38,6 @@ export type GetAvailableProxiesResponse = {
   }
 };
 
-const sanitizeSortOrder = (sortOrder: string) => {
-  if (sortOrder.includes('First')) {
-    return 'date created';
-  }
-  return sortOrder.replace(/(ASC|DESC)/, '').trim().toLowerCase();
-};
-
 /**
  * get query parameter for AvailableProxies_4ea_v2 API
  * @param {GetAvailableProxiesRequest} 
@@ -120,13 +113,13 @@ export const assetsApi = createApi({
       useSession?: string;
     }>({
       query: ({ useSession }) => ({
-        url: '/webapi/objectmanagement/sortorders_49V_v1',
+        url: '/webapi/extensibility/integrations/gab/assetbrowser/sortorders_4147',
         params: useSession ? [['UseSession', useSession]] : [],
       }),
       providesTags: ['SortOrders'],
       transformResponse: (response: { sortOrders: SortOrder[] }) => {
         const value = response.sortOrders.reduce((acc, item) => {
-          const id = sanitizeSortOrder(item.name);
+          const id = (item.sortDirectionGroupKey || item.name).trim().toLowerCase();
           
           acc[id] = [...(acc[id] ?? []), item];
     

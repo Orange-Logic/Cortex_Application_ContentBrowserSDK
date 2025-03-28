@@ -45,6 +45,7 @@ type State = {
   };
   currentCount: number;
   currentFolder: Folder;
+  defaultPageSize: number;
   extensions: string[];
   facets: Record<string, Record<string, number>>;
   hasScrolled: boolean;
@@ -98,6 +99,7 @@ const initialState: State = {
   },
   currentCount: 0,
   currentFolder: RootFolder,
+  defaultPageSize: PAGE_SIZE,
   extensions: [],
   facets: {},
   hasScrolled: false,
@@ -156,7 +158,7 @@ const reducer = (state: State, action: Action): State => {
     case 'SET_OPEN_BROWSER':
       return { ...state, openBrowser: action.payload };
     case 'SET_START':{
-      return { ...state, start: state.start + state.pageSize, pageSize: PAGE_SIZE };
+      return { ...state, start: state.start + state.pageSize, pageSize: state.defaultPageSize };
     }
     case 'SET_PAGE_SIZE': {
       const result = { ...state, pageSize: action.payload.pageSize, maxPageSize: action.payload.pageSize };
@@ -178,8 +180,23 @@ const reducer = (state: State, action: Action): State => {
       return { ...state,  ...resetPageState, sortOrder: action.payload };
     case 'SET_TOTAL_COUNT':
       return { ...state, totalCount: action.payload };
-    case 'SET_VIEW':
-      return { ...state, view: action.payload };
+    case 'SET_VIEW': {
+      let defaultPageSize = PAGE_SIZE;
+      switch (action.payload) {
+        case GridView.Large:
+          defaultPageSize = 15;
+          break;
+        case GridView.Medium:
+          defaultPageSize = 20;
+          break;
+        case GridView.Small:
+          defaultPageSize = 30;
+          break;
+        default:
+          break;
+      }
+      return { ...state, view: action.payload, defaultPageSize };
+    }
     case 'RESET_SEARCH':
       return {
         ...state,
@@ -393,7 +410,7 @@ const HomePage: FC<Props> = () => {
     const breakpoint = ASSET_SIZE[viewRef.current]?.minWidth || ASSET_SIZE[GridView.Large].minWidth;
     const columnCount = Math.max(1, Math.floor((containerWidth + gutter) / (breakpoint + gutter)));
     const rowCount = Math.ceil(containerHeight / (breakpoint + gutter));
-    const newPageSize = Math.ceil((rowCount * columnCount) / PAGE_SIZE + 1) * PAGE_SIZE;
+    const newPageSize = Math.ceil((rowCount * columnCount) / state.defaultPageSize + 1) * state.defaultPageSize;
     setIsResized(true);
     if (newPageSize !== pageSizeRef.current) {
       dispatch({
@@ -404,7 +421,7 @@ const HomePage: FC<Props> = () => {
         },
       });
     }
-  }, []);
+  }, [state.defaultPageSize]);
 
   const debouncedHandleResize = useMemo(() => {
     return _debounce(handleResize, 300, {
