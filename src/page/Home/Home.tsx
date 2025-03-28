@@ -369,6 +369,13 @@ const HomePage: FC<Props> = () => {
     };
   }, []);
 
+
+  useEffect(() => {
+    if (!selectedSortOrder && loadedFromStorage.current) {
+      dispatch({ type: 'SET_SORT_ORDER', payload: initialState.sortOrder });
+    }
+  }, [selectedSortOrder, sortOrders]);
+
   useEffect(() => {
     if (!loadedFromStorage.current) {
       return;
