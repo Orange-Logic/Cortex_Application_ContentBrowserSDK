@@ -12,7 +12,7 @@ import Facet from './Facet';
 
 const TYPE = {
   type: 'type',
-  visibilityClass: 'visibility class',
+  visibilityClass: 'visibilityClass',
   status: 'status',
   extension: 'extension',
 };

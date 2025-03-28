@@ -54,7 +54,7 @@ const resolveAssetExtraFilters = ({
   let visibilityClassesQuery = '';
   if (visibilityClasses?.length) {
     visibilityClassesQuery = visibilityClasses
-      .map(visibilityClass => `PessimisticVisibilityClass:${visibilityClass}`)
+      .map(visibilityClass => `Purpose:${visibilityClass}`)
       .join(' OR ');
     if (visibilityClasses.length > 1) {
       visibilityClassesQuery = `(${visibilityClassesQuery})`;
