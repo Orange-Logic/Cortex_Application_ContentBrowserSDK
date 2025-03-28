@@ -64,11 +64,7 @@ type State = {
     height: number;
     unit: Unit;
   };
-  lastResizeSize: {
-    width: number;
-    height: number;
-    unit: Unit;
-  };
+  lastResizeSize: Record<Unit, { width: number; height: number; unit: Unit; }>;
   cropSize: {
     width: number;
     height: number;
@@ -78,7 +74,7 @@ type State = {
     y: number;
     unit: Unit;
   };
-  lastCropSize: {
+  lastCropSize: Record<Unit, {
     width: number;
     height: number;
     percentageWidth: number;
@@ -86,7 +82,7 @@ type State = {
     x: number;
     y: number;
     unit: Unit;
-  };
+  }>;
   rotation: number;
   transformations: Transformation[];
   enabledTracking: boolean;
@@ -141,9 +137,16 @@ const initialState: State = {
     unit: Unit.Pixel,
   },
   lastResizeSize: {
-    width: 0,
-    height: 0,
-    unit: Unit.Pixel,
+    [Unit.AspectRatio]: {
+      width: 0,
+      height: 0,
+      unit: Unit.AspectRatio,
+    },
+    [Unit.Pixel]: {
+      width: 0,
+      height: 0,
+      unit: Unit.Pixel,
+    },
   },
   cropSize: {
     width: 0,
@@ -155,13 +158,24 @@ const initialState: State = {
     unit: Unit.Pixel,
   },
   lastCropSize: {
-    width: 0,
-    height: 0,
-    percentageWidth: 0,
-    percentageHeight: 0,
-    x: 0,
-    y: 0,
-    unit: Unit.Pixel,
+    [Unit.AspectRatio]: {
+      width: 0,
+      height: 0,
+      percentageWidth: 0,
+      percentageHeight: 0,
+      x: 0,
+      y: 0,
+      unit: Unit.AspectRatio,
+    },
+    [Unit.Pixel]: {
+      width: 0,
+      height: 0,
+      percentageWidth: 0,
+      percentageHeight: 0,
+      x: 0,
+      y: 0,
+      unit: Unit.Pixel,
+    },
   },
   rotation: 0,
   transformations: [],
@@ -378,6 +392,11 @@ const FormatDialog: FC<Props> = ({
       return;
     }
 
+    const defaultRatio = convertPixelsToAspectRatio(
+      state.defaultSize.width,
+      state.defaultSize.height,
+    );
+
     dispatch({
       type: 'SET_SELECTED_FORMAT',
       payload: {
@@ -417,18 +436,40 @@ const FormatDialog: FC<Props> = ({
       type: 'SET_LAST_CROP_SIZE',
       payload: {
         ...initialState.lastCropSize,
-        width: state.defaultSize.width,
-        height: state.defaultSize.height,
-        percentageHeight: 100,
-        percentageWidth: 100,
+        [Unit.Pixel]: {
+          width: state.defaultSize.width,
+          height: state.defaultSize.height,
+          percentageHeight: 100,
+          percentageWidth: 100,
+          x: 0,
+          y: 0,
+          unit: Unit.Pixel,
+        },
+        [Unit.AspectRatio]: {
+          width: defaultRatio.width,
+          height: defaultRatio.height,
+          percentageHeight: 100,
+          percentageWidth: 100,
+          x: 0,
+          y: 0,
+          unit: Unit.AspectRatio,
+        },
       },
     });
 
     dispatch({
       type: 'SET_LAST_RESIZE_SIZE',
       payload: {
-        width: state.defaultSize.width,
-        height: state.defaultSize.height,
+        [Unit.Pixel]: {
+          width: state.defaultSize.width,
+          height: state.defaultSize.height,
+          unit: Unit.Pixel,
+        },
+        [Unit.AspectRatio]: {
+          width: defaultRatio.width,
+          height: defaultRatio.height,
+          unit: Unit.AspectRatio,
+        },
       },
     });
   }, [selectedAsset, state.defaultSize]);
@@ -575,29 +616,14 @@ const FormatDialog: FC<Props> = ({
       return;
     }
 
-    let newResizeWidth = width;
-    let newResizeHeight = height;
-
-    if (state.resizeSize.unit === Unit.AspectRatio && unit === Unit.Pixel) {
-      newResizeWidth = state.defaultSize.width;
-      newResizeHeight = state.defaultSize.height;
-    } else if (
-      state.resizeSize.unit === Unit.Pixel &&
-      unit === Unit.AspectRatio
-    ) {
-      const aspectRatio = convertPixelsToAspectRatio(
-        state.defaultSize.width,
-        state.defaultSize.height,
-      );
-      newResizeWidth = aspectRatio.width;
-      newResizeHeight = aspectRatio.height;
-    }
+    const currentWidth = state.selectedFormat.width || state.defaultSize.width;
+    const currentHeight = state.selectedFormat.height || state.defaultSize.height;
 
     dispatch({
       type: 'SET_RESIZE_SIZE',
       payload: {
-        width: newResizeWidth,
-        height: newResizeHeight,
+        width,
+        height,
         unit,
       },
     });
@@ -607,12 +633,12 @@ const FormatDialog: FC<Props> = ({
       let newFormatHeight = height;
 
       if (state.resizeSize.unit !== unit) {
-        newFormatWidth = state.defaultSize.width;
-        newFormatHeight = state.defaultSize.height;
+        newFormatWidth = currentWidth;
+        newFormatHeight = currentHeight;
       } else if (unit === Unit.AspectRatio) {
         newFormatWidth =
-            (width / height) * state.defaultSize.height;
-        newFormatHeight = state.defaultSize.height;
+            Math.round((width / height) * currentHeight);
+        newFormatHeight = currentHeight;
       }
 
       const newImage = await previewerRef.current?.applyResize();
@@ -645,16 +671,24 @@ const FormatDialog: FC<Props> = ({
         },
       });
 
+      const ratio = convertPixelsToAspectRatio(newFormatWidth, newFormatHeight);
       dispatch({
         type: 'SET_LAST_RESIZE_SIZE',
         payload: {
-          width: newResizeWidth,
-          height: newResizeHeight,
-          unit,
+          [Unit.Pixel]: {
+            width: newFormatWidth,
+            height: newFormatHeight,
+            unit: Unit.Pixel,
+          },
+          [Unit.AspectRatio]: {
+            width: unit === Unit.AspectRatio ? width : ratio.width,
+            height: unit === Unit.AspectRatio ? height : ratio.height,
+            unit: Unit.AspectRatio,
+          },
         },
       });
     }
-  }, [selectedAsset, state.defaultSize, state.resizeSize.unit]);
+  }, [selectedAsset, state.defaultSize.height, state.defaultSize.width, state.resizeSize.unit, state.selectedFormat.height, state.selectedFormat.width]);
 
   const onCropChange = useCallback(async (width: number, height: number, unit: Unit, shouldApply: boolean) => {
     if (!selectedAsset) {
@@ -664,19 +698,17 @@ const FormatDialog: FC<Props> = ({
     const previewHandle = previewerRef.current;
     
     if (previewHandle && state.selectedFormat?.width && state.selectedFormat?.height) {
-      if (previousUnit !== unit) {
-        let newWidth = width;
-        let newHeight = height;
-        if (unit === Unit.AspectRatio) {
-          newWidth = state.cropSize.width;
-          newHeight = state.cropSize.height;
-        }
 
+      if (unit === previousUnit && unit === Unit.Pixel) {
         const scale = Math.max(
-          newWidth / state.selectedFormat.width,
-          newHeight / state.selectedFormat.height,
+          width / state.selectedFormat.width,
+          height / state.selectedFormat.height,
         );
         previewHandle.setZoom(1 / scale);
+      }
+
+      if (unit !== previousUnit) {
+        previewHandle.setZoom(1);
       }
     }
 
@@ -696,10 +728,10 @@ const FormatDialog: FC<Props> = ({
       let newWidth = width;
       let newHeight = height;
       if (unit === Unit.AspectRatio) {
-        newWidth = (state.cropSize.percentageWidth * state.selectedFormat.width) / 100;
-        newHeight = (state.cropSize.percentageHeight * state.selectedFormat.height) / 100;
-        previewHandle?.setZoom(1);
+        newWidth = Math.round((state.cropSize.percentageWidth * state.selectedFormat.width) / 100);
+        newHeight = Math.round((state.cropSize.percentageHeight * state.selectedFormat.height) / 100);
       }
+      previewHandle?.setZoom(1);
 
       const newX = Number(
         ((state.cropSize.x / 100) * state.selectedFormat.width).toFixed(0),
@@ -739,16 +771,29 @@ const FormatDialog: FC<Props> = ({
         },
       });
 
+      const ratio = convertPixelsToAspectRatio(newWidth, newHeight);
+
       dispatch({
         type: 'SET_LAST_CROP_SIZE',
         payload: {
-          width,
-          height,
-          percentageHeight: state.cropSize.percentageHeight,
-          percentageWidth: state.cropSize.percentageWidth,
-          x: newX,
-          y: newY,
-          unit,
+          [Unit.Pixel]:{
+            width: Math.round(newWidth),
+            height: Math.round(newHeight),
+            percentageHeight: 100,
+            percentageWidth: 100,
+            x: 0,
+            y: 0,
+            unit: Unit.Pixel,
+          },
+          [Unit.AspectRatio]: {
+            width: unit === Unit.AspectRatio ? width : ratio.width,
+            height: unit === Unit.AspectRatio ? height : ratio.height,
+            percentageHeight: 100,
+            percentageWidth: 100,
+            x: 0,
+            y: 0,
+            unit: Unit.AspectRatio,
+          },
         },
       });
     }
@@ -873,7 +918,7 @@ const FormatDialog: FC<Props> = ({
             resizer={state.resizeSize}
             cropper={state.cropSize}
             rotation={state.rotation}
-            disabled={state.activeSetting !== 'crop'}
+            disabled={state.activeSetting !== 'crop' || !state.showCustomRendition}
             onCropComplete={(croppedArea) => {
               dispatch({
                 type: 'SET_CROP_SIZE',

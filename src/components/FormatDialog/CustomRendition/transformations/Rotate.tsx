@@ -13,7 +13,7 @@ type Props = {
 
 const sanitizeRotation = (rotation: number) => {
   if (rotation >= 360) {
-    return rotation - 360;
+    return 359;
   } else if (rotation < 0) {
     return 360 + rotation;
   }
@@ -68,6 +68,7 @@ const Rotate = ({ open, rotation, onChange, onApply }: Props) => {
             flex: 'none',
           }}
           onInput={handleRotationChange}
+          step='1'
         ></cx-input>
         <cx-button
           variant="primary"

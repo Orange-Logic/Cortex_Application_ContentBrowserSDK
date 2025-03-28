@@ -3,7 +3,6 @@ import { FC, FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 
 import { Unit } from '@/types/assets';
 import { calculateAspectRatioFit } from '@/utils/image';
-import { convertPixelsToAspectRatio } from '@/utils/number';
 import { CxChangeEvent, CxInput, CxSelect } from '@/web-component';
 
 import { cropModes, INPUT_DEBOUNCE_DELAY } from '../CustomRendition.constants';
@@ -12,6 +11,15 @@ type Props = {
   width: number;
   height: number;
   disabledCropApply: boolean;
+  lastAppliedSetting: Record<Unit, {
+    width: number;
+    height: number;
+    percentageWidth: number;
+    percentageHeight: number;
+    x: number;
+    y: number;
+    unit: Unit;
+  }>;
   maxWidth: number;
   maxHeight: number;
   percentageWidth: number;
@@ -35,6 +43,7 @@ const Crop: FC<Props> = ({
   percentageHeight,
   percentageWidth,
   unit,
+  lastAppliedSetting,
   onChange,
   onApply,
 }) => {
@@ -51,6 +60,9 @@ const Crop: FC<Props> = ({
 
   useEffect(() => {
     setMode('free');
+  }, [open]);
+
+  useEffect(() => {
     if (!open) {
       if (heightInputRef.current) {
         heightInputRef.current.value = height.toString();
@@ -77,21 +89,18 @@ const Crop: FC<Props> = ({
     }
     const onUnitChange = (e: CxChangeEvent) => {
       if ((e.target as HTMLOptionElement).value === Unit.AspectRatio) {
-        const { width: newWidth, height: newHeight } =
-          convertPixelsToAspectRatio(width, height);
-        onChange(newWidth, newHeight, Unit.AspectRatio);
+        onChange(lastAppliedSetting[Unit.AspectRatio].width, lastAppliedSetting[Unit.AspectRatio].height, Unit.AspectRatio);
       } else {
-        const newWidth = maxWidth * percentageWidth / 100;
-        const newHeight = maxHeight * percentageHeight / 100;
-        onChange(Math.round(newWidth), Math.round(newHeight), Unit.Pixel);
+        onChange(lastAppliedSetting[Unit.Pixel].width, lastAppliedSetting[Unit.Pixel].height, Unit.Pixel);
       }
+      setMode('free');
     };
     unitSelect.addEventListener('cx-change', onUnitChange);
 
     return () => {
       unitSelect.removeEventListener('cx-change', onUnitChange);
     };
-  }, [isDefined, width, height, onChange, maxWidth, maxHeight, percentageWidth, percentageHeight]);
+  }, [isDefined, width, height, onChange, maxWidth, maxHeight, percentageWidth, percentageHeight, lastAppliedSetting]);
 
   useEffect(() => {
     const formatSelect = formatSelectRef.current;

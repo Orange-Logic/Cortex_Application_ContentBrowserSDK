@@ -167,12 +167,12 @@ const CropPreviewer = forwardRef<CropPreviewerHandle, Props>(({
     if (!container || isLoading) {
       return 'contain';
     }
-    const imgAspect = cropper.width / cropper.height;
+    const imgAspect = resizer.width / resizer.height;
 
     const containerAspect = container.clientHeight ?  (container.clientWidth) / (container.clientHeight) : 0;
 
     return imgAspect > containerAspect ? 'horizontal-cover' : 'vertical-cover';
-  }, [cropper.height, cropper.width, isLoading]);
+  }, [isLoading, resizer]);
 
   return (
     <Container

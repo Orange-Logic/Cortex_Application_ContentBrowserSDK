@@ -2,7 +2,6 @@ import _debounce from 'lodash-es/debounce';
 import { FC, FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 
 import { Unit } from '@/types/assets';
-import { convertPixelsToAspectRatio } from '@/utils/number';
 import { CxChangeEvent, CxInput, CxSelect } from '@/web-component';
 import { INPUT_DEBOUNCE_DELAY } from '../CustomRendition.constants';
 
@@ -10,10 +9,10 @@ type Props = {
   open: boolean;
   width: number;
   height: number;
-  lastAppliedSetting: {
+  lastAppliedSetting: Record<Unit, {
     width: number;
     height: number;
-  };
+  }>;
   maxWidth: number;
   maxHeight: number;
   unit: Unit;
@@ -61,11 +60,9 @@ const Resize: FC<Props> = ({ open, width, height, lastAppliedSetting, maxWidth, 
     }
     const onUnitChange = (e: CxChangeEvent) => {
       if ((e.target as HTMLOptionElement).value === Unit.AspectRatio) {
-        const { width: newWidth, height: newHeight } =
-          convertPixelsToAspectRatio(width, height);
-        onChange(newWidth, newHeight, Unit.AspectRatio);
+        onChange(lastAppliedSetting[Unit.AspectRatio].width, lastAppliedSetting[Unit.AspectRatio].height, Unit.AspectRatio);
       } else {
-        onChange(width, height, Unit.Pixel);
+        onChange(lastAppliedSetting[Unit.Pixel].width, lastAppliedSetting[Unit.Pixel].height, Unit.Pixel);
       }
     };
     unitSelect.addEventListener('cx-change', onUnitChange);
@@ -73,15 +70,15 @@ const Resize: FC<Props> = ({ open, width, height, lastAppliedSetting, maxWidth, 
     return () => {
       unitSelect.removeEventListener('cx-change', onUnitChange);
     };
-  }, [isDefined, width, height, onChange]);
+  }, [isDefined, width, height, onChange, lastAppliedSetting, unit]);
 
   const aspectRatio = useMemo(() => {
     return maxWidth / maxHeight;
   }, [maxWidth, maxHeight]);
 
   const disabledApplyButton = useMemo(() => {
-    return (lastAppliedSetting.width === width && lastAppliedSetting.height === height);
-  }, [lastAppliedSetting.width, lastAppliedSetting.height, width, height]);
+    return (lastAppliedSetting[unit].width === width && lastAppliedSetting[unit].height === height);
+  }, [lastAppliedSetting, unit, width, height]);
 
   const handleWidthChange = _debounce((e: FormEvent<CxInput>) => {
     if (!(e.target as HTMLInputElement).value) {

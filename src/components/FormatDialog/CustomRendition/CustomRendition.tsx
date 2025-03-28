@@ -1,4 +1,4 @@
-import _isEqual from 'lodash-es/isEqual';
+import _isEqualWith from 'lodash-es/isEqualWith';
 import { FC, useEffect, useMemo, useRef } from 'react';
 
 import { Unit } from '@/types/assets';
@@ -26,16 +26,20 @@ type Props = {
     percentageHeight: number;
   };
   extension: string;
-  lastAppliedResize: {
+  lastAppliedResize: Record<Unit, {
     width: number;
     height: number;
     unit: Unit;
-  };
-  lastAppliedCrop: {
+  }>;
+  lastAppliedCrop: Record<Unit, {
     width: number;
     height: number;
+    percentageWidth: number;
+    percentageHeight: number;
+    x: number;
+    y: number;
     unit: Unit;
-  };
+  }>;
   rotation: number;
   onResizeChange: (
     width: number,
@@ -106,7 +110,12 @@ const CustomRendition: FC<Props> = ({
   }, [onViewChange]);
 
   const disabledCropApply = useMemo(() => {
-    return _isEqual(crop, lastAppliedCrop);
+    return _isEqualWith(crop, lastAppliedCrop[crop.unit], (a, b) => {
+      if (!isNaN(a) && !isNaN(b)) {
+        return Math.round(a) === Math.round(b);
+      }
+      return undefined;
+    });
   }, [crop, lastAppliedCrop]);
 
   return (
@@ -118,6 +127,7 @@ const CustomRendition: FC<Props> = ({
         percentageWidth={crop.percentageWidth}
         percentageHeight={crop.percentageHeight}
         disabledCropApply={disabledCropApply}
+        lastAppliedSetting={lastAppliedCrop}
         maxWidth={resize.width}
         maxHeight={resize.height}
         unit={crop.unit}
