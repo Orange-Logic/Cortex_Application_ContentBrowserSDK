@@ -12,8 +12,8 @@ type Props = {
 };
 
 const sanitizeRotation = (rotation: number) => {
-  if (rotation >= 360) {
-    return 359;
+  if (rotation > 360) {
+    return 360;
   } else if (rotation < 0) {
     return 0;
   }
@@ -44,7 +44,7 @@ const Rotate = ({ open, rotation, onChange, onApply }: Props) => {
     // When the user change the value to a number >= 360 for the second time in a row, 
     // The input won't update the value back to 359, so we need to do it manually
     const sanitizedRotation = sanitizeRotation(newRotation);
-    if (newRotation >= 360 || newRotation < 0) {
+    if (newRotation > 360 || newRotation < 0) {
       (e.target as HTMLInputElement).value = sanitizedRotation.toString();
     }
     onChange(sanitizedRotation);
@@ -77,6 +77,8 @@ const Rotate = ({ open, rotation, onChange, onApply }: Props) => {
           value={isDefined && !invalidRotation ? rotation.toString() : ''}
           placeholder="0"
           type="number"
+          min="0"
+          max="360"
           style={{
             width: '80px',
             flex: 'none',
@@ -86,7 +88,7 @@ const Rotate = ({ open, rotation, onChange, onApply }: Props) => {
         ></cx-input>
         <cx-button
           variant="primary"
-          disabled={rotation === 0 || invalidRotation}
+          disabled={rotation === 0 || rotation === 360 || invalidRotation}
           onClick={onApply}
         >
           Apply
