@@ -41,12 +41,12 @@ const Previewer: FC<Props> = ({
     }
   }, [asset.imageUrl, isFetching]);
 
-  const onLoadAsset = useCallback((videoRect: { width: number, height: number }) => {
+  const onLoadAsset = useCallback((rect: { width: number, height: number }) => {
     if (onLoad) {
-      onLoad(videoRect);
+      onLoad(rect);
     }
 
-    setAssetDirection(videoRect.width > videoRect.height ? 'horizontal' : 'vertical');
+    setAssetDirection(rect.width > rect.height ? 'horizontal' : 'vertical');
   }, [onLoad]);
 
   const renderPreview = useCallback(() => {
@@ -114,13 +114,15 @@ const Previewer: FC<Props> = ({
             maxWidth: '100%',
             maxHeight: '100%',
             objectFit: 'contain',
+            width: assetDirection === 'horizontal' ? '100%' : 'auto',
+            height: assetDirection === 'vertical' ? '100%' : 'auto',
           }}
           onLoad={() => {
             if (!imageRef.current) {
               return;
             }
             setIsLoading(false);
-            onLoad?.({
+            onLoadAsset({
               width: imageRef.current.naturalWidth,
               height: imageRef.current.naturalHeight,
             });
@@ -134,7 +136,7 @@ const Previewer: FC<Props> = ({
     }
 
     return otherPreview;
-  }, [asset.docType, asset.extension, asset.imageUrl, asset.videoUrl, assetDirection, isError, isLoadFailed, loadable, onLoad, onLoadAsset]);
+  }, [asset.docType, asset.extension, asset.imageUrl, asset.videoUrl, assetDirection, isError, isLoadFailed, loadable, onLoadAsset]);
 
   return (
       <Container ref={containerRef}>

@@ -171,7 +171,7 @@ const initialState: State = {
   showCustomRendition: false,
   useCustomRendition: false,
   useRepresentative: false,
-  activeSetting: 'resize',
+  activeSetting: 'crop',
   isLoading: false,
 };
 
@@ -726,7 +726,6 @@ const FormatDialog: FC<Props> = ({
   );
 
   const onRotateChange = useCallback(async (rotation: number, shouldApply: boolean) => {
-    console.log(' onRotateChange ~ shouldApply:', shouldApply);
 
     dispatch({
       type: 'SET_ROTATION',

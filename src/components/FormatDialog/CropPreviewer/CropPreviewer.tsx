@@ -1,5 +1,5 @@
 import _debounce from 'lodash-es/debounce';
-import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import Cropper, { Area, Point } from 'react-easy-crop';
 
 import { Unit } from '@/types/assets';
@@ -171,6 +171,18 @@ const CropPreviewer = forwardRef<CropPreviewerHandle, Props>(({
     }
   }, [cropper.width, cropper.height, cropper.unit, image.width, image.height]);
 
+  const objectFit = useMemo(() => {
+    const container = containerRef.current;
+    if (!container || isLoading) {
+      return 'contain';
+    }
+    const imgAspect = cropper.width / cropper.height;
+
+    const containerAspect = container.clientHeight ?  (container.clientWidth) / (container.clientHeight) : 0;
+
+    return imgAspect > containerAspect ? 'horizontal-cover' : 'vertical-cover';
+  }, [cropper.height, cropper.width, isLoading]);
+
   return (
     <Container
       ref={containerRef}
@@ -185,7 +197,7 @@ const CropPreviewer = forwardRef<CropPreviewerHandle, Props>(({
           zoom={zoom}
           aspect={cropper.width / cropper.height}
           rotation={rotation}
-          objectFit="contain"
+          objectFit={objectFit}
           onCropChange={onCropChange}
           onCropComplete={onCropComplete}
           onMediaLoaded={onMediaLoaded}
