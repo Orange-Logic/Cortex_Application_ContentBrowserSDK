@@ -1,4 +1,5 @@
-import { FC, useEffect, useRef } from 'react';
+import _isEqual from 'lodash-es/isEqual';
+import { FC, useEffect, useMemo, useRef } from 'react';
 
 import { Unit } from '@/types/assets';
 import { CxHideEvent, CxShowEvent } from '@/web-component';
@@ -21,6 +22,8 @@ type Props = {
     width: number;
     height: number;
     unit: Unit;
+    percentageWidth: number;
+    percentageHeight: number;
   };
   extension: string;
   lastAppliedResize: {
@@ -102,13 +105,19 @@ const CustomRendition: FC<Props> = ({
     };
   }, [onViewChange]);
 
+  const disabledCropApply = useMemo(() => {
+    return _isEqual(crop, lastAppliedCrop);
+  }, [crop, lastAppliedCrop]);
+
   return (
     <Container ref={containerRef}>
       <Crop
         open={activeSetting === 'crop'}
         width={crop.width}
         height={crop.height}
-        lastAppliedSetting={lastAppliedCrop}
+        percentageWidth={crop.percentageWidth}
+        percentageHeight={crop.percentageHeight}
+        disabledCropApply={disabledCropApply}
         maxWidth={resize.width}
         maxHeight={resize.height}
         unit={crop.unit}

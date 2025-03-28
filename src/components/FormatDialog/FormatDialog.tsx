@@ -81,6 +81,10 @@ type State = {
   lastCropSize: {
     width: number;
     height: number;
+    percentageWidth: number;
+    percentageHeight: number;
+    x: number;
+    y: number;
     unit: Unit;
   };
   rotation: number;
@@ -153,6 +157,10 @@ const initialState: State = {
   lastCropSize: {
     width: 0,
     height: 0,
+    percentageWidth: 0,
+    percentageHeight: 0,
+    x: 0,
+    y: 0,
     unit: Unit.Pixel,
   },
   rotation: 0,
@@ -408,8 +416,11 @@ const FormatDialog: FC<Props> = ({
     dispatch({
       type: 'SET_LAST_CROP_SIZE',
       payload: {
+        ...initialState.lastCropSize,
         width: state.defaultSize.width,
         height: state.defaultSize.height,
+        percentageHeight: 100,
+        percentageWidth: 100,
       },
     });
 
@@ -649,6 +660,26 @@ const FormatDialog: FC<Props> = ({
     if (!selectedAsset) {
       return;
     }
+    const previousUnit = state.cropSize.unit;
+    const previewHandle = previewerRef.current;
+    
+    if (previewHandle && state.selectedFormat?.width && state.selectedFormat?.height) {
+      if (previousUnit !== unit) {
+        let newWidth = width;
+        let newHeight = height;
+        if (unit === Unit.AspectRatio) {
+          newWidth = state.cropSize.width;
+          newHeight = state.cropSize.height;
+        }
+
+        const scale = Math.max(
+          newWidth / state.selectedFormat.width,
+          newHeight / state.selectedFormat.height,
+        );
+        previewHandle.setZoom(1 / scale);
+      }
+    }
+
 
     dispatch({
       type: 'SET_CROP_SIZE',
@@ -667,6 +698,7 @@ const FormatDialog: FC<Props> = ({
       if (unit === Unit.AspectRatio) {
         newWidth = (state.cropSize.percentageWidth * state.selectedFormat.width) / 100;
         newHeight = (state.cropSize.percentageHeight * state.selectedFormat.height) / 100;
+        previewHandle?.setZoom(1);
       }
 
       const newX = Number(
@@ -712,6 +744,10 @@ const FormatDialog: FC<Props> = ({
         payload: {
           width,
           height,
+          percentageHeight: state.cropSize.percentageHeight,
+          percentageWidth: state.cropSize.percentageWidth,
+          x: newX,
+          y: newY,
           unit,
         },
       });
@@ -898,11 +934,7 @@ const FormatDialog: FC<Props> = ({
               height: state.resizeSize.height,
               unit: state.resizeSize.unit,
             }}
-            crop={{
-              width: state.cropSize.width,
-              height: state.cropSize.height,
-              unit: state.cropSize.unit,
-            }}
+            crop={state.cropSize}
             lastAppliedCrop={state.lastCropSize}
             lastAppliedResize={state.lastResizeSize}
             rotation={state.rotation}

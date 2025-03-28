@@ -31,3 +31,5 @@ export const extensions = [{
   value: 'jpeg',
   label: 'JPEG',
 }];
+
+export const INPUT_DEBOUNCE_DELAY = 1000;

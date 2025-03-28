@@ -1,8 +1,8 @@
 import _debounce from 'lodash-es/debounce';
 import { FormEvent, useEffect, useState } from 'react';
 
-import { DEBOUNCE_DELAY } from '@/components/ControlBar/ControlBar.constants';
 import { CxInput } from '@/web-component';
+import { INPUT_DEBOUNCE_DELAY } from '../CustomRendition.constants';
 
 type Props = {
   open: boolean;
@@ -34,7 +34,7 @@ const Rotate = ({ open, rotation, onChange, onApply }: Props) => {
   const handleRotationChange = _debounce((e: FormEvent<CxInput>) => {
     const newRotation = Number((e.target as HTMLInputElement).value);
     onChange(sanitizeRotation(newRotation));
-  }, DEBOUNCE_DELAY);
+  }, INPUT_DEBOUNCE_DELAY);
 
   return (
     <cx-details open={open} data-value="rotate">

@@ -1,24 +1,21 @@
 import _debounce from 'lodash-es/debounce';
 import { FC, FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 
-import { DEBOUNCE_DELAY } from '@/components/ControlBar/ControlBar.constants';
 import { Unit } from '@/types/assets';
 import { calculateAspectRatioFit } from '@/utils/image';
 import { convertPixelsToAspectRatio } from '@/utils/number';
 import { CxChangeEvent, CxInput, CxSelect } from '@/web-component';
 
-import { cropModes } from '../CustomRendition.constants';
-
+import { cropModes, INPUT_DEBOUNCE_DELAY } from '../CustomRendition.constants';
 type Props = {
   open: boolean;
   width: number;
   height: number;
-  lastAppliedSetting: {
-    width: number;
-    height: number;
-  }
+  disabledCropApply: boolean;
   maxWidth: number;
   maxHeight: number;
+  percentageWidth: number;
+  percentageHeight: number;
   unit: Unit;
   onChange: (
     width: number,
@@ -32,9 +29,11 @@ const Crop: FC<Props> = ({
   open,
   width,
   height,
-  lastAppliedSetting,
+  disabledCropApply,
   maxWidth,
   maxHeight,
+  percentageHeight,
+  percentageWidth,
   unit,
   onChange,
   onApply,
@@ -42,12 +41,25 @@ const Crop: FC<Props> = ({
   const [isDefined, setIsDefined] = useState(false);
   const [mode, setMode] = useState<string>('free');
   const [keepAspectRatio, setKeepAspectRatio] = useState(true);
+  const [invalidHeight, setInvalidHeight] = useState(false);
+  const [invalidWidth, setInvalidWidth] = useState(false);
+
   const unitSelectRef = useRef<CxSelect>(null);
   const formatSelectRef = useRef<CxSelect>(null);
+  const heightInputRef = useRef<CxInput>(null);
+  const widthInputRef = useRef<CxInput>(null);
 
   useEffect(() => {
     setMode('free');
-  }, [open]);
+    if (!open) {
+      if (heightInputRef.current) {
+        heightInputRef.current.value = height.toString();
+      }
+      if (widthInputRef.current) {
+        widthInputRef.current.value = width.toString();
+      }
+    }
+  }, [height, open, width]);
 
   useEffect(() => {
     Promise.all([
@@ -69,7 +81,9 @@ const Crop: FC<Props> = ({
           convertPixelsToAspectRatio(width, height);
         onChange(newWidth, newHeight, Unit.AspectRatio);
       } else {
-        onChange(width, height, Unit.Pixel);
+        const newWidth = maxWidth * percentageWidth / 100;
+        const newHeight = maxHeight * percentageHeight / 100;
+        onChange(Math.round(newWidth), Math.round(newHeight), Unit.Pixel);
       }
     };
     unitSelect.addEventListener('cx-change', onUnitChange);
@@ -77,7 +91,7 @@ const Crop: FC<Props> = ({
     return () => {
       unitSelect.removeEventListener('cx-change', onUnitChange);
     };
-  }, [isDefined, width, height, onChange]);
+  }, [isDefined, width, height, onChange, maxWidth, maxHeight, percentageWidth, percentageHeight]);
 
   useEffect(() => {
     const formatSelect = formatSelectRef.current;
@@ -112,29 +126,38 @@ const Crop: FC<Props> = ({
     return maxWidth / maxHeight;
   }, [maxWidth, maxHeight]);
 
-  const disabledApplyButton = useMemo(() => {
-    return (lastAppliedSetting.width === width && lastAppliedSetting.height === height);
-  }, [lastAppliedSetting.width, lastAppliedSetting.height, width, height]);
 
   const handleWidthChange = _debounce((e: FormEvent<CxInput>) => {
+    if (!(e.target as HTMLInputElement).value) {
+      setInvalidWidth(true);
+      return;
+    }
+    setInvalidWidth(false);
     const newWidth = Math.max(Math.min(Number((e.target as HTMLInputElement).value), maxWidth), 1);
     (e.target as HTMLInputElement).value = newWidth.toString();
     let newHeight = height;
     if (keepAspectRatio) {
-      newHeight = Math.min(Math.round(newWidth / aspectRatio * 100) / 100, maxHeight);
+      newHeight = Math.min(Math.round(newWidth / aspectRatio), maxHeight);
+      setInvalidHeight(false);
     }
     onChange(newWidth, newHeight, unit);
-  }, DEBOUNCE_DELAY);
+  }, INPUT_DEBOUNCE_DELAY);
 
   const handleHeightChange = _debounce((e: FormEvent<CxInput>) => {
+    if (!(e.target as HTMLInputElement).value) {
+      setInvalidHeight(true);
+      return;
+    }
+    setInvalidHeight(false);
     const newHeight = Math.max(Math.min(Number((e.target as HTMLInputElement).value), maxHeight), 1);
     (e.target as HTMLInputElement).value = newHeight.toString();
     let newWidth = width;
     if (keepAspectRatio) {
-      newWidth = Math.min(Math.round(newHeight * aspectRatio * 100) / 100, maxWidth);
+      newWidth = Math.min(Math.round(newHeight * aspectRatio), maxWidth);
+      setInvalidWidth(false);
     }
     onChange(newWidth, newHeight, unit);
-  }, DEBOUNCE_DELAY);
+  }, INPUT_DEBOUNCE_DELAY);
 
   return (
     <cx-details open={open} data-value="crop">
@@ -160,11 +183,13 @@ const Crop: FC<Props> = ({
         <cx-space spacing="small">
           <div className="resize__input-group">
             <cx-input
+              ref={widthInputRef}
               placeholder="Width"
               type="number"
-              step="0.01"
+              step="1"
               value={isDefined ? width.toString() : ''}
               onInput={handleWidthChange}
+              required
             >
               <cx-typography slot="prefix" variant="body3" className="details__summary__input-label">W</cx-typography>
             </cx-input>
@@ -181,11 +206,13 @@ const Crop: FC<Props> = ({
               }}
             ></cx-icon-button>
             <cx-input
+              ref={heightInputRef}
               placeholder="Height"
               type="number"
-              step="0.01"
+              step="1"
               value={isDefined ? height.toString() : ''}
               onInput={handleHeightChange}
+              required
             >
               <cx-typography slot="prefix" variant="body3" className="details__summary__input-label">H</cx-typography>
             </cx-input>
@@ -197,7 +224,7 @@ const Crop: FC<Props> = ({
         </cx-space>
         <cx-button
           variant="primary"
-          disabled={disabledApplyButton}
+          disabled={disabledCropApply || invalidHeight || invalidWidth}
           style={{
             marginLeft: 'auto',
           }}

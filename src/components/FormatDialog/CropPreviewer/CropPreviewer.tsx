@@ -41,6 +41,7 @@ export type CropPreviewerHandle = {
   applyResize: () => Promise<string>;
   applyCrop: () => Promise<string>;
   applyRotation: () => Promise<string>;
+  setZoom: (zoom: number) => void;
 };
 
 const CropPreviewer = forwardRef<CropPreviewerHandle, Props>(({
@@ -134,6 +135,7 @@ const CropPreviewer = forwardRef<CropPreviewerHandle, Props>(({
     applyResize,
     applyCrop,
     applyRotation,
+    setZoom,
   }));
 
   const resetCropper = useCallback(() => {
@@ -159,17 +161,6 @@ const CropPreviewer = forwardRef<CropPreviewerHandle, Props>(({
     resetCropper();
   }, [disabled, resetCropper]);
 
-  useEffect(() => {
-    if (cropper.unit === 'pixels') {
-      const scale = Math.max(
-        cropper.width / image.width,
-        cropper.height / image.height,
-      );
-      setZoom(1 / scale);
-    } else {
-      setZoom(1);
-    }
-  }, [cropper.width, cropper.height, cropper.unit, image.width, image.height]);
 
   const objectFit = useMemo(() => {
     const container = containerRef.current;

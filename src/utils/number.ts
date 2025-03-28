@@ -1,9 +1,11 @@
 export const convertPixelsToAspectRatio = (width: number, height: number) => {
   const gcd = (a: number, b: number): number => (b === 0 ? a : gcd(b, a % b));
-  const divisor = gcd(width, height);
+  const roundedWidth = Math.round(width);
+  const roundedHeight = Math.round(height);
+  const divisor = gcd(roundedWidth, roundedHeight);
 
   return {
-    width: width / divisor,
-    height: height / divisor,
+    width: roundedWidth / divisor,
+    height: roundedHeight / divisor,
   };
 };

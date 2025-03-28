@@ -62,5 +62,3 @@ export const views = [{
   value: GridView.Large,
   label: 'Large labeled',
 }];
-
-export const DEBOUNCE_DELAY = 250;
