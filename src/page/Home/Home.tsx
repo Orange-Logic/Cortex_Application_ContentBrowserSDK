@@ -226,10 +226,11 @@ const HomePage: FC<Props> = () => {
     useSession,
   });
 
+  const [browserMounted, setBrowserMounted] = useState(false);
   const [isResized, setIsResized] = useState(false);
-
   const [showFormatLoader, setShowFormatLoader] = useState<FormatLoaderState>(FormatLoaderState.Hide);
 
+  const browserMountedRef = useRef(browserMounted);
   const containerRef = useRef<HTMLDivElement>(null);
   const resultRef = useRef<HTMLDivElement>(null);
   const containerResizeObserverRef = useRef<CxResizeObserver>(null);
@@ -240,6 +241,7 @@ const HomePage: FC<Props> = () => {
   const pageSizeRef = useRef(state.pageSize);
   const viewRef = useRef(state.view);
   const isWindowResizing = useRef(false);
+  browserMountedRef.current = browserMounted;
   facetsRef.current = state.facets;
   viewRef.current = state.view;
   pageSizeRef.current = state.pageSize;
@@ -262,7 +264,7 @@ const HomePage: FC<Props> = () => {
     );
   }, [sortOrders, state.sortDirection, state.sortOrder]);
 
-  const { data, isFetching, isError } = useGetAssetsQuery(isResized && selectedSortOrder && mappedMediaTypes?.length ? {
+  const { data, isFetching, isError } = useGetAssetsQuery(isResized && selectedSortOrder && mappedMediaTypes?.length && browserMounted ? {
     extensions: state.extensions,
     folderID: state.currentFolder.id,
     isSeeThrough: state.isSeeThrough,
@@ -410,8 +412,6 @@ const HomePage: FC<Props> = () => {
     });
   }, [handleResize]);
 
- 
-
   useEffect(() => {
     if (loadedFromStorage.current) {
       const container = resultRef.current;
@@ -514,6 +514,9 @@ const HomePage: FC<Props> = () => {
 
   const onFolderSelect = useCallback(
     async (folder: Folder) => {
+      if (!browserMountedRef.current) {
+        setBrowserMounted(true);
+      }
       if (folder.fullPath === state.currentFolder.fullPath) {
         return;
       }

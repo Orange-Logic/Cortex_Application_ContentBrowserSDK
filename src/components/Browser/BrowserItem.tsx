@@ -26,7 +26,7 @@ export const BrowserItem: FC<Props> = ({
   const {
     data: folders,
     isFetching,
-  } = useGetFoldersQuery({ folder, searchText: searchText ?? '', useSession }, { skip: !isExpanded });
+  } = useGetFoldersQuery({ folder, searchText: '', useSession }, { skip: !isExpanded });
 
   const highlightedTitle = useMemo(() => {
     if (!searchText) return folder.title;

@@ -1,6 +1,7 @@
 import _debounce from 'lodash-es/debounce';
 import { FC, useCallback, useEffect, useRef, useState } from 'react';
 
+import { LIBRARY_NAME } from '@/consts/data';
 import { useGetCollectionsQuery, useGetFoldersQuery } from '@/store/search/search.api';
 import { RootFolder } from '@/store/search/search.slice';
 import { Folder } from '@/types/search';
@@ -19,7 +20,7 @@ type Props = {
   open: boolean;
   showCollections?: boolean;
   useSession?: string;
-  onFolderSelect?: (selectedFolder: Folder) => void;
+  onFolderSelect: (selectedFolder: Folder) => void;
   onClose: () => void;
 };
 
@@ -40,6 +41,7 @@ const Browser: FC<Props> = ({
   const drawerRef = useRef<CxDrawer>(null);
   const searchRef = useRef<CxInput>(null);
   const treeRef = useRef<CxTree>(null);
+  const firstRender = useRef(true);
 
   useEffect(() => {
     Promise.all([
@@ -86,6 +88,19 @@ const Browser: FC<Props> = ({
     isFetching: isFetchingFolders,
     isError: isErrorFolders,
   } = useGetFoldersQuery({ folder: RootFolder, searchText, useSession });
+
+  useEffect(() => {
+    if (firstRender.current && folders) {
+      firstRender.current = false;
+      const libraryFolder = folders.find((folder) => folder.title === LIBRARY_NAME);
+
+      if (libraryFolder) {
+        onFolderSelect(libraryFolder);
+      } else {
+        onFolderSelect(RootFolder);
+      }
+    }
+  }, [folders, onFolderSelect]);
 
   const {
     data: collections,
