@@ -7,6 +7,7 @@
   
   color: var(--cx-color-neutral);
   font-family: var(--cx-font-sans);
+  font-synthesis-weight: auto;
 }
 
 #cortex-asset-picker-root *:not(:defined) {
