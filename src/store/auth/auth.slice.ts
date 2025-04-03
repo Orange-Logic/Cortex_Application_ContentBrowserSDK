@@ -26,6 +26,7 @@ import {
 export const AUTH_FEATURE_KEY = 'auth';
 export const AUTH_FEATURE_ACCESS_KEY_KEY = `${AUTH_FEATURE_KEY}_access_key_key`;
 export const AUTH_FEATURE_SITE_URL_KEY = `${AUTH_FEATURE_KEY}_site_url_key`;
+export const USE_SESSION = 'useSession';
 
 export type AuthState = {
   siteUrl: string;
@@ -36,12 +37,14 @@ export type AuthState = {
   oAuthUrl?: string;
   error?: string;
   status: 'authenticated' | 'unauthenticated' | 'restoreSession' | 'requestLogin' | 'waitForAuthorise';
+  useSession: string;
 };
 
 // #region Slice
 const initialState: AuthState = {
   siteUrl: '',
   status: 'unauthenticated',
+  useSession: '',
 };
 
 export const authSlice = createSlice({
@@ -73,11 +76,18 @@ export const authSlice = createSlice({
       state.accessToken = undefined;
       state.oAuthUrl = undefined;
       state.siteUrl = state.userConfigSiteUrl ?? '';
+      state.nonce = undefined;
+      state.useSession = '';
       deleteData(AUTH_FEATURE_ACCESS_KEY_KEY);
       deleteData(AUTH_FEATURE_SITE_URL_KEY);
+      deleteData(USE_SESSION);
     },
     setAuthStatus: (state, action: PayloadAction<AuthState['status']>) => {
       state.status = action.payload;
+    },
+    setUseSession: (state, action: PayloadAction<string>) => {
+      state.useSession = action.payload;
+      storeData(USE_SESSION, action.payload);
     },
   },
   extraReducers: (builder) => {
@@ -111,7 +121,7 @@ export const authSlice = createSlice({
 });
 
 export default authSlice.reducer;
-export const { logout, setAccessToken, generateNonce, setSiteUrl, setUserConfigSiteUrl } = authSlice.actions;
+export const { logout, setAccessToken, generateNonce, setSiteUrl, setUserConfigSiteUrl, setUseSession } = authSlice.actions;
 // #endregion
 
 // #region Selector
@@ -138,6 +148,9 @@ export const nonceSelector = (rootState: RootState) =>
 
 export const authStateSelector = (rootState: RootState) => 
   rootState[AUTH_FEATURE_KEY].status;
+
+export const useSessionSelector = (rootState: RootState) =>
+  rootState[AUTH_FEATURE_KEY].useSession;
 
 export const appAuthUrlSelector = (rootState: RootState) => {
   const siteUrl = rootState[AUTH_FEATURE_KEY].siteUrl;
@@ -214,12 +227,12 @@ export const initAuthInfoFromCache = createAsyncThunk(
       // eslint-disable-next-line @typescript-eslint/no-use-before-define
       let siteUrl = siteUrlSelector(getState() as RootState);
       if (!siteUrl) {
-        siteUrl = await getData(AUTH_FEATURE_SITE_URL_KEY) || '';
+        siteUrl = await getData(AUTH_FEATURE_SITE_URL_KEY) ?? '';
         if (!siteUrl) {
           // eslint-disable-next-line @typescript-eslint/no-use-before-define
           siteUrl = userConfigSiteUrlSelector(getState() as RootState) ?? '';
         }
-        if (!!siteUrl) {
+        if (siteUrl) {
           // eslint-disable-next-line @typescript-eslint/no-use-before-define
           dispatch(setSiteUrl(siteUrl));
         }

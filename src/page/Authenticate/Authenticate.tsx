@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 
 import { GlobalConfigContext } from '@/GlobalConfigContext';
 import { AppDispatch } from '@/store';
-import { authErrorSelector, oAuth, siteUrlSelector } from '@/store/auth/auth.slice';
+import { authErrorSelector, oAuth, setUseSession, siteUrlSelector } from '@/store/auth/auth.slice';
 import { checkCorrectSiteUrl } from '@/utils/api';
 import { LOGIN_GRAPHICS_TOP_COLOR_BASE64 } from '@/utils/constants';
 import { useDebounceState } from '@/utils/hooks';
@@ -13,13 +13,17 @@ const AuthenticatePage = () => {
   const dispatch = useDispatch<AppDispatch>();
   const siteUrl = useSelector(siteUrlSelector);
   const authError = useSelector(authErrorSelector);
-  const { pluginInfo } = useContext(GlobalConfigContext);
+  const { pluginInfo, useSession } = useContext(GlobalConfigContext);
   const [isDefined, setIsDefined] = useState(false);
   const [url, setUrl] = useState(siteUrl);
   const [urlError, setUrlError] = useState<string | null>(null);
   const [checkingSite, setCheckingSite] = useDebounceState(false, 1000); // debounce to avoid flashing when check site connect too fast
+  const [showUseSessionInput, setShowUseSessionInput] = useState(false);
+  const [session, setSession] = useState(useSession);
   const oAuthForm = useRef<HTMLFormElement>(null);
-  const inputRef = useRef<CxInput>(null);
+  const siteInputRef = useRef<CxInput>(null);
+  const sessionInputRef = useRef<CxInput>(null);
+  const hiddenBoxRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     Promise.all([customElements.whenDefined('cx-input')]).then(() => {
@@ -28,7 +32,7 @@ const AuthenticatePage = () => {
   }, []);
 
   useEffect(() => {
-    const input = inputRef.current;
+    const input = siteInputRef.current;
     if (!input || !isDefined) return;
     const onInput = (e: CxChangeEvent) => {
       setUrl((e.target as HTMLInputElement).value);
@@ -41,24 +45,74 @@ const AuthenticatePage = () => {
     };
   }, [isDefined]);
 
+  useEffect(() => {
+    const input = sessionInputRef.current;
+    if (!input || !isDefined) return;
+    const onInput = (e: CxChangeEvent) => {
+      setSession((e.target as HTMLInputElement).value);
+    };
+    input.addEventListener('cx-input', onInput);
+
+    return () => {
+      input.removeEventListener('cx-input', onInput);
+    };
+  }, [dispatch, isDefined, showUseSessionInput]);
+
   const onSubmit: FormEventHandler<HTMLFormElement> = useCallback((e) => {
     e.preventDefault();
     setCheckingSite(true, true);
     const urlWithProtocol = url.indexOf('://') === -1 ? `https://${url}` : url;
     checkCorrectSiteUrl(urlWithProtocol)
-      .then(() => dispatch(oAuth({ siteUrl: urlWithProtocol })))
+      .then(() => {
+        dispatch(oAuth({ siteUrl: urlWithProtocol }));
+        if (session) {
+          dispatch(setUseSession(session));
+        }
+      })
       .catch(() => {
         const errorMessage = 'The site is currently not available. Please verify your Site URL and check your Internet connection.';
         setUrlError(errorMessage);
       },
       )
       .finally(() => setCheckingSite(false));
-  }, [dispatch, setCheckingSite, url]);
+  }, [dispatch, session, setCheckingSite, url]);
 
-  const cancelConnect = () => {
+  const cancelConnect = useCallback(() => {
     setCheckingSite(false, true);
     setUrlError(null);
-  };
+  }, [setCheckingSite]);
+
+  useEffect(() => {
+    // If the user clicks the hidden box 5 times in 2 second, show the session input
+    if (showUseSessionInput) return;
+    let clickCount = 0;
+    let clickTimeout: NodeJS.Timeout | null = null;
+
+    const handleClick = () => {
+      clickCount++;
+      if (clickCount === 5) {
+        setShowUseSessionInput(true);
+        if (clickTimeout) clearTimeout(clickTimeout);
+        return;
+      }
+      if (clickTimeout) clearTimeout(clickTimeout);
+      clickTimeout = setTimeout(() => {
+        clickCount = 0;
+      }, 2000);
+    };
+
+    const hiddenBox = hiddenBoxRef.current;
+    if (hiddenBox) {
+      hiddenBox.addEventListener('click', handleClick);
+    }
+
+    return () => {
+      if (hiddenBox) {
+        hiddenBox.removeEventListener('click', handleClick);
+      }
+      if (clickTimeout) clearTimeout(clickTimeout);
+    };
+  }, [showUseSessionInput]);
 
   let buttonText = 'Connect';
   if (checkingSite) {
@@ -93,11 +147,7 @@ const AuthenticatePage = () => {
           width: '100%',
         }}
       >
-        <cx-space
-          direction="vertical"
-          spacing="medium"
-          align-items="center"
-        >
+        <cx-space direction="vertical" spacing="medium" align-items="center">
           <cx-typography variant="h2">
             Welcome to the OrangeDAM Asset Browser
           </cx-typography>
@@ -113,7 +163,7 @@ const AuthenticatePage = () => {
             </cx-alert>
           )}
           <cx-input
-            ref={inputRef}
+            ref={siteInputRef}
             label="Site URL"
             placeholder="Enter your OrangeDAM URL"
             value={url}
@@ -122,6 +172,19 @@ const AuthenticatePage = () => {
               width: '100%',
             }}
           ></cx-input>
+          {
+            showUseSessionInput && (
+              <cx-input
+                ref={sessionInputRef}
+                label="Session ID"
+                placeholder="Enter your session ID"
+                value={useSession}
+                style={{
+                  width: '100%',
+                }}
+              ></cx-input>
+            )
+          }
           <cx-space
             justify-content="flex-end"
             style={{
@@ -148,6 +211,18 @@ const AuthenticatePage = () => {
           </cx-space>
         </cx-space>
       </form>
+      <button
+        ref={hiddenBoxRef}
+        tabIndex={-1}
+        style={{
+          position: 'absolute',
+          left: 0,
+          bottom: 0,
+          opacity: 0,
+          width: '32px',
+          height: '32px',
+        }}
+      ></button>
     </div>
   );
 };

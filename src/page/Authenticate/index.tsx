@@ -3,7 +3,8 @@ import { FC, useCallback, useContext, useMemo } from 'react';
 import { GlobalConfigContext } from '@/GlobalConfigContext';
 import { useAppDispatch, useAppSelector } from '@/store';
 import {
-  appAuthUrlSelector, authStateSelector, cancelAuth, siteUrlSelector,
+  appAuthUrlSelector, authStateSelector, cancelAuth, setUseSession, siteUrlSelector,
+  USE_SESSION,
 } from '@/store/auth/auth.slice';
 
 import AuthenticatePage from './Authenticate';
@@ -14,6 +15,13 @@ type Props = {
 };
 
 const RestoreSession: FC<Props> = ({ onCancel }) => {
+  const dispatch = useAppDispatch();
+  const localStorageSession = localStorage.getItem(USE_SESSION);
+
+  if (localStorageSession) {
+    dispatch(setUseSession(localStorageSession));
+  }
+  
   return (
     <ConnectingBackground onCancel={onCancel}>
       <cx-typography variant="h3">

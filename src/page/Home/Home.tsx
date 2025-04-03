@@ -20,7 +20,7 @@ import {
   useGetAvailableProxiesQuery, useGetParametersQuery, useGetSortOrdersQuery,
 } from '@/store/assets/assets.api';
 import { importAssets } from '@/store/assets/assets.slice';
-import { authenticatedSelector, logout } from '@/store/auth/auth.slice';
+import { authenticatedSelector, logout, useSessionSelector } from '@/store/auth/auth.slice';
 import { useGetAssetsQuery } from '@/store/search/search.api';
 import { explorePath, RootFolder } from '@/store/search/search.slice';
 import { FormatLoaderState } from '@/types/assets';
@@ -216,6 +216,7 @@ const reducer = (state: State, action: Action): State => {
 const HomePage: FC<Props> = () => {
   const [state, dispatch] = useReducer(reducer, initialState);
   const authenticated = useAppSelector(authenticatedSelector);
+  const useSession = useAppSelector(useSessionSelector);
   const {
     availableRepresentativeSubtypes,
     availableDocTypes,
@@ -224,7 +225,6 @@ const HomePage: FC<Props> = () => {
     persistMode,
     searchInDrive,
     showCollections,
-    useSession,
   } = useContext(GlobalConfigContext);
   const { extraFields } = useContext(AppContext);
   const { data: availableProxies, isFetching: isFetchingAvailableProxies } = useGetAvailableProxiesQuery(state.selectedAsset ? {
@@ -715,7 +715,7 @@ const HomePage: FC<Props> = () => {
                     isError={isError}
                     hasNextPage={hasNextPage}
                     height={height}
-                    isLoadingData={state.isLoading}
+                    isLoadingData={state.isLoading || !data}
                     items={data?.items || []}
                     selectedAsset={state.selectedAsset}
                     view={state.view}

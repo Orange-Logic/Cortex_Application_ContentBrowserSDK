@@ -93,23 +93,34 @@ const Browser: FC<Props> = ({
   } = useGetFoldersQuery({ folder: RootFolder, searchText, useSession });
 
   useEffect(() => {
+    const handleDefaultFolder = () => {
+      if (!folders) return;
+      const libraryFolder = folders.find((folder) => folder.title === LIBRARY_NAME);
+
+      if (libraryFolder) {
+        onFolderSelect(libraryFolder);
+      } else {
+        onFolderSelect(RootFolder);
+      }
+    };
+
     if (firstRender.current && folders) {
       firstRender.current = false;
       if (lastLocationMode) {
         getData('lastLocation').then((lastLocation) => {
           if (typeof lastLocation === 'string') {
-            const folder = JSON.parse(lastLocation) as Folder;
-            onFolderSelect(folder);
+            try {
+              const folder = JSON.parse(lastLocation) as Folder;
+              onFolderSelect(folder);
+            } catch (error) {
+              handleDefaultFolder();
+            }
           }
+        }).catch(() => {
+          handleDefaultFolder();
         });
       } else {
-        const libraryFolder = folders.find((folder) => folder.title === LIBRARY_NAME);
-
-        if (libraryFolder) {
-          onFolderSelect(libraryFolder);
-        } else {
-          onFolderSelect(RootFolder);
-        }
+        handleDefaultFolder();
       }
     }
   }, [folders, lastLocationMode, onFolderSelect]);
