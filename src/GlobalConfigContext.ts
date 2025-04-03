@@ -17,6 +17,7 @@ export type GlobalConfigContextType = {
   availableRepresentativeSubtypes?: string[];
   ctaText: string;
   displayInfo: ImageCardDisplayInfo;
+  lastLocationMode?: boolean;
   persistMode: boolean;
   pluginInfo: PluginInfo;
   isGABPopedup: boolean;

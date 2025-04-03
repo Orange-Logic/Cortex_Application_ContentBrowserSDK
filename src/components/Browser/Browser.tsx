@@ -5,6 +5,7 @@ import { LIBRARY_NAME } from '@/consts/data';
 import { useGetCollectionsQuery, useGetFoldersQuery } from '@/store/search/search.api';
 import { RootFolder } from '@/store/search/search.slice';
 import { Folder } from '@/types/search';
+import { getData } from '@/utils/storage';
 import {
   CxChangeEvent, CxDrawer, CxInput, CxMenu, CxSelectEvent, CxSelectionChangeEvent, CxTree,
 } from '@/web-component';
@@ -17,6 +18,7 @@ type Props = {
   collectionPath?: string;
   currentFolder: Folder;
   focusInput?: boolean;
+  lastLocationMode?: boolean;
   open: boolean;
   showCollections?: boolean;
   useSession?: string;
@@ -28,6 +30,7 @@ const Browser: FC<Props> = ({
   collectionPath,
   currentFolder,
   focusInput,
+  lastLocationMode,
   open,
   showCollections,
   useSession,
@@ -92,15 +95,24 @@ const Browser: FC<Props> = ({
   useEffect(() => {
     if (firstRender.current && folders) {
       firstRender.current = false;
-      const libraryFolder = folders.find((folder) => folder.title === LIBRARY_NAME);
-
-      if (libraryFolder) {
-        onFolderSelect(libraryFolder);
+      if (lastLocationMode) {
+        getData('lastLocation').then((lastLocation) => {
+          if (typeof lastLocation === 'string') {
+            const folder = JSON.parse(lastLocation) as Folder;
+            onFolderSelect(folder);
+          }
+        });
       } else {
-        onFolderSelect(RootFolder);
+        const libraryFolder = folders.find((folder) => folder.title === LIBRARY_NAME);
+
+        if (libraryFolder) {
+          onFolderSelect(libraryFolder);
+        } else {
+          onFolderSelect(RootFolder);
+        }
       }
     }
-  }, [folders, onFolderSelect]);
+  }, [folders, lastLocationMode, onFolderSelect]);
 
   const {
     data: collections,

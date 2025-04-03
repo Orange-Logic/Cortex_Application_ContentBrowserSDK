@@ -120,6 +120,10 @@ declare global {
          * The session id to use for the asset picker
          */
         useSession?: string
+        /**
+         * The flag to keep the last folder selected between sessions
+         */
+        lastLocationMode?: boolean;
       }) => void,
       close: () => void,
       /**
@@ -192,6 +196,7 @@ window.CortexAssetPicker = {
       tags: true,
     },
     extraFields, 
+    lastLocationMode,
     multiSelect,
     persistMode,
     pluginName,
@@ -257,6 +262,7 @@ window.CortexAssetPicker = {
           availableRepresentativeSubtypes,
           ctaText: ctaText ?? 'Insert',
           displayInfo,
+          lastLocationMode: !!lastLocationMode,
           persistMode: !!persistMode,
           pluginInfo: {
             pluginName,

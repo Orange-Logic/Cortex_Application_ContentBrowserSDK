@@ -220,6 +220,7 @@ const HomePage: FC<Props> = () => {
     availableRepresentativeSubtypes,
     availableDocTypes,
     ctaText,
+    lastLocationMode,
     persistMode,
     searchInDrive,
     showCollections,
@@ -549,9 +550,12 @@ const HomePage: FC<Props> = () => {
         dispatch({ type: 'SET_CURRENT_FOLDER', payload: folder });
         dispatch({ type: 'SET_SELECTED_ASSET', payload: null });
         dispatch({ type: 'SET_OPEN_BROWSER', payload: false });
+        if (lastLocationMode) {
+          storeData('lastLocation', JSON.stringify(folder));
+        }
       }
     },
-    [appDispatch, state.currentFolder.fullPath],
+    [appDispatch, lastLocationMode, state.currentFolder.fullPath],
   );
 
   const onLoadMore = useCallback(() => {
@@ -685,6 +689,7 @@ const HomePage: FC<Props> = () => {
         <Browser
           collectionPath={collectionPath}
           currentFolder={state.currentFolder}
+          lastLocationMode={lastLocationMode}
           open={state.openBrowser}
           showCollections={showCollections}
           useSession={useSession}
