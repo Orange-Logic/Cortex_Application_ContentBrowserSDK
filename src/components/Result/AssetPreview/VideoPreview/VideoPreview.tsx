@@ -36,7 +36,6 @@ const ViewPreview: FC<Props> = ({
       return;
     }
 
-
     const onMouseEnter = (e: MouseEvent) => {
       if (video.duration) {
         progressBar.value = (e.offsetX / progressBar.offsetWidth) * 100;
@@ -85,42 +84,41 @@ const ViewPreview: FC<Props> = ({
   }, [onLoaded]);
 
   return (
-    <div
-      ref={containerRef}
-      className={`asset-preview__representative asset-preview__representative--${assetDirection}`}
-    >
-      {url && !thumbnailOnly ? (
-        <video
-          ref={videoRef}
-          src={url}
-          poster={thumbnailUrl}
-          onLoadedMetadata={onLoadAsset}
-          onError={() => {
-            onError();
-          }}
-        >
-          <track default kind="captions" srcLang="en" />
-        </video>
-      ) : (
-        <img
-          ref={imageRef}
-          src={thumbnailUrl}
-          alt="Asset preview"
-          onLoad={onLoadAsset}
-          onError={onError}
-        />
-      )}
-      <div className="asset-preview__video-icon">
-        <cx-icon name="play_arrow" variant="filled"></cx-icon>
+    <div ref={containerRef}>
+      <div
+        className={`asset-preview__representative asset-preview__representative--${assetDirection}`}
+      >
+        {url && !thumbnailOnly ? (
+          <video
+            ref={videoRef}
+            src={url}
+            poster={thumbnailUrl}
+            onLoadedMetadata={onLoadAsset}
+            onError={() => {
+              onError();
+            }}
+          >
+            <track default kind="captions" srcLang="en" />
+          </video>
+        ) : (
+          <img
+            ref={imageRef}
+            src={thumbnailUrl}
+            alt="Asset preview"
+            onLoad={onLoadAsset}
+            onError={onError}
+          />
+        )}
+        <div className="asset-preview__video-icon">
+          <cx-icon name="play_arrow" variant="filled"></cx-icon>
+        </div>
       </div>
-      {
-        !thumbnailOnly && (
-          <cx-progress-bar
-            ref={progressBarRef}
-            className="asset-preview__progress-bar"
-          ></cx-progress-bar>
-        )
-      }
+      {!thumbnailOnly && (
+        <cx-progress-bar
+          ref={progressBarRef}
+          className="asset-preview__progress-bar"
+        ></cx-progress-bar>
+      )}
     </div>
   );
 };
