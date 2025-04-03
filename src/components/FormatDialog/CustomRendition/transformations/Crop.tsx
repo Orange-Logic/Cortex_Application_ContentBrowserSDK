@@ -170,7 +170,7 @@ const Crop: FC<Props> = ({
 
   return (
     <cx-details open={open} data-value="crop">
-      <cx-space slot="summary">
+      <cx-space slot="summary" align-items='center'>
         <div className="details__summary__icon">
           <cx-icon name="crop"></cx-icon>
         </div>

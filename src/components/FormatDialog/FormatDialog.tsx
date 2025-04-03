@@ -1084,7 +1084,13 @@ const FormatDialog: FC<Props> = ({
                     ),
                   )}
                 {supportedATS && (
-                  <ProxyMenu items={[]} selectedItem={state.selectedProxy}>
+                  <ProxyMenu
+                    items={[]}
+                    selectedItem={state.selectedProxy} 
+                    style={{
+                      borderTopWidth: '0',
+                    }}
+                  >
                     <cx-menu-item value="custom">
                       <cx-icon slot="prefix" name="crop_rotate" className='icon--large'></cx-icon>
                       <div>

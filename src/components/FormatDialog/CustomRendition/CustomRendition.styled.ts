@@ -50,4 +50,8 @@ export const Container = styled.div`
       width: 100%;
     }
   }
+
+  cx-details:not(:last-child)::part(base) {
+    border-bottom-width: 0;
+  }
 `;

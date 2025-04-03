@@ -48,7 +48,12 @@ const ProxyMenu = ({ items, selectedItem, children, style }: Props) => {
                 {item.extension?.replace(/^\./, '').toUpperCase()}
               </cx-typography>
             </div>
-            {<cx-icon slot="suffix" name={selected ? 'check' : ''}></cx-icon>}
+            <cx-icon 
+              slot="suffix" 
+              name={selected ? 'check' : ''}
+              style={{
+                color: 'var(--cx-color-primary)',
+              }}></cx-icon>
           </cx-menu-item>
         );
       })}

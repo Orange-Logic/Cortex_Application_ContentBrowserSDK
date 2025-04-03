@@ -5,7 +5,7 @@ import { CSSResultGroup } from 'lit';
 import { default as default_2 } from 'sortablejs';
 import { default as default_3 } from 'react';
 import { Edge as Edge_2 } from '@xyflow/react';
-import { ExecutionContext } from './ExecutionContext';
+import { ExecutionContext } from './data/orangelogic-types';
 import { LitElement } from 'lit';
 import { MenuData as MenuData_2 } from 'packages/molecules/src/view-and-sort/view-and-sort.types';
 import { Node as Node_3 } from '@xyflow/react';
@@ -669,8 +669,8 @@ export declare class CxBoard extends CortexElement {
     static styles: CSSResult;
     private readonly localize;
     board: HTMLElement;
-    searchInput: CxInput;
-    searchInputClear: CxIconButton;
+    searchInput?: CxInput;
+    searchInputClear?: CxIconButton;
     list: HTMLElement;
     selectAllCheckBox: HTMLElement;
     title: string;
@@ -681,6 +681,13 @@ export declare class CxBoard extends CortexElement {
     group: boolean;
     configurable: boolean;
     all: boolean;
+    allowSearch: boolean;
+    /**
+     * A boolean property that indicates whether the drag operation should be aborted.
+     * When set to `true`, the current drag action will be canceled,
+     * and the dragged items will be placed back to their original position.
+     */
+    abortDrag: boolean;
     items: BoardItem[];
     private _allItems;
     get allItems(): BoardItem[];
@@ -688,6 +695,7 @@ export declare class CxBoard extends CortexElement {
     get filteredItems(): BoardItem[];
     /** The selected items in the board. */
     private _selectedItems;
+    get selectedItemAsArray(): string[];
     get selectedItems(): Record<string, boolean>;
     searchValue: string;
     private sortable;
@@ -698,6 +706,7 @@ export declare class CxBoard extends CortexElement {
     private start;
     private end;
     private previous;
+    private lastSelectedItem;
     get isAllSelected(): boolean;
     get isPartiallySelected(): boolean;
     /** Handles the update of items in the board. */
@@ -716,7 +725,7 @@ export declare class CxBoard extends CortexElement {
     handleSelect(evt: default_2.SortableEvent): void;
     handleStart(evt: default_2.SortableEvent): void;
     handleUpdate(evt: default_2.SortableEvent): void;
-    deselectAll(): void;
+    deselectAll(force?: boolean, exclude?: string[]): void;
     selectAll(): void;
     handleSelectAll(): void;
     onAllChanged(): void;
@@ -1900,19 +1909,24 @@ export declare class CxDownloader extends CortexElement {
     private readonly localize;
     downloader: HTMLDivElement;
     searchInput: CxInput;
-    data: ExecutionContext;
+    ctx: ExecutionContext | null;
+    userId: string;
     workerURL: string;
     private _coordinates;
     get coordinates(): {
         x: number;
         y: number;
     };
+    private _connected;
+    get connected(): boolean;
     private isFullscreen;
     private isRocketMode;
     private isVisible;
     private chunkSize;
     private _downloadingFiles;
     get downloadingFiles(): DownloadItem[];
+    get baseUrl(): string;
+    get localStoragePrefix(): string;
     set downloadingFiles(newDownloadingFiles: DownloadItem[]);
     private allFiles;
     private sortedFiles;
@@ -1941,7 +1955,12 @@ export declare class CxDownloader extends CortexElement {
     connectedCallback(): void;
     disconnectedCallback(): void;
     protected firstUpdated(_changedProperties: PropertyValues): void;
+    requestLocation(transactionID: string | null): void;
+    requestDownload({ containerName, transactionID }: any): void;
     private buildDownloadManager;
+    fireNotification(message: string, title: string | undefined, options: {
+        notificationType: string;
+    }): void;
     initDownloadManager(): Promise<void>;
     updateAllFiles(newAllFiles: Record<string, DownloadItem>): void;
     fetchAllFiles(): Promise<void>;
@@ -2187,6 +2206,7 @@ export declare class CxDropdown extends CortexElement {
     handleTriggerKeyUp(event: KeyboardEvent): void;
     handleTriggerSlotChange(): void;
     updateAccessibleTrigger(): void;
+    blurTrigger(): void;
     /** Shows the dropdown panel. */
     show(): Promise<void>;
     /** Hides the dropdown panel */
@@ -2391,6 +2411,8 @@ export declare class CxGraphView extends CortexElement {
     readonly: boolean;
     hideControls: boolean;
     renderDelay: number;
+    selectNodesWhenLayout(_nodeIds?: string[]): void;
+    selectNodes(_nodeIds?: string[]): void;
     handleAddNode(params: CxGraphViewAddNodeParams): void;
     handleSelectNode(params: CxGraphViewSelectNodeParams): void;
     handleSelectEdge(params: CxGraphViewSelectEdgeParams): void;
@@ -2541,6 +2563,9 @@ export declare class CxIcon extends CortexElement {
     variant: 'outlined' | 'filled' | 'round' | 'sharp' | 'two-tone' | 'fa';
     /** The class of the Font Awesome icon to draw */
     iconClass: string;
+    private fontLoaded;
+    checkFontLoaded: () => void;
+    handleVariantChange(): void;
     handleLabelChange(): void;
     render(): TemplateResult<1>;
 }
@@ -2561,6 +2586,7 @@ export declare class CxIconButton extends CortexElement {
         'cx-icon': typeof CxIcon;
     };
     button: HTMLButtonElement | HTMLLinkElement;
+    icon: CxIcon;
     private hasFocus;
     /** The name of the icon to draw. */
     name?: string;
@@ -2955,6 +2981,7 @@ export declare class CxLineClamp extends CortexElement {
      * The tooltip to show. When this prop is set, the component will always show a tooltip.
      */
     tooltip: string;
+    disabledTooltip: boolean;
     /**
      * Whether the text is clamped or not.
      */
@@ -3089,9 +3116,17 @@ export declare class CxMenuItem extends CortexElement {
     loading: boolean;
     /** Draws the menu item in a disabled state, preventing selection. */
     disabled: boolean;
+    /** Makes the menu item readonly */
+    readonly: boolean;
+    /** The flip boundary for the submenu. */
+    flipBoundary: Element | Element[];
+    /** The shift boundary for the submenu. */
+    shiftBoundary: Element | Element[];
+    /** The autosize boundary for the submenu. */
+    autoSizeBoundary: Element | Element[];
     private readonly localize;
     private readonly hasSlotController;
-    private submenuController;
+    private readonly submenuController;
     connectedCallback(): void;
     disconnectedCallback(): void;
     private handleDocumentWheel;
@@ -3152,8 +3187,23 @@ export declare class CxMultiSelect extends CortexElement {
     secondColumnData: ColumnData;
     configurable: boolean;
     ignoreTypes: string[];
+    addLimit: number | undefined;
     private itemMap;
     selectedItems: Record<string, string[]>;
+    private initialSecondColumnItems;
+    get firstColumnItemIds(): string[];
+    get secondColumnItemIds(): string[];
+    /**
+     * Validates the changes made to the items array based on the specified type of action ('add' or 'remove').
+     * If an add limit is set, it checks whether the new items exceed the allowed limit.
+     * If the limit is exceeded, a warning toast notification is displayed.
+     *
+     * @param items - The current array of items.
+     * @param oldItems - The previous array of items before the change.
+     * @param type - The type of action performed, either 'add' or 'remove'.
+     * @returns A boolean indicating whether the changes are valid (true) or not (false).
+     */
+    private isValidChanges;
     private handleBoardChange;
     private handleSelectedChange;
     private handleMoveItems;
@@ -3424,6 +3474,13 @@ export declare class CxPopup extends CortexElement {
      * make the popup half the width of the available space.
      */
     autoWidthFactor: number;
+    /**
+     * After `active` changes, cx-overlay takes some time to open.
+     * Until then, the positioning is not accurate, so we use this
+     * state to hide the popup until the overlay is opened.
+     * (Only for fixed strategy)
+     */
+    overlayOpened: boolean;
     private get isSizeMiddleWareUsed();
     connectedCallback(): Promise<void>;
     disconnectedCallback(): void;
@@ -4201,6 +4258,7 @@ export declare class CxSelect extends CortexElement implements ShoelaceFormContr
      */
     filterCallback(option: HTMLElement, value: string): boolean;
     connectedCallback(): void;
+    protected firstUpdated(_changedProperties: PropertyValues): void;
     private addOpenListeners;
     private removeOpenListeners;
     private handleFocus;
@@ -4441,7 +4499,10 @@ export declare class CxStepper extends CortexElement {
 export declare class CxStepperWizard extends CortexElement {
     static styles: CSSResultGroup;
     data: StepData[];
-    itemsPerRow: number;
+    maxWidth: number;
+    minWidth: number;
+    get columnCount(): number;
+    handleResize(): void;
     render(): TemplateResult;
 }
 
@@ -4935,6 +4996,7 @@ export declare class CxTextToSpeech extends CortexElement {
     private saveData;
     onKeyDown: (event: KeyboardEvent) => void;
     onBubbleMenuOpened(): void;
+    resetAudio(): void;
     firstUpdated(): void;
     disconnectedCallback(): void;
     onDataChange(): void;
@@ -5621,6 +5683,7 @@ declare type FlowNodeData = Data & {
     color?: string | null;
     description?: string | null;
     icon?: string | null;
+    iconRotation?: number | null;
     id: string;
     isHighlighted?: boolean;
     label?: string | null;
@@ -6532,8 +6595,357 @@ export { }
 
 
 declare global {
-    interface HTMLElementTagNameMap {
-        'cx-avatar': CxAvatar;
+    interface GlobalEventHandlersEventMap {
+        'cx-board-change': CxBoardChangeEvent;
+        'cx-board-item-added': CxBoardItemAddedEvent;
+        'cx-board-item-removed': CxBoardItemRemovedEvent;
+        'cx-board-selected-change': CxBoardSelectedChangeEvent;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-after-hide': CxAfterHideEvent;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-board-item-checkbox-click': CxBoardItemCheckboxClickEvent;
+        'cx-board-item-label-click': CxBoardItemLabelClickEvent;
+        'cx-multi-select-configure': CxMultiSelectConfigureEvent;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-blur': CxBlurEvent;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-after-expand': CxAfterExpandEvent;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-after-show': CxAfterShowEvent;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-cancel': CxCancelEvent;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-close': CxCloseEvent;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-collapse': CxCollapseEvent;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-action-dropdown-hide': CxActionDropdown;
+        'cx-action-dropdown-show': CxActionDropdown;
+        'cx-graph-view-add-node': CxGraphViewAddNodeEvent;
+        'cx-graph-view-pane-click': CxGraphViewPaneClickEvent;
+        'cx-graph-view-select-edge': CxGraphViewSelectEdgeEvent;
+        'cx-graph-view-select-node': CxGraphViewSelectNodeEvent;
+        'cx-graph-view-unlink': CxGraphViewUnlinkEvent;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-change': CxChangeEvent;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-copy': CxCopyEvent;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-clear': CxClearEvent;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-after-collapse': CxAfterCollapseEvent;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-error': CxErrorEvent;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-expand': CxExpandEvent;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-finish': CxFinishEvent;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-focus': CxFocusEvent;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-hide': CxHideEvent;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-hover': CxHoverEvent;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-initial-focus': CxInitialFocusEvent;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-input': CxInputEvent;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-keydown': CxKeydownEvent;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-invalid': CxInvalidEvent;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-lazy-load': CxLazyLoadEvent;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-lazy-change': CxLazyChangeEvent;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-mutation': CxMutationEvent;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-load': CxLoadEvent;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-remove': CxRemoveEvent;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-reposition': CxRepositionEvent;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-ready': CxReadyEvent;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-request-close': CxRequestCloseEvent;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-resize': CxResizeEvent;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-select': CxSelectEvent;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-selection-change': CxSelectionChangeEvent;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-show': CxShowEvent;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-slide-change': CxSlideChangeEvent;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-page-change': CxPageChangeEvent;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-start': CxStartEvent;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-tab-hide': CxTabHideEvent;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-swatch-add': CxSwatchAddEvent;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-tab-show': CxTabShowEvent;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-drag-end': CxDragEnd;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-drag-start': CxDragStart;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-refresh': CxRefreshEvent;
+    }
+}
+
+
+declare global {
+    interface Window {
+        Matrix3: any;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        [eventName: string]: eventName extends `cx-invoked${string}` ? CxInvokedEvent : never;
+    }
+}
+
+
+declare global {
+    interface GlobalEventHandlersEventMap {
+        'cx-multi-select-change': CxMultiSelectChangeEvent;
+    }
+}
+
+
+declare global {
+    interface Window {
+        Param: any;
+        Utils: any;
+        tabId: string;
     }
 }
 
@@ -6554,13 +6966,6 @@ declare global {
 
 declare global {
     interface HTMLElementTagNameMap {
-        'cx-breadcrumb': CxBreadcrumb;
-    }
-}
-
-
-declare global {
-    interface HTMLElementTagNameMap {
         'cx-animation': CxAnimation;
     }
 }
@@ -6568,7 +6973,28 @@ declare global {
 
 declare global {
     interface HTMLElementTagNameMap {
+        'cx-avatar': CxAvatar;
+    }
+}
+
+
+declare global {
+    interface HTMLElementTagNameMap {
         'cx-badge': CxBadge;
+    }
+}
+
+
+declare global {
+    interface HTMLElementTagNameMap {
+        'cx-breadcrumb': CxBreadcrumb;
+    }
+}
+
+
+declare global {
+    interface HTMLElementTagNameMap {
+        'cx-breadcrumb-item': CxBreadcrumbItem;
     }
 }
 
@@ -6589,13 +7015,6 @@ declare global {
 
 declare global {
     interface HTMLElementTagNameMap {
-        'cx-breadcrumb-item': CxBreadcrumbItem;
-    }
-}
-
-
-declare global {
-    interface HTMLElementTagNameMap {
         'cx-card': CxCard;
     }
 }
@@ -6603,14 +7022,14 @@ declare global {
 
 declare global {
     interface HTMLElementTagNameMap {
-        'cx-carousel-item': CxCarouselItem;
+        'cx-carousel': CxCarousel;
     }
 }
 
 
 declare global {
     interface HTMLElementTagNameMap {
-        'cx-carousel': CxCarousel;
+        'cx-carousel-item': CxCarouselItem;
     }
 }
 
@@ -6659,13 +7078,6 @@ declare global {
 
 declare global {
     interface HTMLElementTagNameMap {
-        'cx-drawer': CxDrawer;
-    }
-}
-
-
-declare global {
-    interface HTMLElementTagNameMap {
         'cx-dropdown': CxDropdown;
     }
     interface Window {
@@ -6676,7 +7088,7 @@ declare global {
 
 declare global {
     interface HTMLElementTagNameMap {
-        'cx-format-bytes': CxFormatBytes;
+        'cx-drawer': CxDrawer;
     }
 }
 
@@ -6690,7 +7102,21 @@ declare global {
 
 declare global {
     interface HTMLElementTagNameMap {
+        'cx-format-bytes': CxFormatBytes;
+    }
+}
+
+
+declare global {
+    interface HTMLElementTagNameMap {
         'cx-format-date': CxFormatDate;
+    }
+}
+
+
+declare global {
+    interface HTMLElementTagNameMap {
+        'cx-hub-connection': CxHubConnection;
     }
 }
 
@@ -6704,13 +7130,6 @@ declare global {
 
 declare global {
     interface HTMLElementTagNameMap {
-        'cx-icon-button': CxIconButton;
-    }
-}
-
-
-declare global {
-    interface HTMLElementTagNameMap {
         'cx-icon': CxIcon;
     }
 }
@@ -6718,7 +7137,7 @@ declare global {
 
 declare global {
     interface HTMLElementTagNameMap {
-        'cx-hub-connection': CxHubConnection;
+        'cx-icon-button': CxIconButton;
     }
 }
 
@@ -6774,14 +7193,14 @@ declare global {
 
 declare global {
     interface HTMLElementTagNameMap {
-        'cx-menu-label': CxMenuLabel;
+        'cx-menu-item': CxMenuItem;
     }
 }
 
 
 declare global {
     interface HTMLElementTagNameMap {
-        'cx-menu-item': CxMenuItem;
+        'cx-menu-label': CxMenuLabel;
     }
 }
 
@@ -6830,14 +7249,14 @@ declare global {
 
 declare global {
     interface HTMLElementTagNameMap {
-        'cx-progress-ring': CxProgressRing;
+        'cx-qr-code': CxQrCode;
     }
 }
 
 
 declare global {
     interface HTMLElementTagNameMap {
-        'cx-qr-code': CxQrCode;
+        'cx-progress-ring': CxProgressRing;
     }
 }
 
@@ -6858,13 +7277,6 @@ declare global {
 
 declare global {
     interface HTMLElementTagNameMap {
-        'cx-radio-card': CxRadioCard;
-    }
-}
-
-
-declare global {
-    interface HTMLElementTagNameMap {
         'cx-radio-group': CxRadioGroup;
     }
 }
@@ -6872,7 +7284,7 @@ declare global {
 
 declare global {
     interface HTMLElementTagNameMap {
-        'cx-rating': CxRating;
+        'cx-radio-card': CxRadioCard;
     }
 }
 
@@ -6880,6 +7292,13 @@ declare global {
 declare global {
     interface HTMLElementTagNameMap {
         'cx-range': CxRange;
+    }
+}
+
+
+declare global {
+    interface HTMLElementTagNameMap {
+        'cx-rating': CxRating;
     }
 }
 
@@ -6977,14 +7396,14 @@ declare global {
 
 declare global {
     interface HTMLElementTagNameMap {
-        'cx-tag': CxTag;
+        'cx-tab-panel': CxTabPanel;
     }
 }
 
 
 declare global {
     interface HTMLElementTagNameMap {
-        'cx-tab-panel': CxTabPanel;
+        'cx-tag': CxTag;
     }
 }
 
@@ -7044,359 +7463,17 @@ declare global {
     }
 }
 
-
-declare global {
-    interface Window {
-        Matrix3: any;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-multi-select-change': CxMultiSelectChangeEvent;
-    }
-}
-
-
-declare global {
-    interface Window {
-        Param: any;
-        Utils: any;
-        tabId: string;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-after-collapse': CxAfterCollapseEvent;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-after-expand': CxAfterExpandEvent;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-after-show': CxAfterShowEvent;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-after-hide': CxAfterHideEvent;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-blur': CxBlurEvent;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-cancel': CxCancelEvent;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-change': CxChangeEvent;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-clear': CxClearEvent;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-collapse': CxCollapseEvent;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-close': CxCloseEvent;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-copy': CxCopyEvent;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-error': CxErrorEvent;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-expand': CxExpandEvent;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-finish': CxFinishEvent;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-focus': CxFocusEvent;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-hide': CxHideEvent;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-hover': CxHoverEvent;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-initial-focus': CxInitialFocusEvent;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-input': CxInputEvent;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-invalid': CxInvalidEvent;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-keydown': CxKeydownEvent;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-lazy-load': CxLazyLoadEvent;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-lazy-change': CxLazyChangeEvent;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-mutation': CxMutationEvent;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-load': CxLoadEvent;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-ready': CxReadyEvent;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-remove': CxRemoveEvent;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-reposition': CxRepositionEvent;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-request-close': CxRequestCloseEvent;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-resize': CxResizeEvent;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-select': CxSelectEvent;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-selection-change': CxSelectionChangeEvent;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-show': CxShowEvent;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-page-change': CxPageChangeEvent;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-slide-change': CxSlideChangeEvent;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-start': CxStartEvent;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-tab-show': CxTabShowEvent;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-tab-hide': CxTabHideEvent;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-swatch-add': CxSwatchAddEvent;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-drag-end': CxDragEnd;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-refresh': CxRefreshEvent;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        [eventName: string]: eventName extends `cx-invoked${string}` ? CxInvokedEvent : never;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-drag-start': CxDragStart;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-board-change': CxBoardChangeEvent;
-        'cx-board-item-added': CxBoardItemAddedEvent;
-        'cx-board-item-removed': CxBoardItemRemovedEvent;
-        'cx-board-selected-change': CxBoardSelectedChangeEvent;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-board-item-checkbox-click': CxBoardItemCheckboxClickEvent;
-        'cx-board-item-label-click': CxBoardItemLabelClickEvent;
-        'cx-multi-select-configure': CxMultiSelectConfigureEvent;
-    }
-}
-
-
-declare global {
-    interface GlobalEventHandlersEventMap {
-        'cx-action-dropdown-hide': CxActionDropdown;
-        'cx-action-dropdown-show': CxActionDropdown;
-        'cx-graph-view-add-node': CxGraphViewAddNodeEvent;
-        'cx-graph-view-pane-click': CxGraphViewPaneClickEvent;
-        'cx-graph-view-select-edge': CxGraphViewSelectEdgeEvent;
-        'cx-graph-view-select-node': CxGraphViewSelectNodeEvent;
-        'cx-graph-view-unlink': CxGraphViewUnlinkEvent;
+declare module '@tiptap/core' {
+    interface Commands<ReturnType> {
+        tune: {
+            setBreakNode: (someProp?: any) => ReturnType;
+            setEmphasis: (someProp?: any) => ReturnType;
+            setProsody: (someProp?: any) => ReturnType;
+            setSayAs: (someProp?: any) => ReturnType;
+            unsetEmphasis: (someProp?: any) => ReturnType;
+            unsetProsody: (someProp?: any) => ReturnType;
+            unsetSayAs: (someProp?: any) => ReturnType;
+        };
     }
 }
 
@@ -7410,7 +7487,7 @@ declare global {
 
 declare global {
     interface HTMLElementTagNameMap {
-        'cx-switch': CxSwitch;
+        'cx-resize-observer': CxResizeObserver;
     }
 }
 
@@ -7418,13 +7495,6 @@ declare global {
 declare global {
     interface HTMLElementTagNameMap {
         'cx-split-panel': CxSplitPanel;
-    }
-}
-
-
-declare global {
-    interface HTMLElementTagNameMap {
-        'cx-resize-observer': CxResizeObserver;
     }
 }
 
@@ -7442,18 +7512,10 @@ declare global {
     }
 }
 
-declare module '@tiptap/core' {
-    interface Commands<ReturnType> {
-        tune: {
-            setBreakNode: (someProp?: any) => ReturnType;
-            setEmphasis: (someProp?: any) => ReturnType;
-            setProsody: (someProp?: any) => ReturnType;
-            setSayAs: (someProp?: any) => ReturnType;
-            unsetBreakNode: (someProp?: any) => ReturnType;
-            unsetEmphasis: (someProp?: any) => ReturnType;
-            unsetProsody: (someProp?: any) => ReturnType;
-            unsetSayAs: (someProp?: any) => ReturnType;
-        };
+
+declare global {
+    interface HTMLElementTagNameMap {
+        'cx-switch': CxSwitch;
     }
 }
 

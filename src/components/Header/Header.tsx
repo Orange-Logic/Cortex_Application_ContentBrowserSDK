@@ -62,7 +62,7 @@ const Header: FC<Props> = ({
           loading="lazy"
         ></cx-avatar>
         <cx-menu>
-          <cx-menu-item>
+          <cx-menu-item className='header__user-info' readonly>
             {data?.fullName}
             <cx-avatar
               slot="prefix"

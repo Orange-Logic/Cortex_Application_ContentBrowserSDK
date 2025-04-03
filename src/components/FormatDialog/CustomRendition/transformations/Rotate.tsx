@@ -52,7 +52,7 @@ const Rotate = ({ open, rotation, onChange, onApply }: Props) => {
 
   return (
     <cx-details open={open} data-value="rotate">
-      <cx-space slot="summary">
+      <cx-space slot="summary" align-items='center'>
         <div className="details__summary__icon">
           <cx-icon name="rotate_90_degrees_cw"></cx-icon>
         </div>

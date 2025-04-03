@@ -114,7 +114,7 @@ const Resize: FC<Props> = ({ open, width, height, lastAppliedSetting, maxWidth, 
 
   return (
     <cx-details open={open} data-value="resize" className="resize">
-      <cx-space slot="summary">
+      <cx-space slot="summary" align-items='center'>
         <div className="details__summary__icon">
           <cx-icon name="aspect_ratio"></cx-icon>
         </div>

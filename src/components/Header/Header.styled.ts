@@ -39,4 +39,13 @@ export const Container = styled('cx-space')<CxSpaceProps & { bordered?: boolean 
     align-items: center;
     width: fit-content;
   }
+
+  .header__user-info:hover::part(base) {
+    background-color: unset;
+    cursor: default;
+  }
+
+  .header__user-info cx-avatar {
+    cursor: default;
+  }
 `;
