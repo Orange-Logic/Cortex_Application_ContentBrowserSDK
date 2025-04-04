@@ -342,7 +342,7 @@ const ControlBar: FC<Props> = ({
       >
         <cx-input
           ref={searchRef}
-          defaultValue={searchText}
+          value={searchText}
           placeholder="Search..."
           clearable
           className='search-input'

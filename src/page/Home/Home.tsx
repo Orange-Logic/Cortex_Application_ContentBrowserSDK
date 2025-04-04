@@ -72,7 +72,10 @@ type Action =
   | { type: 'RESET_SEARCH' }
   | { type: 'SET_CONTAINER_SIZE'; payload: { width: number; height: number } }
   | { type: 'SET_CURRENT_COUNT'; payload: number }
-  | { type: 'SET_CURRENT_FOLDER'; payload: Folder }
+  | { type: 'SET_CURRENT_FOLDER'; payload: {
+    folder: Folder,
+    shouldResetFilters?: boolean;
+  } }
   | { type: 'SET_FACETS'; payload: Record<string, Record<string, number>> }
   | { type: 'SET_FILTERS'; payload: Filter }
   | { type: 'SET_HAS_SCROLLED'; payload: boolean }
@@ -133,22 +136,19 @@ const reducer = (state: State, action: Action): State => {
     case 'SET_CURRENT_COUNT':
       return { ...state, currentCount: action.payload };
     case 'SET_CURRENT_FOLDER':
-      return { ...state, currentFolder: action.payload, shouldResetFilters: true, ...resetPageState };
+      return { ...state, currentFolder: action.payload.folder, shouldResetFilters: !!action.payload.shouldResetFilters,  ...resetPageState };
     case 'SET_FACETS':
       return { ...state, facets: action.payload };
-    case 'SET_FILTERS': {
-      const shouldResetFilters = false;
-
+    case 'SET_FILTERS':
       return {
         ...state,
         mediaTypes: action.payload.mediaTypes,
         visibilityClasses: action.payload.visibilityClasses,
-        shouldResetFilters,
+        shouldResetFilters: false,
         statuses: action.payload.statuses,
         extensions: action.payload.extensions,
         ...resetPageState,
       };
-    }
     case 'SET_HAS_SCROLLED':
       return { ...state, hasScrolled: action.payload };
     case 'SET_IS_LOADING':
@@ -324,7 +324,12 @@ const HomePage: FC<Props> = () => {
         getData('selectedSortOrder'),
         getData('selectedSortDirection'),
         getData('selectedView'),
-      ]).then(([sortOrder, sortDirection, view]) => {
+        getData('newlySelectedFacet'),
+        getData('newFacets'),
+        getData('selectedFilter'),
+        getData('selectedIsSeeThrough'),
+        getData('searchText'),
+      ]).then(([sortOrder, sortDirection, view, newlySelectedFacet, newFacets, selectedFilter, selectedIsSeeThrough, searchText]) => {
         if (sortOrder) {
           dispatch({ type: 'SET_SORT_ORDER', payload: sortOrder });
         }
@@ -334,10 +339,31 @@ const HomePage: FC<Props> = () => {
         if (typeof view === 'string') {
           dispatch({ type: 'SET_VIEW', payload: view as GridView });
         }
+        
+        if (lastLocationMode) {
+          if (newlySelectedFacet) {
+            dispatch({ type: 'SET_NEWLY_SELECTED_FACET', payload: newlySelectedFacet });
+          }
+          if (newFacets) {
+            const parsedFacets = JSON.parse(newFacets);
+            dispatch({ type: 'SET_FACETS', payload: parsedFacets });
+          }
+          if (selectedFilter) {
+            const parsedFilter = JSON.parse(selectedFilter);
+            dispatch({ type: 'SET_FILTERS', payload: parsedFilter });
+          }
+          if (selectedIsSeeThrough) {
+            dispatch({ type: 'SET_IS_SEE_THROUGH', payload: selectedIsSeeThrough === 'true' });
+          }
+          if (searchText) {
+            dispatch({ type: 'SET_SEARCH_TEXT', payload: searchText });
+          }
+        }
+      
         loadedFromStorage.current = true;
       });
     }
-  }, [authenticated]);
+  }, [authenticated, lastLocationMode]);
 
   useEffect(() => {
     const resizeObserver = containerResizeObserverRef.current;
@@ -385,7 +411,34 @@ const HomePage: FC<Props> = () => {
     storeData('selectedSortOrder', state.sortOrder);
     storeData('selectedSortDirection', state.sortDirection);
     storeData('selectedView', state.view);
-  }, [state.view, state.sortOrder, state.sortDirection]);
+    storeData('newlySelectedFacet', state.newlySelectedFacet);
+    storeData('newFacets', JSON.stringify(state.facets));
+    storeData(
+      'selectedFilter',
+      JSON.stringify({
+        mediaTypes: state.mediaTypes,
+        visibilityClasses: state.visibilityClasses,
+        shouldResetFilters: false,
+        statuses: state.statuses,
+        extensions: state.extensions,
+      }),
+    );
+    storeData('selectedIsSeeThrough', state.isSeeThrough.toString());
+    storeData('searchText', state.searchText);
+  }, [
+    state.currentFolder,
+    state.extensions,
+    state.facets,
+    state.isSeeThrough,
+    state.mediaTypes,
+    state.newlySelectedFacet,
+    state.sortDirection,
+    state.sortOrder,
+    state.searchText,
+    state.statuses,
+    state.view,
+    state.visibilityClasses,
+  ]);
 
   const isMobile = state.containerSize.width <= MOBILE_THRESHOLD;
 
@@ -483,6 +536,7 @@ const HomePage: FC<Props> = () => {
     },
     [],
   );
+
   const onDataChange = useCallback(
     (newData: {
       facets: Record<string, Record<string, number>>;
@@ -547,15 +601,16 @@ const HomePage: FC<Props> = () => {
       }
       const resultAction = await appDispatch(explorePath(folder));
       if (explorePath.fulfilled.match(resultAction)) {
-        dispatch({ type: 'SET_CURRENT_FOLDER', payload: folder });
+        dispatch({ type: 'SET_CURRENT_FOLDER', payload: {
+          folder,
+          shouldResetFilters: browserMountedRef.current,
+        } });
         dispatch({ type: 'SET_SELECTED_ASSET', payload: null });
         dispatch({ type: 'SET_OPEN_BROWSER', payload: false });
-        if (lastLocationMode) {
-          storeData('lastLocation', JSON.stringify(folder));
-        }
+        storeData('lastLocation', JSON.stringify(folder));
       }
     },
-    [appDispatch, lastLocationMode, state.currentFolder.fullPath],
+    [appDispatch, state.currentFolder.fullPath],
   );
 
   const onLoadMore = useCallback(() => {
