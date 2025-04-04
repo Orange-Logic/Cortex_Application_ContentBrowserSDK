@@ -74,6 +74,10 @@ export const Container = styled.div`
     height: 40px;
     pointer-events: none;
   }
+  
+  .asset-preview__video-icon[hidden] {
+    display: none !important;
+  }
 
   .asset-preview__progress-bar {
     --height: 6px;

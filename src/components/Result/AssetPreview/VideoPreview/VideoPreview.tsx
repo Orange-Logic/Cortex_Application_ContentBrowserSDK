@@ -7,6 +7,7 @@ type Props = {
   thumbnailOnly: boolean;
   thumbnailUrl: string;
   onError: () => void;
+  loaded: boolean;
   onLoaded: () => void;
 };
 
@@ -15,6 +16,7 @@ const ViewPreview: FC<Props> = ({
   thumbnailOnly = false,
   thumbnailUrl,
   onError,
+  loaded,
   onLoaded,
 }) => {
   const [assetDirection, setAssetDirection] = useState<'vertical' | 'horizontal'>('horizontal');
@@ -109,7 +111,7 @@ const ViewPreview: FC<Props> = ({
             onError={onError}
           />
         )}
-        <div className="asset-preview__video-icon">
+        <div className="asset-preview__video-icon" hidden={!loaded}>
           <cx-icon name="play_arrow" variant="filled"></cx-icon>
         </div>
       </div>

@@ -26,7 +26,7 @@ const AssetPreview: FC<Props> = ({
   
   const renderPreview = useCallback(() => {
     const isUrlFilled = typeof asset.imageUrl === 'string' && asset.imageUrl.length > 0;
-
+    
     if (isError || !isUrlFilled) {
       return (
         <OtherPreview type={asset.docType}>
@@ -41,6 +41,7 @@ const AssetPreview: FC<Props> = ({
           url={asset.scrubUrl}
           thumbnailOnly={thumbnailOnly}
           thumbnailUrl={asset.imageUrl}
+          loaded={imageLoaded}
           onLoaded={onLoaded}
           onError={() => setIsError(true)}
         />
@@ -56,7 +57,7 @@ const AssetPreview: FC<Props> = ({
         onError={() => setIsError(true)}
       />
     );
-  }, [asset, isError, onLoaded, thumbnailOnly]);
+  }, [asset, isError, onLoaded, thumbnailOnly, imageLoaded]);
 
   return (
     <Container slot={slot} className="asset-preview">
