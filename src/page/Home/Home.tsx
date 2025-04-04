@@ -670,6 +670,7 @@ const HomePage: FC<Props> = () => {
             currentCount={state.currentCount}
             extensions={state.extensions}
             facets={state.facets}
+            isMobile={isMobile}
             isSeeThrough={state.isSeeThrough}
             loading={state.isLoading}
             mediaTypes={state.mediaTypes}

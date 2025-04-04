@@ -1,4 +1,4 @@
-import { FC, useCallback, useEffect, useRef, useState } from 'react';
+import { FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { SortOrder } from '@/types/assets';
 import { Filter, GridView, SortDirection } from '@/types/search';
@@ -23,6 +23,7 @@ type Props = {
   loading: boolean;
   extensions: string[];
   facets?: Record<string, Record<string, number>>;
+  isMobile: boolean;
   isSeeThrough: boolean;
   mediaTypes: string[];
   searchValue: string;
@@ -47,6 +48,7 @@ const ControlBar: FC<Props> = ({
   loading,
   extensions,
   facets,
+  isMobile,
   isSeeThrough,
   mediaTypes,
   searchValue: searchText,
@@ -232,6 +234,8 @@ const ControlBar: FC<Props> = ({
     };
   }, [isDefined, extensions, mediaTypes, statuses, visibilityClasses, onSettingChange, onChangeNewlySelectedFacet]);
 
+  const selectedView = useMemo(() => views.find((item) => item.value === view), [view]);
+
   const renderAppliedFilters = useCallback(() => {
     const appliedFilersCount = mediaTypes.length + visibilityClasses.length + statuses.length + extensions.length;
 
@@ -396,8 +400,10 @@ const ControlBar: FC<Props> = ({
         </cx-line-clamp>
         <cx-dropdown
           ref={viewDropdownRef}
-          auto-width-factor={0.5}
+          auto-width-factor={0.6}
           stay-open-on-select
+          placement='bottom-end'
+          skidding={isMobile ? 40 : 0}
         >
           <div slot="trigger">
             <cx-tooltip content="View">
@@ -410,8 +416,8 @@ const ControlBar: FC<Props> = ({
           </div>
           <cx-menu>
             <cx-menu-label>View</cx-menu-label>
-            <cx-menu-item>
-              Grid
+            <cx-menu-item class={selectedView ? 'selected' : ''}>
+              Grid ({selectedView?.label})
               <cx-menu slot="submenu">
                 {views.map((item) => (
                   <cx-menu-item
