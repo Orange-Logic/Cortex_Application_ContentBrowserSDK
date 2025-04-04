@@ -67,7 +67,7 @@ const AssetCard: FC<Props> = ({
 
     return Object.keys(classNames).filter((key) => classNames[key]).join(' ');
   }, [isSelected, view]);
-
+  
   return (
     <Card
       className={assetClassNames}

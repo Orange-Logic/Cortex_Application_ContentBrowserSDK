@@ -51,6 +51,7 @@ const AssetPreview: FC<Props> = ({
       <ImagePreview
         alt={asset.name}
         url={asset.imageUrl}
+        originalUrl={asset.extension === 'gif' && asset.originalUrl ? asset.originalUrl : undefined}
         onLoaded={onLoaded}
         onError={() => setIsError(true)}
       />

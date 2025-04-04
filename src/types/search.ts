@@ -16,6 +16,7 @@ export type Asset = {
   id: string;
   identifier: string;
   imageUrl: string;
+  originalUrl: string;
   name: string;
   scrubUrl: string;
   size: string;

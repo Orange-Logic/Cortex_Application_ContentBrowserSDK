@@ -19,6 +19,19 @@ export const Container = styled.div`
     justify-content: center;
     object-fit: contain;
   }
+
+  .asset-preview__representative--animated {
+    display: none;
+  }
+
+  .asset-preview__representative-container:hover {
+    .asset-preview__representative {
+      display: none;
+    }
+    .asset-preview__representative--animated {
+      display: block;
+    }
+  }
   
   .asset-preview__representative--horizontal > * {
     width: 100%;

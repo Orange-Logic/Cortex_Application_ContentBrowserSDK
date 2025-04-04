@@ -52,6 +52,7 @@ type State = {
   selectedProxy: string;
   selectedFormat: {
     url: string;
+    originalUrl: string;
     width: number;
     height: number;
     x: number;
@@ -95,7 +96,7 @@ type State = {
 };
 
 type Action =
-  | { type: 'CANCEL_USE_CUSTOM_RENDITION'; payload: { width: number; height: number, url: string } }
+  | { type: 'CANCEL_USE_CUSTOM_RENDITION'; payload: { width: number; height: number, url: string, originalUrl: string } }
   | { type: 'CONFIRM_USE_CUSTOM_RENDITION' }
   | { type: 'RESET_DATA' }
   | { type: 'SET_ACTIVE_SETTING'; payload: string }
@@ -124,11 +125,12 @@ const initialState: State = {
   selectedProxy: 'TRX',
   selectedFormat: {
     url: '',
+    originalUrl: '',
     width: 0,
     height: 0,
     x: 0,
     y: 0,
-    extension: 'jpeg',
+    extension: '',
     rotation: 0,
   },
   resizeSize: {
@@ -386,7 +388,6 @@ const FormatDialog: FC<Props> = ({
       ? { id: selectedAsset?.id ?? '' }
       : skipToken,
   );
-
   const setDefaultValues = useCallback(() => {
     if (!selectedAsset) {
       return;
@@ -402,6 +403,8 @@ const FormatDialog: FC<Props> = ({
       payload: {
         ...initialState.selectedFormat,
         url: selectedAsset.imageUrl,
+        originalUrl: selectedAsset.originalUrl,
+        extension: selectedAsset.extension,
         width: state.defaultSize.width,
         height: state.defaultSize.height,
       },
@@ -955,6 +958,7 @@ const FormatDialog: FC<Props> = ({
             ref={previewerRef}
             loadable={state.previewLoadable}
             image={state.selectedFormat}
+            selectedProxy={state.selectedProxy}
             resizer={state.resizeSize}
             cropper={state.cropSize}
             rotation={state.rotation}
@@ -1191,6 +1195,7 @@ const FormatDialog: FC<Props> = ({
                   type: 'CANCEL_USE_CUSTOM_RENDITION',
                   payload: {
                     url: selectedAsset?.imageUrl ?? '',
+                    originalUrl: selectedAsset?.originalUrl ?? '',
                     width: parseInt(selectedAsset?.width ?? '0', 10),
                     height: parseInt(selectedAsset?.height ?? '0', 10),
                   },

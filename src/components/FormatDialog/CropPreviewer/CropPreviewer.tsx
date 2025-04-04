@@ -13,12 +13,15 @@ type Props = {
   loadable: boolean;
   image: {
     url: string;
+    originalUrl: string;
+    extension: string;
     width: number;
     height: number;
     x: number;
     y: number;
     rotation: number;
   };
+  selectedProxy: string;
   resizer: {
     width: number;
     height: number;
@@ -51,6 +54,7 @@ const CropPreviewer = forwardRef<CropPreviewerHandle, Props>(({
   resizer,
   cropper,
   rotation,
+  selectedProxy,
   onCropComplete,
   onLoadingChange,
 }, ref) => {
@@ -61,7 +65,7 @@ const CropPreviewer = forwardRef<CropPreviewerHandle, Props>(({
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const { url } = image;
+    const { url, originalUrl, extension } = image;
     const { width, height } = resizer;
     const resize = async () => {
       if (loadable) {
@@ -72,7 +76,7 @@ const CropPreviewer = forwardRef<CropPreviewerHandle, Props>(({
           newHeight,
           containerRef.current?.clientWidth ?? window.innerWidth, FORMAT_DIALOG_PREVIEW_SIZE,
         );
-        setResizedImage(imageUrl);
+        setResizedImage((selectedProxy === 'TRX' && extension === 'gif') ? originalUrl : imageUrl);
         onLoadingChange(false);
       } else {
         setResizedImage(url);
@@ -80,7 +84,7 @@ const CropPreviewer = forwardRef<CropPreviewerHandle, Props>(({
     };
     const debounceResize = _debounce(resize, 300, { leading: true });
     debounceResize();
-  }, [image, loadable, onLoadingChange, resizer]);
+  }, [image, loadable, onLoadingChange, resizer, selectedProxy]);
 
   const applyResize = useCallback(async () => {
     return resizedImage;
