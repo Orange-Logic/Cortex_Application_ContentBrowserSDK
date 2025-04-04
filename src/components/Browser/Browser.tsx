@@ -122,6 +122,8 @@ const Browser: FC<Props> = ({
             } catch (error) {
               handleDefaultFolder();
             }
+          } else {
+            handleDefaultFolder();
           }
         }).catch(() => {
           handleDefaultFolder();
