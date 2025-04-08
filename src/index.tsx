@@ -262,7 +262,7 @@ window.CortexAssetPicker = {
           availableRepresentativeSubtypes,
           ctaText: ctaText ?? 'Insert',
           displayInfo,
-          lastLocationMode: !!lastLocationMode,
+          lastLocationMode: lastLocationMode !== undefined ? !!lastLocationMode : true,
           persistMode: !!persistMode,
           pluginInfo: {
             pluginName,
