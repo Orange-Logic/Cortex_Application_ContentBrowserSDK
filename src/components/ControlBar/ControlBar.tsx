@@ -464,7 +464,7 @@ const ControlBar: FC<Props> = ({
                 data-type="sort-direction"
                 disabled={!allowSorting}
                 value={item.value}
-                class={sortDirection === item.value ? 'selected' : ''}
+                class={allowSorting && sortDirection === item.value ? 'selected' : ''}
               >
                 {item.value.replace(/\b\w/g, (char) => char.toUpperCase())}
                 {loading &&
