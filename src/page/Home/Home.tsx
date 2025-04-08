@@ -596,7 +596,7 @@ const HomePage: FC<Props> = () => {
       if (!browserMountedRef.current) {
         setBrowserMounted(true);
       }
-      if (folder.fullPath === state.currentFolder.fullPath) {
+      if (folder.id === state.currentFolder.id) {
         return;
       }
       const resultAction = await appDispatch(explorePath(folder));
@@ -610,7 +610,7 @@ const HomePage: FC<Props> = () => {
         storeData('lastLocation', JSON.stringify(folder));
       }
     },
-    [appDispatch, state.currentFolder.fullPath],
+    [appDispatch, state.currentFolder.id],
   );
 
   const onLoadMore = useCallback(() => {
