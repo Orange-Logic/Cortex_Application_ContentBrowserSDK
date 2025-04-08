@@ -3,6 +3,7 @@ import { FC } from 'react';
 type Props = {
   alt: string;
   url: string;
+  loaded: boolean;
   originalUrl?: string;
   onError: () => void;
   onLoaded: () => void;
@@ -11,12 +12,13 @@ type Props = {
 const ImagePreview: FC<Props> = ({
   alt,
   url,
+  loaded,
   originalUrl,
   onError,
   onLoaded,
 }) => {
   return (
-    <div className={originalUrl ? 'asset-preview__representative-container' : undefined}>
+    <div className={originalUrl && loaded ? 'asset-preview__representative-container' : undefined}>
       <img
         className="asset-preview__representative"
         src={url}

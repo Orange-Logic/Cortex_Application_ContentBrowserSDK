@@ -131,6 +131,8 @@
           <b>availableDocTypes</b>
           <p>
             An array of available Cortex subtypes to filter the assets. The available subtypes are: Images, Videos, Audio, Others. If not provided, all subtypes will be available.
+            <br/>
+            <span>E.g. Images, Videos, Audio, Others,...</span>
           </p>
           <p>
             <small>
@@ -142,6 +144,8 @@
           <b>availableRepresentativeSubtypes</b>
           <p>
             An array of supported Cortex subtypes to allow inserting representative image. If not provided, all subtypes will be supported.
+            <br/>
+            <span>E.g. Standard Image, Standard Video, Standard Audio, Multimedia,...</span>
           </p>
           <p>
             <small>
@@ -185,7 +189,7 @@
             <li>tags</li>
           </ul>
         </li>
-        li>
+        <li>
           <b>lastLocationMode</b>
           <p>
             A boolean to enable the last location mode. When enabled, the asset picker open the last selected folder on loaded.
@@ -207,15 +211,6 @@
           <b>pluginShortName</b>
           <p>
             The short name of the plugin to display in the asset picker header.
-          </p>
-        </li>
-        <li>
-          <b>searchInDrive</b>
-          <p>
-            A boolean to enable searching in the drive. When enabled, the asset picker will search in the drive.
-          </p>
-          <p>
-            <small>Note: Used for File on Demand</small>
           </p>
         </li>
         <li>
@@ -243,7 +238,7 @@
         onError: (errorMessage, error) => {
         },
         availableDocTypes: ['Images', 'Videos', 'Audio', 'Others'],
-        availableRepresentativeSubtypes: ['Images', 'Videos', 'Audio', 'Others'],
+        availableRepresentativeSubtypes: ['Standard Image', 'Standard Video', 'Standard Audio', 'Multimedia'],
         // container element to attach, leave blank to open popup 
         containerId: 'react-app-root',
         ctaText: 'Insert',
@@ -257,10 +252,10 @@
           fileSize: true,
           tags: true,
         },
+        lastLocationMode: false,
         persistMode: true,
         pluginName: "Generic Asset Browser",
         pluginShortName: "GAB",
-        searchInDrive: false,
         showCollections: true,
         useSession: '',
       };
