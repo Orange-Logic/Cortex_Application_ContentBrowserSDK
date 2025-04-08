@@ -345,9 +345,13 @@ const ControlBar: FC<Props> = ({
           value={searchText}
           placeholder="Search..."
           clearable
-          className='search-input'
+          className="search-input"
         >
-          <cx-icon name="search" slot="prefix" className="icon--large"></cx-icon>
+          <cx-icon
+            name="search"
+            slot="prefix"
+            className="icon--large"
+          ></cx-icon>
         </cx-input>
         <cx-dropdown ref={filterDropdownRef}>
           <div slot="trigger">
@@ -402,7 +406,7 @@ const ControlBar: FC<Props> = ({
           ref={viewDropdownRef}
           auto-width-factor={0.6}
           stay-open-on-select
-          placement='bottom-end'
+          placement="bottom-end"
           skidding={isMobile ? 40 : 0}
         >
           <div slot="trigger">
@@ -458,24 +462,37 @@ const ControlBar: FC<Props> = ({
             </cx-tooltip>
           </div>
           <cx-menu>
-            {sortDirections.map((item) => (
-              <cx-menu-item
-                key={item.value}
-                data-type="sort-direction"
-                disabled={!allowSorting}
-                value={item.value}
-                class={allowSorting && sortDirection === item.value ? 'selected' : ''}
-              >
-                {item.value.replace(/\b\w/g, (char) => char.toUpperCase())}
-                {loading &&
-                newlyChangedOption.type === 'sortDirection' &&
-                newlyChangedOption.value === item.value ? (
-                  <cx-spinner slot="prefix"></cx-spinner>
-                  ) : (
-                  <item.icon></item.icon>
-                  )}
-              </cx-menu-item>
-            ))}
+            {(sortOrders ? sortDirections
+              .map(
+                (item) => {
+                  const label = sortOrders[sortOrder].find(
+                    (sort) => sort.sortDirection.toLowerCase() === item.value.toLowerCase(),
+                  )?.sortDirectionDisplayName;
+
+                  return {
+                    ...item,
+                    label: label ?? item.value,
+                  };
+                },
+              ) : sortDirections)
+              .map((item) => (
+                <cx-menu-item
+                  key={item.value}
+                  data-type="sort-direction"
+                  disabled={!allowSorting}
+                  value={item.value}
+                  class={allowSorting && sortDirection === item.value ? 'selected' : ''}
+                >
+                  {item.label.replace(/\b\w/g, (char) => char.toUpperCase())}
+                  {loading &&
+                  newlyChangedOption.type === 'sortDirection' &&
+                  newlyChangedOption.value === item.value ? (
+                    <cx-spinner slot="prefix"></cx-spinner>
+                    ) : (
+                    <item.icon></item.icon>
+                    )}
+                </cx-menu-item>
+              ))}
             <cx-divider></cx-divider>
             {Object.keys(sortOrders ?? {}).map((item) => (
               <cx-menu-item

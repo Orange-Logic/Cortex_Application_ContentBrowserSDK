@@ -45,9 +45,11 @@ const DescendingIcon = () => (
 );
 
 export const sortDirections = [{
+  label: 'Ascending',
   value: 'ascending',
   icon: AscendingIcon,
 }, {
+  label: 'Descending',
   value: 'descending',
   icon: DescendingIcon,
 }];
