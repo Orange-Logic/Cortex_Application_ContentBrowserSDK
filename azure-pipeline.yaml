@@ -29,6 +29,6 @@ stages:
             clean: true
             fetchDepth: 0
 
-          - template: ../common/steps-printenv.yml@infra-templates
+          - template: azure-pipelines/common/steps-printenv.yml@infra-templates
 
-          - template: ../common/steps-gitversion.yml@infra-templates
+          - template: azure-pipelines/common/steps-gitversion.yml@infra-templates
