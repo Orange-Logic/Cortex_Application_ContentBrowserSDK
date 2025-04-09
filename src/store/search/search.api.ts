@@ -4,7 +4,7 @@ import _camelCase from 'lodash-es/camelCase';
 import {
   DEFAULT_VIEW_SIZE, ORIGINAL_VIEW_SIZE, FIELD_CORTEX_PATH, FIELD_DOC_TYPE, FIELD_EXTENSION, FIELD_FILE_SIZE,
   FIELD_HAS_BROWSER_CHILDREN,
-  FIELD_IDENTIFIER, FIELD_KEYWORDS, FIELD_MAX_HEIGHT, FIELD_MAX_WIDTH, FIELD_SCRUB_URL, FIELD_SUBTYPE, FIELD_TITLE_WITH_FALLBACK,
+  FIELD_IDENTIFIER, FIELD_KEYWORDS, FIELD_MAX_HEIGHT, FIELD_MAX_WIDTH, FIELD_SCRUB_URL, FIELD_SUBTYPE, FIELD_TITLE_WITH_FALLBACK, FIELD_ALLOW_ATS_LINK,
 } from '@/consts/data';
 import { Asset, Folder, GetContentRequest, GetContentResponse } from '@/types/search';
 import { AppBaseQuery, GetValueByKeyCaseInsensitive } from '@/utils/api';
@@ -258,6 +258,7 @@ export const searchApi = createApi({
             size        : GetValueByKeyCaseInsensitive(item.fields, FIELD_FILE_SIZE) ?? '0 MB',
             tags        : GetValueByKeyCaseInsensitive(item.fields, FIELD_KEYWORDS) ?? '',
             width       : GetValueByKeyCaseInsensitive(item.fields, FIELD_MAX_WIDTH) ?? '0',
+            allowATSLink: GetValueByKeyCaseInsensitive(item.fields, FIELD_ALLOW_ATS_LINK) ?? false,
           } as Asset)) ?? [],
         totalCount: response.totalCount,
       }),

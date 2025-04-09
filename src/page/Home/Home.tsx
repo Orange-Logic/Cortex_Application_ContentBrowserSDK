@@ -704,7 +704,6 @@ const HomePage: FC<Props> = () => {
       setShowFormatLoader(FormatLoaderState.ShowDialog);
     }
   }, [state.selectedAsset]);
-
   return (
     <cx-resize-observer ref={containerResizeObserverRef}>
       <Container ref={containerRef}>
@@ -801,7 +800,7 @@ const HomePage: FC<Props> = () => {
           </cx-space>
         )}
         <FormatDialog
-          allowCustomFormat={!!ATSEnabled}
+          allowCustomFormat={!!ATSEnabled && !!state.selectedAsset?.allowATSLink}
           availableProxies={isFetchingAvailableProxies ? undefined : availableProxies?.proxiesForDocType}
           ctaText={ctaText}
           extensions={supportedExtensions ?? []}

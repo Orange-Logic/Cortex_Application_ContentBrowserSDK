@@ -22,6 +22,7 @@ export type Asset = {
   size: string;
   tags: string;
   width?: string;
+  allowATSLink?: boolean;
 };
 
 export type ContentItem = {
