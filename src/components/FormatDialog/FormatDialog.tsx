@@ -122,7 +122,7 @@ const initialState: State = {
     width: 0,
     height: 0,
   },
-  selectedProxy: 'TRX',
+  selectedProxy: '',
   selectedFormat: {
     url: '',
     originalUrl: '',
@@ -937,6 +937,19 @@ const FormatDialog: FC<Props> = ({
       payload: view,
     });
   }, [state.selectedFormat]);
+
+  useEffect(() => {
+    const firstKey = Object.keys(availableProxies ?? {})[0];
+    if (!firstKey) {
+      return;
+    }
+    const proxies = availableProxies?.[firstKey];
+    if (!proxies) {
+      return;
+    }
+    const proxyName = proxies[0].proxyName;
+    dispatch({ type: 'SET_SELECTED_PROXY', payload: proxyName });
+  }, [availableProxies]);
 
   const renderContent = useCallback(() => {
     const disabledInsert =
