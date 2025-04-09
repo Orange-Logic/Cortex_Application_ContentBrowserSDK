@@ -14,7 +14,7 @@ resources:
     - repository: infra-templates
       type: git
       name: Infra_Pipelines-templates-dev
-      ref: main
+      ref: dev/refactor
 
 stages:
   - stage: Build
@@ -32,3 +32,20 @@ stages:
           - template: azure-pipelines/common/steps-printenv.yml@infra-templates
 
           - template: azure-pipelines/common/steps-gitversion.yml@infra-templates
+
+          - template: azure-pipelines/common/steps-npm-static.yml@infra-templates
+            parameters:
+              version: '$(GitVersion.FullSemVer)'
+          
+          - template: azure-pipelines/common/steps-s3-publish.yml@infra-templates
+            parameters:
+              artifacts:
+                - sourceFolder: 'build/static/css'
+                  targetFolder: 'Cortex/AssetBrowserTest/v$(GitVersion.FullSemVer)'
+                  contents: OrangeDamAssetBrowser.min.css
+                - sourceFolder: 'build/static/js'
+                  targetFolder: 'Cortex/AssetBrowserTest/v$(GitVersion.FullSemVer)'
+                  contents: OrangeDamAssetBrowser.min.js
+                - sourceFolder: '.'
+                  targetFolder: 'Cortex/AssetBrowserTest/v$(GitVersion.FullSemVer)'
+                  contents: GABdemo.html
