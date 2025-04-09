@@ -939,16 +939,14 @@ const FormatDialog: FC<Props> = ({
   }, [state.selectedFormat]);
 
   useEffect(() => {
-    const firstKey = Object.keys(availableProxies ?? {})[0];
-    if (!firstKey) {
-      return;
-    }
-    const proxies = availableProxies?.[firstKey];
-    if (!proxies) {
-      return;
-    }
-    const proxyName = proxies[0].proxyName;
-    dispatch({ type: 'SET_SELECTED_PROXY', payload: proxyName });
+    if (!availableProxies) return;
+    const allProxies = Object.entries(availableProxies ?? {}).map(
+      ([_, proxies]) =>
+        Object.values(proxies).map((proxy) =>
+          getProxyValue(proxy, selectedAsset?.extension ?? ''),
+        ),
+    );
+    dispatch({ type: 'SET_SELECTED_PROXY', payload: allProxies.flat()[0] });
   }, [availableProxies]);
 
   const renderContent = useCallback(() => {
