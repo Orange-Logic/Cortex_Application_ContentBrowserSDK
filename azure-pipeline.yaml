@@ -1,0 +1,34 @@
+trigger:
+  tags:
+    include:
+      - '*.*.*'
+  branches:
+    include:
+      - 'master'
+  paths:
+    exclude:
+      - .azure/*
+
+resources:
+  repositories:
+    - repository: infra-templates
+      type: git
+      name: Infra_Pipelines-templates-dev
+      ref: main
+
+stages:
+  - stage: Build
+    dependsOn: []
+    jobs:
+      - job: BuildPackage
+        displayName: 'Build GAB'
+        pool:
+          name: Azure Pipelines
+        steps:
+          - checkout: self
+            clean: true
+            fetchDepth: 0
+
+          - template: ../common/steps-printenv.yml@infra-templates
+
+          - template: ../common/steps-gitversion.yml@infra-templates
