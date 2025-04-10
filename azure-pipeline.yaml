@@ -43,7 +43,7 @@ stages:
 
           - template: azure-pipelines/common/steps-gitversion.yml@infra-templates
             parameters:
-              workingDir: gab
+              configFilePath: gab/GitVersion.yml
 
           - template: azure-pipelines/common/steps-node-setup.yml@infra-templates
             parameters:
