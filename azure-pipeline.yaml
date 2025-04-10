@@ -32,7 +32,7 @@ stages:
           - checkout: self
             clean: true
             fetchDepth: 0
-            path:  $(Build.SourceDirectory)
+            path: s
 
           - checkout: gab-extension
             clean: true
