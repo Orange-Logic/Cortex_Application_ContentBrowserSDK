@@ -12,6 +12,10 @@ resources:
       type: git
       name: Infra_Pipelines-templates-dev
       ref: dev/refactor
+    - repository: infra-templates
+      type: gab-extension
+      name: GAB_Browser_Extension
+      ref: main
 
 variables:
   - group: "Global Vars"
@@ -28,6 +32,11 @@ stages:
           - checkout: self
             clean: true
             fetchDepth: 0
+
+          - checkout: gab-extension
+            clean: true
+            fetchDepth: 0
+            path: gab_extension
 
           - template: azure-pipelines/common/steps-printenv.yml@infra-templates
 
@@ -56,3 +65,9 @@ stages:
                 - sourceFolder: '.'
                   targetFolder: 'Cortex/AssetBrowserTest/v$(GitVersion.FullSemVer)'
                   contents: GABdemo.html
+                - sourceFolder: '.'
+                  targetFolder: 'Cortex/AssetBrowserTest/latest'
+                  contents: GABdemo.html
+                - sourceFolder: 'gab_extension'
+                  targetFolder: 'Cortex/AssetBrowserTest/v$(GitVersion.FullSemVer)'
+                  contents: GAB.html
