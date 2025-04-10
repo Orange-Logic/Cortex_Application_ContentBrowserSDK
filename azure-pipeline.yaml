@@ -12,8 +12,8 @@ resources:
       type: git
       name: Infra_Pipelines-templates-dev
       ref: dev/refactor
-    - repository: infra-templates
-      type: gab-extension
+    - repository: gab-extension
+      type: git
       name: GAB_Browser_Extension
       ref: main
 
