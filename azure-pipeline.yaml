@@ -32,7 +32,7 @@ stages:
           - checkout: self
             clean: true
             fetchDepth: 0
-            path: .
+            path: gab
 
           - checkout: gab-extension
             clean: true
@@ -42,6 +42,8 @@ stages:
           - template: azure-pipelines/common/steps-printenv.yml@infra-templates
 
           - template: azure-pipelines/common/steps-gitversion.yml@infra-templates
+            parameters:
+              workingDir: gab
 
           - template: azure-pipelines/common/steps-node-setup.yml@infra-templates
             parameters:
@@ -49,6 +51,7 @@ stages:
 
           - template: azure-pipelines/common/steps-npm-static.yml@infra-templates
             parameters:
+              workingDir: gab
               version: '$(GitVersion.FullSemVer)'
               configurations:
                 - key: legacy-peer-deps
@@ -56,6 +59,7 @@ stages:
 
           - template: azure-pipelines/common/steps-s3-publish.yml@infra-templates
             parameters:
+              workingDir: gab
               artifacts:
                 - sourceFolder: 'build/static/css'
                   targetFolder: 'Cortex/AssetBrowserTest/v$(GitVersion.FullSemVer)'
@@ -69,6 +73,6 @@ stages:
                 - sourceFolder: '.'
                   targetFolder: 'Cortex/AssetBrowserTest/latest'
                   contents: GABdemo.html
-                - sourceFolder: 'gab_extension'
+                - sourceFolder: '../gab_extension'
                   targetFolder: 'Cortex/AssetBrowserTest/v$(GitVersion.FullSemVer)'
                   contents: GAB.html
