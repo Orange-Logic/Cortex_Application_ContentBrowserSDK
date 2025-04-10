@@ -13,6 +13,9 @@ resources:
       name: Infra_Pipelines-templates-dev
       ref: dev/refactor
 
+variables:
+  - group: "Global Vars"
+
 stages:
   - stage: Build
     dependsOn: []
