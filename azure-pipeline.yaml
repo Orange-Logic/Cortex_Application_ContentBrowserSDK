@@ -30,6 +30,10 @@ stages:
 
           - template: azure-pipelines/common/steps-gitversion.yml@infra-templates
 
+          - template: azure-pipelines/common/steps-node-setup.yml@infra-templates
+            parameters:
+              versionSpec: 18.x
+
           - template: azure-pipelines/common/steps-npm-static.yml@infra-templates
             parameters:
               version: '$(GitVersion.FullSemVer)'
