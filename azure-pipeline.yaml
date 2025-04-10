@@ -32,6 +32,7 @@ stages:
           - checkout: self
             clean: true
             fetchDepth: 0
+            path:  $(Build.SourceDirectory)
 
           - checkout: gab-extension
             clean: true
@@ -52,6 +53,8 @@ stages:
               configurations:
                 - key: legacy-peer-deps
                   value: true
+
+          - template: azure-pipelines/common/steps-npm-install.yml@infra-templates
 
           - template: azure-pipelines/common/steps-s3-publish.yml@infra-templates
             parameters:
