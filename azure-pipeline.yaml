@@ -54,15 +54,26 @@ stages:
                 - key: legacy-peer-deps
                   value: true
 
-          - template: azure-pipelines/common/steps-string-replace.yml@infra-templates
-            parameters:
-              replacements:
-                - filePattern: '*/GABdemo.html'
-                  search: 'AssetBrowser/.*?/'
-                  replace: 'AssetBrowser/$(GitVersion.FullSemVer)/'
-                - filePattern: '*/GAB.html'
-                  search: 'AssetBrowser/.*?/'
-                  replace: 'AssetBrowser/$(GitVersion.FullSemVer)/'
+          - task: replacetokens@6
+            inputs:
+              sources: |
+                **/GABdemo.html
+                **/GAB.html
+              tokenPattern: 'custom'
+              tokenPrefix: '__'
+              tokenSuffix: '__'
+              additionalVariables: |
+                - tag: $(GitVersion.FullSemVer)
+
+          # - template: azure-pipelines/common/steps-string-replace.yml@infra-templates
+          #   parameters:
+          #     replacements:
+          #       - filePattern: '*/GABdemo.html'
+          #         search: 'AssetBrowser/.*?/'
+          #         replace: 'AssetBrowser/$(GitVersion.FullSemVer)/'
+          #       - filePattern: '*/GAB.html'
+          #         search: 'AssetBrowser/.*?/'
+          #         replace: 'AssetBrowser/$(GitVersion.FullSemVer)/'
 
           - template: azure-pipelines/common/steps-s3-publish.yml@infra-templates
             parameters:
