@@ -1,0 +1,86 @@
+trigger:
+  tags:
+    include:
+      - '*.*.*'
+  branches:
+    include:
+      - 'master'
+
+resources:
+  repositories:
+    - repository: infra-templates
+      type: git
+      name: Infra_Pipelines-templates-dev
+      ref: main
+    - repository: gab-extension
+      type: git
+      name: GAB_Browser_Extension
+      ref: main
+
+variables:
+  - group: "Global Vars"
+
+stages:
+  - stage: Build
+    dependsOn: []
+    jobs:
+      - job: BuildPackage
+        displayName: 'Build GAB'
+        pool:
+          name: Azure Pipelines
+        steps:
+          - checkout: self
+            clean: true
+            fetchDepth: 0
+            path: s
+
+          - checkout: gab-extension
+            clean: true
+            fetchDepth: 0
+            path: s/gab_extension
+
+          - template: azure-pipelines/common/steps-printenv.yml@infra-templates
+
+          - template: azure-pipelines/common/steps-gitversion.yml@infra-templates
+
+          - template: azure-pipelines/common/steps-node-setup.yml@infra-templates
+            parameters:
+              versionSpec: 18.x
+
+          - template: azure-pipelines/common/steps-npm-static.yml@infra-templates
+            parameters:
+              version: '$(GitVersion.FullSemVer)'
+              configurations:
+                - key: legacy-peer-deps
+                  value: true
+
+          - task: replacetokens@6
+            displayName: 'Replace tokens in HTML files'
+            inputs:
+              sources: |
+                **/GABdemo.html
+                **/GAB.html
+              tokenPattern: 'custom'
+              tokenPrefix: '__'
+              tokenSuffix: '__'
+              additionalVariables: |
+                - tag: v$(GitVersion.FullSemVer)
+
+          - template: azure-pipelines/common/steps-s3-publish.yml@infra-templates
+            parameters:
+              artifacts:
+                - sourceFolder: 'build/static/css'
+                  targetFolder: 'Cortex/AssetBrowserTest/v$(GitVersion.FullSemVer)'
+                  contents: OrangeDamAssetBrowser.min.css
+                - sourceFolder: 'build/static/js'
+                  targetFolder: 'Cortex/AssetBrowserTest/v$(GitVersion.FullSemVer)'
+                  contents: OrangeDamAssetBrowser.min.js
+                - sourceFolder: '.'
+                  targetFolder: 'Cortex/AssetBrowserTest/v$(GitVersion.FullSemVer)'
+                  contents: GABdemo.html
+                - sourceFolder: '.'
+                  targetFolder: 'Cortex/AssetBrowserTest/latest'
+                  contents: GABdemo.html
+                - sourceFolder: 'gab_extension'
+                  targetFolder: 'Cortex/AssetBrowserTest/v$(GitVersion.FullSemVer)'
+                  contents: GAB.html
