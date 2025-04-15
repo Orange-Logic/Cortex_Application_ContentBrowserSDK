@@ -10,6 +10,7 @@ export const getAssetLinks = async (
   {
     assets,
     extraFields,
+    hasPermanentLink,
     proxyPreference,
     transformations,
     parameters,
@@ -18,7 +19,8 @@ export const getAssetLinks = async (
   }: {
     assets: Asset[];
     extraFields?: string;
-    proxyPreference?: Record<string, string>;
+    hasPermanentLink?: boolean;
+    proxyPreference?: string;
     transformations?: Transformation[];
     parameters?: TrackingParameter[];
     maxWidth?: number;
@@ -34,6 +36,9 @@ export const getAssetLinks = async (
   if (extraFields) {
     baseUrl += `ExtraFields=${extraFields}&`;
   }
+  if (hasPermanentLink) {
+    baseUrl += `GenerateAssetUrl=${false}&`;
+  }
   baseUrl += 'RecordId=';
 
   const getAssetLinkErrors: { [key: string]: Asset[] } = {};
@@ -42,8 +47,8 @@ export const getAssetLinks = async (
   // Loop through all selected assets to replace Image url by IIIF urls
   const result = (await Promise.all(assets.map(async (asset) => {
     let url = baseUrl + asset.id;
-    if (proxyPreference?.[asset.docType]) {
-      url += `&Proxy=${proxyPreference[asset.docType]}`;
+    if (proxyPreference) {
+      url += `&Proxy=${proxyPreference}`;
     }
     const response  = await cortexFetch(url, { method: 'GET' });
     let responseData: GetAssetLinkResponse | CortexErrorResponse | null = null;
@@ -190,7 +195,7 @@ export const getAssetLinks = async (
           acc.push(`${namesOfAssetWithError} not found`);
           break;
         case 'OL_ASSETLINKSERVICE_ERROR_001_LINKS_TO_NON_REQUIRED_FORMATS_NOT_ALLOWED':
-          const proxies           = assetsApi.endpoints.getAvailableProxies.select({})(store.getState()).data?.proxiesForDocType;
+          const proxies           = assetsApi.endpoints.getAvailableProxies.select({})(store.getState()).data?.proxies;
           if (!proxies) {
             acc.push(`Failed to import ${namesOfAssetWithError}. Change the import proxy in Settings or re-check your permission`);
           }

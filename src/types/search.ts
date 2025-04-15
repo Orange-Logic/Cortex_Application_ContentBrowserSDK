@@ -101,3 +101,15 @@ export type Filter = {
   statuses: string[],
   extensions: string[],
 };
+
+export type Proxy = {
+  cdnName: string | null;
+  extension: string | null;
+  formatHeight: number;
+  formatWidth: number;
+  height: number;
+  permanentLink: string | null;
+  proxyLabel: string;
+  proxyName: string;
+  width: number;
+};

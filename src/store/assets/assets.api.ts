@@ -1,5 +1,5 @@
 import { SortOrder } from '@/types/assets';
-import { Asset, MediaType } from '@/types/search';
+import { Asset, MediaType, Proxy } from '@/types/search';
 import { AppBaseQuery } from '@/utils/api';
 import { hasElements, uniqueArray } from '@/utils/array';
 import { createApi } from '@reduxjs/toolkit/query/react';
@@ -18,24 +18,9 @@ type GetAvailableProxiesRequest = {
   useSession?: string;
 };
 
-/**
- * Example response:
- * ```json
- * {
- *   "proxiesForDocType": {
- *     "Image": {
- *       "TRX": "Highest Quality",
- *       "TR1": "Medium res.",
- *       "TR1_COMP": "Medium res. comp."
- *     }
- *   }
- * }
- * ```
- */
 export type GetAvailableProxiesResponse = {
-  proxiesForDocType: {
-    [docType: string]: Record<string, string>[];
-  }
+  previewUrl: string;
+  proxies: Proxy[];
 };
 
 /**
@@ -53,7 +38,7 @@ const getAvailableProxiesAPIParams = ({ assetImages, docTypes, useSession }: Get
     const assetDocTypes = uniqueArray(assetImages as Asset[], (asset) => asset.docType)
       .map(asset => ['DocTypes', asset.docType]);
 
-    result = (assetImages as Asset[]).map(asset => ['RecordIDs', asset.id]).concat(assetDocTypes);
+    result = (assetImages as Asset[]).map(asset => ['RecordID', asset.id]).concat(assetDocTypes);
   }
 
   if (useSession) {
@@ -136,24 +121,6 @@ export const assetsApi = createApi({
         return value;
       },
     }),
-    getVideoUrl: builder.query<string, { id: string; useSession?: string }>({
-      query: ({ id, useSession }) => {
-        const params = [['RecordID', id], ['Proxy', 'WebHigh']];
-        if (useSession) {
-          params.push(['UseSession', useSession]);
-        }
-        return {
-          url: '/webapi/extensibility/integrations/gab/assetbrowser/GetAssetLink_4by?',
-          params,
-        };
-      },
-      transformResponse: (response: { imageUrl: string }) => {
-        return response.imageUrl;
-      },
-      serializeQueryArgs: ({ queryArgs }) => {
-        return queryArgs.id;
-      },
-    }),
   }),
 });
 
@@ -165,5 +132,4 @@ export const {
   useGetAvailableProxiesQuery,
   useGetParametersQuery,
   useGetSortOrdersQuery,
-  useGetVideoUrlQuery,
 } = assetsApi;

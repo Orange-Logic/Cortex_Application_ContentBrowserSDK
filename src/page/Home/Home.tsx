@@ -225,10 +225,12 @@ const HomePage: FC<Props> = () => {
     persistMode,
     searchInDrive,
     showCollections,
+    allowTracking,
   } = useContext(GlobalConfigContext);
   const { extraFields } = useContext(AppContext);
   const { data: availableProxies, isFetching: isFetchingAvailableProxies } = useGetAvailableProxiesQuery(state.selectedAsset ? {
     assetImages: state.selectedAsset ? [state.selectedAsset] : [],
+    useSession,
   } : skipToken);
   const { data: params } = useGetParametersQuery({
     useSession,
@@ -685,7 +687,7 @@ const HomePage: FC<Props> = () => {
       formatDialogTimeoutRef.current = window.setTimeout(() => {
         setShowFormatLoader(FormatLoaderState.ShowLoader); // Show loader after 800ms
       }, 800);
-    } else if (!isFetchingAvailableProxies && availableProxies?.proxiesForDocType) {
+    } else if (!isFetchingAvailableProxies && availableProxies?.proxies) {
       if (formatDialogTimeoutRef.current) {
         clearTimeout();
         setShowFormatLoader(FormatLoaderState.ShowDialog); // Hide loader when proxies are fetched
@@ -800,12 +802,14 @@ const HomePage: FC<Props> = () => {
           </cx-space>
         )}
         <FormatDialog
+          allowTracking={allowTracking}
           allowCustomFormat={!!ATSEnabled && !!state.selectedAsset?.allowATSLink}
-          availableProxies={isFetchingAvailableProxies ? undefined : availableProxies?.proxiesForDocType}
+          availableProxies={isFetchingAvailableProxies ? undefined : availableProxies?.proxies}
           ctaText={ctaText}
           extensions={supportedExtensions ?? []}
           maxHeight={state.containerSize.height}
           open={!!state.selectedAsset && showFormatLoader === FormatLoaderState.ShowDialog}
+          previewUrl={isFetchingAvailableProxies ? undefined : availableProxies?.previewUrl}
           searchInDrive={searchInDrive}
           selectedAsset={state.selectedAsset}
           supportedRepresentativeSubtypes={
@@ -820,7 +824,7 @@ const HomePage: FC<Props> = () => {
           onClose={() =>
             dispatch({ type: 'SET_SELECTED_ASSET', payload: null })
           }
-          onProxyConfirm={async ({ extension, value, parameters, useRepresentative }) => {
+          onProxyConfirm={async ({ extension, value, hasPermanentLink, permanentLink, parameters, useRepresentative }) => {
             if (!state.selectedAsset) {
               return;
             }
@@ -829,7 +833,9 @@ const HomePage: FC<Props> = () => {
               importAssets({
                 extension,
                 extraFields,
+                hasPermanentLink,
                 parameters,
+                permanentLink,
                 proxiesPreference: value,
                 selectedAsset: state.selectedAsset,
                 useRepresentative,

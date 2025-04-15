@@ -79,15 +79,15 @@ declare global {
          */
         displayInfo?: ImageCardDisplayInfo;
         /**
-         * The plugin name.
-         * Should be defined when using GAB as a plugin for 3rd party app.
+         * The Public Application Name.
+         * By default, it will be OrangeDAM.
          */
-        pluginName?: string;
+        publicApplicationName?: string;
         /**
          * The plugin short name.
-         * By default, it will be the `pluginName`
+         * By default, it will be OrangeDAM Asset Browser.
          */
-        pluginShortName?: string;
+        pluginName?: string;
 
         /**
          * Whether to search in drive or not (used for File on demand)
@@ -124,6 +124,10 @@ declare global {
          * The flag to keep the last folder selected between sessions
          */
         lastLocationMode?: boolean;
+        /**
+         * The flag to turn on/off tracking parameters for links
+         */
+        allowTracking?: boolean;
       }) => void,
       close: () => void,
       /**
@@ -153,31 +157,39 @@ declare global {
 window.CortexAssetPicker = {
   help: () => {
     console.log(`/* Cortex Asset Picker Help */
-    window.CortexAssetPicker.open({
-      onAssetSelected: (images) => {
-        // Do something with image
-        console.log(images);
-      },
-      onError: (errorMessage, error) => {
-        // Do something with error
-      },
-      multiSelect: true, // single or multiple file picker
-      containerId: "react-app-root", // container element to attach, leave blank to open popup 
-      extraFields: ["coreField.OriginalFileName", "document.CortexPath"], // extra asset fields to get
-      baseUrl: "https://qa-latest.orangelogic.com", // default base url to pre-filled;
-      onlyIIIFPrefix: true, // default is false will get full IIIF standard file link 
-      displayInfo: {
-        title: true,
-        dimension: true,
-        fileSize: true,
-        tags: true,
-      },
-      pluginName: "Generic Asset Browser",
-      pluginShortName: "GAB",
-      searchInDrive: false,
-      ctaText: "Insert",
-      persistMode: false,
-    });`);
+      window.CortexAssetPicker.open({
+        onAssetSelected: (assets) => {
+          // Callback function triggered when assets are selected
+          console.log(assets);
+          window.open(assets[0]?.imageUrl, '_blank');
+        },
+        onError: (errorMessage, error) => {
+          // Callback function triggered when an error occurs
+          console.error(errorMessage, error);
+        },
+        onClose: () => {
+          // Callback function triggered when the picker is closed
+          window.alert('Picker is closing');
+        },
+        containerId: "", // ID of the container to attach the picker; opens in a popup if blank
+        extraFields: ['coreField.OriginalFileName', 'document.CortexPath'], // Additional fields to retrieve from the assets
+        baseUrl: "", // Default base URL to pre-fill in the asset picker
+        displayInfo: {
+          title: true, // Whether to display the asset title
+          dimension: true, // Whether to display the asset dimensions
+          fileSize: false, // Whether to display the file size
+          tags: false, // Whether to display the asset tags
+        },
+        publicApplicationName: "", // Public name of the DAM to display on the login screen
+        pluginName: "OrangeDAM Asset Browser", // Name of the plugin to display on the login screen
+        ctaText: "Insert", // Text to display on the insert button
+        persistMode: true, // Whether the picker remains open after selecting an asset
+        availableDocTypes: ['Images', 'Videos', 'Audio', 'Others'], // Array of available asset types to filter assets
+        availableRepresentativeSubtypes: ['Other'], // Array of supported subtypes for representative images
+        showCollections: true, // Whether to show collections in the asset picker
+        lastLocationMode: true, // Whether to open the last selected folder on load
+        allowTracking: true, // Whether to enable tracking parameters for asset URLs
+      });`);
   },
   open: ({ 
     onAssetSelected,
@@ -192,18 +204,19 @@ window.CortexAssetPicker = {
     displayInfo = {
       title: true,
       dimension: true,
-      fileSize: true,
-      tags: true,
+      fileSize: false,
+      tags: false,
     },
     extraFields, 
     lastLocationMode,
     multiSelect,
     persistMode,
+    publicApplicationName,
     pluginName,
-    pluginShortName,
     showCollections,
     searchInDrive,
     useSession,
+    allowTracking,
   }) => {
     let container = containerId && document.getElementById(containerId);
     if (!containerId) {
@@ -265,13 +278,14 @@ window.CortexAssetPicker = {
           lastLocationMode: lastLocationMode !== undefined ? !!lastLocationMode : true,
           persistMode: !!persistMode,
           pluginInfo: {
-            pluginName,
-            pluginShortName: pluginShortName ?? pluginName,
+            publicApplicationName: publicApplicationName !== undefined ? publicApplicationName : '',
+            pluginName: pluginName !== undefined ? pluginName : 'OrangeDAM Asset Browser',
           },
           isGABPopedup: !containerId,
           searchInDrive: !!searchInDrive,
           showCollections: !!showCollections,
           useSession,
+          allowTracking: allowTracking !== undefined ? !!allowTracking : true,
         }}>
           <App
             containerId={containerId}

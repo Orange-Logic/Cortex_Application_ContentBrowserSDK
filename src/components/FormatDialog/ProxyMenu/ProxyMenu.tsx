@@ -3,6 +3,7 @@ import { Container } from './ProxyMenu.styled';
 import { MediaType } from '@/types/search';
 
 type MenuItemProps = {
+  cdnName?: string | null;
   docType?: string;
   extension?: string;
   height?: string;
@@ -46,14 +47,21 @@ const ProxyMenu = ({ items, selectedItem, children, style }: Props) => {
                   <div className="proxy__extension-dot"></div>
                 )}
                 {item.extension?.replace(/^\./, '').toUpperCase()}
+                {item.cdnName && (
+                  <>
+                    <div className="proxy__extension-dot"></div>
+                    <span className="proxy__cdn-name">{item.cdnName}</span>
+                  </>
+                )}
               </cx-typography>
             </div>
-            <cx-icon 
-              slot="suffix" 
+            <cx-icon
+              slot="suffix"
               name={selected ? 'check' : ''}
               style={{
                 color: 'var(--cx-color-primary)',
-              }}></cx-icon>
+              }}
+            ></cx-icon>
           </cx-menu-item>
         );
       })}

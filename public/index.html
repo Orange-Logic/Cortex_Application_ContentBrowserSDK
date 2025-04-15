@@ -61,19 +61,19 @@
         availableDocTypes: ['Images', 'Videos', 'Audio', 'Others'],
         availableRepresentativeSubtypes: ['Standard Image', 'Other'],
         containerId: 'react-app-root',
-        displayInfo: {
-          title: true,
-          dimension: true,
-          fileSize: true,
-          tags: false,
-        },
+        // displayInfo: {
+        //   title: true,
+        //   dimension: true,
+        //   fileSize: false,
+        //   tags: false,
+        // },
         extraFields: ['coreField.OriginalFileName', 'document.CortexPath'],
-        multiSelect: false, // single or multiple file picker
         persistMode: true,
-        // pluginName: "Generic Asset Browser",
-        // pluginShortName: "GAB"
+        // publicApplicationName: "",
+        // pluginName: "OrangeDAM Asset Browser",
         searchInDrive: false,
         showCollections: true,
+        allowTracking: true,
         onClose: () => { },
       }
       settings.onClose = () => {

@@ -148,12 +148,14 @@ const AuthenticatePage = () => {
         }}
       >
         <cx-space direction="vertical" spacing="medium" align-items="center">
-          <cx-typography variant="h2">
-            Welcome to the OrangeDAM Asset Browser
-          </cx-typography>
           {pluginInfo.pluginName && (
+            <cx-typography variant="h2">
+              Welcome to the {pluginInfo.pluginName}
+            </cx-typography>
+          )}
+          {pluginInfo.publicApplicationName && (
             <cx-typography variant="h4">
-              for {pluginInfo.pluginName ?? 'aaa'}
+              for {pluginInfo.publicApplicationName}
             </cx-typography>
           )}
           {authError && (
@@ -165,7 +167,7 @@ const AuthenticatePage = () => {
           <cx-input
             ref={siteInputRef}
             label="Site URL"
-            placeholder="Enter your OrangeDAM URL"
+            placeholder="Enter your site URL"
             value={url}
             help-text={urlError ?? undefined}
             style={{

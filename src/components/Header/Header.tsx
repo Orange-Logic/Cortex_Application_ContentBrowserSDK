@@ -38,7 +38,7 @@ const Header: FC<Props> = ({
     if (!currentFolder.fullPath) {
       return (
         <cx-line-clamp lines={1}>
-          <cx-typography variant="h4">{pluginInfo.pluginName ?? 'Generic Asset Browser'}</cx-typography>
+          <cx-typography variant="h4">{pluginInfo.publicApplicationName}</cx-typography>
         </cx-line-clamp>
       );
     }
@@ -48,7 +48,7 @@ const Header: FC<Props> = ({
         <cx-typography variant="h4">{currentFolder.title}</cx-typography>
       </cx-space>
     );
-  }, [currentFolder.fullPath, currentFolder.title, pluginInfo.pluginName]);
+  }, [currentFolder.fullPath, currentFolder.title, pluginInfo.publicApplicationName]);
 
   const Dropdown = useMemo(() => {
     return isLoading || isFetching ? (

@@ -49,25 +49,21 @@ const WaitForAuthorize: FC<Props> = ({ onCancel }) => {
   return (
     <ConnectingBackground
       footer={
-        <div
-          style={{
-            textAlign: 'center',
-          }}
-        >
+        <>
           <cx-typography variant="body2">
             I was not redirected automatically?
           </cx-typography>
 
-          <cx-button href={appAuthUrl} variant="text">{appAuthUrl}</cx-button>
-        </div>
+          <a href={appAuthUrl} target="_blank" rel="noopener noreferrer">{appAuthUrl}</a>
+        </>
       }
       onCancel={onCancel}
     >
       <cx-typography variant="h3">
-        Please authorize the Google Addon through Cortex
+        Please authorize the {pluginInfo.pluginName} plugin
       </cx-typography>
       <cx-typography variant="body2">
-        You will be automatically redirected to authorize {pluginInfo.pluginShortName ? `the ${pluginInfo.pluginShortName} plugin ` : '' }in OrangeDAM
+        You will be automatically redirected to authorize {pluginInfo.pluginName} {pluginInfo.publicApplicationName ? `in ${pluginInfo.publicApplicationName}` : ''}
       </cx-typography>
     </ConnectingBackground>
   );

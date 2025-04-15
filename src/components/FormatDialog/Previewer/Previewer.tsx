@@ -1,4 +1,4 @@
-import { CSSProperties, FC, useCallback, useEffect, useRef, useState } from 'react';
+import { CSSProperties, FC, useCallback, useRef, useState } from 'react';
 
 import OtherPreview from '@/components/Result/AssetPreview/OtherPreview';
 import { MediaType } from '@/types/search';
@@ -13,8 +13,6 @@ type Props = {
     videoUrl?: string;
     extension?: string;
   };
-  isError?: boolean;
-  isFetching?: boolean;
   onLoad?: ({ width, height }: { width: number, height: number }) => void;
 };
 
@@ -24,8 +22,6 @@ const Previewer: FC<Props> = ({
     docType: MediaType.Image,
     imageUrl: '',
   },
-  isError = false,
-  isFetching,
   onLoad,
 }) => {
   const [isLoading, setIsLoading] = useState(false);
@@ -33,13 +29,6 @@ const Previewer: FC<Props> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
   const [assetDirection, setAssetDirection] = useState<'vertical' | 'horizontal'>('horizontal');
-
-  useEffect(() => {
-    if (asset.imageUrl || isFetching) {
-      setIsLoading(true);
-      setIsLoadFailed(false);
-    }
-  }, [asset.imageUrl, isFetching]);
 
   const onLoadAsset = useCallback((rect: { width: number, height: number }) => {
     if (onLoad) {
@@ -65,11 +54,11 @@ const Previewer: FC<Props> = ({
           } as CSSProperties
         }
       >
-        {asset.extension?.toUpperCase() || asset.docType}
+        {asset.extension?.toUpperCase() ?? asset.docType}
       </OtherPreview>
     );
 
-    if (isError || isLoadFailed) {
+    if (isLoadFailed) {
       return otherPreview;
     }
 
@@ -136,7 +125,7 @@ const Previewer: FC<Props> = ({
     }
 
     return otherPreview;
-  }, [asset.docType, asset.extension, asset.imageUrl, asset.videoUrl, assetDirection, isError, isLoadFailed, loadable, onLoadAsset]);
+  }, [asset.docType, asset.extension, asset.imageUrl, asset.videoUrl, assetDirection, isLoadFailed, loadable, onLoadAsset]);
 
   return (
       <Container ref={containerRef}>

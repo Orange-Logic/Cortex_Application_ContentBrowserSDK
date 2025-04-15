@@ -30,6 +30,7 @@ const AssetCard: FC<Props> = ({
   onLoaded,
 }) => {
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [hovered, setHovered] = useState(false);
   const previewLoaded = imageLoaded || (asset.docType !== MediaType.Image && asset.docType !== MediaType.Video);
 
   const onPreviewLoaded = useCallback(() => {
@@ -67,6 +68,9 @@ const AssetCard: FC<Props> = ({
 
     return Object.keys(classNames).filter((key) => classNames[key]).join(' ');
   }, [isSelected, view]);
+
+  const onMouseEnter = useCallback(() => setHovered(true), []);
+  const onMouseLeave = useCallback(() => setHovered(false), []);
   
   return (
     <Card
@@ -74,12 +78,14 @@ const AssetCard: FC<Props> = ({
       onClick={() => {
         onItemSelect(asset);
       }}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
     >
       <AssetPreview
         slot="image"
         asset={asset}
         imageLoaded={previewLoaded}
-        thumbnailOnly={view === GridView.Small}
+        thumbnailOnly={view === GridView.Small || !hovered}
         onLoaded={onPreviewLoaded}
       />
       {isSelected && (

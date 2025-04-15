@@ -1,14 +1,13 @@
+import _camelCase from 'lodash-es/camelCase';
 import {
   CSSProperties, FC, useCallback, useEffect, useMemo, useReducer, useRef, useState,
 } from 'react';
 
-import { useGetVideoUrlQuery } from '@/store/assets/assets.api';
 import { TrackingParameter, Transformation, TransformationAction, Unit } from '@/types/assets';
-import { Asset, MediaType } from '@/types/search';
+import { Asset, MediaType, Proxy } from '@/types/search';
 import { convertPixelsToAspectRatio } from '@/utils/number';
 import { rotateBox } from '@/utils/rotate';
 import { CxDialog, CxDrawer, CxSelectEvent } from '@/web-component';
-import { skipToken } from '@reduxjs/toolkit/query';
 
 import CropPreviewer, { CropPreviewerHandle } from './CropPreviewer';
 import CustomRendition from './CustomRendition';
@@ -18,12 +17,14 @@ import ProxyMenu from './ProxyMenu';
 import TrackingParameters from './TrackingParameters';
 
 type Props = {
+  allowTracking: boolean;
   allowCustomFormat: boolean;
-  availableProxies?: { [docType: string]: Record<string, string>[] };
+  availableProxies?: Proxy[];
   ctaText?: string;
   extensions: string[];
   maxHeight?: number;
   open: boolean;
+  previewUrl?: string;
   searchInDrive: boolean;
   selectedAsset: Asset | null;
   supportedRepresentativeSubtypes?: string[];
@@ -31,9 +32,11 @@ type Props = {
   onClose: () => void;
   onProxyConfirm: (value: {
     extension: string;
-    value: Record<string, string>;
+    hasPermanentLink: boolean;
+    permanentLink?: string;
     parameters?: TrackingParameter[];
     useRepresentative?: boolean;
+    value: string;
   }) => void;
   onFormatConfirm: (value: {
     value: Transformation[];
@@ -357,17 +360,26 @@ const reducer = (state: State, action: Action): State => {
   }
 };
 
-const getProxyValue = (proxy: Record<string, string>, fallbackExtension: string) => {
-  return proxy.proxyName === 'TRX' ? proxy.proxyName : `${proxy.proxyName}-${proxy.extension?.substring(1) ?? fallbackExtension}`;
+const getProxyValue = (proxy: Proxy, fallbackExtension: string) => {
+  let cdnNameSuffix = '';
+  if (proxy.cdnName) {
+    cdnNameSuffix = `-${_camelCase(proxy.cdnName)}`;
+  }
+  if (proxy.proxyName === 'TRX') {
+    return `${proxy.proxyName}-${fallbackExtension}${cdnNameSuffix}`;
+  }
+  return `${proxy.proxyName}-${proxy.extension?.substring(1) ?? fallbackExtension}${cdnNameSuffix}`;
 };
 
 const FormatDialog: FC<Props> = ({
+  allowTracking,
   allowCustomFormat,
   availableProxies,
   ctaText,
   extensions,
   maxHeight,
   open,
+  previewUrl,
   searchInDrive,
   selectedAsset,
   supportedRepresentativeSubtypes,
@@ -383,11 +395,6 @@ const FormatDialog: FC<Props> = ({
   const drawerRef = useRef<CxDrawer>(null);
   const previewerRef = useRef<CropPreviewerHandle>(null);
 
-  const { data: videoUrl, isFetching, isError } = useGetVideoUrlQuery(
-    selectedAsset?.docType === MediaType.Video
-      ? { id: selectedAsset?.id ?? '' }
-      : skipToken,
-  );
   const setDefaultValues = useCallback(() => {
     if (!selectedAsset) {
       return;
@@ -564,19 +571,12 @@ const FormatDialog: FC<Props> = ({
         return;
       }
 
-      if (value) {
-        const allProxies = Object.entries(availableProxies ?? {}).map(
-          ([_, proxies]) =>
-            Object.values(proxies).map((proxy) =>
-              getProxyValue(proxy, selectedAsset?.extension ?? ''),
-            ),
-        );
-
-        if (!allProxies.flat().includes(value)) {
+      if (value && availableProxies) {
+        if (!availableProxies.map(item => getProxyValue(item, selectedAsset?.extension ?? '')).includes(value)) {
           return;
         }
+        dispatch({ type: 'SET_SELECTED_PROXY', payload: value });
       }
-      dispatch({ type: 'SET_SELECTED_PROXY', payload: value });
     };
 
     const dialog = dialogRef.current;
@@ -850,7 +850,6 @@ const FormatDialog: FC<Props> = ({
   );
 
   const onRotateChange = useCallback(async (rotation: number, shouldApply: boolean) => {
-
     dispatch({
       type: 'SET_ROTATION',
       payload: shouldApply ? 0 : rotation,
@@ -939,15 +938,22 @@ const FormatDialog: FC<Props> = ({
   }, [state.selectedFormat]);
 
   useEffect(() => {
-    if (!availableProxies) return;
-    const allProxies = Object.entries(availableProxies ?? {}).map(
-      ([_, proxies]) =>
-        Object.values(proxies).map((proxy) =>
-          getProxyValue(proxy, selectedAsset?.extension ?? ''),
-        ),
-    );
-    dispatch({ type: 'SET_SELECTED_PROXY', payload: allProxies.flat()[0] });
-  }, [availableProxies]);
+    if (!availableProxies || availableProxies.length === 0) {
+      dispatch({ type: 'SET_SELECTED_PROXY', payload: '' });
+      return;
+    }
+    let extensionSuffix = '';
+    let cdnNameSuffix = '';
+    if (availableProxies[0].extension) {
+      extensionSuffix = `-${availableProxies[0].extension.split('.')[1]}`;
+    } else {
+      extensionSuffix = `-${selectedAsset?.extension}`;
+    }
+    if (availableProxies[0].cdnName) {
+      cdnNameSuffix = `-${_camelCase(availableProxies[0].cdnName)}`;
+    }
+    dispatch({ type: 'SET_SELECTED_PROXY', payload: `${availableProxies[0].proxyName}${extensionSuffix}${cdnNameSuffix}` });
+  }, [availableProxies, selectedAsset]);
 
   const renderContent = useCallback(() => {
     const disabledInsert =
@@ -995,11 +1001,9 @@ const FormatDialog: FC<Props> = ({
             asset={{
               docType: selectedAsset?.docType,
               imageUrl: selectedAsset?.imageUrl,
-              videoUrl,
+              videoUrl: previewUrl,
               extension: selectedAsset?.extension,
             }}
-            isError={isError}
-            isFetching={isFetching}
             onLoad={(size) => {
               if ((selectedAsset?.width && selectedAsset?.height) || !selectedAsset?.imageUrl) {
                 return;
@@ -1055,53 +1059,51 @@ const FormatDialog: FC<Props> = ({
                   width: '100%',
                 }}
               >
-                {supportedProxies &&
-                  Object.entries(availableProxies ?? {}).map(
-                    ([docType, proxies]) => (
-                      <ProxyMenu
-                        key={docType}
-                        items={Object.entries(proxies).map(([, proxy]) => {
-                          if (proxy.proxyName === 'TRX' && selectedAsset) {
-                            return {
-                              value: getProxyValue(proxy, selectedAsset.extension ?? ''),
-                              name: proxy.proxyLabel,
-                              width: selectedAsset.width,
-                              height: selectedAsset.height,
-                              extension: selectedAsset.extension,
-                              docType,
-                            };
-                          }
-                          return {
-                            value: getProxyValue(proxy, selectedAsset?.extension ?? ''),
-                            name: proxy.proxyLabel,
-                            width: proxy.formatWidth,
-                            height: proxy.formatHeight,
-                            extension: proxy.extension,
-                            docType,
-                          };
-                        })}
-                        selectedItem={state.selectedProxy}
-                      >
-                        {supportedRepresentative && (
-                          <cx-menu-item value="use-representative">
-                            <cx-typography
-                              variant="body3"
-                              className={`proxy__name ${
-                                state.useRepresentative ? 'selected' : ''
-                              }`}
-                            >
-                              Representative image
-                            </cx-typography>
-                            {<cx-icon slot="suffix" name={state.useRepresentative ? 'check' : ''}></cx-icon>}
-                          </cx-menu-item>
-                        )}
-                      </ProxyMenu>
-                    ),
-                  )}
+                {supportedProxies && (
+                  <ProxyMenu
+                    items={availableProxies.map((proxy) => {
+                      if (proxy.proxyName === 'TRX' && selectedAsset) {
+                        return {
+                          value: getProxyValue(proxy, selectedAsset.extension ?? ''),
+                          name: proxy.proxyLabel,
+                          cdnName: proxy.cdnName,
+                          width: selectedAsset.width,
+                          height: selectedAsset.height,
+                          extension: selectedAsset.extension,
+                          docType: selectedAsset.docType,
+                        };
+                      }
+                      return {
+                        value: getProxyValue(proxy, selectedAsset?.extension ?? ''),
+                        name: proxy.proxyLabel,
+                        cdnName: proxy.cdnName,
+                        width: String(proxy.formatWidth),
+                        height: String(proxy.formatHeight),
+                        extension: proxy.extension ?? undefined,
+                        docType: selectedAsset?.docType,
+                      };
+                    })}
+                    selectedItem={state.selectedProxy}
+                  >
+                    {supportedRepresentative && (
+                      <cx-menu-item value="use-representative">
+                        <cx-typography
+                          variant="body3"
+                          className={`proxy__name ${
+                            state.useRepresentative ? 'selected' : ''
+                          }`}
+                        >
+                          Representative image
+                        </cx-typography>
+                        <cx-icon slot="suffix" name={state.useRepresentative ? 'check' : ''}></cx-icon>
+                      </cx-menu-item>
+                    )}
+                  </ProxyMenu>
+                )}
                 {supportedATS && (
                   <ProxyMenu
                     items={[]}
-                    selectedItem={state.selectedProxy} 
+                    selectedItem={state.selectedProxy}
                     style={{
                       borderTopWidth: '0',
                     }}
@@ -1130,51 +1132,76 @@ const FormatDialog: FC<Props> = ({
                       <cx-icon
                         slot="suffix"
                         name={state.useCustomRendition ? 'edit' : ''}
-                        className='icon--large'
+                        className="icon--large"
                       ></cx-icon>
                       <cx-icon
                         slot="suffix"
                         name={state.useCustomRendition ? 'check' : ''}
-                        className='icon--large icon--primary'
+                        className="icon--large icon--primary"
                       ></cx-icon>
                     </cx-menu-item>
                   </ProxyMenu>
                 )}
+                {allowTracking && (
+                  <div
+                    style={{
+                      backgroundColor: 'var(--cx-color-neutral-0)',
+                      width: '100%',
+                    }}
+                  >
+                    <ProxyMenu
+                      style={{
+                        border: 'none',
+                      }}
+                    >
+                      <cx-menu-item value="tracking" className="proxy--switch">
+                        <cx-typography variant="body3" className="proxy__name">
+                          Tracking parameters
+                        </cx-typography>
+                        <cx-switch
+                          checked={state.enabledTracking}
+                          onClick={(e) => e.preventDefault()}
+                        ></cx-switch>
+                      </cx-menu-item>
+                    </ProxyMenu>
+                    {state.enabledTracking && (
+                      <TrackingParameters
+                        values={state.trackingParameters}
+                        onChange={(params) =>
+                          dispatch({
+                            type: 'SET_TRACKING_PARAMETERS',
+                            payload: params,
+                          })
+                        }
+                      />
+                    )}
+                  </div>
+                )}
               </div>
-            ) : null}
-            <div
-              style={{
-                backgroundColor: 'var(--cx-color-neutral-0)',
-                width: '100%',
-              }}
-            >
-              <ProxyMenu
+            ) : (
+              <cx-space
+                align-items="center"
+                spacing="large"
+                wrap="nowrap"
                 style={{
-                  border: 'none',
+                  backgroundColor: 'var(--cx-color-neutral-0)',
+                  width: '100%',
+                  padding: 'var(--cx-spacing-medium)',
+                  gap: '20px',
                 }}
               >
-                <cx-menu-item value="tracking" className="proxy--switch">
-                  <cx-typography variant="body3" className="proxy__name">
-                    Tracking parameters
-                  </cx-typography>
-                  <cx-switch
-                    checked={state.enabledTracking}
-                    onClick={(e) => e.preventDefault()}
-                  ></cx-switch>
-                </cx-menu-item>
-              </ProxyMenu>
-              {state.enabledTracking && (
-                <TrackingParameters
-                  values={state.trackingParameters}
-                  onChange={(params) =>
-                    dispatch({
-                      type: 'SET_TRACKING_PARAMETERS',
-                      payload: params,
-                    })
-                  }
-                />
-              )}
-            </div>
+                <cx-icon
+                  style={{
+                    color: 'var(--cx-color-warning)',
+                  }}
+                  name="warning"
+                  className="ic_warning_amber"
+                ></cx-icon>
+                <cx-typography variant="body3" className="proxy__name">
+                  You don&apos;t have permission to share this asset.
+                </cx-typography>
+              </cx-space>
+            )}
           </cx-space>
         );
       }
@@ -1241,11 +1268,19 @@ const FormatDialog: FC<Props> = ({
 
               const [proxyName, extension] = state.selectedProxy.split('-');
 
+              const selectedProxy = availableProxies?.find((proxy) => {
+                return getProxyValue(proxy, selectedAsset.extension ?? '') === state.selectedProxy;
+              });
+
+              if (!selectedProxy) {
+                return;
+              }
+
               onProxyConfirm({
                 extension,
-                value: {
-                  [selectedAsset.docType]: proxyName,
-                },
+                value: proxyName,
+                hasPermanentLink: !!selectedProxy.cdnName,
+                permanentLink: selectedProxy.permanentLink ?? undefined,
                 parameters: state.enabledTracking
                   ? state.trackingParameters
                   : undefined,
@@ -1284,15 +1319,14 @@ const FormatDialog: FC<Props> = ({
       </>
     );
   }, [
+    allowTracking,
     allowCustomFormat,
     availableProxies,
     ctaText,
     extensions,
-    isError,
-    isFetching,
+    previewUrl,
     searchInDrive,
     selectedAsset,
-    videoUrl,
     supportedRepresentative,
     onClose,
     onCropChange,

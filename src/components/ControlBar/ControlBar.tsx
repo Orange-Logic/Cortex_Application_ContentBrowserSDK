@@ -367,18 +367,21 @@ const ControlBar: FC<Props> = ({
           <Facet
             key={TYPE.type}
             facet={facets?.type ?? {}}
+            displayName="Type"
             type={TYPE.type}
             collections={mediaTypes}
           />
           <Facet
             key={TYPE.visibilityClass}
             facet={facets?.visibilityClass ?? {}}
+            displayName="Visibility class"
             type={TYPE.visibilityClass}
             collections={visibilityClasses}
           />
           <Facet
             key={TYPE.status}
             facet={facets?.status ?? {}}
+            displayName="Status"
             type={TYPE.status}
             collections={statuses}
           />
@@ -386,6 +389,7 @@ const ControlBar: FC<Props> = ({
             key={TYPE.extension}
             facet={facets?.extension ?? {}}
             type={TYPE.extension}
+            displayName="Extension"
             collections={extensions}
             capitalize={false}
           />

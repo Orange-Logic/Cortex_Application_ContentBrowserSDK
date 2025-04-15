@@ -4,6 +4,7 @@ import { FC } from 'react';
 type Props = {
   facet: Record<string, number>;
   type: string;
+  displayName: string;
   collections: string[];
   capitalize?: boolean;
   loading?: boolean;
@@ -12,6 +13,7 @@ type Props = {
 const Facet: FC<Props> = ({
   facet,
   type,
+  displayName,
   collections,
   capitalize = true,
   loading = false,
@@ -43,7 +45,7 @@ const Facet: FC<Props> = ({
         spacing="x-small"
         wrap="nowrap"
       >
-        <span>{_capitalize(type)}</span>
+        <span>{displayName}</span>
         {loading && <cx-spinner></cx-spinner>}
       </cx-space>
       <cx-space direction="vertical">

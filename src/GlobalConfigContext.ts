@@ -8,8 +8,8 @@ export type ImageCardDisplayInfo = {
 };
 
 export type PluginInfo = {
+  publicApplicationName?: string,
   pluginName?: string,
-  pluginShortName?: string,
 };
 
 export type GlobalConfigContextType = {
@@ -24,6 +24,7 @@ export type GlobalConfigContextType = {
   searchInDrive: boolean;
   showCollections?: boolean;
   useSession?: string;
+  allowTracking: boolean;
 };
 
 export const GlobalConfigContext = createContext<GlobalConfigContextType>({
@@ -34,11 +35,12 @@ export const GlobalConfigContext = createContext<GlobalConfigContextType>({
   displayInfo: {
     title: true,
     dimension: true,
-    fileSize: true,
-    tags: true,
+    fileSize: false,
+    tags: false,
   },
   pluginInfo: {},
   isGABPopedup: false,
   searchInDrive: false,
   showCollections: false,
+  allowTracking: true,
 });
