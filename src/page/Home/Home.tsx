@@ -824,7 +824,7 @@ const HomePage: FC<Props> = () => {
           onClose={() =>
             dispatch({ type: 'SET_SELECTED_ASSET', payload: null })
           }
-          onProxyConfirm={async ({ extension, value, hasPermanentLink, permanentLink, parameters, useRepresentative }) => {
+          onProxyConfirm={async ({ extension, value, permanentLink, parameters, useRepresentative }) => {
             if (!state.selectedAsset) {
               return;
             }
@@ -833,7 +833,6 @@ const HomePage: FC<Props> = () => {
               importAssets({
                 extension,
                 extraFields,
-                hasPermanentLink,
                 parameters,
                 permanentLink,
                 proxiesPreference: value,

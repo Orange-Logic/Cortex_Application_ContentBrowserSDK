@@ -32,7 +32,6 @@ type Props = {
   onClose: () => void;
   onProxyConfirm: (value: {
     extension: string;
-    hasPermanentLink: boolean;
     permanentLink?: string;
     parameters?: TrackingParameter[];
     useRepresentative?: boolean;
@@ -1279,7 +1278,6 @@ const FormatDialog: FC<Props> = ({
               onProxyConfirm({
                 extension,
                 value: proxyName,
-                hasPermanentLink: !!selectedProxy.cdnName,
                 permanentLink: selectedProxy.permanentLink ?? undefined,
                 parameters: state.enabledTracking
                   ? state.trackingParameters

@@ -48,7 +48,6 @@ GetAssetLinkResponse[],
 {
   extension?: string;
   extraFields?: string[];
-  hasPermanentLink?: boolean;
   maxHeight?: number;
   maxWidth?: number;
   parameters?: TrackingParameter[];
@@ -65,7 +64,6 @@ GetAssetLinkResponse[],
     {
       extension,
       extraFields,
-      hasPermanentLink,
       maxHeight,
       maxWidth,
       parameters,
@@ -81,7 +79,7 @@ GetAssetLinkResponse[],
     const images = await getAssetLinks({
       assets: [selectedAsset],
       extraFields: extraFields?.join('&ExtraFields='),
-      hasPermanentLink,
+      hasPermanentLink: !!permanentLink,
       proxyPreference: proxiesPreference,
       transformations,
       parameters,
@@ -98,7 +96,7 @@ GetAssetLinkResponse[],
       }];
     }
 
-    if (hasPermanentLink && permanentLink) {
+    if (permanentLink) {
       return [{
         ...images[0],
         imageUrl: permanentLink,
