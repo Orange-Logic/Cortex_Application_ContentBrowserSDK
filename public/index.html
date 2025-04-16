@@ -6,7 +6,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#000000" />
-  <meta name="description" content="OrangeDam Asset Picker" />
+  <meta name="description" content="OrangeDAM Content Browser SDK" />
   <!--
       manifest.json provides metadata used when your web app is installed on a
       user's mobile device or desktop. See https://developers.google.com/web/fundamentals/web-app-manifest/
@@ -21,7 +21,7 @@
       work correctly both with client-side routing and a non-root public URL.
       Learn how to configure a non-root public URL by running `npm run build`.
     -->
-  <title>OrangeDam Asset Picker</title>
+  <title>OrangeDAM Content Browser SDK</title>
   <style>
     body {
       background-color: rgb(255, 255, 255);
@@ -49,9 +49,9 @@
       To create a production bundle, use `npm run build` or `yarn build`.
     -->
   <script>
-    // /* To keep the GAB open after selecting an image for debugging, you can use the following code:
+    // /* To keep the CBSDK open after selecting an image for debugging, you can use the following code:
 
-    const debugGAB = () => {
+    const debugCBSDK = () => {
       const settings = {
         onAssetSelected: function (assets) {
           console.log(assets);
@@ -70,7 +70,7 @@
         extraFields: ['coreField.OriginalFileName', 'document.CortexPath'],
         persistMode: true,
         // publicApplicationName: "",
-        // pluginName: "OrangeDAM Asset Browser",
+        // pluginName: "OrangeDAM Content Browser",
         searchInDrive: false,
         showCollections: true,
         allowTracking: true,
@@ -78,12 +78,12 @@
       }
       settings.onClose = () => {
         console.log('Picker closed, reopening ...');
-        window.CortexAssetPicker.open(settings);
+        window.OrangeDAMContentBrowser.open(settings);
       }
-      window.CortexAssetPicker.open(settings);
+      window.OrangeDAMContentBrowser.open(settings);
     }
-    // run debugGAB() on load
-    document.addEventListener('DOMContentLoaded', debugGAB);
+    // run debugCBSDK() on load
+    document.addEventListener('DOMContentLoaded', debugCBSDK);
     // */
   </script>
 </body>

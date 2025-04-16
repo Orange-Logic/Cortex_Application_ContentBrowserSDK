@@ -20,7 +20,7 @@ export type GlobalConfigContextType = {
   lastLocationMode?: boolean;
   persistMode: boolean;
   pluginInfo: PluginInfo;
-  isGABPopedup: boolean;
+  isContentBrowserPopedup: boolean;
   searchInDrive: boolean;
   showCollections?: boolean;
   useSession?: string;
@@ -39,7 +39,7 @@ export const GlobalConfigContext = createContext<GlobalConfigContextType>({
     tags: false,
   },
   pluginInfo: {},
-  isGABPopedup: false,
+  isContentBrowserPopedup: false,
   searchInDrive: false,
   showCollections: false,
   allowTracking: true,

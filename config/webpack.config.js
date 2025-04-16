@@ -208,7 +208,7 @@ module.exports = function (webpackEnv) {
       pathinfo: isEnvDevelopment,
       // There will be one main bundle, and one file per asynchronous chunk.
       // In development, it does not produce real files.
-      filename: 'static/js/OrangeDamAssetBrowser.min.js',
+      filename: 'static/js/OrangeDAMContentBrowserSDK.min.js',
       // There are also additional JS chunk files if you use code splitting.
       // chunkFilename: isEnvProduction
       //   ? 'static/js/[name].[contenthash:8].chunk.js'
@@ -568,7 +568,7 @@ module.exports = function (webpackEnv) {
       // Copyright OL
       new webpack.BannerPlugin(
         '* @copyright \n' +
-        '* OrangeDamAssetBrowser – Copyright 2023 \n' +
+        '* OrangeDAMContentBrowser – Copyright 2025 \n' +
         '* OrangeLogic <orangelogic.com>'),
       // Generates an `index.html` file with the <script> injected.
       new HtmlWebpackPlugin(
@@ -632,7 +632,7 @@ module.exports = function (webpackEnv) {
         new MiniCssExtractPlugin({
           // Options similar to the same options in webpackOptions.output
           // both options are optional
-          filename: 'static/css/OrangeDamAssetBrowser.min.css',
+          filename: 'static/css/OrangeDAMContentBrowserSDK.min.css',
           // chunkFilename: 'static/css/[name].[contenthash:8].chunk.css',
         }),
       // Generate an asset manifest file with the following content:

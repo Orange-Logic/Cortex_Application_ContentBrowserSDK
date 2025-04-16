@@ -636,11 +636,11 @@ const HomePage: FC<Props> = () => {
   }, []);
 
   const handleSelectedAsset = useCallback((images: GetAssetLinkResponse[]) => {
-    window.CortexAssetPicker._onAssetSelected?.(images);
+    window.OrangeDAMContentBrowser._onAssetSelected?.(images);
     if (persistMode) {
       return;
     }
-    window.CortexAssetPicker._onClose?.();
+    window.OrangeDAMContentBrowser._onClose?.();
   }, [persistMode]);
 
   const hasNextPage = useMemo(
@@ -880,7 +880,7 @@ const HomePage: FC<Props> = () => {
               return;
             }
 
-            window.CortexAssetPicker._onAssetSelected?.([
+            window.OrangeDAMContentBrowser._onAssetSelected?.([
               {
                 imageUrl: state.selectedAsset.imageUrl,
               },

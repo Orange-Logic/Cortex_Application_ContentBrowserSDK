@@ -22,7 +22,7 @@ import { userApi } from './store/user/user.api';
 
 declare global {
   interface Window {
-    CortexAssetPicker: {
+    OrangeDAMContentBrowser: {
       help: () => void,
       open: (config: {
         /**
@@ -85,7 +85,7 @@ declare global {
         publicApplicationName?: string;
         /**
          * The plugin short name.
-         * By default, it will be OrangeDAM Asset Browser.
+         * By default, it will be OrangeDAM Content Browser.
          */
         pluginName?: string;
 
@@ -143,7 +143,7 @@ declare global {
        */
       _onError?: AppContextType['onError'],
       /**
-       * Global function to close the GAB
+       * Global function which mirrored the behavior of onClose
        */
       _onClose?: () => void,
     };
@@ -154,10 +154,10 @@ declare global {
   }
 }
 
-window.CortexAssetPicker = {
+window.OrangeDAMContentBrowser = {
   help: () => {
     console.log(`/* Cortex Asset Picker Help */
-      window.CortexAssetPicker.open({
+      window.OrangeDAMContentBrowser.open({
         onAssetSelected: (assets) => {
           // Callback function triggered when assets are selected
           console.log(assets);
@@ -181,7 +181,7 @@ window.CortexAssetPicker = {
           tags: false, // Whether to display the asset tags
         },
         publicApplicationName: "", // Public name of the DAM to display on the login screen
-        pluginName: "OrangeDAM Asset Browser", // Name of the plugin to display on the login screen
+        pluginName: "OrangeDAM Content Browser", // Name of the plugin to display on the login screen
         ctaText: "Insert", // Text to display on the insert button
         persistMode: true, // Whether the picker remains open after selecting an asset
         availableDocTypes: ['Images', 'Videos', 'Audio', 'Others'], // Array of available asset types to filter assets
@@ -255,18 +255,18 @@ window.CortexAssetPicker = {
       store.dispatch(assetsApi.util.resetApiState());
       store.dispatch(userApi.util.resetApiState());
       root.unmount();
-      // Reset these function when close the GAB
-      window.CortexAssetPicker._onAssetSelected = undefined;
-      window.CortexAssetPicker._onImageSelected = undefined;
-      window.CortexAssetPicker._onError         = undefined;
-      window.CortexAssetPicker._onClose         = undefined;
+      // Reset these function when close the Content Browser
+      window.OrangeDAMContentBrowser._onAssetSelected = undefined;
+      window.OrangeDAMContentBrowser._onImageSelected = undefined;
+      window.OrangeDAMContentBrowser._onError         = undefined;
+      window.OrangeDAMContentBrowser._onClose         = undefined;
 
       onClose?.();
     };
-    window.CortexAssetPicker._onAssetSelected = assetSelectedHandler;
-    window.CortexAssetPicker._onImageSelected = imageSelectedHandler;
-    window.CortexAssetPicker._onError         = errorHandler;
-    window.CortexAssetPicker._onClose         = handleClose;
+    window.OrangeDAMContentBrowser._onAssetSelected = assetSelectedHandler;
+    window.OrangeDAMContentBrowser._onImageSelected = imageSelectedHandler;
+    window.OrangeDAMContentBrowser._onError         = errorHandler;
+    window.OrangeDAMContentBrowser._onClose         = handleClose;
 
     root.render(
       <Provider store={store}>
@@ -279,9 +279,9 @@ window.CortexAssetPicker = {
           persistMode: !!persistMode,
           pluginInfo: {
             publicApplicationName: publicApplicationName !== undefined ? publicApplicationName : '',
-            pluginName: pluginName !== undefined ? pluginName : 'OrangeDAM Asset Browser',
+            pluginName: pluginName !== undefined ? pluginName : 'OrangeDAM Content Browser',
           },
-          isGABPopedup: !containerId,
+          isContentBrowserPopedup: !containerId,
           searchInDrive: !!searchInDrive,
           showCollections: !!showCollections,
           useSession,
@@ -300,6 +300,6 @@ window.CortexAssetPicker = {
     );
   },
   close: () => {
-    window.CortexAssetPicker._onClose?.();
+    window.OrangeDAMContentBrowser._onClose?.();
   },
 };

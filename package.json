@@ -1,11 +1,11 @@
 {
   "name": "orange-dam-assets-picker",
-  "version": "1.0.0",
-  "description": "OrangeDam Assets picker source code",
+  "version": "2.1.0",
+  "description": "OrangeDAM Content Browser SDK source code",
   "main": "index.js",
   "homepage": "/",
   "private": true,
-  "author": "Nhan Nguyen",
+  "author": "Orange Logic",
   "license": "MIT",
   "engines": {
     "node": ">=18.0.0",

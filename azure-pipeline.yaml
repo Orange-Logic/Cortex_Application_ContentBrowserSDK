@@ -58,7 +58,7 @@ stages:
             displayName: 'Replace tokens in HTML files'
             inputs:
               sources: |
-                **/GABdemo.html
+                **/CBSDKdemo.html
                 **/GAB.html
               tokenPattern: 'custom'
               tokenPrefix: '__'
@@ -71,16 +71,16 @@ stages:
               artifacts:
                 - sourceFolder: 'build/static/css'
                   targetFolder: 'Cortex/AssetBrowserTest/v$(GitVersion.FullSemVer)'
-                  contents: OrangeDamAssetBrowser.min.css
+                  contents: OrangeDAMContentBrowserSDK.min.css
                 - sourceFolder: 'build/static/js'
                   targetFolder: 'Cortex/AssetBrowserTest/v$(GitVersion.FullSemVer)'
-                  contents: OrangeDamAssetBrowser.min.js
+                  contents: OrangeDAMContentBrowserSDK.min.js
                 - sourceFolder: '.'
                   targetFolder: 'Cortex/AssetBrowserTest/v$(GitVersion.FullSemVer)'
-                  contents: GABdemo.html
+                  contents: CBSDKdemo.html
                 - sourceFolder: '.'
                   targetFolder: 'Cortex/AssetBrowserTest/latest'
-                  contents: GABdemo.html
+                  contents: CBSDKdemo.html
                 - sourceFolder: 'gab_extension'
                   targetFolder: 'Cortex/AssetBrowserTest/v$(GitVersion.FullSemVer)'
                   contents: GAB.html

@@ -19,7 +19,7 @@ yarn
 NodeJS v18 or higher
 
 ##	Latest releases
-GAB v2.1.0
+Content Browser SDK v2.1.0
 
 # Build and Test
 - Run the project with 
@@ -31,19 +31,20 @@ yarn start
 ```
 yarn build
 ```
-- use the 2 files `build\static\js\OrangeDamAssetBrowser.min.js` and `build\static\css\OrangeDamAssetBrowser.min.css` in your other projects
+- use the 2 files `build\static\js\ContentBrowserSDK.min.js` and `build\static\css\ContentBrowserSDK.min.css` in your other projects
 
 # More guide
 For detail guides on usage check out the [Orange Logic Developer Portal](https://developer.orangelogic.com/docs/generic-asset-browser)
 
 # Change Log
 * Apr 8, 2025 - v2.1.0
-  * Revamp the GAB's entire UI
+  * Rename GAB to Content Browser SDK
+  * Revamp the Content Browser SDK's entire UI
   * Add a new demo page with more explanations on the invoke function's properties
-  * GAB now allows you to pick all asset file extensions
+  * Content Browser SDK now allows you to pick all asset file extensions
   * Add on-the-fly image transformation functionality
   * Add tracking link capabilities
-  * More control on the GAB's level and Orange Dam administrative level
+  * More control on the Content Browser's invoke parameters level and Orange DAM administrative level
 * Dec 20, 2024 - v1.2.2
   * Change Orange DAM to OrangeDAM
   * GAB in demo will not pre populate with "https://cortexdemo2.orangelogic.com/" any more

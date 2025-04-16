@@ -24,7 +24,7 @@ const Header: FC<Props> = ({
   onMenuClick,
   onLogout,
 }) => {
-  const { isGABPopedup, pluginInfo } = useContext(GlobalConfigContext);
+  const { isContentBrowserPopedup, pluginInfo } = useContext(GlobalConfigContext);
   const { onClose } = useContext(AppContext);
   const { data, isFetching, isLoading, refetch: refetchUserInfo } = useGetUserInfoQuery({});
 
@@ -101,7 +101,7 @@ const Header: FC<Props> = ({
         </div>
         <div className="header__menu">
           {Dropdown}
-          {isGABPopedup && (
+          {isContentBrowserPopedup && (
             <cx-icon-button
               name="close"
               label="Close"
