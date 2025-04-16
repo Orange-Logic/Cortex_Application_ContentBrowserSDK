@@ -111,13 +111,6 @@ const Browser: FC<Props> = ({
           if (typeof lastLocation === 'string') {
             try {
               const folder = JSON.parse(lastLocation) as Folder;
-
-              const isValidFolder = folders.some((f) => f.id === folder.id);
-              if (!isValidFolder) {
-                handleDefaultFolder();
-                return;
-              }
-
               onFolderSelect(folder);
             } catch (error) {
               handleDefaultFolder();

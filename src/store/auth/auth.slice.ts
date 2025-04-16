@@ -81,6 +81,15 @@ export const authSlice = createSlice({
       deleteData(AUTH_FEATURE_ACCESS_KEY_KEY);
       deleteData(AUTH_FEATURE_SITE_URL_KEY);
       deleteData(USE_SESSION);
+      deleteData('selectedSortOrder');
+      deleteData('selectedSortDirection');
+      deleteData('selectedView');
+      deleteData('newlySelectedFacet');
+      deleteData('newFacets');
+      deleteData('selectedFilter');
+      deleteData('selectedIsSeeThrough');
+      deleteData('searchText');
+      deleteData('lastLocation');
     },
     setAuthStatus: (state, action: PayloadAction<AuthState['status']>) => {
       state.status = action.payload;
