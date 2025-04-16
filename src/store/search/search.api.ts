@@ -103,7 +103,7 @@ export const searchApi = createApi({
         }
 
         return {
-          url: '/webapi/extensibility/integrations/gab/assetbrowser/getcontent_4bw_v1',
+          url: '/webapi/extensibility/integrations/contentBrowserSDK/getcontent_4bw_v1',
           params,
         };
       },
@@ -153,7 +153,7 @@ export const searchApi = createApi({
         }
 
         return {
-          url: '/webapi/extensibility/integrations/gab/assetbrowser/getcontent_4bw_v1',
+          url: '/webapi/extensibility/integrations/contentBrowserSDK/getcontent_4bw_v1',
           params,
         };
       },
@@ -231,7 +231,7 @@ export const searchApi = createApi({
           params.push(['UseSession', useSession]);
         }
         return {
-          url: '/webapi/extensibility/integrations/gab/assetbrowser/getcontent_4bw_v1',
+          url: '/webapi/extensibility/integrations/contentBrowserSDK/getcontent_4bw_v1',
           params,
         };
       },

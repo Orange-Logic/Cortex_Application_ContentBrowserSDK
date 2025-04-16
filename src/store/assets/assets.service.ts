@@ -29,7 +29,7 @@ export const getAssetLinks = async (
     useSession?: string;
   },
 ): Promise<GetAssetLinkResponse[]> => {
-  let baseUrl = '/webapi/extensibility/integrations/gab/assetbrowser/GetAssetLink_4by?';
+  let baseUrl = '/webapi/extensibility/integrations/contentBrowserSDK/GetAssetLink_4by?';
   if (useSession) {
     baseUrl += `UseSession=${useSession}&`;
   }

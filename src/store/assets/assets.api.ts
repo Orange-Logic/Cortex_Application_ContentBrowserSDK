@@ -56,7 +56,7 @@ export const assetsApi = createApi({
   endpoints: (builder) => ({
     getAvailableProxies: builder.query<GetAvailableProxiesResponse, GetAvailableProxiesRequest>({
       query: (request) => ({
-        url: '/webapi/extensibility/integrations/gab/assetbrowser/AvailableProxies_4ea_v3?',
+        url: '/webapi/extensibility/integrations/contentBrowserSDK/AvailableProxies_4ea_v3?',
         params: getAvailableProxiesAPIParams(request),
       }),
       serializeQueryArgs: ({ queryArgs }) => getAvailableProxiesAPIParams(queryArgs),
@@ -98,7 +98,7 @@ export const assetsApi = createApi({
       useSession?: string;
     }>({
       query: ({ useSession }) => ({
-        url: '/webapi/extensibility/integrations/gab/assetbrowser/sortorders_4147',
+        url: '/webapi/extensibility/integrations/contentBrowserSDK/sortorders_4147',
         params: useSession ? [['UseSession', useSession]] : [],
       }),
       providesTags: ['SortOrders'],
