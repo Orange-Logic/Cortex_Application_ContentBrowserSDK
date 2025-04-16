@@ -20,7 +20,6 @@ const ViewPreview: FC<Props> = ({
   onLoaded,
 }) => {
   const [assetDirection, setAssetDirection] = useState<'vertical' | 'horizontal'>('horizontal');
-  const [previewLoaded, setPreviewLoaded] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -40,24 +39,27 @@ const ViewPreview: FC<Props> = ({
     }
 
     const updateVideoProgress = (e: MouseEvent) => {
-      if (video.duration) {
-        progressBar.value = (e.offsetX / progressBar.offsetWidth) * 100;
+      if (video.duration && e.currentTarget === container) {
+        progressBar.value = (e.offsetX / container.offsetWidth) * 100;
         video.currentTime =
-          (e.offsetX / progressBar.offsetWidth) * video.duration;
+          (e.offsetX / container.offsetWidth) * video.duration;
       }
     };
 
     const onMouseEnter = (e: MouseEvent) => {
+      e.stopImmediatePropagation();
       updateVideoProgress(e);
     };
 
-    const onMouseLeave = () => {
+    const onMouseLeave = (e: MouseEvent) => {
+      e.stopImmediatePropagation();
       progressBar.value = 0;
       video.currentTime = 0;
       video.pause();
     };
 
     const onMouseMove = (e: MouseEvent) => {
+      e.stopImmediatePropagation();
       updateVideoProgress(e);
     };
 
@@ -72,13 +74,8 @@ const ViewPreview: FC<Props> = ({
     };
   }, [thumbnailOnly, thumbnailUrl]);
 
-  useEffect(() => {
-    setPreviewLoaded(false);
-  }, [url, thumbnailUrl]);
-
   const onLoadAsset = useCallback(() => {
     onLoaded();
-    setPreviewLoaded(true);
 
     if (videoRef.current) {
       const { videoWidth, videoHeight } = videoRef.current;
@@ -92,11 +89,11 @@ const ViewPreview: FC<Props> = ({
   }, [onLoaded]);
 
   return (
-    <div ref={containerRef}>
+    <>
       <div
         className={`asset-preview__representative asset-preview__representative--${assetDirection}`}
       >
-        {url && !thumbnailOnly && (
+        {url && !thumbnailOnly ? (
           <video
             ref={videoRef}
             src={url}
@@ -105,26 +102,18 @@ const ViewPreview: FC<Props> = ({
             onError={() => {
               onError();
             }}
-            style={{
-              opacity: previewLoaded ? 1 : 0,
-            }}
           >
             <track default kind="captions" srcLang="en" />
           </video>
+        ) : (
+          <img
+            ref={imageRef}
+            src={thumbnailUrl}
+            alt="Asset preview"
+            onLoad={onLoadAsset}
+            onError={onError}
+          />
         )}
-        <img
-          ref={imageRef}
-          src={thumbnailUrl}
-          alt="Asset preview"
-          onLoad={onLoadAsset}
-          onError={onError}
-          style={{
-            position: thumbnailOnly ? 'relative' : 'absolute',
-            top: thumbnailOnly ? 'auto' : 0,
-            left: thumbnailOnly ? 'auto' : 0,
-            opacity: thumbnailOnly ? 1 : 0,
-          }}
-        />
         <div className="asset-preview__video-icon" hidden={!loaded}>
           <cx-icon name="play_arrow" variant="filled"></cx-icon>
         </div>
@@ -135,7 +124,8 @@ const ViewPreview: FC<Props> = ({
           className="asset-preview__progress-bar"
         ></cx-progress-bar>
       )}
-    </div>
+      <div ref={containerRef} className="asset-preview__representative-overlay"></div>
+    </>
   );
 };
 

@@ -1,9 +1,10 @@
-import { FC, useCallback, useEffect, useMemo, useState } from 'react';
+import { FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import ArrayClamp from '@/components/ArrayClamp';
 import { ImageCardDisplayInfo } from '@/GlobalConfigContext';
 import { Asset, GridView, MediaType } from '@/types/search';
 import { isNullOrWhiteSpace } from '@/utils/string';
+import { CxCard } from '@/web-component';
 
 import AssetPreview from '../AssetPreview';
 import { Card } from './AssetCard.styled';
@@ -30,7 +31,8 @@ const AssetCard: FC<Props> = ({
   onLoaded,
 }) => {
   const [imageLoaded, setImageLoaded] = useState(false);
-  const [hovered, setHovered] = useState(false);
+  const [isInViewport, setIsInViewport] = useState(false);
+  const cardRef = useRef<CxCard>(null);
   const previewLoaded = imageLoaded || (asset.docType !== MediaType.Image && asset.docType !== MediaType.Video);
 
   const onPreviewLoaded = useCallback(() => {
@@ -69,23 +71,41 @@ const AssetCard: FC<Props> = ({
     return Object.keys(classNames).filter((key) => classNames[key]).join(' ');
   }, [isSelected, view]);
 
-  const onMouseEnter = useCallback(() => setHovered(true), []);
-  const onMouseLeave = useCallback(() => setHovered(false), []);
-  
+
+  useEffect(() => {
+    const card = cardRef.current;
+    if (!card) return;
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          setIsInViewport(true);
+        } else {
+          setIsInViewport(false);
+        }
+      });
+    });
+
+    observer.observe(card);
+
+    return () => {
+      observer.unobserve(card);
+    };
+  }, []);
+
   return (
     <Card
+      ref={cardRef}
       className={assetClassNames}
       onClick={() => {
         onItemSelect(asset);
       }}
-      onMouseEnter={onMouseEnter}
-      onMouseLeave={onMouseLeave}
     >
       <AssetPreview
         slot="image"
         asset={asset}
         imageLoaded={previewLoaded}
-        thumbnailOnly={view === GridView.Small || !hovered}
+        thumbnailOnly={view === GridView.Small || !isInViewport}
         onLoaded={onPreviewLoaded}
       />
       {isSelected && (
