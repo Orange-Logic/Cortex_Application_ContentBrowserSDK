@@ -359,17 +359,6 @@ const reducer = (state: State, action: Action): State => {
   }
 };
 
-const getProxyValue = (proxy: Proxy, fallbackExtension: string) => {
-  let cdnNameSuffix = '';
-  if (proxy.cdnName) {
-    cdnNameSuffix = `-${_camelCase(proxy.cdnName)}`;
-  }
-  if (proxy.proxyName === 'TRX') {
-    return `${proxy.proxyName}-${fallbackExtension}${cdnNameSuffix}`;
-  }
-  return `${proxy.proxyName}-${proxy.extension?.substring(1) ?? fallbackExtension}${cdnNameSuffix}`;
-};
-
 const FormatDialog: FC<Props> = ({
   allowTracking,
   allowCustomFormat,
@@ -571,7 +560,7 @@ const FormatDialog: FC<Props> = ({
       }
 
       if (value && availableProxies) {
-        if (!availableProxies.map(item => getProxyValue(item, selectedAsset?.extension ?? '')).includes(value)) {
+        if (!availableProxies.map(item => item.id).includes(value)) {
           return;
         }
         dispatch({ type: 'SET_SELECTED_PROXY', payload: value });
@@ -941,17 +930,7 @@ const FormatDialog: FC<Props> = ({
       dispatch({ type: 'SET_SELECTED_PROXY', payload: '' });
       return;
     }
-    let extensionSuffix = '';
-    let cdnNameSuffix = '';
-    if (availableProxies[0].extension) {
-      extensionSuffix = `-${availableProxies[0].extension.split('.')[1]}`;
-    } else {
-      extensionSuffix = `-${selectedAsset?.extension}`;
-    }
-    if (availableProxies[0].cdnName) {
-      cdnNameSuffix = `-${_camelCase(availableProxies[0].cdnName)}`;
-    }
-    dispatch({ type: 'SET_SELECTED_PROXY', payload: `${availableProxies[0].proxyName}${extensionSuffix}${cdnNameSuffix}` });
+    dispatch({ type: 'SET_SELECTED_PROXY', payload: availableProxies[0].id });
   }, [availableProxies, selectedAsset]);
 
   const renderContent = useCallback(() => {
@@ -1063,7 +1042,7 @@ const FormatDialog: FC<Props> = ({
                     items={availableProxies.map((proxy) => {
                       if (proxy.proxyName === 'TRX' && selectedAsset) {
                         return {
-                          value: getProxyValue(proxy, selectedAsset.extension ?? ''),
+                          value: proxy.id,
                           name: proxy.proxyLabel,
                           cdnName: proxy.cdnName,
                           width: selectedAsset.width,
@@ -1073,7 +1052,7 @@ const FormatDialog: FC<Props> = ({
                         };
                       }
                       return {
-                        value: getProxyValue(proxy, selectedAsset?.extension ?? ''),
+                        value: proxy.id,
                         name: proxy.proxyLabel,
                         cdnName: proxy.cdnName,
                         width: String(proxy.formatWidth),
@@ -1265,10 +1244,8 @@ const FormatDialog: FC<Props> = ({
                 return;
               }
 
-              const [proxyName, extension] = state.selectedProxy.split('-');
-
               const selectedProxy = availableProxies?.find((proxy) => {
-                return getProxyValue(proxy, selectedAsset.extension ?? '') === state.selectedProxy;
+                return proxy.id === state.selectedProxy;
               });
 
               if (!selectedProxy) {
@@ -1276,8 +1253,8 @@ const FormatDialog: FC<Props> = ({
               }
 
               onProxyConfirm({
-                extension,
-                value: proxyName,
+                extension: selectedProxy.extension ?? selectedAsset.extension,
+                value: selectedProxy.proxyName,
                 permanentLink: selectedProxy.permanentLink ?? undefined,
                 parameters: state.enabledTracking
                   ? state.trackingParameters

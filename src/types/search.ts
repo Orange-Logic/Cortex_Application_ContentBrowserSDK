@@ -105,6 +105,7 @@ export type Filter = {
 export type Proxy = {
   cdnName: string | null;
   extension: string | null;
+  id: string;
   formatHeight: number;
   formatWidth: number;
   height: number;

@@ -28,7 +28,7 @@ const ProxyMenu = ({ items, selectedItem, children, style }: Props) => {
         const showDimensions = Boolean(Number(item.width)) && Boolean(Number(item.height)) && item.docType !== MediaType.Audio && item.docType !== MediaType.Multimedia;
 
         return (
-          <cx-menu-item key={item.name.toLowerCase()} value={item.value} className={selected ? 'disable-hover' : ''}>
+          <cx-menu-item key={item.value} value={item.value} className={selected ? 'disable-hover' : ''}>
             {item.image && (
               <div slot="prefix" className="proxy__thumbnail">
                 <img src={item.image} alt={item.name} />

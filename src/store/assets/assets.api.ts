@@ -1,3 +1,5 @@
+import { v4 as uuidv4 } from 'uuid';
+
 import { SortOrder } from '@/types/assets';
 import { Asset, MediaType, Proxy } from '@/types/search';
 import { AppBaseQuery } from '@/utils/api';
@@ -59,6 +61,18 @@ export const assetsApi = createApi({
         url: '/webapi/extensibility/integrations/contentBrowserSDK/AvailableProxies_4ea_v3?',
         params: getAvailableProxiesAPIParams(request),
       }),
+      transformResponse: (response: { proxies: Proxy[]; previewUrl: string }) => {
+        const { previewUrl, proxies } = response;
+        return {
+          previewUrl,
+          proxies: proxies.map((proxy) => {
+            return {
+              ...proxy,
+              id: uuidv4(),
+            };
+          }),
+        };
+      },
       serializeQueryArgs: ({ queryArgs }) => getAvailableProxiesAPIParams(queryArgs),
       providesTags: (_result, _error, _args) => ['AvailableProxies'],
     }),
