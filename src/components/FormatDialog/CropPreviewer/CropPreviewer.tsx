@@ -63,7 +63,6 @@ const CropPreviewer = forwardRef<CropPreviewerHandle, Props>(({
   const [zoom, setZoom] = useState(1);
   const [resizedImage, setResizedImage] = useState<string>(image?.url ?? '');
   const containerRef = useRef<HTMLDivElement>(null);
-
   useEffect(() => {
     const { url, originalUrl, extension } = image;
     const { width, height } = resizer;
@@ -76,7 +75,7 @@ const CropPreviewer = forwardRef<CropPreviewerHandle, Props>(({
           newHeight,
           containerRef.current?.clientWidth ?? window.innerWidth, FORMAT_DIALOG_PREVIEW_SIZE,
         );
-        setResizedImage((selectedProxy === 'TRX' && extension === 'gif') ? originalUrl : imageUrl);
+        setResizedImage(extension === 'gif' ? originalUrl : imageUrl);
         onLoadingChange(false);
       } else {
         setResizedImage(url);
