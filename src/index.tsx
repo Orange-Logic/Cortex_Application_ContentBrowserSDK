@@ -156,7 +156,7 @@ declare global {
 
 window.OrangeDAMContentBrowser = {
   help: () => {
-    console.log(`/* Cortex Asset Picker Help */
+    console.log(`/* Orange DAM Content Browser SDK Example */
       window.OrangeDAMContentBrowser.open({
         onAssetSelected: (assets) => {
           // Callback function triggered when assets are selected
