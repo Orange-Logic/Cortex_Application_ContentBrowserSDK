@@ -76,18 +76,18 @@ stages:
             parameters:
               artifacts:
                 - sourceFolder: 'build/static/css'
-                  targetFolder: 'Cortex/AssetBrowser/v$(GitVersion.FullSemVer)'
+                  targetFolder: 'ContentBrowserSDK/v$(GitVersion.FullSemVer)'
                   contents: OrangeDAMContentBrowserSDK.min.css
                 - sourceFolder: 'build/static/js'
-                  targetFolder: 'Cortex/AssetBrowser/v$(GitVersion.FullSemVer)'
+                  targetFolder: 'ContentBrowserSDK/v$(GitVersion.FullSemVer)'
                   contents: OrangeDAMContentBrowserSDK.min.js
                 - sourceFolder: '.'
-                  targetFolder: 'Cortex/AssetBrowser/v$(GitVersion.FullSemVer)'
+                  targetFolder: 'ContentBrowserSDK/v$(GitVersion.FullSemVer)'
                   contents: CBSDKdemo.html
                 - ${{ if eq(parameters.promoteLatest, true) }}:
                   - sourceFolder: '.'
-                    targetFolder: 'Cortex/AssetBrowser/latest'
+                    targetFolder: 'ContentBrowserSDK/latest'
                     contents: CBSDKdemo.html
                 - sourceFolder: 'gab_extension'
-                  targetFolder: 'Cortex/AssetBrowser/v$(GitVersion.FullSemVer)'
+                  targetFolder: 'ContentBrowserSDK/v$(GitVersion.FullSemVer)'
                   contents: GAB.html
