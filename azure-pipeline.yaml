@@ -20,6 +20,12 @@ resources:
 variables:
   - group: "Global Vars"
 
+parameters:
+  - name: promoteLatest
+    displayName: Enable promoting to latest
+    type: boolean
+    default: false
+
 stages:
   - stage: Build
     dependsOn: []
@@ -70,17 +76,18 @@ stages:
             parameters:
               artifacts:
                 - sourceFolder: 'build/static/css'
-                  targetFolder: 'Cortex/AssetBrowserTest/v$(GitVersion.FullSemVer)'
+                  targetFolder: 'Cortex/AssetBrowser/v$(GitVersion.FullSemVer)'
                   contents: OrangeDAMContentBrowserSDK.min.css
                 - sourceFolder: 'build/static/js'
-                  targetFolder: 'Cortex/AssetBrowserTest/v$(GitVersion.FullSemVer)'
+                  targetFolder: 'Cortex/AssetBrowser/v$(GitVersion.FullSemVer)'
                   contents: OrangeDAMContentBrowserSDK.min.js
                 - sourceFolder: '.'
-                  targetFolder: 'Cortex/AssetBrowserTest/v$(GitVersion.FullSemVer)'
+                  targetFolder: 'Cortex/AssetBrowser/v$(GitVersion.FullSemVer)'
                   contents: CBSDKdemo.html
-                - sourceFolder: '.'
-                  targetFolder: 'Cortex/AssetBrowserTest/latest'
-                  contents: CBSDKdemo.html
+                - ${{ if eq(parameters.promoteLatest, true) }}:
+                  - sourceFolder: '.'
+                    targetFolder: 'Cortex/AssetBrowser/latest'
+                    contents: CBSDKdemo.html
                 - sourceFolder: 'gab_extension'
-                  targetFolder: 'Cortex/AssetBrowserTest/v$(GitVersion.FullSemVer)'
+                  targetFolder: 'Cortex/AssetBrowser/v$(GitVersion.FullSemVer)'
                   contents: GAB.html
