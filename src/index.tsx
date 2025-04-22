@@ -36,11 +36,11 @@ declare global {
          */
         onAssetSelected: AppContextType['onAssetSelected'];
         /**
-         * Callback when we have any error while using asset picker
+         * Callback when we have any error while using content browser
          */
         onError: AppContextType['onError'];
         /**
-         * Callback when we close the asset picker
+         * Callback when we close the content browser
          */
         onClose: () => void;
         /**
@@ -95,17 +95,17 @@ declare global {
          */
         searchInDrive?: boolean;
         /**
-         * The CTA text for the asset picker
+         * The CTA text for the content browser
          * default to "Insert"
          */
         ctaText?: string;
         /**
-         * The persist mode for the asset picker which will prevent the picker from closing after selecting asset
+         * The persist mode for the content browser which will prevent the browser from closing after selecting asset
          * default to false
          */
         persistMode?: boolean;
         /**
-         * The available subtypes for the asset picker
+         * The available subtypes for the content browser
          */
         availableDocTypes?: string[];
         /**
@@ -117,7 +117,7 @@ declare global {
          */
         showCollections?: boolean;
         /**
-         * The session id to use for the asset picker
+         * The session id to use for the content browser
          */
         useSession?: string
         /**
@@ -168,12 +168,12 @@ window.OrangeDAMContentBrowser = {
           console.error(errorMessage, error);
         },
         onClose: () => {
-          // Callback function triggered when the picker is closed
-          window.alert('Picker is closing');
+          // Callback function triggered when the browser is closed
+          window.alert('Content Browser is closing');
         },
-        containerId: "", // ID of the container to attach the picker; opens in a popup if blank
+        containerId: "", // ID of the container to attach the browser; opens in a popup if blank
         extraFields: ['coreField.OriginalFileName', 'document.CortexPath'], // Additional fields to retrieve from the assets
-        baseUrl: "", // Default base URL to pre-fill in the asset picker
+        baseUrl: "", // Default base URL to pre-fill in the content browser
         displayInfo: {
           title: true, // Whether to display the asset title
           dimension: true, // Whether to display the asset dimensions
@@ -183,10 +183,10 @@ window.OrangeDAMContentBrowser = {
         publicApplicationName: "", // Public name of the DAM to display on the login screen
         pluginName: "OrangeDAM Content Browser", // Name of the plugin to display on the login screen
         ctaText: "Insert", // Text to display on the insert button
-        persistMode: true, // Whether the picker remains open after selecting an asset
+        persistMode: true, // Whether the browser remains open after selecting an asset
         availableDocTypes: ['Images', 'Videos', 'Audio', 'Others'], // Array of available asset types to filter assets
         availableRepresentativeSubtypes: ['Other'], // Array of supported subtypes for representative images
-        showCollections: true, // Whether to show collections in the asset picker
+        showCollections: true, // Whether to show collections in the content browser
         lastLocationMode: true, // Whether to open the last selected folder on load
         allowTracking: true, // Whether to enable tracking parameters for asset URLs
       });`);

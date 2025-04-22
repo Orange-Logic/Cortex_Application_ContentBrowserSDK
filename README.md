@@ -1,7 +1,7 @@
 # Introduction 
-Orange Logic’s Generic Asset Browser allows authenticated users to browse Orange Logic assets in external web applications. You can use this tool to develop custom integrations between your Orange Logic platform and other software your organization uses.
+Orange Logic’s OrangeDAM Content Browser SDK allows authenticated users to browse Orange Logic assets in external web applications. You can use this tool to develop custom integrations between your Orange Logic platform and other software your organization uses.
 
-For example, let’s say your organization’s creative team stores images in Orange Logic. However, the marketing team uses a Content Management System (CMS) to build webpages. You can add the Generic Asset Browser to your CMS so users can search, filter, and select assets directly from Orange Logic, and then use them in your CMS.
+For example, let’s say your organization’s creative team stores images in Orange Logic. However, the marketing team uses a Content Management System (CMS) to build webpages. You can add the OrangeDAM Content Browser SDK to your CMS so users can search, filter, and select assets directly from Orange Logic, and then use them in your CMS.
 
 # Getting Started
 
