@@ -79,7 +79,7 @@ GetAssetLinkResponse[],
     const images = await getAssetLinks({
       assets: [selectedAsset],
       extraFields: extraFields?.join('&ExtraFields='),
-      hasPermanentLink: !!permanentLink,
+      permanentLink,
       proxyPreference: proxiesPreference,
       transformations,
       parameters,
@@ -93,13 +93,6 @@ GetAssetLinkResponse[],
       return [{
         ...images[0],
         imageUrl: selectedAsset.imageUrl,
-      }];
-    }
-
-    if (permanentLink) {
-      return [{
-        ...images[0],
-        imageUrl: permanentLink,
       }];
     }
 

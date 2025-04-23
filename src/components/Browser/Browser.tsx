@@ -261,7 +261,7 @@ const Browser: FC<Props> = ({
             <cx-tree ref={treeRef}>{renderFolders()}</cx-tree>
           </div>
         </cx-space>
-        {showCollections && collections?.length && (
+        {showCollections && collections && collections.length > 0 && (
           <div className="browser__collections">
             <cx-details>
               <cx-typography slot="summary" variant="body3">

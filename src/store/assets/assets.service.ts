@@ -10,7 +10,7 @@ export const getAssetLinks = async (
   {
     assets,
     extraFields,
-    hasPermanentLink,
+    permanentLink,
     proxyPreference,
     transformations,
     parameters,
@@ -19,7 +19,7 @@ export const getAssetLinks = async (
   }: {
     assets: Asset[];
     extraFields?: string;
-    hasPermanentLink?: boolean;
+    permanentLink?: string;
     proxyPreference?: string;
     transformations?: Transformation[];
     parameters?: TrackingParameter[];
@@ -36,7 +36,7 @@ export const getAssetLinks = async (
   if (extraFields) {
     baseUrl += `ExtraFields=${extraFields}&`;
   }
-  if (hasPermanentLink) {
+  if (permanentLink) {
     baseUrl += `GenerateAssetUrl=${false}&`;
   }
   baseUrl += 'RecordId=';
@@ -71,7 +71,7 @@ export const getAssetLinks = async (
       } as GetAssetLinkResponse;
     }
 
-    let imageUrl = (responseData as GetAssetLinkResponse).imageUrl;
+    let imageUrl = permanentLink || (responseData as GetAssetLinkResponse).imageUrl;
 
     if (transformations && transformations.length > 0) {
       imageUrl += '/t/';
