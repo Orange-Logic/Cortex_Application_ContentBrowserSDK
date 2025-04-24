@@ -1008,8 +1008,8 @@ const FormatDialog: FC<Props> = ({
           <CustomRendition
             activeSetting={state.activeSetting}
             imageSize={{
-              width: selectedAsset?.width ? Number(selectedAsset.width) : Infinity,
-              height: selectedAsset?.height ? Number(selectedAsset.height) : Infinity,
+              width: state.selectedFormat.width ? state.selectedFormat.width : Infinity,
+              height: state.selectedFormat.height ? state.selectedFormat.height : Infinity,
             }}
             resize={{
               width: state.resizeSize.width,
