@@ -59,7 +59,7 @@ type State = {
   searchText: string;
   selectedAsset: Asset | null;
   shouldResetFilters: boolean;
-  sortDirection: 'ascending' | 'descending';
+  sortDirection?: 'ascending' | 'descending';
   sortOrder: string;
   statuses: string[];
   totalCount: number;
@@ -89,7 +89,7 @@ type Action =
   } }
   | { type: 'SET_SEARCH_TEXT'; payload: string }
   | { type: 'SET_SELECTED_ASSET'; payload: Asset | null }
-  | { type: 'SET_SORT_DIRECTION'; payload: 'ascending' | 'descending' }
+  | { type: 'SET_SORT_DIRECTION'; payload: 'ascending' | 'descending' | undefined }
   | { type: 'SET_SORT_ORDER'; payload: string }
   | { type: 'SET_TOTAL_COUNT'; payload: number }
   | { type: 'SET_VIEW'; payload: GridView }
@@ -116,8 +116,8 @@ const initialState: State = {
   searchText: '',
   selectedAsset: null,
   shouldResetFilters: true,
-  sortDirection: 'descending',
-  sortOrder: 'date created',
+  sortDirection: undefined,
+  sortOrder: '',
   statuses: [],
   totalCount: 0,
   view: GridView.Medium,
@@ -276,10 +276,28 @@ const HomePage: FC<Props> = () => {
   }, [availableDocTypes, state.mediaTypes, supportedDocTypes]);
 
   const selectedSortOrder = useMemo(() => {
-    if (sortOrders?.[state.sortOrder]?.length === 1) {
-      return sortOrders?.[state.sortOrder]?.[0];
+    if (!sortOrders) {
+      return undefined;
     }
-    return sortOrders?.[state.sortOrder]?.find(
+
+    const defaultSortOrder = Object.values(sortOrders).find(
+      (sortOrder) => sortOrder.some((order) => order.isDefault),
+    )?.[0];
+
+    if (!state.sortOrder || !sortOrders[state.sortOrder] || sortOrders[state.sortOrder].length === 0) {
+      if (defaultSortOrder) {
+        dispatch({ type: 'SET_SORT_DIRECTION', payload: defaultSortOrder.sortDirection.toLowerCase() as 'ascending' | 'descending' });
+        dispatch({ type: 'SET_SORT_ORDER', payload: defaultSortOrder.sortDirectionGroupKey.toLowerCase() });
+      }
+
+      return defaultSortOrder;
+    }
+
+    if (sortOrders[state.sortOrder].length === 1) {
+      return sortOrders[state.sortOrder][0];
+    }
+
+    return sortOrders[state.sortOrder].find(
       ({ sortDirection }) => sortDirection.toLowerCase() === state.sortDirection,
     );
   }, [sortOrders, state.sortDirection, state.sortOrder]);
@@ -411,7 +429,9 @@ const HomePage: FC<Props> = () => {
     }
 
     storeData('selectedSortOrder', state.sortOrder);
-    storeData('selectedSortDirection', state.sortDirection);
+    if (state.sortDirection) {
+      storeData('selectedSortDirection', state.sortDirection);
+    }
     storeData('selectedView', state.view);
     storeData('newlySelectedFacet', state.newlySelectedFacet);
     storeData('newFacets', JSON.stringify(state.facets));

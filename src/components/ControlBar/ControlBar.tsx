@@ -27,7 +27,7 @@ type Props = {
   isSeeThrough: boolean;
   mediaTypes: string[];
   searchValue: string;
-  sortDirection: 'ascending' | 'descending';
+  sortDirection?: 'ascending' | 'descending';
   sortOrder: string;
   sortOrders?: Record<string, SortOrder[]>;
   statuses: string[];

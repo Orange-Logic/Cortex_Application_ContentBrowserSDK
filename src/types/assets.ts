@@ -47,6 +47,7 @@ export enum Unit {
 export type SortOrder = {
   description: string;
   id: string;
+  isDefault?: boolean;
   legacyValue: string;
   name: string;
   sortDirection: string;

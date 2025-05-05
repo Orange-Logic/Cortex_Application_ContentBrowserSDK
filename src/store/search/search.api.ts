@@ -210,20 +210,22 @@ export const searchApi = createApi({
           ['fields', FIELD_SUBTYPE],
           ['fields', FIELD_IDENTIFIER],
           ['fields', FIELD_EXTENSION],
-          [
-            'extraFilters',
-            resolveAssetExtraFilters({
-              extensions,
-              searchText,
-              statuses,
-              visibilityClasses,
-            }),
-          ],
-          ['orderBy', sortOrder],
           ['seeThru', isSeeThrough],
           ['start', start],
           ['limit', pageSize],
         ];
+        const extraFilters = resolveAssetExtraFilters({
+          extensions,
+          searchText,
+          statuses,
+          visibilityClasses,
+        });
+        if (extraFilters) {
+          params.push(['extraFilters', extraFilters]);
+        }
+        if (sortOrder) {
+          params.push(['orderBy', sortOrder]);
+        }
         if (mappedMediaTypes.length) {
           params.push(...mappedMediaTypes);
         }
