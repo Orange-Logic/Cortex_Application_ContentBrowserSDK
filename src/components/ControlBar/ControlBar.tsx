@@ -469,7 +469,7 @@ const ControlBar: FC<Props> = ({
             {(sortOrders ? sortDirections
               .map(
                 (item) => {
-                  const label = sortOrders[sortOrder].find(
+                  const label = sortOrders[sortOrder]?.find(
                     (sort) => sort.sortDirection.toLowerCase() === item.value.toLowerCase(),
                   )?.sortDirectionDisplayName;
 

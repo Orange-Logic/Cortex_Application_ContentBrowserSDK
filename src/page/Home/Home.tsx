@@ -284,7 +284,7 @@ const HomePage: FC<Props> = () => {
     );
   }, [sortOrders, state.sortDirection, state.sortOrder]);
 
-  const { data, isFetching, isError } = useGetAssetsQuery(isResized && selectedSortOrder && mappedMediaTypes?.length && browserMounted ? {
+  const { data, isFetching, isError } = useGetAssetsQuery(isResized && sortOrders && mappedMediaTypes?.length && browserMounted ? {
     extensions: state.extensions,
     folderID: state.currentFolder.id,
     isSeeThrough: state.isSeeThrough,
@@ -292,7 +292,7 @@ const HomePage: FC<Props> = () => {
     start: state.start,
     pageSize: state.pageSize,
     searchText: state.searchText,
-    sortOrder: selectedSortOrder.id,
+    sortOrder: selectedSortOrder?.id,
     statuses: state.statuses ?? [],
     visibilityClasses: state.visibilityClasses,
     useSession,
@@ -722,7 +722,7 @@ const HomePage: FC<Props> = () => {
           }}
         >
           <ControlBar
-            allowSorting={selectedSortOrder?.sortDirection !== 'Mono'}
+            allowSorting={selectedSortOrder?.sortDirection !== 'Mono' && !!selectedSortOrder}
             currentCount={state.currentCount}
             extensions={state.extensions}
             facets={state.facets}
