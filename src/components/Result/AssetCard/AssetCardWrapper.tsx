@@ -17,6 +17,7 @@ type Props = {
   height: number;
   // Array of items loaded so far.
   items: Asset[];
+  isConfigError?: boolean;
   isError?: boolean;
   // Are we currently loading a page of items?
   // (This may be an in-flight flag in your Redux store for example.)
@@ -33,6 +34,7 @@ type Props = {
 export const AssetCardWrapper = forwardRef<HTMLDivElement, Props>(({
   hasNextPage,
   height,
+  isConfigError,
   isError,
   isLoadingData,
   items,
@@ -110,6 +112,15 @@ export const AssetCardWrapper = forwardRef<HTMLDivElement, Props>(({
     onLoadMore,
     onScroll,
   ]);
+
+  if (isConfigError) {
+    return (
+      <NoResult
+        icon="error_outline"
+        message="The Content Browser was loaded with incorrect configuration(s). Please update the configuration and try again."
+      />
+    );
+  }
 
   if (isError) {
     return (

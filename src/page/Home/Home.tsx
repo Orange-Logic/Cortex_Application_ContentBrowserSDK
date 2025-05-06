@@ -790,6 +790,7 @@ const HomePage: FC<Props> = () => {
                   <AssetCardWrapper
                     ref={resultRef}
                     isError={isError}
+                    isConfigError={!mappedMediaTypes?.length}
                     hasNextPage={hasNextPage}
                     height={height}
                     isLoadingData={state.isLoading || !data}
