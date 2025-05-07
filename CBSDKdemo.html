@@ -81,6 +81,7 @@
       width: 100%;
       height: 100%;
       overflow-y: auto;
+      white-space: pre;
     }
   </style>
 </head>
@@ -252,7 +253,7 @@
         },
         onError: (errorMessage, error) => {
         },
-        availableDocTypes: ['Images', 'Videos', 'Audio', 'Others'],
+        availableDocTypes: ['Images*', 'Videos*', 'Audio*', 'Others*'],
         availableRepresentativeSubtypes: ['Other'],
         // container element to attach, leave blank to open popup 
         containerId: 'react-app-root',
@@ -281,7 +282,7 @@
           return value.toString().replace(/\n/g, "<br/>");
         }
         return value;
-      }, 2).replace(/\n/g, "<br/>");
+      }, 4).replace(/\n/g, "<br/>");
     }
     function loadConfig() {
       const value = document.getElementById("content").textContent;
