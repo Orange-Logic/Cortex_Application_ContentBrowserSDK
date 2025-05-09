@@ -270,7 +270,15 @@ const HomePage: FC<Props> = () => {
   const mappedMediaTypes = useMemo(() => {
     const globalIntersection = availableDocTypes?.length ? _intersection(availableDocTypes, supportedDocTypes) : supportedDocTypes;
     if (!globalIntersection || globalIntersection.length === 0) return state.mediaTypes;
-    const intersection = _intersection(state.mediaTypes, globalIntersection);
+    const intersection = state.mediaTypes.reduce((acc, mediaType) => {
+      const [parent] = mediaType.split('>>');
+
+      if (globalIntersection.includes(`${parent}*`) || globalIntersection.includes(parent)) {
+        return acc.concat(mediaType);
+      }
+
+      return acc;
+    }, [] as string[]);
     if (intersection.length > 0) return intersection;
     return globalIntersection;
   }, [availableDocTypes, state.mediaTypes, supportedDocTypes]);

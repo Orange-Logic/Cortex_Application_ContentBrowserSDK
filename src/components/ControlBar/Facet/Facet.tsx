@@ -27,10 +27,16 @@ const Facet: FC<Props> = ({
   const mappedSubtypes = Object.entries(facet).reduce((acc, [key, value]) => {
     const [parent, subtype] = key.split('>>');
     if (subtype) {
-      if (!acc[parent]) {
-        acc[parent] = {};
+      if (!acc[parent] || typeof acc[parent] !== 'object') {
+        if (acc[parent]) {
+          acc[parent] = {
+            'all': acc[parent],
+          };
+        } else {
+          acc[parent] = {};
+        }
       }
-      (acc[parent] as Record<string, number>)[subtype] = value;
+      acc[parent][subtype] = value;
     } else {
       acc[key] = value;
     }
@@ -49,10 +55,12 @@ const Facet: FC<Props> = ({
         {loading && <cx-spinner></cx-spinner>}
       </cx-space>
       <cx-space direction="vertical">
-        <cx-tree selection="multiple" data-facet={type}>
+        <cx-tree selection="multiple" disabled-sync-checkboxes data-facet={type}>
           {Object.entries(mappedSubtypes).map(([key, value]) => {
             if (typeof value === 'object') {
               const selected = collections.includes(key);
+
+              const { all, ...rest } = value;
 
               return (
                 <cx-tree-item
@@ -62,8 +70,8 @@ const Facet: FC<Props> = ({
                   readonly={loading}
                   selected={selected}
                 >
-                  {capitalize ? _capitalize(key) : key}
-                  {Object.entries(value).map(([subtype, count]) => (
+                  {capitalize ? _capitalize(key) : key} {!!all && `(${all})`}
+                  {Object.entries(rest).map(([subtype, count]) => (
                     <cx-tree-item
                       key={subtype}
                       data-value={`${key}>>${subtype}`}

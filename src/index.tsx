@@ -184,7 +184,7 @@ window.OrangeDAMContentBrowser = {
         pluginName: "OrangeDAM Content Browser", // Name of the plugin to display on the login screen
         ctaText: "Insert", // Text to display on the insert button
         persistMode: true, // Whether the browser remains open after selecting an asset
-        availableDocTypes: ['Images', 'Videos', 'Audio', 'Others'], // An array of available OrangeDAM asset types to filter the assets. The available doc types will be configured in OL Platform. If not provided, all doc types will be available. 
+        availableDocTypes: ['Images*', 'Videos*', 'Audio*', 'Others*'], // An array of available OrangeDAM asset types to filter the assets. The available doc types will be configured in OL Platform. If not provided, all doc types will be available. 
         availableRepresentativeSubtypes: ['Other'], // Array of supported subtypes for representative images
         showCollections: true, // Whether to show collections in the content browser
         lastLocationMode: true, // Whether to open the last selected folder on load
