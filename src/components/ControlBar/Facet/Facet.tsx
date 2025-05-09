@@ -55,7 +55,7 @@ const Facet: FC<Props> = ({
         {loading && <cx-spinner></cx-spinner>}
       </cx-space>
       <cx-space direction="vertical">
-        <cx-tree selection="multiple" disabled-sync-checkboxes data-facet={type}>
+        <cx-tree selection="multiple" data-facet={type}>
           {Object.entries(mappedSubtypes).map(([key, value]) => {
             if (typeof value === 'object') {
               const selected = collections.includes(key);
@@ -69,6 +69,7 @@ const Facet: FC<Props> = ({
                   data-type={type}
                   readonly={loading}
                   selected={selected}
+                  disabled-sync-checkboxes={!!all}
                 >
                   {capitalize ? _capitalize(key) : key} {!!all && `(${all})`}
                   {Object.entries(rest).map(([subtype, count]) => (
