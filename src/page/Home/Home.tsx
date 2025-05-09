@@ -275,6 +275,8 @@ const HomePage: FC<Props> = () => {
     return globalIntersection;
   }, [availableDocTypes, state.mediaTypes, supportedDocTypes]);
 
+  const isConfigError = useMemo(() => (!mappedMediaTypes?.length || mappedMediaTypes.length === 0) && !!supportedDocTypes, [mappedMediaTypes, supportedDocTypes]);
+
   const selectedSortOrder = useMemo(() => {
     if (!sortOrders) {
       return undefined;
@@ -726,6 +728,7 @@ const HomePage: FC<Props> = () => {
       setShowFormatLoader(FormatLoaderState.ShowDialog);
     }
   }, [state.selectedAsset]);
+
   return (
     <cx-resize-observer ref={containerResizeObserverRef}>
       <Container ref={containerRef}>
@@ -790,10 +793,11 @@ const HomePage: FC<Props> = () => {
                   <AssetCardWrapper
                     ref={resultRef}
                     isError={isError}
-                    isConfigError={!mappedMediaTypes?.length}
+                    isConfigError={isConfigError}
                     hasNextPage={hasNextPage}
                     height={height}
                     isLoadingData={state.isLoading || !data}
+                    isFetched={!!data || isConfigError}
                     items={data?.items || []}
                     selectedAsset={state.selectedAsset}
                     view={state.view}

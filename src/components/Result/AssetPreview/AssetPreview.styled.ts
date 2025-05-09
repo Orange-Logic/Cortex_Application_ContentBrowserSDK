@@ -11,6 +11,10 @@ export const Container = styled.div`
     justify-content: center;
   }
 
+  &.asset-preview > div {
+    height: 100%;
+  }
+
   .asset-preview__representative {
     width: 100%;
     height: 100%;

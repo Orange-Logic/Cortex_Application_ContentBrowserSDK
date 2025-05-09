@@ -19,6 +19,7 @@ type Props = {
   items: Asset[];
   isConfigError?: boolean;
   isError?: boolean;
+  isFetched?: boolean;
   // Are we currently loading a page of items?
   // (This may be an in-flight flag in your Redux store for example.)
   isLoadingData: boolean;
@@ -36,6 +37,7 @@ export const AssetCardWrapper = forwardRef<HTMLDivElement, Props>(({
   height,
   isConfigError,
   isError,
+  isFetched,
   isLoadingData,
   items,
   selectedAsset,
@@ -113,7 +115,7 @@ export const AssetCardWrapper = forwardRef<HTMLDivElement, Props>(({
     onScroll,
   ]);
 
-  if (isConfigError) {
+  if (isConfigError && isFetched) {
     return (
       <NoResult
         icon="error_outline"
@@ -122,7 +124,7 @@ export const AssetCardWrapper = forwardRef<HTMLDivElement, Props>(({
     );
   }
 
-  if (isError) {
+  if (isError && isFetched) {
     return (
       <NoResult
         icon="error_outline"

@@ -25,8 +25,8 @@ const ConnectingBackground: FC<Props> = ({ children, footer, onCancel }) => {
       <cx-space direction="vertical" align-items="center">
         <cx-spinner
           style={{
-            '--indicator-color': 'var(--cx-color-neutral)',
-            fontSize: 'var(--cx-font-size-2x-large)',
+            '--track-width': '0.2rem',
+            fontSize: 'var(--cx-font-size-3x-large)',
           } as CSSProperties}
         ></cx-spinner>
         <cx-typography variant="body3">
