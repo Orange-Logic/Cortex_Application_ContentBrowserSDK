@@ -22,24 +22,31 @@ const Facet: FC<Props> = ({
     return null;
   }
 
-  // The current facet value is flat. If a facet includes the ">>" character, it means it's a subtype, and the parent type is the value before ">>". We need to group them.
-  // For example, "contact >> email", "contact >> phone", and "contact >> address" should be grouped as "contact" => { email: 10, phone: 5, address: 3 }
+  /* 
+    The current facet value is flat. If a facet includes the ">>" character, it means it's a subtype, and the parent type is the value before ">>". We need to group them.
+    For example, "contact >> email", "contact >> phone", and "contact >> address" should be grouped as "contact" => { email: 10, phone: 5, address: 3 }
+    The "all" key will contain the total count of all subtypes for that parent type.
+    Sometimes there are some asset belongs to the parent type but not to any subtype. In that case, we need to add the parent type to the result as well.
+    For example, "contact" => { all: 12, email: 5, phone: 3 } means that 5 of them are emails, 3 are phones, and 2 are just contacts that are directly of the parent's type.
+  */
+
   const mappedSubtypes = Object.entries(facet).reduce((acc, [key, value]) => {
     const [parent, subtype] = key.split('>>');
-    if (subtype) {
-      if (!acc[parent] || typeof acc[parent] !== 'object') {
-        if (acc[parent]) {
-          acc[parent] = {
-            'all': acc[parent],
-          };
-        } else {
-          acc[parent] = {};
-        }
+    
+    if (!acc[parent] || typeof acc[parent] !== 'object') {
+      if (acc[parent]) {
+        acc[parent] = {
+          'all': acc[parent],
+        };
+      } else {
+        acc[parent] = {};
       }
-      acc[parent][subtype] = value;
-    } else {
-      acc[key] = value;
     }
+    if (subtype) {
+      acc[parent][subtype] = value;
+    }
+    acc[parent].all =  (acc[parent].all || 0) + value;
+
     return acc;
   }, {} as Record<string, Record<string, number> | number>);
   
@@ -69,7 +76,6 @@ const Facet: FC<Props> = ({
                   data-type={type}
                   readonly={loading}
                   selected={selected}
-                  disabled-sync-checkboxes={!!all}
                 >
                   {capitalize ? _capitalize(key) : key} {!!all && `(${all})`}
                   {Object.entries(rest).map(([subtype, count]) => (

@@ -274,6 +274,9 @@ const HomePage: FC<Props> = () => {
       const [parent] = mediaType.split('>>');
 
       if (globalIntersection.includes(`${parent}*`) || globalIntersection.includes(parent)) {
+        if (!mediaType.includes('>>')) {
+          return acc.concat(`${parent}*`);
+        }
         return acc.concat(mediaType);
       }
 
