@@ -502,7 +502,7 @@ const HomePage: FC<Props> = () => {
     }
     lastHeightRef.current = containerHeight;
     lastWidthRef.current = containerWidth;
-    const gutter = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--cx-spacing-medium'), 10);
+    const gutter = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--cx-spacing-medium') || '16', 10);
     const breakpoint = ASSET_SIZE[viewRef.current]?.minWidth || ASSET_SIZE[GridView.Large].minWidth;
     const columnCount = Math.max(1, Math.floor((containerWidth + gutter) / (breakpoint + gutter)));
     const rowCount = Math.ceil(containerHeight / (breakpoint + gutter));
@@ -789,6 +789,7 @@ const HomePage: FC<Props> = () => {
         />
         <div style={{
           flex: 1,
+          minHeight: '320px',
           padding: '0 var(--cx-spacing-medium)',
           position: 'relative',
         }}>

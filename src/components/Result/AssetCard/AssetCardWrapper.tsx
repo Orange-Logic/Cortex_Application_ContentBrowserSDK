@@ -50,7 +50,7 @@ export const AssetCardWrapper = forwardRef<HTMLDivElement, Props>(({
   const { displayInfo, searchInDrive } = useContext(GlobalConfigContext);
   const infiniteScrollRef = useRef<InfiniteScroll>(null);
   const gutter = useMemo(() => {
-    return parseInt(getComputedStyle(document.documentElement).getPropertyValue('--cx-spacing-medium'), 10);
+    return parseInt(getComputedStyle(document.documentElement).getPropertyValue('--cx-spacing-medium') || '16', 10);
   }, []);
 
   const calculateColumnCount = useCallback(() => {
