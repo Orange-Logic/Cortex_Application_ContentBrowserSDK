@@ -488,6 +488,10 @@ const HomePage: FC<Props> = () => {
 
   const lastHeightRef = useRef(0);
   const lastWidthRef = useRef(0);
+
+  const defaultPageSizeRef = useRef(state.defaultPageSize);
+  defaultPageSizeRef.current = state.defaultPageSize;
+  
   const handleResize = useCallback((rect: Size, options?:{ returnToFirstPage?: boolean, force?: boolean }) => {
     const { width, height } = rect;
     const containerWidth = width || 0;
@@ -506,7 +510,7 @@ const HomePage: FC<Props> = () => {
     const breakpoint = ASSET_SIZE[viewRef.current]?.minWidth || ASSET_SIZE[GridView.Large].minWidth;
     const columnCount = Math.max(1, Math.floor((containerWidth + gutter) / (breakpoint + gutter)));
     const rowCount = Math.ceil(containerHeight / (breakpoint + gutter));
-    const newPageSize = Math.ceil((rowCount * columnCount) / state.defaultPageSize + 1) * state.defaultPageSize;
+    const newPageSize = Math.ceil((rowCount * columnCount) / defaultPageSizeRef.current + 1) * defaultPageSizeRef.current;
     setIsResized(true);
     if (newPageSize !== pageSizeRef.current) {
       dispatch({
@@ -517,7 +521,7 @@ const HomePage: FC<Props> = () => {
         },
       });
     }
-  }, [state.defaultPageSize]);
+  }, []);
 
   const debouncedHandleResize = useMemo(() => {
     return _debounce(handleResize, 300, {
