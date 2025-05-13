@@ -886,6 +886,47 @@ const FormatDialog: FC<Props> = ({
           unit: Unit.Pixel,
         },
       });
+
+      const ratio = convertPixelsToAspectRatio(newWidth, newHeight);
+      dispatch({
+        type: 'SET_LAST_CROP_SIZE',
+        payload: {
+          [Unit.Pixel]:{
+            width: newWidth,
+            height: newHeight,
+            percentageHeight: 100,
+            percentageWidth: 100,
+            x: 0,
+            y: 0,
+            unit: Unit.Pixel,
+          },
+          [Unit.AspectRatio]: {
+            width: ratio.width,
+            height: ratio.height,
+            percentageHeight: 100,
+            percentageWidth: 100,
+            x: 0,
+            y: 0,
+            unit: Unit.AspectRatio,
+          },
+        },
+      });
+
+      dispatch({
+        type: 'SET_LAST_RESIZE_SIZE',
+        payload: {
+          [Unit.Pixel]: {
+            width: newWidth,
+            height: newHeight,
+            unit: Unit.Pixel,
+          },
+          [Unit.AspectRatio]: {
+            width: ratio.width,
+            height: ratio.height,
+            unit: Unit.AspectRatio,
+          },
+        },
+      });
     }
   }, [state.selectedFormat]);
 
