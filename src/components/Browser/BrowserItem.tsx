@@ -1,9 +1,20 @@
-import { FC, useEffect, useMemo, useRef, useState } from 'react';
+import { FC, useEffect, useRef, useState } from 'react';
 
 import { useGetFoldersQuery } from '@/store/search/search.api';
 import { Folder } from '@/types/search';
 
 import { CxCollapseEvent, CxTreeItem } from '@/web-component';
+
+export const getHighlightedTitle = (title: string, searchText?: string) => {
+  if (!searchText) return title;
+  const searchWords = searchText.toLowerCase().split(' ').filter(Boolean);
+  const regex = new RegExp(`(${searchWords.join('|')})`, 'gi');
+  const parts = title.split(regex);
+
+  return parts.map((part, index) =>
+    searchWords.includes(part.toLowerCase()) ? <strong key={index}>{part}</strong> : part,
+  );
+};
 
 type Props = {
   folder: Folder;
@@ -27,17 +38,6 @@ export const BrowserItem: FC<Props> = ({
     data: folders,
     isFetching,
   } = useGetFoldersQuery({ folder, searchText: '', useSession }, { skip: !isExpanded });
-
-  const highlightedTitle = useMemo(() => {
-    if (!searchText) return folder.title;
-    const searchWords = searchText.toLowerCase().split(' ').filter(Boolean);
-    const regex = new RegExp(`(${searchWords.join('|')})`, 'gi');
-    const parts = folder.title.split(regex);
-
-    return parts.map((part, index) =>
-      searchWords.includes(part.toLowerCase()) ? <strong key={index}>{part}</strong> : part,
-    );
-  }, [folder.title, searchText]);
 
   useEffect(() => {
     Promise.all([
@@ -82,7 +82,7 @@ export const BrowserItem: FC<Props> = ({
       lazy={isLazy}
     >
       <cx-icon name="folder"></cx-icon>
-      <cx-line-clamp lines={1}>{highlightedTitle}</cx-line-clamp>
+      <cx-line-clamp lines={1}>{getHighlightedTitle(folder.title, searchText)}</cx-line-clamp>
       {folders?.map((item) => (
         <BrowserItem
           key={item.id}

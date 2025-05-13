@@ -138,9 +138,14 @@ export const searchApi = createApi({
     getCollections: builder.query({
       query: ({
         folder,
+        searchText,
         useSession,
       }) => {
         const params = [
+          [
+            'extraFilters',
+            resolveFolderExtraFilters(searchText),
+          ],
           ['fields', FIELD_CORTEX_PATH],
           ['fields', FIELD_DOC_TYPE],
           ['fields', FIELD_TITLE_WITH_FALLBACK],

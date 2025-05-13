@@ -12,7 +12,7 @@ import {
 import { skipToken } from '@reduxjs/toolkit/query';
 
 import { Drawer } from './Browser.styled';
-import BrowserItem from './BrowserItem';
+import BrowserItem, { getHighlightedTitle } from './BrowserItem';
 
 type Props = {
   collectionPath?: string;
@@ -136,6 +136,7 @@ const Browser: FC<Props> = ({
     collectionPath
       ? {
         folder: collectionPath,
+        searchText,
         useSession,
       }
       : skipToken,
@@ -215,7 +216,7 @@ const Browser: FC<Props> = ({
             className={`${isSelected ? 'selected' : ''}`}
           >
             <cx-icon slot="prefix" name="collections"></cx-icon>
-            {collection.title}
+            {getHighlightedTitle(collection.title, searchText)}
           </cx-menu-item>
         );
       });
@@ -228,7 +229,7 @@ const Browser: FC<Props> = ({
     }
 
     return <cx-typography variant="body3">No collections found</cx-typography>;
-  }, [isLoadingCollections, isFetchingCollections, collections, isErrorCollections, currentFolder.id]);
+  }, [isLoadingCollections, isFetchingCollections, collections, isErrorCollections, currentFolder.id, searchText]);
 
   return (
     <Drawer
@@ -261,7 +262,7 @@ const Browser: FC<Props> = ({
             <cx-tree ref={treeRef}>{renderFolders()}</cx-tree>
           </div>
         </cx-space>
-        {showCollections && collections && collections.length > 0 && (
+        {showCollections && (
           <div className="browser__collections">
             <cx-details>
               <cx-typography slot="summary" variant="body3">

@@ -78,5 +78,12 @@ export const Drawer = styled('cx-drawer')<CxDrawerProps>`
   .browser__collections__menu {
     border: none;
     max-height: 200px;
+
+    cx-skeleton {
+      --border-radius: var(--cx-border-radius-medium);
+      width: 100%;
+      height: 32px;
+      margin-bottom: var(--cx-spacing-3x-small);
+    }
   }
 `;
