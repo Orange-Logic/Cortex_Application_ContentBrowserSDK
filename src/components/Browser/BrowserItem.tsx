@@ -1,4 +1,4 @@
-import { FC, useEffect, useRef, useState } from 'react';
+import { FC, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useGetFoldersQuery } from '@/store/search/search.api';
 import { Folder } from '@/types/search';
@@ -71,6 +71,18 @@ export const BrowserItem: FC<Props> = ({
     };
   }, [isDefined]);
 
+  const iconName = useMemo(() => {
+    let resolvedIcon: string;
+    if (icon) {
+      resolvedIcon = icon!;
+    } else if (folder.docType === 'Album') {
+      resolvedIcon = 'share';
+    } else {
+      resolvedIcon = 'folder';
+    }
+    return resolvedIcon;
+  }, [folder.docType, icon]);
+
   // Lazy load if folder has children
   // and (folders are not fetched yet or are fetching)
   const isLazy = folder.hasChildren && (folders === undefined || isFetching);
@@ -83,7 +95,7 @@ export const BrowserItem: FC<Props> = ({
       selected={isSelected}
       lazy={isLazy}
     >
-      <cx-icon name={icon ?? 'folder'}></cx-icon>
+      <cx-icon name={iconName}></cx-icon>
       <cx-line-clamp lines={1}>{getHighlightedTitle(folder.title, searchText)}</cx-line-clamp>
       {folders?.map((item) => (
         <BrowserItem
