@@ -17,10 +17,12 @@ import BrowserItem, { getHighlightedTitle } from './BrowserItem';
 type Props = {
   collectionPath?: string;
   currentFolder: Folder;
+  favoriteFolderId?: string;
   focusInput?: boolean;
   lastLocationMode?: boolean;
   open: boolean;
   showCollections?: boolean;
+  showFavoriteFolder?: boolean;
   useSession?: string;
   onFolderSelect: (selectedFolder: Folder) => void;
   onClose: () => void;
@@ -29,10 +31,12 @@ type Props = {
 const Browser: FC<Props> = ({
   collectionPath,
   currentFolder,
+  favoriteFolderId,
   focusInput,
   lastLocationMode,
   open,
   showCollections,
+  showFavoriteFolder,
   useSession,
   onFolderSelect,
   onClose,
@@ -111,6 +115,11 @@ const Browser: FC<Props> = ({
           if (typeof lastLocation === 'string') {
             try {
               const folder = JSON.parse(lastLocation) as Folder;
+              
+              if (folder.id === favoriteFolderId && !showFavoriteFolder) {
+                handleDefaultFolder();
+                return;
+              }
               onFolderSelect(folder);
             } catch (error) {
               handleDefaultFolder();
@@ -125,7 +134,7 @@ const Browser: FC<Props> = ({
         handleDefaultFolder();
       }
     }
-  }, [folders, lastLocationMode, onFolderSelect]);
+  }, [favoriteFolderId, folders, lastLocationMode, onFolderSelect, showFavoriteFolder]);
 
   const {
     data: collections,
@@ -174,15 +183,40 @@ const Browser: FC<Props> = ({
         <cx-skeleton key={index}></cx-skeleton>
       ));
     } else if (folders && folders.length > 0) {
-      return folders?.map((folder) => (
-        <BrowserItem
-          key={folder.id}
-          folder={folder}
-          currentFolderID={currentFolder.id}
-          searchText={searchText}
-          useSession={useSession}
-        />
-      ));
+      const result = [];
+
+      if (favoriteFolderId) {
+        result.push(
+          <BrowserItem
+            key={favoriteFolderId}
+            folder={{
+              id: favoriteFolderId,
+              title: 'My Favorites',
+              docType: 'Story',
+              path: [],
+              parents: [],
+              fullPath: 'My Favorites',
+              hasChildren: false,
+            }}
+            currentFolderID={currentFolder.id}
+            icon="star"
+            useSession={useSession}
+          />,
+        );
+      }
+
+      return [
+        ...result,
+        ...(folders ?? []).map((folder) => (
+          <BrowserItem
+            key={folder.id}
+            folder={folder}
+            currentFolderID={currentFolder.id}
+            searchText={searchText}
+            useSession={useSession}
+          />
+        )),
+      ];
     } else if (isErrorFolders) {
       return (
         <cx-typography variant="body3">Failed to load folders</cx-typography>
@@ -191,6 +225,7 @@ const Browser: FC<Props> = ({
 
     return <cx-typography variant="body3">No folders found</cx-typography>;
   }, [
+    favoriteFolderId,
     isLoadingFolders,
     isFetchingFolders,
     isErrorFolders,

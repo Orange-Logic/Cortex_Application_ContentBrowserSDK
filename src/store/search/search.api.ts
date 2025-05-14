@@ -6,7 +6,7 @@ import {
   FIELD_HAS_BROWSER_CHILDREN,
   FIELD_IDENTIFIER, FIELD_KEYWORDS, FIELD_MAX_HEIGHT, FIELD_MAX_WIDTH, FIELD_SCRUB_URL, FIELD_SUBTYPE, FIELD_TITLE_WITH_FALLBACK, FIELD_ALLOW_ATS_LINK,
 } from '@/consts/data';
-import { Asset, Folder, GetContentRequest, GetContentResponse } from '@/types/search';
+import { Asset, Folder, GetContentRequest, GetContentResponse, GetFavoritesResponse } from '@/types/search';
 import { AppBaseQuery, GetValueByKeyCaseInsensitive } from '@/utils/api';
 import { isNullOrWhiteSpace } from '@/utils/string';
 import { createApi } from '@reduxjs/toolkit/query/react';
@@ -309,10 +309,36 @@ export const searchApi = createApi({
         };
       },
     }),
+    getIsFavorite: builder.query({
+      keepUnusedDataFor: 0,
+      query: ({
+        recordId,
+      }: {
+        recordId: string;
+      }) => {
+        const params = [
+          ['recordId', recordId],
+        ];
+
+        return {
+          url: '/webapi/extensibility/integrations/gab/assetbrowser/getfavorites_419t',
+          params,
+        };
+      },
+      transformResponse: (
+        response: GetFavoritesResponse,
+        _meta,
+        {
+          recordId,
+        },
+      ): boolean => {
+        return response.favoriteRecordIds ? response.favoriteRecordIds[0] === recordId : false;
+      },
+    }),
   }),
 });
 
 // Export hooks for usage in functional components, which are
 // auto-generated based on the defined endpoints
-export const { useGetFoldersQuery, useGetCollectionsQuery, useGetAssetsQuery } =
+export const { useGetFoldersQuery, useGetCollectionsQuery, useGetAssetsQuery, useGetIsFavoriteQuery } =
   searchApi;

@@ -21,10 +21,13 @@ export type GlobalConfigContextType = {
   persistMode: boolean;
   pluginInfo: PluginInfo;
   isContentBrowserPopedup: boolean;
-  searchInDrive: boolean;
   showCollections?: boolean;
+  showFavoriteFolder?: boolean;
+  showVersions?: boolean;
   useSession?: string;
   allowTracking: boolean;
+  allowProxy: boolean;
+  allowFavorites: boolean;
 };
 
 export const GlobalConfigContext = createContext<GlobalConfigContextType>({
@@ -40,7 +43,10 @@ export const GlobalConfigContext = createContext<GlobalConfigContextType>({
   },
   pluginInfo: {},
   isContentBrowserPopedup: false,
-  searchInDrive: false,
   showCollections: false,
+  showFavoriteFolder: false,
+  showVersions: false,
   allowTracking: true,
+  allowProxy: false,
+  allowFavorites: false,
 });

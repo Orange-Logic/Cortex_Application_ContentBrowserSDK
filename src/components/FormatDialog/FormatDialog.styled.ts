@@ -4,11 +4,16 @@ import styled from 'styled-components';
 export const Dialog = styled('cx-dialog')<CxDialogProps>`
   --body-spacing: var(--cx-spacing-small);
   --max-height: 100%;
+  --max-width: 520px;
   --width: 90%;
+
+  &::part(header) {
+    align-items: center;
+  }
 
   &::part(panel) {
     max-height: calc(var(--max-height) - var(--cx-spacing-2x-large));
-    max-width: 520px;
+    max-width: var(--max-width);
   }
 
   &::part(body) {
@@ -74,6 +79,10 @@ export const Dialog = styled('cx-dialog')<CxDialogProps>`
 
 export const Drawer = styled('cx-drawer')<CxDrawerProps>`
   --size: 100%;
+
+  &::part(header) {
+    align-items: center;
+  }
 
   &::part(body) {
     background-color: var(--cx-color-neutral-100);

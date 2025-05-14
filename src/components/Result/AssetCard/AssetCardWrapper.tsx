@@ -47,7 +47,7 @@ export const AssetCardWrapper = forwardRef<HTMLDivElement, Props>(({
   onLoadMore,
   onScroll,
 }, ref) => {
-  const { displayInfo, searchInDrive } = useContext(GlobalConfigContext);
+  const { displayInfo } = useContext(GlobalConfigContext);
   const infiniteScrollRef = useRef<InfiniteScroll>(null);
   const gutter = useMemo(() => {
     return parseInt(getComputedStyle(document.documentElement).getPropertyValue('--cx-spacing-medium') || '16', 10);
@@ -79,10 +79,7 @@ export const AssetCardWrapper = forwardRef<HTMLDivElement, Props>(({
                 id={item.id}
                 key={item.id}
                 asset={item}
-                displayInfo={{
-                  ...displayInfo,
-                  searchInDrive,
-                }}
+                displayInfo={displayInfo}
                 view={view}
                 isSelected={selectedAsset?.id === item.id}
                 onItemSelect={onItemSelect}
@@ -108,7 +105,6 @@ export const AssetCardWrapper = forwardRef<HTMLDivElement, Props>(({
     view,
     displayInfo,
     gutter,
-    searchInDrive,
     calculateColumnCount,
     onItemSelect,
     onLoadMore,

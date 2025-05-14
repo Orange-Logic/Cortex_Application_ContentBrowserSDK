@@ -12,7 +12,7 @@ import { Card } from './AssetCard.styled';
 type Props = {
   id: string;
   asset: Asset;
-  displayInfo: ImageCardDisplayInfo & { searchInDrive: boolean };
+  displayInfo: ImageCardDisplayInfo;
   isSelected: boolean;
   view: GridView;
   onItemSelect: (asset: Asset) => void;
@@ -119,11 +119,11 @@ const AssetCard: FC<Props> = ({
             {asset.name}
           </cx-line-clamp>
         )}
-        {displayInfo.searchInDrive && (
+        {/* {displayInfo.openInDrive && (
           <cx-tooltip content="Open in drive">
             <cx-icon-button name="folder" size="small" className="asset-card__button"></cx-icon-button>
           </cx-tooltip>
-        )}
+        )} */}
       </cx-space>
       {displayInfo.tags && tags.length > 0 && (
         <ArrayClamp

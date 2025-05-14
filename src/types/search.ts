@@ -6,6 +6,7 @@ export type Folder = {
   parents: Folder[];
   fullPath: string;
   hasChildren: boolean;
+  icon?: string;
 };
 
 export type Asset = {
@@ -72,6 +73,10 @@ export type GetTransformedAssetLinkResponse = {
   maxHeight: number,
   maxWidth: number,
   recordID: string,
+};
+
+export type GetFavoritesResponse = {
+  favoriteRecordIds: string[] | null;
 };
 
 export enum MediaType {

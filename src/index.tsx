@@ -88,12 +88,6 @@ declare global {
          * By default, it will be OrangeDAM Content Browser.
          */
         pluginName?: string;
-
-        /**
-         * Whether to search in drive or not (used for File on demand)
-         * default to false
-         */
-        searchInDrive?: boolean;
         /**
          * The CTA text for the content browser
          * default to "Insert"
@@ -113,9 +107,17 @@ declare global {
          */
         availableRepresentativeSubtypes?: string[];
         /**
-         * The flag to show the collection
+         * The flag to show collections
          */
         showCollections?: boolean;
+        /**
+         * The flag to show the favorite folder
+         */
+        showFavoriteFolder?: boolean;
+        /**
+         * The flag to show versions
+         */
+        showVersions?: boolean;
         /**
          * The session id to use for the content browser
          */
@@ -128,6 +130,16 @@ declare global {
          * The flag to turn on/off tracking parameters for links
          */
         allowTracking?: boolean;
+
+        /**
+         * The flag to allow the user to select proxy
+         */
+        allowProxy?: boolean;
+
+        /**
+         * The flag to allow the user to select favorites
+         */
+        allowFavorites?: boolean;
       }) => void,
       close: () => void,
       /**
@@ -214,9 +226,12 @@ window.OrangeDAMContentBrowser = {
     publicApplicationName,
     pluginName,
     showCollections,
-    searchInDrive,
+    showFavoriteFolder,
+    showVersions,
     useSession,
     allowTracking,
+    allowProxy,
+    allowFavorites,
   }) => {
     let container = containerId && document.getElementById(containerId);
     if (!containerId) {
@@ -278,14 +293,17 @@ window.OrangeDAMContentBrowser = {
           lastLocationMode: lastLocationMode !== undefined ? !!lastLocationMode : true,
           persistMode: !!persistMode,
           pluginInfo: {
-            publicApplicationName: publicApplicationName !== undefined ? publicApplicationName : '',
-            pluginName: pluginName !== undefined ? pluginName : 'OrangeDAM Content Browser',
+            publicApplicationName: publicApplicationName ?? '',
+            pluginName: pluginName ?? 'OrangeDAM Content Browser',
           },
           isContentBrowserPopedup: !containerId,
-          searchInDrive: !!searchInDrive,
           showCollections: !!showCollections,
+          showFavoriteFolder: !!showFavoriteFolder,
+          showVersions: !!showVersions,
           useSession,
           allowTracking: allowTracking !== undefined ? !!allowTracking : true,
+          allowProxy: allowProxy !== undefined ? !!allowProxy : true,
+          allowFavorites: !!allowFavorites,
         }}>
           <App
             containerId={containerId}

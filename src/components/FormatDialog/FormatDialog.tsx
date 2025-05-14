@@ -1,4 +1,3 @@
-import _camelCase from 'lodash-es/camelCase';
 import {
   CSSProperties, FC, useCallback, useEffect, useMemo, useReducer, useRef, useState,
 } from 'react';
@@ -7,7 +6,7 @@ import { TrackingParameter, Transformation, TransformationAction, Unit } from '@
 import { Asset, MediaType, Proxy } from '@/types/search';
 import { convertPixelsToAspectRatio } from '@/utils/number';
 import { rotateBox } from '@/utils/rotate';
-import { CxDialog, CxDrawer, CxSelectEvent } from '@/web-component';
+import { CxDialog, CxDrawer, CxRequestCloseEvent, CxSelectEvent } from '@/web-component';
 
 import CropPreviewer, { CropPreviewerHandle } from './CropPreviewer';
 import CustomRendition from './CustomRendition';
@@ -15,21 +14,26 @@ import { Dialog, Drawer } from './FormatDialog.styled';
 import Previewer from './Previewer';
 import ProxyMenu from './ProxyMenu';
 import TrackingParameters from './TrackingParameters';
+import VersionHistory from './VersionHistory';
 
 type Props = {
-  allowTracking: boolean;
   allowCustomFormat: boolean;
+  allowFavorites: boolean;
+  allowProxy: boolean;
+  allowTracking: boolean;
   availableProxies?: Proxy[];
   ctaText?: string;
   extensions: string[];
+  isFavorite?: boolean;
   maxHeight?: number;
   open: boolean;
   previewUrl?: string;
-  searchInDrive: boolean;
   selectedAsset: Asset | null;
+  showVersions?: boolean;
   supportedRepresentativeSubtypes?: string[];
   variant?: 'dialog' | 'drawer';
   onClose: () => void;
+  onFavorite: () => Promise<boolean>;
   onProxyConfirm: (value: {
     extension: string;
     permanentLink?: string;
@@ -43,6 +47,7 @@ type Props = {
     extension?: string;
   }) => void;
   onOpenInDriveConfirm: () => void;
+  onUnFavorite: () => Promise<boolean>;
 };
 
 type State = {
@@ -86,11 +91,13 @@ type State = {
     y: number;
     unit: Unit;
   }>;
+  isLoadingFavorites: boolean;
   rotation: number;
   transformations: Transformation[];
   enabledTracking: boolean;
   trackingParameters: TrackingParameter[];
   showCustomRendition: boolean;
+  showVersionHistory: boolean;
   useCustomRendition: boolean;
   useRepresentative: boolean;
   activeSetting: string;
@@ -108,12 +115,14 @@ type Action =
   | { type: 'SET_LAST_RESIZE_SIZE'; payload: Partial<State['lastResizeSize']> }
   | { type: 'SET_LAST_CROP_SIZE'; payload: Partial<State['lastCropSize']> }
   | { type: 'SET_LOADING'; payload: boolean }
+  | { type: 'SET_LOADING_FAVORITES'; payload: boolean }
   | { type: 'SET_PREVIEW_LOADABLE'; payload: boolean }
   | { type: 'SET_RESIZE_SIZE'; payload: Partial<State['resizeSize']> }
   | { type: 'SET_ROTATION'; payload: number }
   | { type: 'SET_SELECTED_FORMAT'; payload: Partial<State['selectedFormat']> }
   | { type: 'SET_SELECTED_PROXY'; payload: string }
   | { type: 'SET_SHOW_CUSTOM_RENDITION'; payload: boolean }
+  | { type: 'SET_SHOW_VERSION_HISTORY'; payload: boolean }
   | { type: 'SET_TRACKING_PARAMETERS'; payload: TrackingParameter[] }
   | { type: 'SET_TRANSFORMATIONS'; payload: Transformation }
   | { type: 'SET_USE_REPRESENTATIVE'; payload: boolean };
@@ -181,6 +190,7 @@ const initialState: State = {
       unit: Unit.Pixel,
     },
   },
+  isLoadingFavorites: false,
   rotation: 0,
   transformations: [],
   enabledTracking: false,
@@ -195,6 +205,7 @@ const initialState: State = {
     value: '',
   }],
   showCustomRendition: false,
+  showVersionHistory: false,
   useCustomRendition: false,
   useRepresentative: false,
   activeSetting: 'crop',
@@ -297,6 +308,11 @@ const reducer = (state: State, action: Action): State => {
         ...state,
         isLoading: action.payload,
       };
+    case 'SET_LOADING_FAVORITES':
+      return {
+        ...state,
+        isLoadingFavorites: action.payload,
+      };
     case 'SET_PREVIEW_LOADABLE':
       return {
         ...state,
@@ -338,6 +354,11 @@ const reducer = (state: State, action: Action): State => {
         showCustomRendition: action.payload,
         useCustomRendition: false,
       };
+    case 'SET_SHOW_VERSION_HISTORY':
+      return {
+        ...state,
+        showVersionHistory: action.payload,
+      };
     case 'SET_TRACKING_PARAMETERS':
       return {
         ...state,
@@ -360,22 +381,27 @@ const reducer = (state: State, action: Action): State => {
 };
 
 const FormatDialog: FC<Props> = ({
-  allowTracking,
   allowCustomFormat,
+  allowFavorites,
+  allowProxy,
+  allowTracking,
   availableProxies,
-  ctaText,
+  ctaText = 'Insert',
   extensions,
+  isFavorite,
   maxHeight,
   open,
   previewUrl,
-  searchInDrive,
   selectedAsset,
+  showVersions,
   supportedRepresentativeSubtypes,
   variant = 'dialog',
   onClose,
+  onFavorite,
   onProxyConfirm,
   onFormatConfirm,
   onOpenInDriveConfirm,
+  onUnFavorite,
 }) => {
   const [state, dispatch] = useReducer(reducer, initialState);
   const [isDefined, setIsDefined] = useState(false);
@@ -484,7 +510,6 @@ const FormatDialog: FC<Props> = ({
     }
   }, [selectedAsset?.width, selectedAsset?.height]);
   
-
   useEffect(() => {
     Promise.all([
       customElements.whenDefined('cx-dialog'),
@@ -496,10 +521,19 @@ const FormatDialog: FC<Props> = ({
   }, []);
 
   useEffect(() => {
-    const onRequestClose = () => {
-      dispatch({ type: 'SET_PREVIEW_LOADABLE', payload: false });
-      dispatch({ type: 'RESET_DATA' });
-      onClose();
+    const onRequestClose = (e: CxRequestCloseEvent) => {
+      if (state.isLoadingFavorites) {
+        e.preventDefault();
+        return;
+      }
+      if (state.showVersionHistory) {
+        e.preventDefault();
+        dispatch({ type: 'SET_SHOW_VERSION_HISTORY', payload: false });
+      } else {
+        dispatch({ type: 'SET_PREVIEW_LOADABLE', payload: false });
+        dispatch({ type: 'RESET_DATA' });
+        onClose();
+      }
     };
 
     const dialog = dialogRef.current;
@@ -512,7 +546,7 @@ const FormatDialog: FC<Props> = ({
       dialog?.removeEventListener('cx-request-close', onRequestClose);
       drawer?.removeEventListener('cx-request-close', onRequestClose);
     };
-  }, [isDefined, onClose]);
+  }, [isDefined, onClose, state.isLoadingFavorites, state.showVersionHistory]);
 
   useEffect(() => {
     const onAfterShow = () => {
@@ -966,6 +1000,10 @@ const FormatDialog: FC<Props> = ({
     });
   }, [state.selectedFormat]);
 
+  const handleVersionHistory = useCallback(() => {
+    dispatch({ type: 'SET_SHOW_VERSION_HISTORY', payload: true });
+  }, []);
+
   useEffect(() => {
     if (!availableProxies || availableProxies.length === 0) {
       dispatch({ type: 'SET_SELECTED_PROXY', payload: '' });
@@ -983,6 +1021,104 @@ const FormatDialog: FC<Props> = ({
     const supportedProxies = availableProxies && Object.values(availableProxies).flat().length > 0;
 
     const showCustomDimension = state.selectedFormat.width && state.selectedFormat.height && state.useCustomRendition;
+
+    const renderHeader = () => {
+      if (state.showVersionHistory) {
+        return (
+          <cx-space slot="label" justify-content="space-between" align-items="center">
+            <cx-space direction="vertical" spacing="2x-small" style={{ flex: '1' }}>
+              <cx-typography variant="h4">Version history</cx-typography>
+              <cx-typography variant="body3" className='asset-name'>
+                <cx-line-clamp lines={1}>{selectedAsset?.name}</cx-line-clamp>
+              </cx-typography>
+            </cx-space>
+          </cx-space>
+        );
+      }
+
+      return (
+        <>
+          <cx-space
+            slot="label"
+            justify-content="space-between"
+            align-items="center"
+          >
+            <cx-space
+              direction="vertical"
+              spacing="2x-small"
+              style={{ flex: '1' }}
+            >
+              <cx-typography variant="h4">Formats</cx-typography>
+              <cx-typography variant="body3" className="asset-name">
+                <cx-line-clamp lines={1}>{selectedAsset?.name}</cx-line-clamp>
+              </cx-typography>
+            </cx-space>
+          </cx-space>
+          {allowFavorites && (
+            <cx-tooltip
+              slot="header-actions"
+              content={isFavorite ? 'Unfavorite' : 'Favorite'}
+              placement="bottom"
+            >
+              {state.isLoadingFavorites ? (
+                <cx-space
+                  align-items="center"
+                  justify-content="center"
+                  style={{
+                    width: '32px',
+                    height: '32px',
+                  }}
+                >
+                  <cx-spinner></cx-spinner>
+                </cx-space>
+              ) : (
+                <cx-icon-button
+                  name={isFavorite ? 'star' : 'star_outline'}
+                  style={{
+                    color: isFavorite
+                      ? 'var(--cx-color-primary)'
+                      : 'var(--cx-color-text)',
+                  }}
+                  onClick={async () => {
+                    if (state.isLoadingFavorites) {
+                      return;
+                    }
+
+                    dispatch({
+                      type: 'SET_LOADING_FAVORITES',
+                      payload: true,
+                    });
+
+                    if (!isFavorite) {
+                      await onFavorite();
+                    } else {
+                      await onUnFavorite();
+                    }
+
+                    dispatch({
+                      type: 'SET_LOADING_FAVORITES',
+                      payload: false,
+                    });
+                  }}
+                ></cx-icon-button>
+              )}
+            </cx-tooltip>
+          )}
+          {showVersions && (
+            <cx-tooltip
+              slot="header-actions"
+              content="Version history"
+              placement="bottom"
+            >
+              <cx-icon-button
+                name="history"
+                onClick={handleVersionHistory}
+              ></cx-icon-button>
+            </cx-tooltip>
+          )}
+        </>
+      );
+    };
 
     const renderBody = () => {
       let previewer =  null;
@@ -1040,7 +1176,13 @@ const FormatDialog: FC<Props> = ({
         );
       }
 
-      if (searchInDrive) {
+      if (state.showVersionHistory) {
+        return <VersionHistory
+          assetId={selectedAsset?.id}
+        />;
+      }
+
+      if (!allowProxy) {
         return previewer;
       }
 
@@ -1229,21 +1371,25 @@ const FormatDialog: FC<Props> = ({
     };
 
     const renderFooter = () => {
-      if (searchInDrive) {
-        return (
+      if (state.showVersionHistory) {
+        return null;
+      }
+
+      let content = null;
+
+      if (!allowProxy) {
+        content = (
           <cx-button
             className="dialog__footer__button"
             onClick={onOpenInDriveConfirm}
             variant="primary"
           >
             <cx-icon slot="prefix" name="folder"></cx-icon>
-            {ctaText ?? 'Open in drive'}
+            {ctaText}
           </cx-button>
         );
-      }
-
-      if (state.showCustomRendition) {
-        return (
+      } else if (state.showCustomRendition) {
+        content = (
           <cx-space spacing="small" style={{ width: 'fit-content' }}>
             <cx-button
               variant="default"
@@ -1271,90 +1417,95 @@ const FormatDialog: FC<Props> = ({
             </cx-button>
           </cx-space>
         );
+      } else {
+        content = (
+          <cx-button
+            className="dialog__footer__button"
+            disabled={disabledInsert}
+            variant="primary"
+            style={{ flex: 1 }}
+            onClick={() => {
+              if (state.selectedProxy) {
+                if (!selectedAsset?.docType) {
+                  return;
+                }
+
+                const selectedProxy = availableProxies?.find((proxy) => {
+                  return proxy.id === state.selectedProxy;
+                });
+
+                if (!selectedProxy) {
+                  return;
+                }
+
+                onProxyConfirm({
+                  extension: selectedProxy.extension ?? selectedAsset.extension,
+                  value: selectedProxy.proxyName,
+                  permanentLink: selectedProxy.permanentLink ?? undefined,
+                  parameters: state.enabledTracking
+                    ? state.trackingParameters
+                    : undefined,
+                  useRepresentative: state.useRepresentative,
+                });
+              } else {
+                onFormatConfirm({
+                  value: state.transformations,
+                  parameters: state.enabledTracking
+                    ? state.trackingParameters
+                    : undefined,
+                  extension: state.selectedFormat.extension,
+                });
+              }
+              dispatch({ type: 'RESET_DATA' });
+              onClose();
+            }}
+          >
+            {ctaText}
+          </cx-button>
+        );
       }
 
       return (
-        <cx-button
-          className="dialog__footer__button"
-          disabled={disabledInsert}
-          variant="primary"
-          style={{ flex: 1 }}
-          onClick={() => {
-            if (state.selectedProxy) {
-              if (!selectedAsset?.docType) {
-                return;
-              }
-
-              const selectedProxy = availableProxies?.find((proxy) => {
-                return proxy.id === state.selectedProxy;
-              });
-
-              if (!selectedProxy) {
-                return;
-              }
-
-              onProxyConfirm({
-                extension: selectedProxy.extension ?? selectedAsset.extension,
-                value: selectedProxy.proxyName,
-                permanentLink: selectedProxy.permanentLink ?? undefined,
-                parameters: state.enabledTracking
-                  ? state.trackingParameters
-                  : undefined,
-                useRepresentative: state.useRepresentative,
-              });
-            } else {
-              onFormatConfirm({
-                value: state.transformations,
-                parameters: state.enabledTracking
-                  ? state.trackingParameters
-                  : undefined,
-                extension: state.selectedFormat.extension,
-              });
-            }
-            dispatch({ type: 'RESET_DATA' });
-            onClose();
-          }}
-        >
-          {ctaText ?? 'Insert'}
-        </cx-button>
+        <div slot="footer" className="dialog__footer">
+          {content}
+        </div>
       );
     };
 
     return (
       <>
-        <cx-space slot="label" direction="vertical" spacing="2x-small">
-          <cx-typography variant="h4">Formats</cx-typography>
-          <cx-typography variant="body3" className='asset-name'>
-            <cx-line-clamp lines={1}>{selectedAsset?.name}</cx-line-clamp>
-          </cx-typography>
-        </cx-space>
+        {renderHeader()}
         {renderBody()}
-        <div slot="footer" className="dialog__footer">
-          {renderFooter()}
-        </div>
+        {renderFooter()}
       </>
     );
   }, [
-    allowTracking,
     allowCustomFormat,
+    allowFavorites,
+    allowProxy,
+    allowTracking,
     availableProxies,
     ctaText,
     extensions,
+    isFavorite,
+    handleVersionHistory,
     previewUrl,
-    searchInDrive,
     selectedAsset,
+    showVersions,
+    state,
     supportedRepresentative,
     onClose,
     onCropChange,
     onExtensionChange,
+    onFavorite,
     onFormatConfirm,
     onLoadingChange,
     onOpenInDriveConfirm,
     onProxyConfirm,
     onResizeChange,
     onRotateChange,
+    onUnFavorite,
     onViewChange,
-    state,
   ]);
 
   if (variant === 'drawer') {
@@ -1381,6 +1532,7 @@ const FormatDialog: FC<Props> = ({
       style={
         {
           '--max-height': `${maxHeight}px`,
+          '--max-width': state.showVersionHistory ? '600px' : '520px',
         } as CSSProperties
       }
     >

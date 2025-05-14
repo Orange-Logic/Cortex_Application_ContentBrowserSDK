@@ -2,7 +2,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 import { SortOrder } from '@/types/assets';
 import { Asset, MediaType, Proxy } from '@/types/search';
-import { AppBaseQuery } from '@/utils/api';
+import { AppBaseQuery, GetValueByKeyCaseInsensitive } from '@/utils/api';
 import { hasElements, uniqueArray } from '@/utils/array';
 import { createApi } from '@reduxjs/toolkit/query/react';
 
@@ -54,7 +54,7 @@ const getAvailableProxiesAPIParams = ({ assetImages, docTypes, useSession }: Get
 export const assetsApi = createApi({
   reducerPath: 'assetsApi',
   baseQuery: AppBaseQuery,
-  tagTypes: ['AvailableProxies', 'Parameters', 'SortOrders'],
+  tagTypes: ['AvailableProxies', 'Parameters', 'SortOrders', 'VersionHistory'],
   endpoints: (builder) => ({
     getAvailableProxies: builder.query<GetAvailableProxiesResponse, GetAvailableProxiesRequest>({
       query: (request) => ({
@@ -135,6 +135,35 @@ export const assetsApi = createApi({
         return value;
       },
     }),
+    getVersionHistory: builder.query<{
+      count: number;
+      versions: Record<string, string>[];
+    }, {
+      assetId: string;
+    }>({
+      keepUnusedDataFor: 0,
+      query: ({ assetId }) => ({
+        url: '/webapi/extensibility/integrations/contentBrowserSDK/getassetversion_418f',
+        params: [['RecordID', assetId]],
+      }),
+      transformResponse: (response: { count: number, versions: Record<string, string>[] }) => {
+        return {
+          count: response.count,
+          versions: response.versions.map((version) => ({
+            createByEmail: GetValueByKeyCaseInsensitive(version, 'CreateByEmail'),
+            fileImportDate: GetValueByKeyCaseInsensitive(version, 'FileImportDate'),
+            scrubUrl: GetValueByKeyCaseInsensitive(version, 'ScrubUrl'),
+            versionCreateDate: GetValueByKeyCaseInsensitive(version, 'VersionCreateDate'),
+            versionFileName: GetValueByKeyCaseInsensitive(version, 'VersionFileName'),
+            versionFileUrl: GetValueByKeyCaseInsensitive(version, 'PreviewUrl'),
+            versionId: GetValueByKeyCaseInsensitive(version, 'VersionID'),
+            versionNumber: GetValueByKeyCaseInsensitive(version, 'VersionNumber'),
+            versionNumberDisplay: GetValueByKeyCaseInsensitive(version, 'VersionNumberDisplay'),
+          }) as Record<string, string>),
+        };
+      },
+      providesTags: (_result, _error, _args) => ['VersionHistory'],
+    }),
   }),
 });
 
@@ -146,4 +175,5 @@ export const {
   useGetAvailableProxiesQuery,
   useGetParametersQuery,
   useGetSortOrdersQuery,
+  useGetVersionHistoryQuery,
 } = assetsApi;

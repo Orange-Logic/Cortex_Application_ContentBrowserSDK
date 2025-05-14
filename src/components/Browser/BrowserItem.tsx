@@ -19,6 +19,7 @@ export const getHighlightedTitle = (title: string, searchText?: string) => {
 type Props = {
   folder: Folder;
   currentFolderID: string;
+  icon?: string;
   searchText?: string;
   useSession?: string;
 };
@@ -26,6 +27,7 @@ type Props = {
 export const BrowserItem: FC<Props> = ({
   folder,
   currentFolderID,
+  icon,
   searchText,
   useSession,
 }) => {
@@ -81,7 +83,7 @@ export const BrowserItem: FC<Props> = ({
       selected={isSelected}
       lazy={isLazy}
     >
-      <cx-icon name="folder"></cx-icon>
+      <cx-icon name={icon ?? 'folder'}></cx-icon>
       <cx-line-clamp lines={1}>{getHighlightedTitle(folder.title, searchText)}</cx-line-clamp>
       {folders?.map((item) => (
         <BrowserItem

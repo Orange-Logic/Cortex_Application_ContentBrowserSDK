@@ -219,3 +219,53 @@ export const getAssetLinks = async (
 
   return result;
 };
+
+export const favoriteAsset = async (
+  {
+    recordId,
+  }: {
+    recordId: string;
+  },
+): Promise<boolean> => {
+  const response = await cortexFetch(
+    '/webapi/extensibility/integrations/gab/assetbrowser/addtofavorites_2du',
+    {
+      method: 'POST',
+      body: JSON.stringify({ RecordId: recordId }),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error('Failed to favorite asset');
+  }
+
+  return true;
+};
+
+export const unfavoriteAsset = async (
+  {
+    recordId,
+  }: {
+    recordId: string;
+  },
+): Promise<boolean> => {
+  const response = await cortexFetch(
+    '/webapi/extensibility/integrations/gab/assetbrowser/removefromfavorites_2dv',
+    {
+      method: 'POST',
+      body: JSON.stringify({ RecordId: recordId }),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error('Failed to remove asset from favorites');
+  }
+
+  return true;
+};

@@ -19,10 +19,11 @@ import { useAppDispatch, useAppSelector } from '@/store';
 import {
   useGetAvailableProxiesQuery, useGetParametersQuery, useGetSortOrdersQuery,
 } from '@/store/assets/assets.api';
-import { importAssets } from '@/store/assets/assets.slice';
+import { addAssetToFavorite, importAssets, removeAssetFromFavorite } from '@/store/assets/assets.slice';
 import { authenticatedSelector, logout, useSessionSelector } from '@/store/auth/auth.slice';
-import { useGetAssetsQuery } from '@/store/search/search.api';
+import { useGetAssetsQuery, useGetIsFavoriteQuery } from '@/store/search/search.api';
 import { explorePath, RootFolder } from '@/store/search/search.slice';
+import { useGetUserInfoQuery } from '@/store/user/user.api';
 import { FormatLoaderState } from '@/types/assets';
 import {
   Asset, Filter, Folder, GetAssetLinkResponse, GridView, SortDirection,
@@ -218,16 +219,26 @@ const HomePage: FC<Props> = () => {
   const authenticated = useAppSelector(authenticatedSelector);
   const useSession = useAppSelector(useSessionSelector);
   const {
-    availableRepresentativeSubtypes,
+    allowFavorites,
+    allowProxy,
+    allowTracking,
     availableDocTypes,
+    availableRepresentativeSubtypes,
     ctaText,
     lastLocationMode,
     persistMode,
-    searchInDrive,
     showCollections,
-    allowTracking,
+    showFavoriteFolder,
+    showVersions,
   } = useContext(GlobalConfigContext);
   const { extraFields } = useContext(AppContext);
+  const { data: userInfo, isFetching: isFetchingUserInfo, isLoading: isLoadingUserInfo, refetch: refetchUserInfo } = useGetUserInfoQuery({});
+  
+  useEffect(() => {
+    if (authenticated) {
+      refetchUserInfo();
+    }
+  }, [authenticated, refetchUserInfo]);
   const { data: availableProxies, isFetching: isFetchingAvailableProxies } = useGetAvailableProxiesQuery(state.selectedAsset ? {
     assetImages: state.selectedAsset ? [state.selectedAsset] : [],
     useSession,
@@ -245,6 +256,9 @@ const HomePage: FC<Props> = () => {
   const { data: sortOrders } = useGetSortOrdersQuery({
     useSession,
   });
+  const { data: isFavorite, refetch: refetchIsFavorite } = useGetIsFavoriteQuery(state.selectedAsset ? {
+    recordId: state.selectedAsset.id,
+  } : skipToken);
 
   const [browserMounted, setBrowserMounted] = useState(false);
   const [isResized, setIsResized] = useState(false);
@@ -315,7 +329,7 @@ const HomePage: FC<Props> = () => {
     );
   }, [sortOrders, state.sortDirection, state.sortOrder]);
 
-  const { data, isFetching, isError } = useGetAssetsQuery(isResized && sortOrders && mappedMediaTypes?.length && browserMounted ? {
+  const { data, isFetching, isError, refetch } = useGetAssetsQuery(isResized && sortOrders && mappedMediaTypes?.length && browserMounted ? {
     extensions: state.extensions,
     folderID: state.currentFolder.id,
     isSeeThrough: state.isSeeThrough,
@@ -488,6 +502,10 @@ const HomePage: FC<Props> = () => {
 
   const lastHeightRef = useRef(0);
   const lastWidthRef = useRef(0);
+
+  const defaultPageSizeRef = useRef(state.defaultPageSize);
+  defaultPageSizeRef.current = state.defaultPageSize;
+  
   const handleResize = useCallback((rect: Size, options?:{ returnToFirstPage?: boolean, force?: boolean }) => {
     const { width, height } = rect;
     const containerWidth = width || 0;
@@ -506,7 +524,7 @@ const HomePage: FC<Props> = () => {
     const breakpoint = ASSET_SIZE[viewRef.current]?.minWidth || ASSET_SIZE[GridView.Large].minWidth;
     const columnCount = Math.max(1, Math.floor((containerWidth + gutter) / (breakpoint + gutter)));
     const rowCount = Math.ceil(containerHeight / (breakpoint + gutter));
-    const newPageSize = Math.ceil((rowCount * columnCount) / state.defaultPageSize + 1) * state.defaultPageSize;
+    const newPageSize = Math.ceil((rowCount * columnCount) / defaultPageSizeRef.current + 1) * defaultPageSizeRef.current;
     setIsResized(true);
     if (newPageSize !== pageSizeRef.current) {
       dispatch({
@@ -517,7 +535,7 @@ const HomePage: FC<Props> = () => {
         },
       });
     }
-  }, [state.defaultPageSize]);
+  }, []);
 
   const debouncedHandleResize = useMemo(() => {
     return _debounce(handleResize, 300, {
@@ -744,9 +762,11 @@ const HomePage: FC<Props> = () => {
     <cx-resize-observer ref={containerResizeObserverRef}>
       <Container ref={containerRef}>
         <Header
-          authenticated={authenticated}
           bordered={state.hasScrolled}
           currentFolder={state.currentFolder}
+          isFetching={isFetchingUserInfo}
+          isLoading={state.isLoading || isLoadingUserInfo}
+          userInfo={userInfo}
           onMenuClick={() =>
             dispatch({ type: 'SET_OPEN_BROWSER', payload: true })
           }
@@ -780,23 +800,27 @@ const HomePage: FC<Props> = () => {
         <Browser
           collectionPath={collectionPath}
           currentFolder={state.currentFolder}
+          favoriteFolderId={userInfo?.favoriteFolderRecordID}
           lastLocationMode={lastLocationMode}
           open={state.openBrowser}
           showCollections={showCollections}
+          showFavoriteFolder={showFavoriteFolder}
           useSession={useSession}
           onFolderSelect={onFolderSelect}
           onClose={() => dispatch({ type: 'SET_OPEN_BROWSER', payload: false })}
         />
-        <div style={{
-          flex: 1,
-          minHeight: '320px',
-          padding: '0 var(--cx-spacing-medium)',
-          position: 'relative',
-        }}>
+        <div
+          style={{
+            flex: 1,
+            minHeight: '320px',
+            padding: '0 var(--cx-spacing-medium)',
+            position: 'relative',
+          }}
+        >
           <AutoSizer onResize={debouncedHandleResize}>
             {({ height, width }: Size) => {
               return (
-                <div 
+                <div
                   style={{
                     height: height + 'px',
                     width: width + 'px',
@@ -834,21 +858,24 @@ const HomePage: FC<Props> = () => {
           </AutoSizer>
         </div>
         {showFormatLoader === FormatLoaderState.ShowLoader && (
-          <cx-space className='format-loader'>
+          <cx-space className="format-loader">
             <cx-spinner></cx-spinner>
           </cx-space>
         )}
         <FormatDialog
-          allowTracking={allowTracking}
           allowCustomFormat={!!ATSEnabled && !!state.selectedAsset?.allowATSLink}
+          allowFavorites={allowFavorites}
+          allowProxy={allowProxy}
+          allowTracking={allowTracking}
           availableProxies={isFetchingAvailableProxies ? undefined : availableProxies?.proxies}
           ctaText={ctaText}
           extensions={supportedExtensions ?? []}
+          isFavorite={!!isFavorite}
           maxHeight={state.containerSize.height}
           open={!!state.selectedAsset && showFormatLoader === FormatLoaderState.ShowDialog}
           previewUrl={isFetchingAvailableProxies ? undefined : availableProxies?.previewUrl}
-          searchInDrive={searchInDrive}
           selectedAsset={state.selectedAsset}
+          showVersions={showVersions}
           supportedRepresentativeSubtypes={
             availableRepresentativeSubtypes?.length
               ? _intersection(
@@ -861,7 +888,48 @@ const HomePage: FC<Props> = () => {
           onClose={() =>
             dispatch({ type: 'SET_SELECTED_ASSET', payload: null })
           }
-          onProxyConfirm={async ({ extension, value, permanentLink, parameters, useRepresentative }) => {
+          onFavorite={async () => {
+            if (!state.selectedAsset) {
+              return false;
+            }
+
+            const result = await appDispatch(
+              addAssetToFavorite({
+                recordId: state.selectedAsset.id,
+              }),
+            );
+
+            if (addAssetToFavorite.fulfilled.match(result)) {
+              await refetchIsFavorite();
+
+              if (state.currentFolder.id === userInfo?.favoriteFolderRecordID) {
+                if (state.start === 0) {
+                  refetch();
+                } else {
+                  dispatch({
+                    type: 'SET_CURRENT_FOLDER',
+                    payload: {
+                      folder: state.currentFolder,
+                      shouldResetFilters: true,
+                    },
+                  });
+                }
+              }
+            }
+
+            if (result) {
+              return true;
+            }
+
+            return result;
+          }}
+          onProxyConfirm={async ({
+            extension,
+            value,
+            permanentLink,
+            parameters,
+            useRepresentative,
+          }) => {
             if (!state.selectedAsset) {
               return;
             }
@@ -921,6 +989,41 @@ const HomePage: FC<Props> = () => {
                 imageUrl: state.selectedAsset.imageUrl,
               },
             ]);
+          }}
+          onUnFavorite={async () => {
+            if (!state.selectedAsset) {
+              return false;
+            }
+
+            const result = await appDispatch(
+              removeAssetFromFavorite({
+                recordId: state.selectedAsset.id,
+              }),
+            );
+
+            if (removeAssetFromFavorite.fulfilled.match(result)) {
+              await refetchIsFavorite();
+
+              if (state.currentFolder.id === userInfo?.favoriteFolderRecordID) {
+                if (state.start === 0) {
+                  refetch();
+                } else {
+                  dispatch({
+                    type: 'SET_CURRENT_FOLDER',
+                    payload: {
+                      folder: state.currentFolder,
+                      shouldResetFilters: true,
+                    },
+                  });
+                }
+              }
+            }
+
+            if (result) {
+              return true;
+            }
+
+            return result;
           }}
         />
       </Container>

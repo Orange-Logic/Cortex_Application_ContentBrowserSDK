@@ -2,7 +2,7 @@ import { AssetsState, TrackingParameter, Transformation } from '@/types/assets';
 import { Asset, GetAssetLinkResponse } from '@/types/search';
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 
-import { getAssetLinks } from './assets.service';
+import { favoriteAsset, getAssetLinks, unfavoriteAsset } from './assets.service';
 
 export const SETTINGS_DEFAULT_PROXY = 'Always show asset format selector';
 
@@ -97,6 +97,42 @@ GetAssetLinkResponse[],
     }
 
     return images;
+  },
+);
+
+export const addAssetToFavorite = createAsyncThunk<
+boolean,
+{
+  recordId: string;
+}
+>(
+  `${ASSETS_FEATURE_KEY}/favoriteAsset`,
+  async (
+    {
+      recordId,
+    },
+  ) => {
+    return await favoriteAsset({
+      recordId,
+    });
+  },
+);
+
+export const removeAssetFromFavorite = createAsyncThunk<
+boolean,
+{
+  recordId: string;
+}
+>(
+  `${ASSETS_FEATURE_KEY}/favoriteAsset`,
+  async (
+    {
+      recordId,
+    },
+  ) => {
+    return await unfavoriteAsset({
+      recordId,
+    });
   },
 );
 // #endregion

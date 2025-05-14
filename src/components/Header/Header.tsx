@@ -1,38 +1,36 @@
-import { CSSProperties, FC, ReactNode, useContext, useEffect, useMemo } from 'react';
+import { CSSProperties, FC, ReactNode, useContext, useMemo } from 'react';
 
 import { AppContext } from '@/AppContext';
 import { GlobalConfigContext } from '@/GlobalConfigContext';
-import { useGetUserInfoQuery } from '@/store/user/user.api';
 import { Folder } from '@/types/search';
 
 import { Container } from './Header.styled';
+import { UserInfo } from '@/types/user';
 
 type Props = {
-  authenticated: boolean;
   bordered?: boolean;
   children?: ReactNode;
   currentFolder: Folder;
+  isLoading?: boolean;
+  isFetching?: boolean;
+  userInfo?: UserInfo;
   onMenuClick: () => void;
   onLogout: () => void;
 };
 
 const Header: FC<Props> = ({
-  authenticated,
   bordered,
   children,
   currentFolder,
+  isLoading,
+  isFetching,
+  userInfo: data,
   onMenuClick,
   onLogout,
 }) => {
   const { isContentBrowserPopedup, pluginInfo } = useContext(GlobalConfigContext);
   const { onClose } = useContext(AppContext);
-  const { data, isFetching, isLoading, refetch: refetchUserInfo } = useGetUserInfoQuery({});
 
-  useEffect(() => {
-    if (authenticated) {
-      refetchUserInfo();
-    }
-  }, [authenticated, refetchUserInfo]);
 
   const title = useMemo(() => {
     if (!currentFolder.fullPath) {
