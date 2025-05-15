@@ -18,13 +18,14 @@ type Props = {
   selectedItem?: string;
   children?: ReactNode;
   style?: CSSProperties;
+  selectedDisabled?: boolean;
 };
 
-const ProxyMenu = ({ items, selectedItem, children, style }: Props) => {
+const ProxyMenu = ({ items, selectedItem, children, style, selectedDisabled }: Props) => {
   return (
     <Container style={style}>
       {items?.map((item) => {
-        const selected = selectedItem === item.value;
+        const selected = selectedItem === item.value && !selectedDisabled;
         const showDimensions = Boolean(Number(item.width)) && Boolean(Number(item.height)) && item.docType !== MediaType.Audio && item.docType !== MediaType.Multimedia;
 
         return (

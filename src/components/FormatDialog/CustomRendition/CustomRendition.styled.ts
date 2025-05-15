@@ -31,7 +31,7 @@ export const Container = styled.div`
     }
   }
 
-  cx-select {
+  .resize__unit-select {
     width: 120px;
   }
 

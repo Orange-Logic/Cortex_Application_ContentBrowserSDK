@@ -887,7 +887,7 @@ const HomePage: FC<Props> = () => {
               handleSelectedAsset(images.payload);
             }
           }}
-          onFormatConfirm={async ({ value, parameters, extension }) => {
+          onFormatConfirm={async ({ value, parameters, proxiesPreference, extension }) => {
             if (!state.selectedAsset) {
               return;
             }
@@ -905,6 +905,7 @@ const HomePage: FC<Props> = () => {
                 maxHeight,
                 maxWidth,
                 parameters,
+                proxiesPreference,
                 selectedAsset: state.selectedAsset,
                 useSession,
                 transformations: value,

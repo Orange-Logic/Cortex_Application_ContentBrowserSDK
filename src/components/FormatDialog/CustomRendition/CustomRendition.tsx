@@ -5,10 +5,12 @@ import { Unit } from '@/types/assets';
 import { CxHideEvent, CxShowEvent } from '@/web-component';
 
 import { Container } from './CustomRendition.styled';
-import { Crop, Extension, Resize, Rotate } from './transformations';
+import { Crop, Extension, Format, Resize, Rotate } from './transformations';
+import { Proxy } from '@/types/search';
 
 type Props = {
   activeSetting: string;
+  availableProxies: Proxy[];
   imageSize: {
     width: number;
     height: number;
@@ -40,37 +42,42 @@ type Props = {
     y: number;
     unit: Unit;
   }>;
+  proxy: string;
   rotation: number;
-  onResizeChange: (
-    width: number,
-    height: number,
-    unit: Unit,
-    shouldApply: boolean
-  ) => void;
   onCropChange: (
     width: number,
     height: number,
     unit: Unit,
     shouldApply: boolean
   ) => void;
-  onRotateChange: (rotation: number, shouldApply: boolean) => void;
   onExtensionChange: (extension: string) => void;
+  onFormatChange: (format: Proxy) => void;
+  onResizeChange: (
+    width: number,
+    height: number,
+    unit: Unit,
+    shouldApply: boolean
+  ) => void;
+  onRotateChange: (rotation: number, shouldApply: boolean) => void;
   onViewChange: (view: string) => void;
 };
 
 const CustomRendition: FC<Props> = ({
   activeSetting,
+  availableProxies,
   imageSize,
   resize,
   crop,
   extension,
   lastAppliedCrop,
   lastAppliedResize,
+  proxy,
   rotation,
-  onResizeChange,
   onCropChange,
-  onRotateChange,
   onExtensionChange,
+  onFormatChange,
+  onResizeChange,
+  onRotateChange,
   onViewChange,
 }: Props) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -118,8 +125,18 @@ const CustomRendition: FC<Props> = ({
     });
   }, [crop, lastAppliedCrop]);
 
+  const formats = useMemo(() => {
+    return availableProxies.filter(item => !item.cdnName);
+  }, [availableProxies]);
+  
   return (
     <Container ref={containerRef}>
+      <Format
+        open={activeSetting === 'format'}
+        format={proxy}
+        formats={formats}
+        onApply={onFormatChange}
+      />
       <Crop
         open={activeSetting === 'crop'}
         width={crop.width}

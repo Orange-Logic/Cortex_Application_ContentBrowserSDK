@@ -40,6 +40,7 @@ type Props = {
   onFormatConfirm: (value: {
     value: Transformation[];
     parameters?: TrackingParameter[];
+    proxiesPreference?: string;
     extension?: string;
   }) => void;
   onOpenInDriveConfirm: () => void;
@@ -112,7 +113,7 @@ type Action =
   | { type: 'SET_RESIZE_SIZE'; payload: Partial<State['resizeSize']> }
   | { type: 'SET_ROTATION'; payload: number }
   | { type: 'SET_SELECTED_FORMAT'; payload: Partial<State['selectedFormat']> }
-  | { type: 'SET_SELECTED_PROXY'; payload: string }
+  | { type: 'SET_SELECTED_PROXY'; payload: string | { proxy: string; useCustomRendition?: boolean } }
   | { type: 'SET_SHOW_CUSTOM_RENDITION'; payload: boolean }
   | { type: 'SET_TRACKING_PARAMETERS'; payload: TrackingParameter[] }
   | { type: 'SET_TRANSFORMATIONS'; payload: Transformation }
@@ -197,7 +198,7 @@ const initialState: State = {
   showCustomRendition: false,
   useCustomRendition: false,
   useRepresentative: false,
-  activeSetting: 'crop',
+  activeSetting: 'format',
   isLoading: false,
 };
 
@@ -324,10 +325,19 @@ const reducer = (state: State, action: Action): State => {
         },
       };
     case 'SET_SELECTED_PROXY':
+
+      if (typeof action.payload === 'string') {
+        return {
+          ...state,
+          selectedProxy: action.payload,
+          useCustomRendition: false,
+          useRepresentative: false,
+        };
+      }
       return {
         ...state,
-        selectedProxy: action.payload,
-        useCustomRendition: false,
+        selectedProxy: action.payload.proxy,
+        useCustomRendition: Boolean(action.payload.useCustomRendition),
         useRepresentative: false,
       };
     case 'SET_SHOW_CUSTOM_RENDITION':
@@ -470,7 +480,14 @@ const FormatDialog: FC<Props> = ({
         },
       },
     });
-  }, [selectedAsset, state.defaultSize]);
+
+    if (availableProxies) {
+      dispatch({
+        type: 'SET_SELECTED_PROXY',
+        payload: availableProxies[0]?.id,
+      });
+    }
+  }, [availableProxies, selectedAsset, state.defaultSize.height, state.defaultSize.width]);
 
   useEffect(() => {
     if (selectedAsset?.width && selectedAsset?.height) {
@@ -966,6 +983,94 @@ const FormatDialog: FC<Props> = ({
     });
   }, [state.selectedFormat]);
 
+  const onFormatChange = useCallback((format: Proxy) => {
+    let width = format.formatWidth;
+    let height = format.formatHeight;
+
+    if (format.proxyName === 'TRX' && selectedAsset) {
+      width = Number(selectedAsset.width);
+      height = Number(selectedAsset.height);
+    }
+
+    dispatch({
+      type: 'SET_SELECTED_PROXY',
+      payload: {
+        proxy: format.id,
+        useCustomRendition: true,
+      },
+    });
+
+    dispatch({
+      type: 'SET_SELECTED_FORMAT',
+      payload: {
+        width,
+        height,
+      },
+    });
+    dispatch({
+      type: 'SET_RESIZE_SIZE',
+      payload: {
+        width,
+        height,
+        unit: Unit.Pixel,
+      },
+    });
+    dispatch({
+      type: 'SET_CROP_SIZE',
+      payload: {
+        width,
+        height,
+        percentageWidth: 100,
+        percentageHeight: 100,
+        x: 0,
+        y: 0,
+        unit: Unit.Pixel,
+      },
+    });
+
+    const ratio = convertPixelsToAspectRatio(width, height);
+
+    dispatch({
+      type: 'SET_LAST_CROP_SIZE',
+      payload: {
+        [Unit.Pixel]:{
+          width: Math.round(width),
+          height: Math.round(height),
+          percentageHeight: 100,
+          percentageWidth: 100,
+          x: 0,
+          y: 0,
+          unit: Unit.Pixel,
+        },
+        [Unit.AspectRatio]: {
+          width: ratio.width,
+          height: ratio.height,
+          percentageHeight: 100,
+          percentageWidth: 100,
+          x: 0,
+          y: 0,
+          unit: Unit.AspectRatio,
+        },
+      },
+    });
+
+    dispatch({
+      type: 'SET_LAST_RESIZE_SIZE',
+      payload: {
+        [Unit.Pixel]: {
+          width: width,
+          height: height,
+          unit: Unit.Pixel,
+        },
+        [Unit.AspectRatio]: {
+          width: ratio.width,
+          height: ratio.height,
+          unit: Unit.AspectRatio,
+        },
+      },
+    });
+  }, [selectedAsset]);
+
   useEffect(() => {
     if (!availableProxies || availableProxies.length === 0) {
       dispatch({ type: 'SET_SELECTED_PROXY', payload: '' });
@@ -1044,10 +1149,11 @@ const FormatDialog: FC<Props> = ({
         return previewer;
       }
 
-      if (state.showCustomRendition) {
+      if (state.showCustomRendition && availableProxies) {
         rendition = (
           <CustomRendition
             activeSetting={state.activeSetting}
+            availableProxies={availableProxies}
             imageSize={{
               width: state.selectedFormat.width ? state.selectedFormat.width : Infinity,
               height: state.selectedFormat.height ? state.selectedFormat.height : Infinity,
@@ -1060,13 +1166,15 @@ const FormatDialog: FC<Props> = ({
             crop={state.cropSize}
             lastAppliedCrop={state.lastCropSize}
             lastAppliedResize={state.lastResizeSize}
+            proxy={state.selectedProxy}
             rotation={state.rotation}
             extension={state.selectedFormat.extension}
-            onResizeChange={onResizeChange}
             onCropChange={onCropChange}
+            onExtensionChange={onExtensionChange}
+            onFormatChange={onFormatChange}
+            onResizeChange={onResizeChange}
             onRotateChange={onRotateChange}
             onViewChange={onViewChange}
-            onExtensionChange={onExtensionChange}
           />
         );
       } else {
@@ -1102,6 +1210,7 @@ const FormatDialog: FC<Props> = ({
                         docType: selectedAsset?.docType,
                       };
                     })}
+                    selectedDisabled={state.useCustomRendition}
                     selectedItem={state.selectedProxy}
                   >
                     {supportedRepresentative && (
@@ -1280,14 +1389,14 @@ const FormatDialog: FC<Props> = ({
           variant="primary"
           style={{ flex: 1 }}
           onClick={() => {
-            if (state.selectedProxy) {
+            const selectedProxy = availableProxies?.find((proxy) => {
+              return proxy.id === state.selectedProxy;
+            });
+
+            if (!state.useCustomRendition) {
               if (!selectedAsset?.docType) {
                 return;
               }
-
-              const selectedProxy = availableProxies?.find((proxy) => {
-                return proxy.id === state.selectedProxy;
-              });
 
               if (!selectedProxy) {
                 return;
@@ -1308,6 +1417,7 @@ const FormatDialog: FC<Props> = ({
                 parameters: state.enabledTracking
                   ? state.trackingParameters
                   : undefined,
+                proxiesPreference: selectedProxy?.proxyName,
                 extension: state.selectedFormat.extension,
               });
             }
@@ -1347,6 +1457,7 @@ const FormatDialog: FC<Props> = ({
     onClose,
     onCropChange,
     onExtensionChange,
+    onFormatChange,
     onFormatConfirm,
     onLoadingChange,
     onOpenInDriveConfirm,
