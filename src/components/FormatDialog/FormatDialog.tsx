@@ -1,3 +1,4 @@
+import _uniqBy from 'lodash-es/uniqBy';
 import {
   CSSProperties, FC, useCallback, useEffect, useMemo, useReducer, useRef, useState,
 } from 'react';
@@ -1155,11 +1156,22 @@ const FormatDialog: FC<Props> = ({
         rendition = (
           <CustomRendition
             activeSetting={state.activeSetting}
-            extensions={availableExtensions && selectedAsset?.docType ? availableExtensions[selectedAsset.docType] : [{ displayName: 'Automatic', value: autoExtension }]}
+            extensions={
+              availableExtensions && selectedAsset?.docType
+                ? _uniqBy([
+                  ...availableExtensions[selectedAsset.docType],
+                  { displayName: 'Automatic', value: autoExtension },
+                ], 'value')
+                : [{ displayName: 'Automatic', value: autoExtension }]
+            }
             availableProxies={availableProxies}
             imageSize={{
-              width: state.selectedFormat.width ? state.selectedFormat.width : Infinity,
-              height: state.selectedFormat.height ? state.selectedFormat.height : Infinity,
+              width: state.selectedFormat.width
+                ? state.selectedFormat.width
+                : Infinity,
+              height: state.selectedFormat.height
+                ? state.selectedFormat.height
+                : Infinity,
             }}
             resize={{
               width: state.resizeSize.width,
