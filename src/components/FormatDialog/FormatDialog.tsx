@@ -1,4 +1,3 @@
-import _camelCase from 'lodash-es/camelCase';
 import {
   CSSProperties, FC, useCallback, useEffect, useMemo, useReducer, useRef, useState,
 } from 'react';
@@ -19,6 +18,7 @@ import TrackingParameters from './TrackingParameters';
 type Props = {
   allowTracking: boolean;
   allowCustomFormat: boolean;
+  availableExtensions?: Record<MediaType, { displayName: string; value: string }[]>;
   availableProxies?: Proxy[];
   ctaText?: string;
   extensions: string[];
@@ -220,7 +220,7 @@ const reducer = (state: State, action: Action): State => {
         selectedFormat: {
           ...state.selectedFormat,
           ...action.payload,
-          extension: 'jpeg',
+          extension: '.auto',
           rotation: 0,
           x: 0,
           y: 0,
@@ -372,6 +372,7 @@ const reducer = (state: State, action: Action): State => {
 const FormatDialog: FC<Props> = ({
   allowTracking,
   allowCustomFormat,
+  availableExtensions,
   availableProxies,
   ctaText,
   extensions,
@@ -398,6 +399,8 @@ const FormatDialog: FC<Props> = ({
       return;
     }
 
+    const availableExtensionsForType = availableExtensions?.[selectedAsset.docType].map(item => item.value) || [];
+
     const defaultRatio = convertPixelsToAspectRatio(
       state.defaultSize.width,
       state.defaultSize.height,
@@ -409,7 +412,7 @@ const FormatDialog: FC<Props> = ({
         ...initialState.selectedFormat,
         url: selectedAsset.imageUrl,
         originalUrl: selectedAsset.originalUrl,
-        extension: selectedAsset.extension,
+        extension: availableExtensionsForType.includes(selectedAsset.extension) ? selectedAsset.extension : '.auto',
         width: state.defaultSize.width,
         height: state.defaultSize.height,
       },
@@ -487,7 +490,7 @@ const FormatDialog: FC<Props> = ({
         payload: availableProxies[0]?.id,
       });
     }
-  }, [availableProxies, selectedAsset, state.defaultSize.height, state.defaultSize.width]);
+  }, [availableExtensions, availableProxies, selectedAsset, state.defaultSize.height, state.defaultSize.width]);
 
   useEffect(() => {
     if (selectedAsset?.width && selectedAsset?.height) {
@@ -1083,7 +1086,7 @@ const FormatDialog: FC<Props> = ({
     const disabledInsert =
       state.isLoading || (!state.selectedProxy && !state.useCustomRendition && !state.useRepresentative);
     const supportedATS = allowCustomFormat && extensions.includes(
-      selectedAsset ? `.${selectedAsset.extension}` : '',
+      selectedAsset ? selectedAsset.extension : '',
     );
     const supportedProxies = availableProxies && Object.values(availableProxies).flat().length > 0;
 
@@ -1153,6 +1156,7 @@ const FormatDialog: FC<Props> = ({
         rendition = (
           <CustomRendition
             activeSetting={state.activeSetting}
+            extensions={availableExtensions && selectedAsset?.docType ? availableExtensions[selectedAsset.docType] : [{ displayName: 'Automatic', value: '.auto' }]}
             availableProxies={availableProxies}
             imageSize={{
               width: state.selectedFormat.width ? state.selectedFormat.width : Infinity,
@@ -1447,6 +1451,7 @@ const FormatDialog: FC<Props> = ({
   }, [
     allowTracking,
     allowCustomFormat,
+    availableExtensions,
     availableProxies,
     ctaText,
     extensions,

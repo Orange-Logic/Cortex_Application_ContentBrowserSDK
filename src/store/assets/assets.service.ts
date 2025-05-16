@@ -164,7 +164,9 @@ export const getAssetLinks = async (
       imageUrl += `${asset.identifier}`;
     }
 
-    imageUrl += `.${extension ?? asset.extension}`;
+    if (!permanentLink) {
+      imageUrl += `${extension ?? asset.extension}`;
+    }
 
     const queryParams: string[] = [];
 

@@ -25,6 +25,8 @@ export type GetAvailableProxiesResponse = {
   proxies: Proxy[];
 };
 
+type GetAvailableExtensionsResponse = Record<MediaType, { displayName: string; value: string }[]>;
+
 /**
  * get query parameter for AvailableProxies_4ea_v2 API
  * @param {GetAvailableProxiesRequest} 
@@ -54,8 +56,20 @@ const getAvailableProxiesAPIParams = ({ assetImages, docTypes, useSession }: Get
 export const assetsApi = createApi({
   reducerPath: 'assetsApi',
   baseQuery: AppBaseQuery,
-  tagTypes: ['AvailableProxies', 'Parameters', 'SortOrders'],
+  tagTypes: ['AvailableExtensions', 'AvailableProxies', 'Parameters', 'SortOrders'],
   endpoints: (builder) => ({
+    getAvailableExtensions: builder.query<GetAvailableExtensionsResponse, void>({
+      query: () => ({
+        url: '/webapi/extensibility/integrations/gab/assetbrowser/getavailableextensionsfortransformation_419v_v1',
+      }),
+      transformResponse: (response: { extensions: GetAvailableExtensionsResponse }) => {
+        return response.extensions;
+      },
+      providesTags: ['AvailableExtensions'],
+      serializeQueryArgs: () => {
+        return 'getAvailableExtensions';
+      },
+    }),
     getAvailableProxies: builder.query<GetAvailableProxiesResponse, GetAvailableProxiesRequest>({
       query: (request) => ({
         url: '/webapi/extensibility/integrations/contentBrowserSDK/AvailableProxies_4ea_v3?',
@@ -143,6 +157,7 @@ export const assetsApi = createApi({
 // Export hooks for usage in functional components, which are
 // auto-generated based on the defined endpoints
 export const {
+  useGetAvailableExtensionsQuery,
   useGetAvailableProxiesQuery,
   useGetParametersQuery,
   useGetSortOrdersQuery,

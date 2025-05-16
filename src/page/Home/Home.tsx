@@ -17,6 +17,7 @@ import { ASSET_SIZE } from '@/consts/asset';
 import { GlobalConfigContext } from '@/GlobalConfigContext';
 import { useAppDispatch, useAppSelector } from '@/store';
 import {
+  useGetAvailableExtensionsQuery,
   useGetAvailableProxiesQuery, useGetParametersQuery, useGetSortOrdersQuery,
 } from '@/store/assets/assets.api';
 import { importAssets } from '@/store/assets/assets.slice';
@@ -232,6 +233,7 @@ const HomePage: FC<Props> = () => {
     assetImages: state.selectedAsset ? [state.selectedAsset] : [],
     useSession,
   } : skipToken);
+  const { data: availableExtensions } = useGetAvailableExtensionsQuery();
   const { data: params } = useGetParametersQuery({
     useSession,
   });
@@ -845,6 +847,7 @@ const HomePage: FC<Props> = () => {
         <FormatDialog
           allowTracking={allowTracking}
           allowCustomFormat={!!ATSEnabled && !!state.selectedAsset?.allowATSLink}
+          availableExtensions={availableExtensions}
           availableProxies={isFetchingAvailableProxies ? undefined : availableProxies?.proxies}
           ctaText={ctaText}
           extensions={supportedExtensions ?? []}

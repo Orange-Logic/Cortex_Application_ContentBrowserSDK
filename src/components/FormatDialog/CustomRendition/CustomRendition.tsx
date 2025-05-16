@@ -10,6 +10,7 @@ import { Proxy } from '@/types/search';
 
 type Props = {
   activeSetting: string;
+  extensions: { displayName: string; value: string }[];
   availableProxies: Proxy[];
   imageSize: {
     width: number;
@@ -64,6 +65,7 @@ type Props = {
 
 const CustomRendition: FC<Props> = ({
   activeSetting,
+  extensions,
   availableProxies,
   imageSize,
   resize,
@@ -168,7 +170,7 @@ const CustomRendition: FC<Props> = ({
         onChange={(newRotation) => onRotateChange(newRotation, false)}
         onApply={() => onRotateChange(rotation, true)}
       />
-      <Extension extension={extension} onChange={onExtensionChange} />
+      <Extension extension={extension} extensions={extensions} onChange={onExtensionChange} />
     </Container>
   );
 };
