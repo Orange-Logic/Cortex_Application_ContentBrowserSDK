@@ -12,6 +12,7 @@ const Parameters = {
   CollectionSubtypeCriteria: 'CollectionSubtypeCriteria',
   SupportDocTypes: 'SupportDocTypes',
   RepresentativeSupportedDocSubType: 'RepresentativeSupportedDocSubType',
+  ExtensionAuto: 'ExtensionAuto',
 };
 
 type GetAvailableProxiesRequest = {
@@ -92,6 +93,7 @@ export const assetsApi = createApi({
     }),
     getParameters: builder.query<{
       ATSEnabled: boolean;
+      autoExtension: string;
       collectionPath: string;
       supportedExtensions: string[];
       supportedRepresentativeSubtypes: string[];
@@ -118,6 +120,7 @@ export const assetsApi = createApi({
           supportedDocTypes: response[Parameters.SupportDocTypes]?.split(/\r?\n/) ?? [],
           supportedExtensions: response[Parameters.ExtensionsThatSupportTransformationUsingATS]?.split('\n') ?? [],
           supportedRepresentativeSubtypes: response[Parameters.RepresentativeSupportedDocSubType]?.split('\r\n') ?? [],
+          autoExtension: response[Parameters.ExtensionAuto]?.toLowerCase() ?? '.auto',
         };
       },
       providesTags: ['Parameters'],

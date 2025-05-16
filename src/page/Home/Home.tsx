@@ -239,10 +239,11 @@ const HomePage: FC<Props> = () => {
   });
   const {
     ATSEnabled,
+    autoExtension = '.auto',
     collectionPath,
+    supportedDocTypes,
     supportedExtensions,
     supportedRepresentativeSubtypes,
-    supportedDocTypes,
   } = params || {};
   const { data: sortOrders } = useGetSortOrdersQuery({
     useSession,
@@ -847,6 +848,7 @@ const HomePage: FC<Props> = () => {
         <FormatDialog
           allowTracking={allowTracking}
           allowCustomFormat={!!ATSEnabled && !!state.selectedAsset?.allowATSLink}
+          autoExtension={autoExtension}
           availableExtensions={availableExtensions}
           availableProxies={isFetchingAvailableProxies ? undefined : availableProxies?.proxies}
           ctaText={ctaText}

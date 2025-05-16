@@ -18,6 +18,7 @@ import TrackingParameters from './TrackingParameters';
 type Props = {
   allowTracking: boolean;
   allowCustomFormat: boolean;
+  autoExtension: string;
   availableExtensions?: Record<MediaType, { displayName: string; value: string }[]>;
   availableProxies?: Proxy[];
   ctaText?: string;
@@ -99,7 +100,7 @@ type State = {
 };
 
 type Action =
-  | { type: 'CANCEL_USE_CUSTOM_RENDITION'; payload: { width: number; height: number, url: string, originalUrl: string } }
+  | { type: 'CANCEL_USE_CUSTOM_RENDITION'; payload: { width: number; height: number, url: string, originalUrl: string, extension: string } }
   | { type: 'CONFIRM_USE_CUSTOM_RENDITION' }
   | { type: 'RESET_DATA' }
   | { type: 'SET_ACTIVE_SETTING'; payload: string }
@@ -220,7 +221,6 @@ const reducer = (state: State, action: Action): State => {
         selectedFormat: {
           ...state.selectedFormat,
           ...action.payload,
-          extension: '.auto',
           rotation: 0,
           x: 0,
           y: 0,
@@ -372,6 +372,7 @@ const reducer = (state: State, action: Action): State => {
 const FormatDialog: FC<Props> = ({
   allowTracking,
   allowCustomFormat,
+  autoExtension,
   availableExtensions,
   availableProxies,
   ctaText,
@@ -399,8 +400,6 @@ const FormatDialog: FC<Props> = ({
       return;
     }
 
-    const availableExtensionsForType = availableExtensions?.[selectedAsset.docType].map(item => item.value) || [];
-
     const defaultRatio = convertPixelsToAspectRatio(
       state.defaultSize.width,
       state.defaultSize.height,
@@ -412,7 +411,7 @@ const FormatDialog: FC<Props> = ({
         ...initialState.selectedFormat,
         url: selectedAsset.imageUrl,
         originalUrl: selectedAsset.originalUrl,
-        extension: availableExtensionsForType.includes(selectedAsset.extension) ? selectedAsset.extension : '.auto',
+        extension: autoExtension ?? selectedAsset.extension,
         width: state.defaultSize.width,
         height: state.defaultSize.height,
       },
@@ -490,7 +489,7 @@ const FormatDialog: FC<Props> = ({
         payload: availableProxies[0]?.id,
       });
     }
-  }, [availableExtensions, availableProxies, selectedAsset, state.defaultSize.height, state.defaultSize.width]);
+  }, [autoExtension, availableProxies, selectedAsset, state.defaultSize.height, state.defaultSize.width]);
 
   useEffect(() => {
     if (selectedAsset?.width && selectedAsset?.height) {
@@ -1156,7 +1155,7 @@ const FormatDialog: FC<Props> = ({
         rendition = (
           <CustomRendition
             activeSetting={state.activeSetting}
-            extensions={availableExtensions && selectedAsset?.docType ? availableExtensions[selectedAsset.docType] : [{ displayName: 'Automatic', value: '.auto' }]}
+            extensions={availableExtensions && selectedAsset?.docType ? availableExtensions[selectedAsset.docType] : [{ displayName: 'Automatic', value: autoExtension }]}
             availableProxies={availableProxies}
             imageSize={{
               width: state.selectedFormat.width ? state.selectedFormat.width : Infinity,
@@ -1368,6 +1367,7 @@ const FormatDialog: FC<Props> = ({
                     originalUrl: selectedAsset?.originalUrl ?? '',
                     width: parseInt(selectedAsset?.width ?? '0', 10),
                     height: parseInt(selectedAsset?.height ?? '0', 10),
+                    extension: selectedAsset?.extension ?? '',
                   },
                 });
               }}
@@ -1451,6 +1451,7 @@ const FormatDialog: FC<Props> = ({
   }, [
     allowTracking,
     allowCustomFormat,
+    autoExtension,
     availableExtensions,
     availableProxies,
     ctaText,
