@@ -72,8 +72,6 @@ stages:
               version: '$(GitVersion.FullSemVer)'
               skipBuild: false
 
-          - template: azure-pipelines/common/steps-printenv.yml@infra-templates
-
           - template: azure-pipelines/common/steps-s3-publish.yml@infra-templates
             parameters:
               artifacts:
