@@ -1,6 +1,38 @@
-import { FC, useCallback, useEffect, useMemo, useState } from 'react';
+import './design-system/assets/fonts.css';
+import './design-system/components/alert';
+import './design-system/components/avatar';
+import './design-system/components/button';
+import './design-system/components/card';
+import './design-system/components/checkbox';
+import './design-system/components/details';
+import './design-system/components/dialog';
+import './design-system/components/divider';
+import './design-system/components/drawer';
+import './design-system/components/dropdown';
+import './design-system/components/icon';
+import './design-system/components/icon-button';
+import './design-system/components/input';
+import './design-system/components/input-group';
+import './design-system/components/line-clamp';
+import './design-system/components/menu';
+import './design-system/components/menu-item';
+import './design-system/components/option';
+import './design-system/components/progress-bar';
+import './design-system/components/resize-observer';
+import './design-system/components/select';
+import './design-system/components/space';
+import './design-system/components/skeleton';
+import './design-system/components/spinner';
+import './design-system/components/switch';
+import './design-system/components/tag';
+import './design-system/components/tooltip';
+import './design-system/components/tree';
+import './design-system/components/tree-item';
+import './design-system/components/typography';
+import './design-system/css/ol-light.css';
+
+import { FC, useCallback, useMemo, useState } from 'react';
 import styled from 'styled-components';
-import WebFont from 'webfontloader';
 
 import { AppContext, AppContextType } from '@/AppContext';
 import AssetsPicker from '@/view/AssetsPicker';
@@ -41,29 +73,7 @@ export const App: FC<Props> = ({
   onAssetSelected,
   onImageSelected,
 }) => {
-  useEffect(() => {
-    WebFont.load({
-      google: {
-        families: [
-          'Fira Code',
-          'Fira Mono',
-          'Fira Sans',
-          'Fira Sans Condensed',
-          'Fira Sans Extra Condensed',
-        ],
-      },
-    });
-
-    const script = document.createElement('script');
-    script.src = 'https://design-system.orangelogic.com/entry.1.0.212.js';
-    script.type = 'module';
-    document.head.appendChild(script);
-
-    return () => {
-      document.head.removeChild(script);
-    };
-    
-  }, []);
+ 
   const [open, setOpen] = useState(true);
 
   const handleClose = useCallback(() => {

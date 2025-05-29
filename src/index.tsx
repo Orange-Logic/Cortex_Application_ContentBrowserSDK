@@ -20,47 +20,46 @@ import { assetsApi } from './store/assets/assets.api';
 import { searchApi } from './store/search/search.api';
 import { userApi } from './store/user/user.api';
 
-declare global {
-  interface Window {
-    OrangeDAMContentBrowser: {
-      help: () => void,
-      open: (config: {
-        /**
+type OrangeDAMContentBrowser = {
+
+  help: () => void,
+  open: (config: {
+    /**
          * Callback when asset(s) selected (deprecated)
          * @returns 
          */
-        onImageSelected: AppContextType['onImageSelected'];
-        /**
+    onImageSelected: AppContextType['onImageSelected'];
+    /**
          * Callback when asset(s) selected
          * @returns 
          */
-        onAssetSelected: AppContextType['onAssetSelected'];
-        /**
+    onAssetSelected: AppContextType['onAssetSelected'];
+    /**
          * Callback when we have any error while using content browser
          */
-        onError: AppContextType['onError'];
-        /**
+    onError: AppContextType['onError'];
+    /**
          * Callback when we close the content browser
          */
-        onClose: () => void;
-        /**
+    onClose: () => void;
+    /**
          * whether you want to select multiple assets
          */
-        multiSelect: boolean;
-        /**
+    multiSelect: boolean;
+    /**
          * The containerId to inject to component to
          * If not defined, we will create a new popup inside
          */
-        containerId?: string;
-        /**
+    containerId?: string;
+    /**
          * User can request for extra field via this config
          */
-        extraFields?: string[];
-        /**
+    extraFields?: string[];
+    /**
          * Base url. If specified, we will prefill the site URL in the authentication page
          */
-        baseUrl?: string;
-        /**
+    baseUrl?: string;
+    /**
          * Only show IIIF prefix. When enable, instead of return full IIIF image url, we will
          * only return the url before the {region}. IIIF link will have the format like below
          * {scheme}://{server}{/prefix}/{identifier}/{region}/{size}/{rotation}/{quality}.{format}
@@ -72,93 +71,97 @@ declare global {
          * onlyIIIFPrefix = true
          * => https://local.orangelogic.com/IIIF3/Image/2Y1XC5O9J67
          */
-        onlyIIIFPrefix?: boolean;
-        /**
+    onlyIIIFPrefix?: boolean;
+    /**
          * Whether to display info on the asset card
          * default to true for all field
          */
-        displayInfo?: ImageCardDisplayInfo;
-        /**
+    displayInfo?: ImageCardDisplayInfo;
+    /**
          * The Public Application Name.
          * By default, it will be OrangeDAM.
          */
-        publicApplicationName?: string;
-        /**
+    publicApplicationName?: string;
+    /**
          * The plugin short name.
          * By default, it will be OrangeDAM Content Browser.
          */
-        pluginName?: string;
-        /**
+    pluginName?: string;
+    /**
          * The CTA text for the content browser
          * default to "Insert"
          */
-        ctaText?: string;
-        /**
+    ctaText?: string;
+    /**
          * The persist mode for the content browser which will prevent the browser from closing after selecting asset
          * default to false
          */
-        persistMode?: boolean;
-        /**
+    persistMode?: boolean;
+    /**
          * The available subtypes for the content browser
          */
-        availableDocTypes?: string[];
-        /**
+    availableDocTypes?: string[];
+    /**
          * The supported subtypes for inserting representative image
          */
-        availableRepresentativeSubtypes?: string[];
-        /**
+    availableRepresentativeSubtypes?: string[];
+    /**
          * The flag to show collections
          */
-        showCollections?: boolean;
-        /**
+    showCollections?: boolean;
+    /**
          * The flag to show the favorite folder
          */
-        showFavoriteFolder?: boolean;
-        /**
+    showFavoriteFolder?: boolean;
+    /**
          * The flag to show versions
          */
-        showVersions?: boolean;
-        /**
+    showVersions?: boolean;
+    /**
          * The session id to use for the content browser
          */
-        useSession?: string
-        /**
+    useSession?: string
+    /**
          * The flag to keep the last folder selected between sessions
          */
-        lastLocationMode?: boolean;
-        /**
+    lastLocationMode?: boolean;
+    /**
          * The flag to turn on/off tracking parameters for links
          */
-        allowTracking?: boolean;
+    allowTracking?: boolean;
 
-        /**
+    /**
          * The flag to allow the user to select proxy
          */
-        allowProxy?: boolean;
+    allowProxy?: boolean;
 
-        /**
+    /**
          * The flag to allow the user to select favorites
          */
-        allowFavorites?: boolean;
-      }) => void,
-      close: () => void,
-      /**
+    allowFavorites?: boolean;
+  }) => void,
+  close: () => void,
+  /**
        * Global function which mirrored the behavior of onAssetSelected
        */
-      _onAssetSelected?: AppContextType['onAssetSelected'],
-      /**
+  _onAssetSelected?: AppContextType['onAssetSelected'],
+  /**
        * Global function which mirrored the behavior of onImageSelected (deprecated)
        */
-      _onImageSelected?: AppContextType['onImageSelected'],
-      /**
+  _onImageSelected?: AppContextType['onImageSelected'],
+  /**
        * Global function which mirrored the behavior of onError
        */
-      _onError?: AppContextType['onError'],
-      /**
+  _onError?: AppContextType['onError'],
+  /**
        * Global function which mirrored the behavior of onClose
        */
-      _onClose?: () => void,
-    };
+  _onClose?: () => void,
+};
+
+declare global {
+  interface Window {
+    OrangeDAMContentBrowser: OrangeDAMContentBrowser;
   }
 
   interface URLSearchParams {
@@ -166,7 +169,7 @@ declare global {
   }
 }
 
-window.OrangeDAMContentBrowser = {
+const ContentBrowser: OrangeDAMContentBrowser = {
   help: () => {
     console.log(`/* Orange DAM Content Browser SDK Example */
       window.OrangeDAMContentBrowser.open({
@@ -321,3 +324,7 @@ window.OrangeDAMContentBrowser = {
     window.OrangeDAMContentBrowser._onClose?.();
   },
 };
+
+window.OrangeDAMContentBrowser = ContentBrowser;
+
+export default ContentBrowser;
