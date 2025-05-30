@@ -1,4 +1,4 @@
-import { FormEventHandler, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 
 import { GlobalConfigContext } from '@/GlobalConfigContext';
@@ -20,7 +20,6 @@ const AuthenticatePage = () => {
   const [checkingSite, setCheckingSite] = useDebounceState(false, 1000); // debounce to avoid flashing when check site connect too fast
   const [showUseSessionInput, setShowUseSessionInput] = useState(false);
   const [session, setSession] = useState(useSession);
-  const oAuthForm = useRef<HTMLFormElement>(null);
   const siteInputRef = useRef<CxInput>(null);
   const sessionInputRef = useRef<CxInput>(null);
   const hiddenBoxRef = useRef<HTMLButtonElement>(null);
@@ -58,8 +57,7 @@ const AuthenticatePage = () => {
     };
   }, [dispatch, isDefined, showUseSessionInput]);
 
-  const onSubmit: FormEventHandler<HTMLFormElement> = useCallback((e) => {
-    e.preventDefault();
+  const onSubmit = useCallback(() => {
     setCheckingSite(true, true);
     const urlWithProtocol = url.indexOf('://') === -1 ? `https://${url}` : url;
     checkCorrectSiteUrl(urlWithProtocol)
@@ -135,19 +133,25 @@ const AuthenticatePage = () => {
         position: 'absolute',
       }}
     >
-      <form
-        onSubmit={onSubmit}
-        ref={oAuthForm}
+      <cx-space
+        align-items="center"
+        justify-content="center"
         style={{
-          display: 'flex',
           height: '100%',
-          alignItems: 'center',
-          justifyContent: 'center',
           textAlign: 'center',
           width: '100%',
         }}
       >
-        <cx-space direction="vertical" spacing="medium" align-items="center">
+        <cx-space
+          direction="vertical"
+          spacing="medium"
+          align-items="center"
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              onSubmit();
+            }
+          }}
+        >
           {pluginInfo.pluginName && (
             <cx-typography variant="h2">
               Welcome to the {pluginInfo.pluginName}
@@ -174,19 +178,17 @@ const AuthenticatePage = () => {
               width: '100%',
             }}
           ></cx-input>
-          {
-            showUseSessionInput && (
-              <cx-input
-                ref={sessionInputRef}
-                label="Session ID"
-                placeholder="Enter your session ID"
-                value={useSession}
-                style={{
-                  width: '100%',
-                }}
-              ></cx-input>
-            )
-          }
+          {showUseSessionInput && (
+            <cx-input
+              ref={sessionInputRef}
+              label="Session ID"
+              placeholder="Enter your session ID"
+              value={useSession}
+              style={{
+                width: '100%',
+              }}
+            ></cx-input>
+          )}
           <cx-space
             justify-content="flex-end"
             style={{
@@ -202,17 +204,17 @@ const AuthenticatePage = () => {
               <cx-button
                 disabled={url === '' || checkingSite}
                 variant="primary"
-                type="submit"
                 style={{
                   width: '100%',
                 }}
+                onClick={onSubmit}
               >
                 {buttonText}
               </cx-button>
             </cx-space>
           </cx-space>
         </cx-space>
-      </form>
+      </cx-space>
       <button
         ref={hiddenBoxRef}
         tabIndex={-1}
