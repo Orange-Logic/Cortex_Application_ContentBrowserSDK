@@ -31,8 +31,9 @@ import './design-system/components/tree-item';
 import './design-system/components/typography';
 import './design-system/css/ol-light.css';
 
-import { FC, useCallback, useMemo, useState } from 'react';
+import { FC, useCallback, useEffect, useMemo, useState } from 'react';
 import styled from 'styled-components';
+import WebFont from 'webfontloader';
 
 import { AppContext, AppContextType } from '@/AppContext';
 import AssetsPicker from '@/view/AssetsPicker';
@@ -73,8 +74,21 @@ export const App: FC<Props> = ({
   onAssetSelected,
   onImageSelected,
 }) => {
- 
   const [open, setOpen] = useState(true);
+
+  useEffect(() => {
+    WebFont.load({
+      google: {
+        families: [
+          'Fira Code',
+          'Fira Mono',
+          'Fira Sans',
+          'Fira Sans Condensed',
+          'Fira Sans Extra Condensed',
+        ],
+      },
+    });
+  }, []);
 
   const handleClose = useCallback(() => {
     setOpen(false);

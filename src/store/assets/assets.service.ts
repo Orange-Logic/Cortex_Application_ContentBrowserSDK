@@ -230,7 +230,7 @@ export const favoriteAsset = async (
   },
 ): Promise<boolean> => {
   const response = await cortexFetch(
-    '/webapi/extensibility/integrations/gab/assetbrowser/addtofavorites_2du',
+    '/webapi/extensibility/integrations/contentBrowserSDK/addtofavorites_2du',
     {
       method: 'POST',
       body: JSON.stringify({ RecordId: recordId }),
@@ -255,7 +255,7 @@ export const unfavoriteAsset = async (
   },
 ): Promise<boolean> => {
   const response = await cortexFetch(
-    '/webapi/extensibility/integrations/gab/assetbrowser/removefromfavorites_2dv',
+    '/webapi/extensibility/integrations/contentBrowserSDK/removefromfavorites_2dv',
     {
       method: 'POST',
       body: JSON.stringify({ RecordId: recordId }),

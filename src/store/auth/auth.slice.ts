@@ -1,11 +1,10 @@
 import type { PayloadAction } from '@reduxjs/toolkit';
+import {
+  AUTH_FEATURE_ACCESS_KEY_KEY, AUTH_FEATURE_KEY, AUTH_FEATURE_SITE_URL_KEY, USE_SESSION,
+} from '@/consts/auth';
 import { RootState } from '@/store';
 import { resetImportStatus } from '@/store/assets/assets.slice';
-import {
-  GetAccessKeyRes,
-  GetAccessKeyResponseCode,
-  OAuthRes,
-} from '@/types/auth';
+import { GetAccessKeyRes, GetAccessKeyResponseCode, OAuthRes } from '@/types/auth';
 import { getRequestUrl } from '@/utils/getRequestUrl';
 import { deleteData, getData, storeData } from '@/utils/storage';
 import { generateRandomString } from '@/utils/string';
@@ -15,18 +14,11 @@ import { assetsApi } from '../assets/assets.api';
 import { searchApi } from '../search/search.api';
 import { userApi } from '../user/user.api';
 import {
-  abortAuthService,
-  authAbortController,
-  CANCEL_AUTH_MESSAGE,
-  getAccessKeyService,
-  getAccessTokenService,
-  requestAuthorizeService,
+  abortAuthService, authAbortController, CANCEL_AUTH_MESSAGE, getAccessKeyService,
+  getAccessTokenService, requestAuthorizeService,
 } from './auth.service';
 
-export const AUTH_FEATURE_KEY = 'auth';
-export const AUTH_FEATURE_ACCESS_KEY_KEY = `${AUTH_FEATURE_KEY}_access_key_key`;
-export const AUTH_FEATURE_SITE_URL_KEY = `${AUTH_FEATURE_KEY}_site_url_key`;
-export const USE_SESSION = 'useSession';
+export { AUTH_FEATURE_ACCESS_KEY_KEY, AUTH_FEATURE_KEY, AUTH_FEATURE_SITE_URL_KEY, USE_SESSION };
 
 export type AuthState = {
   siteUrl: string;
@@ -37,6 +29,7 @@ export type AuthState = {
   oAuthUrl?: string;
   error?: string;
   status: 'authenticated' | 'unauthenticated' | 'restoreSession' | 'requestLogin' | 'waitForAuthorise';
+  useHeaders?: boolean;
   useSession: string;
 };
 
@@ -78,6 +71,7 @@ export const authSlice = createSlice({
       state.siteUrl = state.userConfigSiteUrl ?? '';
       state.nonce = undefined;
       state.useSession = '';
+      state.useHeaders = false;
       deleteData(AUTH_FEATURE_ACCESS_KEY_KEY);
       deleteData(AUTH_FEATURE_SITE_URL_KEY);
       deleteData(USE_SESSION);
@@ -90,6 +84,7 @@ export const authSlice = createSlice({
       deleteData('selectedIsSeeThrough');
       deleteData('searchText');
       deleteData('lastLocation');
+      deleteData('retryCount');
     },
     setAuthStatus: (state, action: PayloadAction<AuthState['status']>) => {
       state.status = action.payload;
@@ -97,6 +92,9 @@ export const authSlice = createSlice({
     setUseSession: (state, action: PayloadAction<string>) => {
       state.useSession = action.payload;
       storeData(USE_SESSION, action.payload);
+    },
+    setUseHeaders: (state, action: PayloadAction<boolean>) => {
+      state.useHeaders = action.payload;
     },
   },
   extraReducers: (builder) => {
@@ -130,12 +128,15 @@ export const authSlice = createSlice({
 });
 
 export default authSlice.reducer;
-export const { logout, setAccessToken, generateNonce, setSiteUrl, setUserConfigSiteUrl, setUseSession } = authSlice.actions;
+export const { logout, setAccessToken, generateNonce, setSiteUrl, setUserConfigSiteUrl, setUseSession, setUseHeaders } = authSlice.actions;
 // #endregion
 
 // #region Selector
 export const authenticatedSelector = (rootState: RootState) =>
   rootState[AUTH_FEATURE_KEY].status == 'authenticated';
+
+export const accessKeySelector = (rootState: RootState) =>
+  rootState[AUTH_FEATURE_KEY].accessKey;
 
 export const accessTokenSelector = (rootState: RootState) =>
   rootState[AUTH_FEATURE_KEY].accessToken;
@@ -158,8 +159,11 @@ export const nonceSelector = (rootState: RootState) =>
 export const authStateSelector = (rootState: RootState) => 
   rootState[AUTH_FEATURE_KEY].status;
 
-export const useSessionSelector = (rootState: RootState) =>
+export const applySessionSelector = (rootState: RootState) =>
   rootState[AUTH_FEATURE_KEY].useSession;
+
+export const applyHeadersSelector = (rootState: RootState) =>
+  !!rootState[AUTH_FEATURE_KEY].useHeaders;
 
 export const appAuthUrlSelector = (rootState: RootState) => {
   const siteUrl = rootState[AUTH_FEATURE_KEY].siteUrl;
@@ -185,7 +189,7 @@ export const oAuth = createAsyncThunk<OAuthRes, { siteUrl: string }>(
       dispatch(generateNonce());
       const nonce = nonceSelector(getState() as RootState);
       const resp = await requestAuthorizeService(nonce ?? '');
-      if (authAbortController.signal.aborted) {
+      if (authAbortController.controller.signal.aborted) {
         throw Error(CANCEL_AUTH_MESSAGE);
       }
       const requestID = resp.requestID;
@@ -231,44 +235,75 @@ export const initAuthInfoFromCache = createAsyncThunk(
   `${AUTH_FEATURE_KEY}/initAuthInfoFromCache`,
   async (_, { dispatch, rejectWithValue, getState }) => {
     dispatch(authSlice.actions.setAuthStatus('restoreSession'));
+    const useHeaders = applyHeadersSelector(getState() as RootState);
 
     const execute = async () => {
-      // eslint-disable-next-line @typescript-eslint/no-use-before-define
-      let siteUrl = siteUrlSelector(getState() as RootState);
-      if (!siteUrl) {
-        siteUrl = await getData(AUTH_FEATURE_SITE_URL_KEY) ?? '';
-        if (!siteUrl) {
-          // eslint-disable-next-line @typescript-eslint/no-use-before-define
-          siteUrl = userConfigSiteUrlSelector(getState() as RootState) ?? '';
-        }
-        if (siteUrl) {
-          // eslint-disable-next-line @typescript-eslint/no-use-before-define
-          dispatch(setSiteUrl(siteUrl));
-        }
-      }
+      if (useHeaders && window.OrangeDAMContentBrowser?._onRequestToken) {
+        const result = await window.OrangeDAMContentBrowser?._onRequestToken();
 
-      if (!siteUrl) {
-        return false;
-      }
-
-      const accessKey = await getData(AUTH_FEATURE_ACCESS_KEY_KEY);
-
-      if (accessKey) {
-        const accessToken = (
-          await getAccessTokenService(accessKey)
-        ).accessToken;
-        if (accessToken) {
+        if (result) {
           dispatch(
-            // eslint-disable-next-line @typescript-eslint/no-use-before-define
+          // eslint-disable-next-line @typescript-eslint/no-use-before-define
             authSlice.actions.updateAuthTokens({
-              accessKey,
-              accessToken,
+              accessKey: result.token,
             }),
           );
+          if (result.siteUrl) {
+            dispatch(setSiteUrl(result.siteUrl));
+          }
+        }
+
+        return !!result;
+      } else {
+        // eslint-disable-next-line @typescript-eslint/no-use-before-define
+        let siteUrl = siteUrlSelector(getState() as RootState);
+        if (!siteUrl) {
+          siteUrl = await getData(AUTH_FEATURE_SITE_URL_KEY) ?? '';
+          if (!siteUrl) {
+          // eslint-disable-next-line @typescript-eslint/no-use-before-define
+            siteUrl = userConfigSiteUrlSelector(getState() as RootState) ?? '';
+          }
+          if (siteUrl) {
+          // eslint-disable-next-line @typescript-eslint/no-use-before-define
+            dispatch(setSiteUrl(siteUrl));
+          }
+        }
+
+        if (!siteUrl) {
+          return false;
+        }
+
+        const accessKey = await getData(AUTH_FEATURE_ACCESS_KEY_KEY);
+
+        if (accessKey) {
+          if (useHeaders) {
+            dispatch(
+            // eslint-disable-next-line @typescript-eslint/no-use-before-define
+              authSlice.actions.updateAuthTokens({
+                accessKey,
+              }),
+            );
+          } else {
+            const accessToken = (
+              await getAccessTokenService(accessKey)
+            ).accessToken;
+            if (accessToken) {
+              dispatch(
+                // eslint-disable-next-line @typescript-eslint/no-use-before-define
+                authSlice.actions.updateAuthTokens({
+                  accessKey,
+                  accessToken,
+                }),
+              );
+            } else {
+              dispatch(logout());
+              return false;
+            }
+          }
           return true;
         }
+        return false;
       }
-      return false;
     };
 
     let isSuccess = false;

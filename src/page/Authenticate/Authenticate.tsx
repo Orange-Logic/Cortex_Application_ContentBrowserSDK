@@ -1,6 +1,7 @@
 import { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 
+import { AppContext } from '@/AppContext';
 import { GlobalConfigContext } from '@/GlobalConfigContext';
 import { AppDispatch } from '@/store';
 import { authErrorSelector, oAuth, setUseSession, siteUrlSelector } from '@/store/auth/auth.slice';
@@ -10,10 +11,11 @@ import { useDebounceState } from '@/utils/hooks';
 import { CxChangeEvent, CxInput } from '@/web-component';
 
 const AuthenticatePage = () => {
+  const { onClose } = useContext(AppContext);
   const dispatch = useDispatch<AppDispatch>();
   const siteUrl = useSelector(siteUrlSelector);
   const authError = useSelector(authErrorSelector);
-  const { pluginInfo, useSession } = useContext(GlobalConfigContext);
+  const { isContentBrowserPopedup, pluginInfo, useSession } = useContext(GlobalConfigContext);
   const [isDefined, setIsDefined] = useState(false);
   const [url, setUrl] = useState(siteUrl);
   const [urlError, setUrlError] = useState<string | null>(null);
@@ -133,6 +135,19 @@ const AuthenticatePage = () => {
         position: 'absolute',
       }}
     >
+      {isContentBrowserPopedup && (
+        <cx-icon-button
+          name="close"
+          label="Close"
+          onClick={onClose}
+          style={{
+            position: 'fixed',
+            top: 'var(--cx-spacing-x-small)',
+            right: 'var(--cx-spacing-x-small)',
+            zIndex: 1000,
+          }}
+        ></cx-icon-button>
+      )}
       <cx-space
         align-items="center"
         justify-content="center"

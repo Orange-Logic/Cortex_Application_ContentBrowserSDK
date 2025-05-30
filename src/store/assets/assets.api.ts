@@ -4,7 +4,7 @@ import { SortOrder } from '@/types/assets';
 import { Asset, MediaType, Proxy } from '@/types/search';
 import { AppBaseQuery, GetValueByKeyCaseInsensitive } from '@/utils/api';
 import { hasElements, uniqueArray } from '@/utils/array';
-import { createApi } from '@reduxjs/toolkit/query/react';
+import { createApi, retry } from '@reduxjs/toolkit/query/react';
 
 const Parameters = {
   ExtensionsThatSupportTransformationUsingATS: 'ExtensionsThatSupportTransformationUsingATS',
@@ -53,10 +53,14 @@ const getAvailableProxiesAPIParams = ({ assetImages, docTypes, useSession }: Get
   return result;
 };
 
+const baseQueryWithRetry = retry(AppBaseQuery, { 
+  maxRetries: 2,
+});
+
 // Define a service using a base URL and expected endpoints
 export const assetsApi = createApi({
   reducerPath: 'assetsApi',
-  baseQuery: AppBaseQuery,
+  baseQuery: baseQueryWithRetry,
   tagTypes: ['AvailableExtensions', 'AvailableProxies', 'Parameters', 'SortOrders', 'VersionHistory'],
   endpoints: (builder) => ({
     getAvailableExtensions: builder.query<GetAvailableExtensionsResponse, void>({
@@ -109,7 +113,7 @@ export const assetsApi = createApi({
         }
 
         return {
-          url: '/webapi/configuration/parameters/getparameters_412Z_v1',
+          url: '/webapi/extensibility/integrations/contentBrowserSDK/getparameters_412Z_v1',
           params,
         };
       },

@@ -21,7 +21,7 @@ import {
   useGetAvailableProxiesQuery, useGetParametersQuery, useGetSortOrdersQuery,
 } from '@/store/assets/assets.api';
 import { addAssetToFavorite, importAssets, removeAssetFromFavorite } from '@/store/assets/assets.slice';
-import { authenticatedSelector, logout, useSessionSelector } from '@/store/auth/auth.slice';
+import { authenticatedSelector, logout, applySessionSelector } from '@/store/auth/auth.slice';
 import { useGetAssetsQuery, useGetIsFavoriteQuery } from '@/store/search/search.api';
 import { explorePath, RootFolder } from '@/store/search/search.slice';
 import { useGetUserInfoQuery } from '@/store/user/user.api';
@@ -218,7 +218,7 @@ const reducer = (state: State, action: Action): State => {
 const HomePage: FC<Props> = () => {
   const [state, dispatch] = useReducer(reducer, initialState);
   const authenticated = useAppSelector(authenticatedSelector);
-  const useSession = useAppSelector(useSessionSelector);
+  const useSession = useAppSelector(applySessionSelector);
   const {
     allowFavorites,
     allowProxy,

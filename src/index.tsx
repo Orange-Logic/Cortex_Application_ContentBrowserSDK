@@ -13,6 +13,7 @@ import { store } from '@/store';
 import { resetImportStatus } from '@/store/assets/assets.slice';
 import {
   initAuthInfoFromCache,
+  setUseHeaders,
   setUserConfigSiteUrl,
 } from '@/store/auth/auth.slice';
 
@@ -21,142 +22,153 @@ import { searchApi } from './store/search/search.api';
 import { userApi } from './store/user/user.api';
 
 type OrangeDAMContentBrowser = {
-
-  help: () => void,
+  help: () => void;
   open: (config: {
     /**
-         * Callback when asset(s) selected (deprecated)
-         * @returns 
-         */
+     * Callback when asset(s) selected (deprecated)
+     * @returns
+     */
     onImageSelected: AppContextType['onImageSelected'];
     /**
-         * Callback when asset(s) selected
-         * @returns 
-         */
+     * Callback when asset(s) selected
+     * @returns
+     */
     onAssetSelected: AppContextType['onAssetSelected'];
     /**
-         * Callback when we have any error while using content browser
-         */
+     * Callback when we have any error while using content browser
+     */
     onError: AppContextType['onError'];
     /**
-         * Callback when we close the content browser
-         */
+     * Callback when we close the content browser
+     */
     onClose: () => void;
+    /**
+     * Callback when we need to request a token
+     */
+    onRequestToken?: () => Promise<string>;
+    /**
     /**
          * whether you want to select multiple assets
          */
     multiSelect: boolean;
     /**
-         * The containerId to inject to component to
-         * If not defined, we will create a new popup inside
-         */
+     * The containerId to inject to component to
+     * If not defined, we will create a new popup inside
+     */
     containerId?: string;
     /**
-         * User can request for extra field via this config
-         */
+     * User can request for extra field via this config
+     */
     extraFields?: string[];
     /**
-         * Base url. If specified, we will prefill the site URL in the authentication page
-         */
+     * Base url. If specified, we will prefill the site URL in the authentication page
+     */
     baseUrl?: string;
     /**
-         * Only show IIIF prefix. When enable, instead of return full IIIF image url, we will
-         * only return the url before the {region}. IIIF link will have the format like below
-         * {scheme}://{server}{/prefix}/{identifier}/{region}/{size}/{rotation}/{quality}.{format}
-         * 
-         * E.g:
-         * onlyIIIFPrefix = false
-         * => https://local.orangelogic.com/IIIF3/Image/2Y1XC5O9J67/full/max/0.0/default.jpg
-         * 
-         * onlyIIIFPrefix = true
-         * => https://local.orangelogic.com/IIIF3/Image/2Y1XC5O9J67
-         */
+     * Only show IIIF prefix. When enable, instead of return full IIIF image url, we will
+     * only return the url before the {region}. IIIF link will have the format like below
+     * {scheme}://{server}{/prefix}/{identifier}/{region}/{size}/{rotation}/{quality}.{format}
+     *
+     * E.g:
+     * onlyIIIFPrefix = false
+     * => https://local.orangelogic.com/IIIF3/Image/2Y1XC5O9J67/full/max/0.0/default.jpg
+     *
+     * onlyIIIFPrefix = true
+     * => https://local.orangelogic.com/IIIF3/Image/2Y1XC5O9J67
+     */
     onlyIIIFPrefix?: boolean;
     /**
-         * Whether to display info on the asset card
-         * default to true for all field
-         */
+     * Whether to display info on the asset card
+     * default to true for all field
+     */
     displayInfo?: ImageCardDisplayInfo;
     /**
-         * The Public Application Name.
-         * By default, it will be OrangeDAM.
-         */
+     * The Public Application Name.
+     * By default, it will be OrangeDAM.
+     */
     publicApplicationName?: string;
     /**
-         * The plugin short name.
-         * By default, it will be OrangeDAM Content Browser.
-         */
+     * The plugin short name.
+     * By default, it will be OrangeDAM Content Browser.
+     */
     pluginName?: string;
     /**
-         * The CTA text for the content browser
-         * default to "Insert"
-         */
+     * The CTA text for the content browser
+     * default to "Insert"
+     */
     ctaText?: string;
     /**
-         * The persist mode for the content browser which will prevent the browser from closing after selecting asset
-         * default to false
-         */
+     * The persist mode for the content browser which will prevent the browser from closing after selecting asset
+     * default to false
+     */
     persistMode?: boolean;
     /**
-         * The available subtypes for the content browser
-         */
+     * The available subtypes for the content browser
+     */
     availableDocTypes?: string[];
     /**
-         * The supported subtypes for inserting representative image
-         */
+     * The supported subtypes for inserting representative image
+     */
     availableRepresentativeSubtypes?: string[];
     /**
-         * The flag to show collections
-         */
+     * The flag to show collections
+     */
     showCollections?: boolean;
     /**
-         * The flag to show the favorite folder
-         */
+     * The flag to show the favorite folder
+     */
     showFavoriteFolder?: boolean;
     /**
-         * The flag to show versions
-         */
+     * The flag to show versions
+     */
     showVersions?: boolean;
     /**
-         * The session id to use for the content browser
-         */
-    useSession?: string
+     * The session id to use for the content browser
+     */
+    useSession?: string;
     /**
-         * The flag to keep the last folder selected between sessions
-         */
+     * The flag to keep the last folder selected between sessions
+     */
     lastLocationMode?: boolean;
     /**
-         * The flag to turn on/off tracking parameters for links
-         */
+     * The flag to turn on/off tracking parameters for links
+     */
     allowTracking?: boolean;
 
     /**
-         * The flag to allow the user to select proxy
-         */
+     * The flag to allow the user to select proxy
+     */
     allowProxy?: boolean;
 
     /**
-         * The flag to allow the user to select favorites
-         */
+     * The flag to allow the user to select favorites
+     */
     allowFavorites?: boolean;
-  }) => void,
-  close: () => void,
+  }) => Promise<void>;
+  close: () => void;
   /**
-       * Global function which mirrored the behavior of onAssetSelected
-       */
-  _onAssetSelected?: AppContextType['onAssetSelected'],
+   * Global function which mirrored the behavior of onAssetSelected
+   */
+  _onAssetSelected?: AppContextType['onAssetSelected'];
   /**
-       * Global function which mirrored the behavior of onImageSelected (deprecated)
-       */
-  _onImageSelected?: AppContextType['onImageSelected'],
+   * Global function which mirrored the behavior of onImageSelected (deprecated)
+   */
+  _onImageSelected?: AppContextType['onImageSelected'];
   /**
-       * Global function which mirrored the behavior of onError
-       */
-  _onError?: AppContextType['onError'],
+   * Global function which mirrored the behavior of onError
+   */
+  _onError?: AppContextType['onError'];
   /**
-       * Global function which mirrored the behavior of onClose
-       */
-  _onClose?: () => void,
+   * Global function which mirrored the behavior of onClose
+   */
+  _onClose?: () => void;
+  /**
+   * Global function which mirrored the behavior of onRequestToken
+   */
+  _onRequestToken?: () => Promise<{
+    token: string;
+    siteUrl?: string;
+  }>;
 };
 
 declare global {
@@ -206,14 +218,15 @@ const ContentBrowser: OrangeDAMContentBrowser = {
         allowTracking: true, // Whether to enable tracking parameters for asset URLs
       });`);
   },
-  open: ({ 
+  open: async ({
     onAssetSelected,
-    onImageSelected, 
-    onError, 
+    onImageSelected,
+    onError,
     onClose,
+    onRequestToken,
     availableRepresentativeSubtypes,
     availableDocTypes,
-    baseUrl, 
+    baseUrl,
     containerId,
     ctaText,
     displayInfo = {
@@ -222,7 +235,7 @@ const ContentBrowser: OrangeDAMContentBrowser = {
       fileSize: false,
       tags: false,
     },
-    extraFields, 
+    extraFields,
     lastLocationMode,
     multiSelect,
     persistMode,
@@ -243,10 +256,12 @@ const ContentBrowser: OrangeDAMContentBrowser = {
       console.error(`Container with id ${containerId} is not found`);
       return;
     }
-    let pickerRoot:HTMLDivElement | null = container.querySelector('#cortex-asset-picker-root');
-    if (!pickerRoot)  {
+    let pickerRoot: HTMLDivElement | null = container.querySelector(
+      '#cortex-asset-picker-root',
+    );
+    if (!pickerRoot) {
       //?? if not found, create a new one
-      pickerRoot = document.createElement('div') ;
+      pickerRoot = document.createElement('div');
       pickerRoot.id = 'cortex-asset-picker-root';
       pickerRoot.style.width = '100%';
       pickerRoot.style.height = '100%';
@@ -258,15 +273,35 @@ const ContentBrowser: OrangeDAMContentBrowser = {
     }
     const root = createRoot(pickerRoot);
 
+    if (onRequestToken) {
+      window.OrangeDAMContentBrowser._onRequestToken = () => {
+        return onRequestToken().then((token) => {
+          return { token, siteUrl: baseUrl };
+        });
+      };
+    }
+
     // Dispatch some event before start render the APP
     if (baseUrl) {
       store.dispatch(setUserConfigSiteUrl(baseUrl));
     }
+
+    if (onRequestToken) {
+      store.dispatch(setUseHeaders(true));
+    }
+
     store.dispatch(initAuthInfoFromCache());
 
-    const errorHandler         = (typeof onError === 'function' && !!onError) ? onError : console.log;
-    const assetSelectedHandler = (typeof onAssetSelected === 'function' && !!onAssetSelected) ? onAssetSelected : console.log;
-    const imageSelectedHandler = (typeof onImageSelected === 'function' && !!onImageSelected) ? onImageSelected : console.log;
+    const errorHandler =
+      typeof onError === 'function' && !!onError ? onError : console.log;
+    const assetSelectedHandler =
+      typeof onAssetSelected === 'function' && !!onAssetSelected
+        ? onAssetSelected
+        : console.log;
+    const imageSelectedHandler =
+      typeof onImageSelected === 'function' && !!onImageSelected
+        ? onImageSelected
+        : console.log;
     const handleClose = () => {
       store.dispatch(resetImportStatus());
       store.dispatch(searchApi.util.resetApiState());
@@ -276,38 +311,41 @@ const ContentBrowser: OrangeDAMContentBrowser = {
       // Reset these function when close the Content Browser
       window.OrangeDAMContentBrowser._onAssetSelected = undefined;
       window.OrangeDAMContentBrowser._onImageSelected = undefined;
-      window.OrangeDAMContentBrowser._onError         = undefined;
-      window.OrangeDAMContentBrowser._onClose         = undefined;
+      window.OrangeDAMContentBrowser._onError = undefined;
+      window.OrangeDAMContentBrowser._onClose = undefined;
 
       onClose?.();
     };
     window.OrangeDAMContentBrowser._onAssetSelected = assetSelectedHandler;
     window.OrangeDAMContentBrowser._onImageSelected = imageSelectedHandler;
-    window.OrangeDAMContentBrowser._onError         = errorHandler;
-    window.OrangeDAMContentBrowser._onClose         = handleClose;
+    window.OrangeDAMContentBrowser._onError = errorHandler;
+    window.OrangeDAMContentBrowser._onClose = handleClose;
 
     root.render(
       <Provider store={store}>
-        <GlobalConfigContext.Provider value={{
-          availableDocTypes,
-          availableRepresentativeSubtypes,
-          ctaText: ctaText ?? 'Insert',
-          displayInfo,
-          lastLocationMode: lastLocationMode !== undefined ? !!lastLocationMode : true,
-          persistMode: !!persistMode,
-          pluginInfo: {
-            publicApplicationName: publicApplicationName ?? '',
-            pluginName: pluginName ?? 'OrangeDAM Content Browser',
-          },
-          isContentBrowserPopedup: !containerId,
-          showCollections: !!showCollections,
-          showFavoriteFolder: !!showFavoriteFolder,
-          showVersions: !!showVersions,
-          useSession,
-          allowTracking: allowTracking !== undefined ? !!allowTracking : true,
-          allowProxy: allowProxy !== undefined ? !!allowProxy : true,
-          allowFavorites: !!allowFavorites,
-        }}>
+        <GlobalConfigContext.Provider
+          value={{
+            availableDocTypes,
+            availableRepresentativeSubtypes,
+            ctaText: ctaText ?? 'Insert',
+            displayInfo,
+            lastLocationMode:
+              lastLocationMode !== undefined ? !!lastLocationMode : true,
+            persistMode: !!persistMode,
+            pluginInfo: {
+              publicApplicationName: publicApplicationName ?? '',
+              pluginName: pluginName ?? 'OrangeDAM Content Browser',
+            },
+            isContentBrowserPopedup: !containerId,
+            showCollections: !!showCollections,
+            showFavoriteFolder: !!showFavoriteFolder,
+            showVersions: !!showVersions,
+            useSession,
+            allowTracking: allowTracking !== undefined ? !!allowTracking : true,
+            allowProxy: allowProxy !== undefined ? !!allowProxy : true,
+            allowFavorites: !!allowFavorites,
+          }}
+        >
           <App
             containerId={containerId}
             extraFields={extraFields}
@@ -315,7 +353,8 @@ const ContentBrowser: OrangeDAMContentBrowser = {
             onError={errorHandler}
             onAssetSelected={assetSelectedHandler}
             onImageSelected={imageSelectedHandler}
-            onClose={handleClose} />
+            onClose={handleClose}
+          />
         </GlobalConfigContext.Provider>
       </Provider>,
     );

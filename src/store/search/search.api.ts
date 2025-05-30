@@ -9,7 +9,7 @@ import {
 import { Asset, Folder, GetContentRequest, GetContentResponse, GetFavoritesResponse } from '@/types/search';
 import { AppBaseQuery, GetValueByKeyCaseInsensitive } from '@/utils/api';
 import { isNullOrWhiteSpace } from '@/utils/string';
-import { createApi } from '@reduxjs/toolkit/query/react';
+import { createApi, retry } from '@reduxjs/toolkit/query/react';
 
 const NATURAL_SORT_ORDER_REFERENCE_ID = 'OR4ND000000063615';
 
@@ -68,10 +68,13 @@ const resolveAssetExtraFilters = ({
   return filters.join(' AND ');
 };
 
+const baseQueryWithRetry = retry(AppBaseQuery, { 
+  maxRetries: 2,
+});
 // Define a service using a base URL and expected endpoints
 export const searchApi = createApi({
   reducerPath: 'searchApi',
-  baseQuery: AppBaseQuery,
+  baseQuery: baseQueryWithRetry,
   tagTypes: ['Folders', 'Images', 'ImagesInFolders'],
   endpoints: (builder) => ({
     getFolders: builder.query({
@@ -327,7 +330,7 @@ export const searchApi = createApi({
         ];
 
         return {
-          url: '/webapi/extensibility/integrations/gab/assetbrowser/getfavorites_419t',
+          url: '/webapi/extensibility/integrations/contentBrowserSDK/getfavorites_419t',
           params,
         };
       },

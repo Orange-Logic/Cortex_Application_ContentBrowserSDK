@@ -4,12 +4,15 @@ import { RootState, store } from '@/store';
 import { getAccessTokenService } from '@/store/auth/auth.service';
 import {
   accessTokenSelector, AUTH_FEATURE_KEY, logout, setAccessToken,
+  applyHeadersSelector,
+  accessKeySelector,
 } from '@/store/auth/auth.slice';
 import {
   BaseQueryFn, FetchArgs, fetchBaseQuery, FetchBaseQueryError,
 } from '@reduxjs/toolkit/dist/query';
 
 import { getRequestUrl } from './getRequestUrl';
+import { getData, storeData } from './storage';
 
 type CortexFetchOptions = RequestInit & {
   /**
@@ -48,12 +51,27 @@ unknown,
 FetchBaseQueryError
 > = async (args, api, extraOptions) => {
   const rootState = api.getState() as RootState;
+  const key = accessKeySelector(rootState);
   const token = accessTokenSelector(rootState);
-  if (token)
+  const useHeaders = applyHeadersSelector(rootState);
+
+  let prepareHeaders = undefined;
+
+  if (token && !useHeaders) {
     args = appendQueryStringParam(args, 'Token', token);
+  }
+
+  if (key && useHeaders) {
+    prepareHeaders = (headers: Headers) => {
+      headers.set('Authorization', `Bearer ${key}`);
+      return headers;
+    };
+  }
+
   const authState = rootState[AUTH_FEATURE_KEY];
   const rawBaseQuery = fetchBaseQuery({
     baseUrl: authState.siteUrl,
+    prepareHeaders,
   });
 
   await mutex.waitForUnlock();
@@ -63,11 +81,29 @@ FetchBaseQueryError
     if (!mutex.isLocked()) {
       const release = await mutex.acquire();
       try {
-        if (authState.accessKey) {
+        if (authState.accessKey && !useHeaders) {
           const accessToken = (
             await getAccessTokenService(authState.accessKey)
           ).accessToken;
           api.dispatch(setAccessToken(accessToken));
+        } else if (useHeaders && window.OrangeDAMContentBrowser?._onRequestToken) {
+          const retryCount = await getData('retryCount');
+          const parsedRetryCount = parseInt(retryCount ?? '0', 10) || 0;
+
+          if (parsedRetryCount >= 2) {
+            api.dispatch(logout());
+            release();
+          }
+
+          const tokenResult = await window.OrangeDAMContentBrowser?._onRequestToken();
+        
+          storeData('retryCount', (parsedRetryCount + 1).toString());
+          
+          if (tokenResult) {
+            api.dispatch(setAccessToken(tokenResult.token));
+          }
+        } else {
+          api.dispatch(logout());
         }
       } finally {
         release();
