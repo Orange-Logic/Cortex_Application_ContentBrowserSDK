@@ -1,14 +1,15 @@
 import { CxSelect, CxChangeEvent } from '@/web-component';
 import { useState, useRef, useEffect, FC } from 'react';
-import { extensions } from '../CustomRendition.constants';
 
 type Props = { 
   extension: string, 
+  extensions: { displayName: string; value: string }[],
   onChange: (extension: string) => void;
 };
 
 const Extension: FC<Props> = ({ 
   extension,
+  extensions,
   onChange,
 }) => {
   const [isDefined, setIsDefined] = useState(false);
@@ -43,7 +44,7 @@ const Extension: FC<Props> = ({
       <cx-typography variant="body2">Extension</cx-typography>
       <cx-select value={isDefined ? extension : ''} ref={extensionSelectRef} hoist>
         {extensions.map((item) => (
-          <cx-option key={item.value} value={item.value}>{item.label}</cx-option>
+          <cx-option key={item.value} value={item.value}>{item.displayName}</cx-option>
         ))}
       </cx-select>
     </cx-space>

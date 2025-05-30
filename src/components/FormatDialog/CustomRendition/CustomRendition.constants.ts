@@ -21,15 +21,4 @@ export const cropModes = [{
   label: 'Portrait (2:3)',
 }];
 
-export const extensions = [{
-  value: 'jpg',
-  label: 'JPG',
-}, {
-  value: 'png',
-  label: 'PNG',
-}, {
-  value: 'jpeg',
-  label: 'JPEG',
-}];
-
 export const INPUT_DEBOUNCE_DELAY = 1000;

@@ -153,7 +153,7 @@ const Resize: FC<Props> = ({ open, width, height, lastAppliedSetting, maxWidth, 
               <cx-typography slot="prefix" variant="body3" className="details__summary__input-label">H</cx-typography>
             </cx-input>
           </div>
-          <cx-select value={isDefined ? unit : ''} ref={unitSelectRef} hoist>
+          <cx-select value={isDefined ? unit : ''} ref={unitSelectRef} hoist className="resize__unit-select">
             <cx-option value="pixels">Pixels</cx-option>
             <cx-option value="aspect-ratio">Aspect ratio</cx-option>
           </cx-select>

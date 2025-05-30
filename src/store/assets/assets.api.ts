@@ -12,6 +12,7 @@ const Parameters = {
   CollectionSubtypeCriteria: 'CollectionSubtypeCriteria',
   SupportDocTypes: 'SupportDocTypes',
   RepresentativeSupportedDocSubType: 'RepresentativeSupportedDocSubType',
+  ExtensionAuto: 'ExtensionAuto',
 };
 
 type GetAvailableProxiesRequest = {
@@ -24,6 +25,8 @@ export type GetAvailableProxiesResponse = {
   previewUrl: string;
   proxies: Proxy[];
 };
+
+type GetAvailableExtensionsResponse = Record<MediaType, { displayName: string; value: string }[]>;
 
 /**
  * get query parameter for AvailableProxies_4ea_v2 API
@@ -54,8 +57,20 @@ const getAvailableProxiesAPIParams = ({ assetImages, docTypes, useSession }: Get
 export const assetsApi = createApi({
   reducerPath: 'assetsApi',
   baseQuery: AppBaseQuery,
-  tagTypes: ['AvailableProxies', 'Parameters', 'SortOrders', 'VersionHistory'],
+  tagTypes: ['AvailableExtensions', 'AvailableProxies', 'Parameters', 'SortOrders', 'VersionHistory'],
   endpoints: (builder) => ({
+    getAvailableExtensions: builder.query<GetAvailableExtensionsResponse, void>({
+      query: () => ({
+        url: '/webapi/extensibility/integrations/gab/assetbrowser/getavailableextensionsfortransformation_419v_v1',
+      }),
+      transformResponse: (response: { extensions: GetAvailableExtensionsResponse }) => {
+        return response.extensions;
+      },
+      providesTags: ['AvailableExtensions'],
+      serializeQueryArgs: () => {
+        return 'getAvailableExtensions';
+      },
+    }),
     getAvailableProxies: builder.query<GetAvailableProxiesResponse, GetAvailableProxiesRequest>({
       query: (request) => ({
         url: '/webapi/extensibility/integrations/contentBrowserSDK/AvailableProxies_4ea_v3?',
@@ -78,6 +93,7 @@ export const assetsApi = createApi({
     }),
     getParameters: builder.query<{
       ATSEnabled: boolean;
+      autoExtension: string;
       collectionPath: string;
       supportedExtensions: string[];
       supportedRepresentativeSubtypes: string[];
@@ -104,6 +120,7 @@ export const assetsApi = createApi({
           supportedDocTypes: response[Parameters.SupportDocTypes]?.split(/\r?\n/) ?? [],
           supportedExtensions: response[Parameters.ExtensionsThatSupportTransformationUsingATS]?.split('\n') ?? [],
           supportedRepresentativeSubtypes: response[Parameters.RepresentativeSupportedDocSubType]?.split('\r\n') ?? [],
+          autoExtension: response[Parameters.ExtensionAuto]?.toLowerCase() ?? '.auto',
         };
       },
       providesTags: ['Parameters'],
@@ -172,6 +189,7 @@ export const assetsApi = createApi({
 // Export hooks for usage in functional components, which are
 // auto-generated based on the defined endpoints
 export const {
+  useGetAvailableExtensionsQuery,
   useGetAvailableProxiesQuery,
   useGetParametersQuery,
   useGetSortOrdersQuery,

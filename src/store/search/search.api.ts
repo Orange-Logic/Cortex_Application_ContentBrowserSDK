@@ -251,22 +251,28 @@ export const searchApi = createApi({
       } => ({
         facets: _mapKeys(response.facets, (_, key) => _camelCase(key)),
         items:
-          response.contentItems?.map((item) => ({
-            docType: GetValueByKeyCaseInsensitive(item.fields, FIELD_DOC_TYPE) ?? '',
-            docSubType: GetValueByKeyCaseInsensitive(item.fields, FIELD_SUBTYPE) ?? '',
-            extension: GetValueByKeyCaseInsensitive(item.fields, FIELD_EXTENSION) ?? '',
-            height: GetValueByKeyCaseInsensitive(item.fields, FIELD_MAX_HEIGHT) ?? '0',
-            id: item.recordID,
-            identifier: GetValueByKeyCaseInsensitive(item.fields, FIELD_IDENTIFIER) ?? '',
-            imageUrl: GetValueByKeyCaseInsensitive(item.fields, DEFAULT_VIEW_SIZE) ?? '',
-            originalUrl: GetValueByKeyCaseInsensitive(item.fields, ORIGINAL_VIEW_SIZE) ?? '',
-            name: GetValueByKeyCaseInsensitive(item.fields, FIELD_TITLE_WITH_FALLBACK) ?? '',
-            scrubUrl: GetValueByKeyCaseInsensitive(item.fields, FIELD_SCRUB_URL) ?? '',
-            size: GetValueByKeyCaseInsensitive(item.fields, FIELD_FILE_SIZE) ?? '0 MB',
-            tags: GetValueByKeyCaseInsensitive(item.fields, FIELD_KEYWORDS) ?? '',
-            width: GetValueByKeyCaseInsensitive(item.fields, FIELD_MAX_WIDTH) ?? '0',
-            allowATSLink: GetValueByKeyCaseInsensitive(item.fields, FIELD_ALLOW_ATS_LINK) === 'True',
-          } as Asset)) ?? [],
+          response.contentItems?.map((item) => {
+            let extension = GetValueByKeyCaseInsensitive(item.fields, FIELD_EXTENSION) ?? '';
+            if (extension && !extension.startsWith('.')) {
+              extension = '.' + extension;
+            }
+            return {
+              docType: GetValueByKeyCaseInsensitive(item.fields, FIELD_DOC_TYPE) ?? '',
+              docSubType: GetValueByKeyCaseInsensitive(item.fields, FIELD_SUBTYPE) ?? '',
+              extension,
+              height: GetValueByKeyCaseInsensitive(item.fields, FIELD_MAX_HEIGHT) ?? '0',
+              id: item.recordID,
+              identifier: GetValueByKeyCaseInsensitive(item.fields, FIELD_IDENTIFIER) ?? '',
+              imageUrl: GetValueByKeyCaseInsensitive(item.fields, DEFAULT_VIEW_SIZE) ?? '',
+              originalUrl: GetValueByKeyCaseInsensitive(item.fields, ORIGINAL_VIEW_SIZE) ?? '',
+              name: GetValueByKeyCaseInsensitive(item.fields, FIELD_TITLE_WITH_FALLBACK) ?? '',
+              scrubUrl: GetValueByKeyCaseInsensitive(item.fields, FIELD_SCRUB_URL) ?? '',
+              size: GetValueByKeyCaseInsensitive(item.fields, FIELD_FILE_SIZE) ?? '0 MB',
+              tags: GetValueByKeyCaseInsensitive(item.fields, FIELD_KEYWORDS) ?? '',
+              width: GetValueByKeyCaseInsensitive(item.fields, FIELD_MAX_WIDTH) ?? '0',
+              allowATSLink: GetValueByKeyCaseInsensitive(item.fields, FIELD_ALLOW_ATS_LINK) === 'True',
+            } as Asset;
+          }) ?? [],
         totalCount: response.totalCount,
       }),
       providesTags: (_result, _error, arg) => {

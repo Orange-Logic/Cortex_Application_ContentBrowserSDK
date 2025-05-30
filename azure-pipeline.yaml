@@ -53,13 +53,6 @@ stages:
             parameters:
               versionSpec: 18.x
 
-          - template: azure-pipelines/common/steps-npm-static.yml@infra-templates
-            parameters:
-              version: '$(GitVersion.FullSemVer)'
-              configurations:
-                - key: legacy-peer-deps
-                  value: true
-
           - task: replacetokens@6
             displayName: 'Replace tokens in HTML files'
             inputs:
@@ -71,6 +64,13 @@ stages:
               tokenSuffix: '__'
               additionalVariables: |
                 - tag: v$(GitVersion.FullSemVer)
+
+          - template: azure-pipelines/common/steps-npm-package.yml@infra-templates
+            parameters:
+              npmEndpoint: 'OL NPM registry'
+              isCustomNpmEndpoint: true
+              version: '$(GitVersion.FullSemVer)'
+              skipBuild: false
 
           - template: azure-pipelines/common/steps-s3-publish.yml@infra-templates
             parameters:
