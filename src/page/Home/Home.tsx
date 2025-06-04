@@ -985,17 +985,6 @@ const HomePage: FC<Props> = () => {
               handleSelectedAsset(images.payload);
             }
           }}
-          onOpenInDriveConfirm={() => {
-            if (!state.selectedAsset) {
-              return;
-            }
-
-            window.OrangeDAMContentBrowser._onAssetSelected?.([
-              {
-                imageUrl: state.selectedAsset.imageUrl,
-              },
-            ]);
-          }}
           onUnFavorite={async () => {
             if (!state.selectedAsset) {
               return false;

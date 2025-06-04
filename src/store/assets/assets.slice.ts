@@ -2,6 +2,8 @@ import { AssetsState, TrackingParameter, Transformation } from '@/types/assets';
 import { Asset, GetAssetLinkResponse } from '@/types/search';
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 
+import { store } from '../';
+import { applyHeadersSelector } from '../auth/auth.slice';
 import { favoriteAsset, getAssetLinks, unfavoriteAsset } from './assets.service';
 
 export const SETTINGS_DEFAULT_PROXY = 'Always show asset format selector';
@@ -75,6 +77,16 @@ GetAssetLinkResponse[],
       useSession,
     },
   ) => {
+    let token = undefined;
+    const useHeaders = applyHeadersSelector(store.getState());
+
+    if (useHeaders && window.OrangeDAMContentBrowser?._onRequestToken) {
+      const result = await window.OrangeDAMContentBrowser?._onRequestToken();
+    
+      if (result) {
+        token = result.token;
+      }
+    }
 
     const images = await getAssetLinks({
       assets: [selectedAsset],
@@ -87,6 +99,7 @@ GetAssetLinkResponse[],
       maxHeight,
       extension,
       useSession,
+      token,
     });
 
     if (useRepresentative) {

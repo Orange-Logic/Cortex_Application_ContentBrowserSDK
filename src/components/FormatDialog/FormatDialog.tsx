@@ -50,7 +50,6 @@ type Props = {
     proxiesPreference?: string;
     extension?: string;
   }) => void;
-  onOpenInDriveConfirm: () => void;
   onUnFavorite: () => Promise<boolean>;
 };
 
@@ -414,7 +413,6 @@ const FormatDialog: FC<Props> = ({
   onFavorite,
   onProxyConfirm,
   onFormatConfirm,
-  onOpenInDriveConfirm,
   onUnFavorite,
 }) => {
   const [state, dispatch] = useReducer(reducer, initialState);
@@ -1506,7 +1504,17 @@ const FormatDialog: FC<Props> = ({
         content = (
           <cx-button
             className="dialog__footer__button"
-            onClick={onOpenInDriveConfirm}
+            onClick={() => {
+              if (!selectedAsset?.docType) {
+                return;
+              }
+
+              onProxyConfirm({
+                extension: selectedAsset.extension,
+                useRepresentative: true,
+                value: '',
+              });
+            }}
             variant="primary"
           >
             <cx-icon slot="prefix" name="folder"></cx-icon>
@@ -1630,7 +1638,6 @@ const FormatDialog: FC<Props> = ({
     onFormatChange,
     onFormatConfirm,
     onLoadingChange,
-    onOpenInDriveConfirm,
     onProxyConfirm,
     onResizeChange,
     onRotateChange,

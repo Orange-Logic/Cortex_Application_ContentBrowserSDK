@@ -16,6 +16,7 @@ export const getAssetLinks = async (
     parameters,
     extension,
     useSession,
+    token,
   }: {
     assets: Asset[];
     extraFields?: string;
@@ -27,6 +28,7 @@ export const getAssetLinks = async (
     maxHeight?: number;
     extension?: string;
     useSession?: string;
+    token?: string;
   },
 ): Promise<GetAssetLinkResponse[]> => {
   let baseUrl = '/webapi/extensibility/integrations/contentBrowserSDK/GetAssetLink_4by?';
@@ -50,7 +52,10 @@ export const getAssetLinks = async (
     if (proxyPreference) {
       url += `&Proxy=${proxyPreference}`;
     }
-    const response  = await cortexFetch(url, { method: 'GET' });
+    const response  = await cortexFetch(url, { method: 'GET', headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    } });
     let responseData: GetAssetLinkResponse | CortexErrorResponse | null = null;
     responseData = await response.json();
 
