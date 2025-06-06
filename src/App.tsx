@@ -50,6 +50,7 @@ type Props = {
    */
   onClose?: () => void;
   onError: AppContextType['onError'];
+  onAssetAction: AppContextType['onAssetAction'];
   onAssetSelected: AppContextType['onAssetSelected'];
   onImageSelected: AppContextType['onImageSelected'];
 };
@@ -71,6 +72,7 @@ export const App: FC<Props> = ({
   multiSelect,
   onClose,
   onError,
+  onAssetAction,
   onAssetSelected,
   onImageSelected,
 }) => {
@@ -98,12 +100,13 @@ export const App: FC<Props> = ({
   const contextValue = useMemo(
     () => ({
       extraFields,
+      onAssetAction,
       onAssetSelected,
       onImageSelected,
       onError,
       onClose: handleClose,
     }),
-    [extraFields, handleClose, onAssetSelected, onError, onImageSelected],
+    [extraFields, handleClose, onAssetAction, onAssetSelected, onError, onImageSelected],
   );
 
   return (

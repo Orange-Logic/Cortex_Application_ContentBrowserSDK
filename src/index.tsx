@@ -47,9 +47,12 @@ type OrangeDAMContentBrowser = {
      */
     onRequestToken?: () => Promise<string>;
     /**
+     * Callback when we make an action on the asset
+     */
+    onAssetAction?: AppContextType['onAssetAction'];
     /**
-         * whether you want to select multiple assets
-         */
+     * whether you want to select multiple assets
+     */
     multiSelect: boolean;
     /**
      * The containerId to inject to component to
@@ -169,6 +172,10 @@ type OrangeDAMContentBrowser = {
     token: string;
     siteUrl?: string;
   }>;
+  /**
+   * Global function which mirrored the behavior of onAssetAction
+   */
+  _onAssetAction?: AppContextType['onAssetAction'];
 };
 
 declare global {
@@ -219,6 +226,7 @@ const ContentBrowser: OrangeDAMContentBrowser = {
       });`);
   },
   open: async ({
+    onAssetAction,
     onAssetSelected,
     onImageSelected,
     onError,
@@ -294,6 +302,10 @@ const ContentBrowser: OrangeDAMContentBrowser = {
 
     const errorHandler =
       typeof onError === 'function' && !!onError ? onError : console.log;
+    const assetActionHandler =
+      typeof onAssetAction === 'function' && !!onAssetAction
+        ? onAssetAction
+        : console.log;
     const assetSelectedHandler =
       typeof onAssetSelected === 'function' && !!onAssetSelected
         ? onAssetSelected
@@ -316,6 +328,7 @@ const ContentBrowser: OrangeDAMContentBrowser = {
 
       onClose?.();
     };
+    window.OrangeDAMContentBrowser._onAssetAction = assetActionHandler;
     window.OrangeDAMContentBrowser._onAssetSelected = assetSelectedHandler;
     window.OrangeDAMContentBrowser._onImageSelected = imageSelectedHandler;
     window.OrangeDAMContentBrowser._onError = errorHandler;
@@ -351,6 +364,7 @@ const ContentBrowser: OrangeDAMContentBrowser = {
             extraFields={extraFields}
             multiSelect={multiSelect}
             onError={errorHandler}
+            onAssetAction={assetActionHandler}
             onAssetSelected={assetSelectedHandler}
             onImageSelected={imageSelectedHandler}
             onClose={handleClose}

@@ -125,8 +125,20 @@ boolean,
       recordId,
     },
   ) => {
+    let token = undefined;
+    const useHeaders = applyHeadersSelector(store.getState());
+
+    if (useHeaders && window.OrangeDAMContentBrowser?._onRequestToken) {
+      const result = await window.OrangeDAMContentBrowser?._onRequestToken();
+    
+      if (result) {
+        token = result.token;
+      }
+    }
+
     return await favoriteAsset({
       recordId,
+      token,
     });
   },
 );
@@ -143,8 +155,20 @@ boolean,
       recordId,
     },
   ) => {
+    let token = undefined;
+    const useHeaders = applyHeadersSelector(store.getState());
+
+    if (useHeaders && window.OrangeDAMContentBrowser?._onRequestToken) {
+      const result = await window.OrangeDAMContentBrowser?._onRequestToken();
+    
+      if (result) {
+        token = result.token;
+      }
+    }
+
     return await unfavoriteAsset({
       recordId,
+      token,
     });
   },
 );

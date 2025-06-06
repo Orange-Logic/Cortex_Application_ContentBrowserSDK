@@ -230,8 +230,10 @@ export const getAssetLinks = async (
 export const favoriteAsset = async (
   {
     recordId,
+    token,
   }: {
     recordId: string;
+    token?: string;
   },
 ): Promise<boolean> => {
   const response = await cortexFetch(
@@ -241,6 +243,7 @@ export const favoriteAsset = async (
       body: JSON.stringify({ RecordId: recordId }),
       headers: {
         'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
     },
   );
@@ -255,8 +258,10 @@ export const favoriteAsset = async (
 export const unfavoriteAsset = async (
   {
     recordId,
+    token,
   }: {
     recordId: string;
+    token?: string;
   },
 ): Promise<boolean> => {
   const response = await cortexFetch(
@@ -266,6 +271,7 @@ export const unfavoriteAsset = async (
       body: JSON.stringify({ RecordId: recordId }),
       headers: {
         'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
     },
   );

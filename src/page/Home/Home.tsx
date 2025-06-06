@@ -232,7 +232,7 @@ const HomePage: FC<Props> = () => {
     showFavoriteFolder,
     showVersions,
   } = useContext(GlobalConfigContext);
-  const { extraFields } = useContext(AppContext);
+  const { extraFields, onAssetAction } = useContext(AppContext);
   const { data: userInfo, isFetching: isFetchingUserInfo, isLoading: isLoadingUserInfo, refetch: refetchUserInfo } = useGetUserInfoQuery({});
   
   useEffect(() => {
@@ -905,6 +905,9 @@ const HomePage: FC<Props> = () => {
             );
 
             if (addAssetToFavorite.fulfilled.match(result)) {
+              if (onAssetAction) {
+                onAssetAction('favorite', state.selectedAsset.id);
+              }
               await refetchIsFavorite();
 
               if (state.currentFolder.id === userInfo?.favoriteFolderRecordID) {
@@ -997,6 +1000,9 @@ const HomePage: FC<Props> = () => {
             );
 
             if (removeAssetFromFavorite.fulfilled.match(result)) {
+              if (onAssetAction) {
+                onAssetAction('unfavorite', state.selectedAsset.id);
+              }
               await refetchIsFavorite();
 
               if (state.currentFolder.id === userInfo?.favoriteFolderRecordID) {
