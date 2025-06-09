@@ -1,6 +1,6 @@
 import _uniqBy from 'lodash-es/uniqBy';
 import {
-  CSSProperties, FC, useCallback, useContext, useEffect, useMemo, useReducer, useRef, useState,
+  CSSProperties, FC, useCallback, useEffect, useMemo, useReducer, useRef, useState,
 } from 'react';
 
 import { TrackingParameter, Transformation, TransformationAction, Unit } from '@/types/assets';
@@ -15,7 +15,6 @@ import { Dialog, Drawer } from './FormatDialog.styled';
 import Previewer from './Previewer';
 import ProxyMenu from './ProxyMenu';
 import TrackingParameters from './TrackingParameters';
-import { GlobalConfigContext } from '@/GlobalConfigContext';
 
 type Props = {
   allowTracking: boolean;
@@ -485,7 +484,7 @@ const FormatDialog: FC<Props> = ({
       },
     });
 
-    if (availableProxies && availableProxies.length > 0) {
+    if (availableProxies) {
       dispatch({
         type: 'SET_SELECTED_PROXY',
         payload: availableProxies[0]?.id,
@@ -1204,7 +1203,7 @@ const FormatDialog: FC<Props> = ({
               >
                 {supportedProxies && (
                   <ProxyMenu
-                    items={availableProxies?.map((proxy) => {
+                    items={availableProxies.map((proxy) => {
                       if (proxy.proxyName === 'TRX' && selectedAsset) {
                         return {
                           value: proxy.id,

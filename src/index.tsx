@@ -105,11 +105,6 @@ declare global {
          */
         persistMode?: boolean;
         /**
-         * The allowed extensions to be selected
-         * default to * (wildcard)
-         */
-        allowedExtensions?: string[];
-        /**
          * The available subtypes for the content browser
          */
         availableDocTypes?: string[];
@@ -202,7 +197,6 @@ window.OrangeDAMContentBrowser = {
     onError, 
     onClose,
     availableRepresentativeSubtypes,
-    allowedExtensions,
     availableDocTypes,
     baseUrl, 
     containerId,
@@ -277,7 +271,6 @@ window.OrangeDAMContentBrowser = {
     root.render(
       <Provider store={store}>
         <GlobalConfigContext.Provider value={{
-          allowedExtensions,
           availableDocTypes,
           availableRepresentativeSubtypes,
           ctaText: ctaText ?? 'Insert',

@@ -26,7 +26,7 @@ import { useGetAssetsQuery } from '@/store/search/search.api';
 import { explorePath, RootFolder } from '@/store/search/search.slice';
 import { FormatLoaderState } from '@/types/assets';
 import {
-  Asset, Filter, Folder, GetAssetLinkResponse, GridView, Proxy, SortDirection,
+  Asset, Filter, Folder, GetAssetLinkResponse, GridView, SortDirection,
 } from '@/types/search';
 import { MOBILE_THRESHOLD, PAGE_SIZE } from '@/utils/constants';
 import { getData, storeData } from '@/utils/storage';
@@ -219,7 +219,6 @@ const HomePage: FC<Props> = () => {
   const authenticated = useAppSelector(authenticatedSelector);
   const useSession = useAppSelector(useSessionSelector);
   const {
-    allowedExtensions,
     availableRepresentativeSubtypes,
     availableDocTypes,
     ctaText,
@@ -318,24 +317,6 @@ const HomePage: FC<Props> = () => {
       ({ sortDirection }) => sortDirection.toLowerCase() === state.sortDirection,
     );
   }, [sortOrders, state.sortDirection, state.sortOrder]);
-
-  const filteredProxies = useMemo(() => {
-    return availableProxies?.proxies.filter(proxy => {
-      if (!allowedExtensions || allowedExtensions.length === 0) return true;
-      let proxyExtension = '';
-      if (!proxy.extension) {
-        const extensionFromPermanentLinks = proxy.permanentLink?.split('.').at(-1);
-        proxyExtension = extensionFromPermanentLinks || '';
-      } else {
-        proxyExtension = proxy.extension.replace('.', '');
-      }
-
-      return allowedExtensions.some(extension => {
-        if (!proxyExtension) return false;
-        return proxyExtension.toLowerCase() === extension.toLowerCase();
-      });
-    });
-  }, [availableProxies, allowedExtensions]);
 
   const { data, isFetching, isError } = useGetAssetsQuery(isResized && sortOrders && mappedMediaTypes?.length && browserMounted ? {
     extensions: state.extensions,
@@ -869,7 +850,7 @@ const HomePage: FC<Props> = () => {
           allowCustomFormat={!!ATSEnabled && !!state.selectedAsset?.allowATSLink}
           autoExtension={autoExtension}
           availableExtensions={availableExtensions}
-          availableProxies={isFetchingAvailableProxies ? undefined : filteredProxies}
+          availableProxies={isFetchingAvailableProxies ? undefined : availableProxies?.proxies}
           ctaText={ctaText}
           extensions={supportedExtensions ?? []}
           maxHeight={state.containerSize.height}
