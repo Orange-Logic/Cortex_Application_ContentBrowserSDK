@@ -13,6 +13,7 @@ export type PluginInfo = {
 };
 
 export type GlobalConfigContextType = {
+  allowedExtensions?: string[];
   availableDocTypes?: string[];
   availableRepresentativeSubtypes?: string[];
   ctaText: string;
@@ -31,6 +32,7 @@ export type GlobalConfigContextType = {
 };
 
 export const GlobalConfigContext = createContext<GlobalConfigContextType>({
+  allowedExtensions: [],
   availableDocTypes: [],
   availableRepresentativeSubtypes: [],
   ctaText: 'Insert',

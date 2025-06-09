@@ -106,6 +106,10 @@ type OrangeDAMContentBrowser = {
      */
     persistMode?: boolean;
     /**
+     * The allowed extensions to be selected
+     */
+    allowedExtensions?: string[];
+    /**
      * The available subtypes for the content browser
      */
     availableDocTypes?: string[];
@@ -233,6 +237,7 @@ const ContentBrowser: OrangeDAMContentBrowser = {
     onClose,
     onRequestToken,
     availableRepresentativeSubtypes,
+    allowedExtensions,
     availableDocTypes,
     baseUrl,
     containerId,
