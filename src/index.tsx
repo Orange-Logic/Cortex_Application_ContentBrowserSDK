@@ -343,6 +343,7 @@ const ContentBrowser: OrangeDAMContentBrowser = {
       <Provider store={store}>
         <GlobalConfigContext.Provider
           value={{
+            allowedExtensions,
             availableDocTypes,
             availableRepresentativeSubtypes,
             ctaText: ctaText ?? 'Insert',

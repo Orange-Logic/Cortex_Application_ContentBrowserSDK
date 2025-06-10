@@ -1,6 +1,6 @@
 import _uniqBy from 'lodash-es/uniqBy';
 import {
-  CSSProperties, FC, useCallback, useContext, useEffect, useMemo, useReducer, useRef, useState,
+  CSSProperties, FC, useCallback, useEffect, useMemo, useReducer, useRef, useState,
 } from 'react';
 
 import { TrackingParameter, Transformation, TransformationAction, Unit } from '@/types/assets';

@@ -27,7 +27,7 @@ import { explorePath, RootFolder } from '@/store/search/search.slice';
 import { useGetUserInfoQuery } from '@/store/user/user.api';
 import { FormatLoaderState } from '@/types/assets';
 import {
-  Asset, Filter, Folder, GetAssetLinkResponse, GridView, Proxy, SortDirection,
+  Asset, Filter, Folder, GetAssetLinkResponse, GridView, SortDirection,
 } from '@/types/search';
 import { MOBILE_THRESHOLD, PAGE_SIZE } from '@/utils/constants';
 import { getData, storeData } from '@/utils/storage';
