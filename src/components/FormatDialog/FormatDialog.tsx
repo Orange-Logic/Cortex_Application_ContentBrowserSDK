@@ -1226,7 +1226,7 @@ const FormatDialog: FC<Props> = ({
               spacing="2x-small"
               style={{ flex: '1' }}
             >
-              <cx-typography variant="h4">Formats</cx-typography>
+              <cx-typography variant="h4">{allowProxy ? 'Formats' : 'Preview'}</cx-typography>
               <cx-typography variant="body3" className="asset-name">
                 <cx-line-clamp lines={1}>{selectedAsset?.name}</cx-line-clamp>
               </cx-typography>
@@ -1254,7 +1254,7 @@ const FormatDialog: FC<Props> = ({
                   name={isFavorite ? 'star' : 'star_outline'}
                   style={{
                     color: isFavorite
-                      ? 'var(--cx-color-primary)'
+                      ? 'var(--cx-color-warning)'
                       : 'var(--cx-color-text)',
                   }}
                   onClick={async () => {

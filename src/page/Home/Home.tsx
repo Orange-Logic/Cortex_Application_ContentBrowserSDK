@@ -515,6 +515,10 @@ const HomePage: FC<Props> = () => {
 
   const onItemSelect = (item: Asset) => {
     dispatch({ type: 'SET_SELECTED_ASSET', payload: item });
+
+    if (onAssetAction) {
+      onAssetAction('select', item.id);
+    }
   };
 
   const onSearchChange = useCallback((value: string) => {
