@@ -407,18 +407,6 @@ const FormatDialog: FC<Props> = ({
     );
 
     dispatch({
-      type: 'SET_SELECTED_FORMAT',
-      payload: {
-        ...initialState.selectedFormat,
-        url: selectedAsset.imageUrl,
-        originalUrl: selectedAsset.originalUrl,
-        extension: autoExtension ?? selectedAsset.extension,
-        width: state.defaultSize.width,
-        height: state.defaultSize.height,
-      },
-    });
-
-    dispatch({
       type: 'SET_RESIZE_SIZE',
       payload: {
         ...initialState.resizeSize,
@@ -488,6 +476,30 @@ const FormatDialog: FC<Props> = ({
       dispatch({
         type: 'SET_SELECTED_PROXY',
         payload: availableProxies[0]?.id,
+      });
+
+      dispatch({
+        type: 'SET_SELECTED_FORMAT',
+        payload: {
+          ...initialState.selectedFormat,
+          url: selectedAsset.imageUrl,
+          originalUrl: selectedAsset.originalUrl,
+          extension: autoExtension ?? selectedAsset.extension,
+          width: availableProxies[0].formatWidth,
+          height: availableProxies[0].formatHeight,
+        },
+      });
+    } else {
+      dispatch({
+        type: 'SET_SELECTED_FORMAT',
+        payload: {
+          ...initialState.selectedFormat,
+          url: selectedAsset.imageUrl,
+          originalUrl: selectedAsset.originalUrl,
+          extension: autoExtension ?? selectedAsset.extension,
+          width: state.defaultSize.width,
+          height: state.defaultSize.height,
+        },
       });
     }
   }, [autoExtension, availableProxies, selectedAsset, state.defaultSize.height, state.defaultSize.width]);
