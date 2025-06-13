@@ -24,6 +24,8 @@ export enum TransformationAction {
   Resize,
   Crop,
   Rotate,
+  Quality,
+  KeepMetadata,
 }
 
 export type Transformation = {
@@ -34,6 +36,8 @@ export type Transformation = {
     x?: number;
     y?: number;
     rotation?: number;
+    keepMetadata?: boolean;
+    quality?: number;
   };
 };
 

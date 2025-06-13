@@ -56,7 +56,7 @@ const Rotate = ({ open, rotation, onChange, onApply }: Props) => {
         <div className="details__summary__icon">
           <cx-icon name="rotate_90_degrees_cw"></cx-icon>
         </div>
-        <cx-typography variant="body2">Rotate</cx-typography>
+        <cx-typography variant="body3">Rotate</cx-typography>
       </cx-space>
       <cx-space spacing="small">
         <cx-button-group label="History">

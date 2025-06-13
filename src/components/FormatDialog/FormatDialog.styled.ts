@@ -18,7 +18,6 @@ export const Dialog = styled('cx-dialog')<CxDialogProps>`
 
   &::part(body) {
     background-color: var(--cx-color-neutral-100);
-    border-bottom: var(--cx-panel-border-width) solid var(--cx-panel-border-color);
     padding: 0;
   }
 
@@ -70,6 +69,12 @@ export const Dialog = styled('cx-dialog')<CxDialogProps>`
 
   cx-line-clamp {
     word-break: break-all;
+  }
+
+  cx-select::part(combobox),
+  cx-option::part(base),
+  cx-input::part(base) {
+    font-size: var(--cx-font-size-small);
   }
 
   .asset-name {
@@ -86,7 +91,6 @@ export const Drawer = styled('cx-drawer')<CxDrawerProps>`
 
   &::part(body) {
     background-color: var(--cx-color-neutral-100);
-    border-bottom: var(--cx-panel-border-width) solid var(--cx-panel-border-color);
     padding: 0;
   }
 
@@ -138,6 +142,12 @@ export const Drawer = styled('cx-drawer')<CxDrawerProps>`
 
   cx-line-clamp {
     word-break: break-all;
+  }
+
+  cx-select::part(combobox),
+  cx-option::part(base),
+  cx-input::part(base) {
+    font-size: var(--cx-font-size-small);
   }
 
   .asset-name {

@@ -1,7 +1,9 @@
-import './design-system/assets/fonts.css';
+import './design-system/assets/styles.css';
 import './design-system/components/alert';
 import './design-system/components/avatar';
+import './design-system/components/badge';
 import './design-system/components/button';
+import './design-system/components/button-group';
 import './design-system/components/card';
 import './design-system/components/checkbox';
 import './design-system/components/details';

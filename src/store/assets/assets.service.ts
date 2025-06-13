@@ -163,6 +163,32 @@ export const getAssetLinks = async (
 
         imageUrl += '/';
       }
+
+      if (key === TransformationAction.Quality) {
+        const validTransformations = [{
+          key: 'q_level_',
+          value: value.quality,
+        }].filter(item => item.value !== undefined).map(item => ({ key: item.key, value: Math.round(Number(item.value)) }));
+  
+        validTransformations.forEach(({ key: vKey, value: vValue }, index) => {
+          imageUrl += `${vKey}${vValue}${index < validTransformations.length - 1 ? ',' : ''}`;
+        });
+
+        imageUrl += '/';
+      }
+
+      if (key === TransformationAction.KeepMetadata) {
+        const validTransformations = [{
+          key: 'fl_keep_metadata',
+          value: value.keepMetadata,
+        }].filter(item => item.value !== undefined).map(item => ({ key: item.key, value: item.value }));
+  
+        validTransformations.forEach(({ key: vKey }, index) => {
+          imageUrl += `${vKey}${index < validTransformations.length - 1 ? ',' : ''}`;
+        });
+
+        imageUrl += '/';
+      }
     });
 
     if (transformations && transformations.length > 0) {

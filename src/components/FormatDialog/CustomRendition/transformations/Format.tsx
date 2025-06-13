@@ -48,10 +48,9 @@ const Extension: FC<Props> = ({ format, formats, open, onApply }) => {
         <div className="details__summary__icon">
           <cx-icon name="aspect_ratio"></cx-icon>
         </div>
-        <cx-typography variant="body2">Format</cx-typography>
+        <cx-typography variant="body3">Format</cx-typography>
       </cx-space>
       <cx-space direction="vertical" spacing="small" className="format">
-        <cx-typography variant="body2">Format</cx-typography>
         <cx-select
           value={isDefined ? value : ''}
           ref={extensionSelectRef}

@@ -174,7 +174,7 @@ const Crop: FC<Props> = ({
         <div className="details__summary__icon">
           <cx-icon name="crop"></cx-icon>
         </div>
-        <cx-typography variant="body2">Crop</cx-typography>
+        <cx-typography variant="body3">Crop</cx-typography>
       </cx-space>
       <cx-space direction="vertical" spacing="small">
         <cx-select

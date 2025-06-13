@@ -37,6 +37,11 @@ export const Container = styled.div`
     width: var(--details-width);
     max-width: 100%;
 
+    &::part(base) {
+      border: none;
+      border-bottom: solid 1px var(--cx-color-neutral-200);
+    }
+
     cx-space {
       flex-wrap: wrap;
     }

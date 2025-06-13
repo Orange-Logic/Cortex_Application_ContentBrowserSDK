@@ -35,8 +35,8 @@ export const Drawer = styled('cx-drawer')<CxDrawerProps>`
 
   .browser__folders {
     cx-tree-item {
-      &::part(item) {
-        padding: 0;
+      &::part(label) {
+        font-size: var(--cx-font-size-small);
       }
     }
 
@@ -53,14 +53,26 @@ export const Drawer = styled('cx-drawer')<CxDrawerProps>`
     padding: none;
     width: 100%;
 
+    cx-details {
+      &::part(base) {
+        border: none;
+        border-top: solid 1px var(--cx-color-neutral-200);
+      }
+    }
+
     cx-menu-item {
       &::part(base) {
         border-radius: var(--cx-border-radius-large);
         font-size: var(--cx-font-size-medium);
         padding: var(--cx-spacing-2x-small) var(--cx-spacing-small);
       }
+
       &::part(checked-icon) {
         display: none;
+      }
+
+      &::part(label) {
+        font-size: var(--cx-font-size-small);
       }
 
       &.selected::part(base) {

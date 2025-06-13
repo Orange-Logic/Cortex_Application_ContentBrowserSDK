@@ -1,7 +1,7 @@
 import { r as h } from "../chunks/lit-element.DRlPF2me.js";
-const l = /* @__PURE__ */ new Set(), u = (i) => typeof i.startManagingContentDirection < "u" || i.tagName === "SP-THEME";
-function m(i) {
-  class s extends i {
+const l = /* @__PURE__ */ new Set(), u = (e) => typeof e.startManagingContentDirection < "u" || e.tagName === "SP-THEME";
+function m(e) {
+  class s extends e {
     /**
      * @private
      */
@@ -9,24 +9,24 @@ function m(i) {
       return this.dir === "ltr";
     }
     hasVisibleFocusInTree() {
-      const e = ((o = document) => {
+      const n = ((o = document) => {
         var d;
-        let n = o.activeElement;
-        for (; n != null && n.shadowRoot && n.shadowRoot.activeElement; )
-          n = n.shadowRoot.activeElement;
-        const c = n ? [n] : [];
-        for (; n; ) {
-          const a = n.assignedSlot || n.parentElement || ((d = n.getRootNode()) == null ? void 0 : d.host);
-          a && c.push(a), n = a;
+        let i = o.activeElement;
+        for (; i != null && i.shadowRoot && i.shadowRoot.activeElement; )
+          i = i.shadowRoot.activeElement;
+        const c = i ? [i] : [];
+        for (; i; ) {
+          const a = i.assignedSlot || i.parentElement || ((d = i.getRootNode()) == null ? void 0 : d.host);
+          a && c.push(a), i = a;
         }
         return c;
       })(this.getRootNode())[0];
-      if (!e)
+      if (!n)
         return !1;
       try {
-        return e.matches(":focus-visible") || e.matches(".focus-visible");
+        return n.matches(":focus-visible") || n.matches(".focus-visible");
       } catch {
-        return e.matches(".focus-visible");
+        return n.matches(".focus-visible");
       }
     }
     connectedCallback() {
@@ -39,8 +39,8 @@ function m(i) {
         if (this.dir = t.dir === "rtl" ? t.dir : this.dir || "ltr", t === document.documentElement)
           l.add(this);
         else {
-          const { localName: e } = t;
-          e.search("-") > -1 && !customElements.get(e) ? customElements.whenDefined(e).then(() => {
+          const { localName: n } = t;
+          n.search("-") > -1 && !customElements.get(n) ? customElements.whenDefined(n).then(() => {
             t.startManagingContentDirection(this);
           }) : t.startManagingContentDirection(this);
         }
@@ -56,20 +56,20 @@ function m(i) {
 }
 class b extends m(h) {
 }
-function f(i, s, r) {
-  const t = i.getAttribute(s);
-  let e = t ? t.split(/\s+/) : [];
-  e = e.filter(
-    (o) => !r.find((n) => o === n)
-  ), e.length ? i.setAttribute(s, e.join(" ")) : i.removeAttribute(s);
+function f(e, s, r) {
+  const t = e.getAttribute(s);
+  let n = t ? t.split(/\s+/) : [];
+  n = n.filter(
+    (o) => !r.find((i) => o === i)
+  ), n.length ? e.setAttribute(s, n.join(" ")) : e.removeAttribute(s);
 }
-function p(i, s, r) {
-  const t = Array.isArray(r) ? r : [r], e = i.getAttribute(s), o = e ? e.split(/\s+/) : [];
+function p(e, s, r) {
+  const t = Array.isArray(r) ? r : [r], n = e.getAttribute(s), o = n ? n.split(/\s+/) : [];
   return t.every((c) => o.indexOf(c) > -1) ? () => {
-  } : (o.push(...t), i.setAttribute(s, o.join(" ")), () => f(i, s, t));
+  } : (o.push(...t), e.setAttribute(s, o.join(" ")), () => f(e, s, t));
 }
-function E(i, s) {
-  customElements.define(i, s);
+function E(e, s) {
+  customElements.get(e) || customElements.define(e, s);
 }
 export {
   b as SpectrumElement,

@@ -2,10 +2,13 @@ import { CxMenuProps } from '@/react-web-component';
 import styled from 'styled-components';
 
 export const Container = styled('cx-menu')<CxMenuProps>`
+  border: none;
   border-radius: 0;
   padding: 0;
   
   cx-menu-item {
+    border-bottom: var(--cx-panel-border-width) solid var(--cx-panel-border-color);
+
     &::part(base) {
       height: 60px;
       padding: var(--cx-spacing-x-small) var(--cx-spacing-medium);
@@ -79,10 +82,6 @@ export const Container = styled('cx-menu')<CxMenuProps>`
       height: 3px;
       border-radius: 50%;
       background-color: var(--cx-color-neutral-500);
-    }
-
-    &:not(:last-child) {
-      border-bottom: var(--cx-panel-border-width) solid var(--cx-panel-border-color);
     }
   }
 `;

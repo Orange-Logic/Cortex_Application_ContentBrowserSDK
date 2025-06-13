@@ -241,7 +241,7 @@ const HomePage: FC<Props> = () => {
       refetchUserInfo();
     }
   }, [authenticated, refetchUserInfo]);
-  const { data: availableProxies, isFetching: isFetchingAvailableProxies } = useGetAvailableProxiesQuery(state.selectedAsset ? {
+  const { data: availableProxies, isFetching: isFetchingAvailableProxies, isError: isErrorAvailableProxies } = useGetAvailableProxiesQuery(state.selectedAsset ? {
     assetImages: state.selectedAsset ? [state.selectedAsset] : [],
     useSession,
   } : skipToken);
@@ -760,7 +760,7 @@ const HomePage: FC<Props> = () => {
       formatDialogTimeoutRef.current = window.setTimeout(() => {
         setShowFormatLoader(FormatLoaderState.ShowLoader); // Show loader after 800ms
       }, 800);
-    } else if (!isFetchingAvailableProxies && availableProxies?.proxies) {
+    } else if (!isFetchingAvailableProxies && (availableProxies?.proxies || isErrorAvailableProxies)) {
       if (formatDialogTimeoutRef.current) {
         clearTimeout();
         setShowFormatLoader(FormatLoaderState.ShowDialog); // Hide loader when proxies are fetched
@@ -771,7 +771,7 @@ const HomePage: FC<Props> = () => {
       clearTimeout();
     };
 
-  }, [availableProxies, isFetchingAvailableProxies]);
+  }, [availableProxies, isErrorAvailableProxies, isFetchingAvailableProxies]);
 
   useEffect(() =>{
     if (!state.selectedAsset) {
@@ -891,13 +891,13 @@ const HomePage: FC<Props> = () => {
           allowTracking={allowTracking}
           autoExtension={autoExtension}
           availableExtensions={availableExtensions}
-          availableProxies={isFetchingAvailableProxies ? undefined : filteredProxies}
+          availableProxies={isErrorAvailableProxies ? [] : isFetchingAvailableProxies ? undefined : filteredProxies}
           ctaText={ctaText}
           extensions={supportedExtensions ?? []}
           isFavorite={!!isFavorite}
           maxHeight={state.containerSize.height}
           open={!!state.selectedAsset && showFormatLoader === FormatLoaderState.ShowDialog}
-          previewUrl={isFetchingAvailableProxies ? undefined : availableProxies?.previewUrl}
+          previewUrl={isErrorAvailableProxies || isFetchingAvailableProxies ? undefined : availableProxies?.previewUrl}
           selectedAsset={state.selectedAsset}
           showVersions={showVersions}
           supportedRepresentativeSubtypes={

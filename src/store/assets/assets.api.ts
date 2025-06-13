@@ -76,6 +76,7 @@ export const assetsApi = createApi({
       },
     }),
     getAvailableProxies: builder.query<GetAvailableProxiesResponse, GetAvailableProxiesRequest>({
+      keepUnusedDataFor: 0,
       query: (request) => ({
         url: '/webapi/extensibility/integrations/contentBrowserSDK/AvailableProxies_4ea_v3?',
         params: getAvailableProxiesAPIParams(request),

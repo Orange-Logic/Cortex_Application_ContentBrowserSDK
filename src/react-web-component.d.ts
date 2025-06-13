@@ -1,25 +1,34 @@
 /* eslint-disable */
               import { HTMLAttributes, DetailedHTMLProps } from 'react';
               
-          import { CxIcon, CxIconButton, CxAlert, CxAnimatedImage, CxAnimation, CxAvatar, CxBadge, CxBreadcrumbItem, CxBreadcrumb, CxSpinner, CxButton, CxButtonGroup, CxCard, CxCarouselItem, CxCarousel, CxPopup, CxTooltip, CxMarkdown, CxTypography, CxCheckbox, CxMenuItem, CxMenu, CxInput, CxDropdown, CxDivider, CxVisuallyHidden, CxColorPicker, CxCopyButton, CxDetails, CxDialog, CxDrawer, CxElementClamp, CxFormatBytes, CxFormatDate, CxFormatNumber, CxHubConnection, CxImageComparer, CxInclude, CxInputGroup, CxResizeObserver, CxLineClamp, CxMenuLabel, CxMenuSection, CxMutationObserver, CxOption, CxTag, CxSelect, CxTreeItem, CxPagination, CxProgressBar, CxProgressRing, CxQrCode, CxRadio, CxRadioButton, CxRadioCard, CxRadioGroup, CxRange, CxRating, CxRelativeTime, CxSkeleton, CxSpace, CxSplitPanel, CxStep, CxStepper, CxSwitch, CxTab, CxTabPanel, CxTabGroup, CxTextarea, CxTree, CxGrid, CxGridItem, CxChatbot, CxConfirmPopover, CxFileOnDemand, CxSidebarLayout, CxGraphView, CxStepperWizard, CxClusterManagement, CxStorybook, CxSidebar, CxMultiSelect, CxTemplateSwitcher, CxTextToSpeech, CxDownloader, CxComment } from './web-component';
+          import { CxIcon, CxIconButton, CxAlert, CxAnimatedImage, CxAnimation, CxAvatar, CxBadge, CxBreadcrumbItem, CxBreadcrumb, CxPopup, CxSpinner, CxMenuItem, CxMenu, CxDropdown, CxButton, CxButtonGroup, CxCard, CxCarouselItem, CxCarousel, CxCheckbox, CxInput, CxVisuallyHidden, CxColorPicker, CxTooltip, CxCopyButton, CxDetails, CxDivider, CxDialog, CxDrawer, CxElementClamp, CxFormatBytes, CxFormatDate, CxFormatNumber, CxGrid, CxGridItem, CxHeader, CxHubConnection, CxSkeleton, CxSpace, CxImageComparer, CxInclude, CxInputGroup, CxResizeObserver, CxLineClamp, CxMarkdown, CxMenuLabel, CxMenuSection, CxMutationObserver, CxOption, CxTree, CxTreeItem, CxTag, CxSelect, CxTypography, CxPagination, CxProgressBar, CxProgressRing, CxQrCode, CxRadio, CxRadioButton, CxRadioCard, CxRadioGroup, CxRange, CxRating, CxRelativeTime, CxSplitPanel, CxStep, CxStepper, CxSwitch, CxTab, CxTabPanel, CxTabGroup, CxTextarea, CxChatbot, CxBicolorPicker, CxBorderInputGroup, CxConfirmPopover, CxCropper, CxGraphView, CxPaddingInputGroup, CxShadowInputGroup, CxSidebar, CxStepperWizard, CxStorybook, CxFileOnDemand, CxSidebarLayout, CxAssetLinkFormat, CxClusterManagement, CxComment, CxColumn, CxColumnGroup, CxContentBuilder, CxDownloader, CxMultiSelect, CxTemplateSwitcher, CxTextToSpeech, CxVideoEditor } from './web-component';
         
               
             export type CxMarkdownRendererObject = {  };
             export type CxChatbotChatbotEvent = { event: string; excludedFromPurposes: string[]; label: string; };
-            export type CxFileOnDemandAssetsProp = { assets: CxFileOnDemandAsset[]; hasMore: boolean; };
-            export type CxFileOnDemandAsset = { docType: string; fileName: string; isInFavorite: boolean; isUploadCompleted: boolean; key: string; parentRecordId: string; recordId: string; remainingSize: number; remainingTime: number; size: number; thumbnail: string; uploadId: string; uploadStatus: 'CANCELED' | 'FAILED' | 'INPROGRESS' | 'PENDINGCOMPLETE' | 'SUCCESS'; uploadTimestamp: number; uploaded: number; };
-            export type CxFileOnDemandFolderOption = { id: string; label: string; };
-            export type CxFileOnDemandSettings = { cacheLocation: string; cacheSize: number; config: { activeFoldersMode: boolean; launchOnStartup: boolean; monitoringActivated: boolean; mountPoint: string; mountProxy: boolean; proxyTypes: 'Image' | 'Video' | 'Audio'[]; rootIDs: string[]; siteUrl: string; }; };
             export type CxGraphViewWorkflow = { data: CxGraphViewData; description: string; id: string; links: CxGraphViewEdge[]; name: string; node_types: CxGraphViewRecord; nodes: CxGraphViewNode[]; type: string; };
             export type CxGraphViewData = { fromTransition: string; name: string; source: string; transitions: CxGraphViewTransition[]; };
             export type CxGraphViewTransition = { description: string; icon: string; icon_rotation: number; id: string; name: string; required: boolean; type: string; };
             export type CxGraphViewEdge = { fromNode: string; fromTransition: string; icon: string; iconRotation: number; toNode: string; };
             export type CxGraphViewRecord = dictionary;
             export type CxGraphViewNodeType = { allows_loop: boolean; color: string; icon: string; name: string; };
-            export type CxGraphViewNode = { category: string; color: string; data: CxGraphViewData; description: string; icon: string; id: string; messages: string[]; name: string; state: 'Error'; summaries: CxGraphViewSummary[]; type: 'Action' | 'Decision' | 'Status' | 'Trigger' | 'Agent' | 'Ghost'; unordered: boolean; unorderedText: string; };
+            export type CxGraphViewNode = { avatarUrl: string; border: boolean; borderColor: string; category: string; color: string; data: CxGraphViewData; description: string; icon: string; id: string; messages: string[]; name: string; showDivider: boolean; state: 'Error'; styles: CxGraphViewRecord; summaries: CxGraphViewSummary[]; type: 'Action' | 'Decision' | 'Status' | 'Trigger' | 'Agent' | 'Ghost'; unordered: boolean; unorderedText: string; };
             export type CxGraphViewSummary = { icon: string; texts: string[]; };
             export type CxStepperWizardStepData = { color: string; description: string; icon: string; iconVariant: 'outlined' | 'filled' | 'fa'; id: string; name: string; readonly: boolean; state: 'Done' | 'Active' | 'None' | 'Disabled'; };
             export type CxStorybookRecord = {  };
+            export type CxFileOnDemandAssetsProp = { assets: CxFileOnDemandAsset[]; hasMore: boolean; };
+            export type CxFileOnDemandAsset = { docType: string; fileName: string; isInFavorite: boolean; isPaused: boolean; isUploadCompleted: boolean; key: string; parentRecordId: string; recordId: string; remainingSize: number; remainingTime: number; size: number; thumbnail: string; uploadId: string; uploadStatus: 'CANCELED' | 'FAILED' | 'INPROGRESS' | 'PENDINGCOMPLETE' | 'SUCCESS'; uploadTimestamp: number; uploaded: number; };
+            export type CxFileOnDemandSettings = { cacheLocation: string; cacheSize: number; config: { monitoringActivated: boolean; mountPoint: string; mountProxy: boolean; proxyTypes: 'Image' | 'Video' | 'Audio'[]; rootIDs: string[]; siteUrl: string; version: string; }; };
+            export type CxAssetLinkFormatAsset = { allowATSLink: boolean; docSubType: string; docType: 'Album' | 'Audio' | 'Image' | 'Multimedia' | 'Story' | 'Video' | 'Widget'; extension: string; height: string; id: string; identifier: string; imageUrl: string; name: string; originalUrl: string; scrubUrl: string; size: string; tags: string; width: string; };
+            export type CxAssetLinkFormatPartial = {  };
+            export type CxAssetLinkFormatProxy = { cdnName: string; extension: string; formatHeight: number; formatWidth: number; height: number; id: string; permanentLink: string; proxyLabel: string; proxyName: string; width: number; };
+            export type CxContentBuilderDevice = { canvasWidth: string; height: string; id: string; maxWidth: string; name: string; };
+            export type CxDownloaderExecutionContext = { defaultDownloadFolder: CxDownloaderRaw; downloadRequestedEvent: CxDownloaderEvent; instructionsURL: CxDownloaderRaw; isReady: CxDownloaderRaw; locationPickedEvent: CxDownloaderEvent; locationRequestedEvent: CxDownloaderEvent; openDirectoryPickerAction: CxDownloaderAction; openDownloaderEvent: CxDownloaderEvent; promptAction: CxDownloaderAction; promptRepliedEvent: CxDownloaderEvent; configurationData: CxDownloaderConfigurationData; };
+            export type CxDownloaderRaw = { value: string; };
+            export type CxDownloaderEvent = {  };
+            export type CxDownloaderAction = { doNothing: boolean; };
+            export type CxDownloaderConfigurationData = { allowForcedDownloadLocation: boolean; autoUnlockAfterMinutes: number; backgroundJobDefaultInterval: number; chunkSize: number; dateFormat: string; defaultMode: 'normal' | 'rocket'; downloadChunkMaxRetries: number; downloadChunkRetryMaxWait: number; downloadChunkRetryMinWait: number; downloadDirectlyFromCloudIfPossible: boolean; downloadSpeedMonitorDuration: number; instructionsPopupHeight: number; instructionsPopupWidth: number; massActionBatchSize: number; maxChunkSize: number; maxRetryPerChunk: number; minChunkSize: number; missingFileErrorMessage: string; networkErrorMessage: string; normalMode: { backgroundJobInstancesCount: CxDownloaderRecord; backgroundJobInterval: CxDownloaderRecord; maxInProgressChunksPerFile: number; }; notEnoughStorageErrorMessage: string; popupId: string; rocketMode: { backgroundJobInstancesCount: CxDownloaderRecord; backgroundJobInterval: CxDownloaderRecord; maxInProgressChunksPerFile: number; }; roundRobinCloudURLs: boolean; shouldHandlePathLimit: boolean; verbose: boolean; };
+            export type CxDownloaderRecord = dictionary;
             export type CxMultiSelectColumnData = { id: string; items: { group: string; id: string; index: string; text: string; tooltip: string; type: string; }[]; sort: boolean; title: string; };
             export type CxTemplateSwitcherTemplateSwitcherProps = { VFormID: string; categories: CxTemplateSwitcherCategory[]; defaultDirectionWhenSortChange: string; defaultSettings: CxTemplateSwitcherSettings; defaultSortForResequence: string; disabledCountForViews: string[]; disabledDeployStackForViews: string[]; disabledGroupByForViews: string[]; disabledSeeThruForViews: string[]; disabledSortForViews: string[]; events: CxTemplateSwitcherEvents; forceSortOrderWhenSeethruOff: string; groupBy: CxTemplateSwitcherOption[]; hideDeployStackForViews: string[]; hideGroupByForViews: string[]; initSettings: CxTemplateSwitcherSettings; itemsPerPage: CxTemplateSwitcherOption[]; moreOptions: CxTemplateSwitcherMoreOptions; sections: CxTemplateSwitcherSectionOption[]; sortOrder: CxTemplateSwitcherSortOrder[]; view: CxTemplateSwitcherOption[]; };
             export type CxTemplateSwitcherCategory = { id: string; name: string; };
@@ -31,12 +40,10 @@
             export type CxTemplateSwitcherSectionOption = { id: string; name: string; };
             export type CxTemplateSwitcherSortOrder = { category: string; eventName: string; id: string; isSetting: boolean; name: string; selectedTip: string; subCategory: string; unselectedTip: string; direction: CxTemplateSwitcherOption[]; };
             export type CxTextToSpeechTextToSpeechData = { HtmlData: string; SsmlData: { LanguageCode: string; Name: string; SsmlText: string; }; };
-            export type CxDownloaderExecutionContext = { defaultDownloadFolder: CxDownloaderRaw; downloadRequestedEvent: CxDownloaderEvent; instructionsURL: CxDownloaderRaw; isReady: CxDownloaderRaw; locationPickedEvent: CxDownloaderEvent; locationRequestedEvent: CxDownloaderEvent; openDirectoryPickerAction: CxDownloaderAction; openDownloaderEvent: CxDownloaderEvent; promptAction: CxDownloaderAction; promptRepliedEvent: CxDownloaderEvent; configurationData: CxDownloaderConfigurationData; };
-            export type CxDownloaderRaw = { value: string; };
-            export type CxDownloaderEvent = {  };
-            export type CxDownloaderAction = { doNothing: boolean; };
-            export type CxDownloaderConfigurationData = { allowForcedDownloadLocation: boolean; autoUnlockAfterMinutes: number; backgroundJobDefaultInterval: number; chunkSize: number; dateFormat: string; defaultMode: 'normal' | 'rocket'; downloadChunkMaxRetries: number; downloadChunkRetryMaxWait: number; downloadChunkRetryMinWait: number; downloadDirectlyFromCloudIfPossible: boolean; downloadSpeedMonitorDuration: number; instructionsPopupHeight: number; instructionsPopupWidth: number; massActionBatchSize: number; maxChunkSize: number; maxRetryPerChunk: number; minChunkSize: number; missingFileErrorMessage: string; networkErrorMessage: string; normalMode: { backgroundJobInstancesCount: CxDownloaderRecord; backgroundJobInterval: CxDownloaderRecord; maxInProgressChunksPerFile: number; }; notEnoughStorageErrorMessage: string; popupId: string; rocketMode: { backgroundJobInstancesCount: CxDownloaderRecord; backgroundJobInterval: CxDownloaderRecord; maxInProgressChunksPerFile: number; }; shouldHandlePathLimit: boolean; verbose: boolean; };
-            export type CxDownloaderRecord = dictionary;
+            export type CxVideoEditorPartial = { captionsURI: CxVideoEditorCaption; crop: { height: number; width: number; x: number; y: number; }; frameRate: number; label: string; muted: boolean; playbackSpeed: number; recordID: string; rotation: number; scrubMIME: string; scrubURL: string; sourceMIME: string; sourceURL: string; startPosition: number; stopPosition: number; volume: number; vrMode: string; };
+            export type CxVideoEditorCaption = dictionary;
+            export type CxVideoEditorTransition = { backgroundColor: string; duration: string; subClipId: string; };
+            export type CxVideoEditorRatio = { description: string; height: number; label: string; width: number; };
                
             /**
               * @summary Icons are symbols that can be used to represent various options within an application.
@@ -85,6 +92,8 @@
  *  @event cx-blur - Emitted when the icon button loses focus.
  *  @event cx-focus - Emitted when the icon button gains focus.
  * 
+ *  @slot badge - A badge to show on top right corner.
+ * 
  *  @csspart base - The component's base wrapper.
             */
             interface CxIconButtonAttributes extends HTMLAttributes<CxIconButton> {
@@ -97,6 +106,10 @@
           * The variant of the icon to draw.
         */
         variant?: 'outlined' | 'filled' | 'round' | 'sharp' | 'two-tone';
+        /**
+          * The variant of the button.
+        */
+        buttonVariant?: 'primary' | 'success' | 'neutral' | 'warning' | 'danger' | 'default' | 'text' | 'tertiary' | 'custom';
         /**
           * An external URL of an SVG file. Be sure you trust the content you are including, as it will be executed as code and
  *  can result in XSS attacks.
@@ -390,6 +403,10 @@
         */
         pulse?: boolean;
         /**
+          * The badge's size.
+        */
+        size?: 'small' | 'medium' | 'large';
+        /**
           * Make localization attributes reactive
         */
         dir?: string;
@@ -464,6 +481,142 @@
         lang?: string;
             } 
             /**
+              * @summary Popup is a utility that lets you declaratively anchor "popup" containers to another element.
+ * 
+ *  @event cx-reposition - Emitted when the popup is repositioned. This event can fire a lot, so avoid putting expensive
+ *   operations in your listener or consider debouncing it.
+ * 
+ *  @slot - The popup's content.
+ *  @slot anchor - The element the popup will be anchored to. If the anchor lives outside of the popup, you can use the
+ *   `anchor` attribute or property instead.
+ * 
+ *  @csspart arrow - The arrow's container. Avoid setting `top|bottom|left|right` properties, as these values are
+ *   assigned dynamically as the popup moves. This is most useful for applying a background color to match the popup, and
+ *   maybe a border or box shadow.
+ *  @csspart popup - The popup's container. Useful for setting a background color, box shadow, etc.
+ *  @csspart hover-bridge - The hover bridge element. Only available when the `hover-bridge` option is enabled.
+ * 
+ *  @cssproperty [--arrow-size=6px] - The size of the arrow. Note that an arrow won't be shown unless the `arrow`
+ *   attribute is used.
+ *  @cssproperty [--arrow-color=var(--cx-color-neutral-0)] - The color of the arrow.
+ *  @cssproperty [--auto-size-available-width] - A read-only custom property that determines the amount of width the
+ *   popup can be before overflowing. Useful for positioning child elements that need to overflow. This property is only
+ *   available when using `auto-size`.
+ *  @cssproperty [--auto-size-available-height] - A read-only custom property that determines the amount of height the
+ *   popup can be before overflowing. Useful for positioning child elements that need to overflow. This property is only
+ *   available when using `auto-size`.
+            */
+            interface CxPopupAttributes extends HTMLAttributes<CxPopup> {
+              
+        /**
+          * The element the popup will be anchored to. If the anchor lives outside of the popup, you can provide the anchor
+ *  element `id`, a DOM element reference, or a `VirtualElement`. If the anchor lives inside the popup, use the
+ *  `anchor` slot instead.
+        */
+        anchor?: string;
+        /**
+          * Activates the positioning logic and shows the popup. When this attribute is removed, the positioning logic is torn
+ *  down and the popup will be hidden.
+        */
+        active?: boolean;
+        /**
+          * The preferred placement of the popup. Note that the actual placement will vary as configured to keep the
+ *  panel inside of the viewport.
+        */
+        placement?: 'top' | 'top-start' | 'top-end' | 'bottom' | 'bottom-start' | 'bottom-end' | 'right' | 'right-start' | 'right-end' | 'left' | 'left-start' | 'left-end';
+        /**
+          * Determines how the popup is positioned. The `absolute` strategy works well in most cases, but if overflow is
+ *  clipped, using a `fixed` position strategy can often workaround it.
+        */
+        strategy?: 'absolute' | 'fixed';
+        /**
+          * The distance in pixels from which to offset the panel away from its anchor.
+        */
+        distance?: number;
+        /**
+          * The distance in pixels from which to offset the panel along its anchor.
+        */
+        skidding?: number;
+        /**
+          * Attaches an arrow to the popup. The arrow's size and color can be customized using the `--arrow-size` and
+ *  `--arrow-color` custom properties. For additional customizations, you can also target the arrow using
+ *  `::part(arrow)` in your stylesheet.
+        */
+        arrow?: boolean;
+        /**
+          * The placement of the arrow. The default is `anchor`, which will align the arrow as close to the center of the
+ *  anchor as possible, considering available space and `arrow-padding`. A value of `start`, `end`, or `center` will
+ *  align the arrow to the start, end, or center of the popover instead.
+        */
+        arrowPlacement?: 'start' | 'end' | 'center' | 'anchor';
+        /**
+          * The amount of padding between the arrow and the edges of the popup. If the popup has a border-radius, for example,
+ *  this will prevent it from overflowing the corners.
+        */
+        arrowPadding?: number;
+        /**
+          * When set, placement of the popup will flip to the opposite site to keep it in view. You can use
+ *  `flipFallbackPlacements` to further configure how the fallback placement is determined.
+        */
+        flip?: boolean;
+        /**
+          * If the preferred placement doesn't fit, popup will be tested in these fallback placements until one fits. Must be a
+ *  string of any number of placements separated by a space, e.g. "top bottom left". If no placement fits, the flip
+ *  fallback strategy will be used instead.
+        */
+        flipFallbackPlacements?: string;
+        /**
+          * When neither the preferred placement nor the fallback placements fit, this value will be used to determine whether
+ *  the popup should be positioned using the best available fit based on available space or as it was initially
+ *  preferred.
+        */
+        flipFallbackStrategy?: 'best-fit' | 'initial';
+        /**
+          * The amount of padding, in pixels, to exceed before the flip behavior will occur.
+        */
+        flipPadding?: number;
+        /**
+          * Moves the popup along the axis to keep it in view when clipped.
+        */
+        shift?: boolean;
+        /**
+          * The amount of padding, in pixels, to exceed before the shift behavior will occur.
+        */
+        shiftPadding?: number;
+        /**
+          * When set, this will cause the popup to automatically resize itself to prevent it from overflowing.
+        */
+        autoSize?: 'both' | 'horizontal' | 'vertical';
+        /**
+          * Syncs the popup's width or height to that of the anchor element.
+        */
+        sync?: 'both' | 'width' | 'height';
+        /**
+          * The amount of padding, in pixels, to exceed before the auto-size behavior will occur.
+        */
+        autoSizePadding?: number;
+        /**
+          * When a gap exists between the anchor and the popup element, this option will add a "hover bridge" that fills the
+ *  gap using an invisible element. This makes listening for events such as `mouseenter` and `mouseleave` more sane
+ *  because the pointer never technically leaves the element. The hover bridge will only be drawn when the popover is
+ *  active.
+        */
+        hoverBridge?: boolean;
+        /**
+          * The factor by which to multiply the available width when using `auto-size`. E.g: Set to 0.5 to
+ *  make the popup half the width of the available space.
+        */
+        autoWidthFactor?: number;
+        /**
+          * Make localization attributes reactive
+        */
+        dir?: string;
+        /**
+          * 
+        */
+        lang?: string;
+            } 
+            /**
               * @summary Spinners are used to show the progress of an indeterminate operation.
  * 
  *  @csspart base - The component's base wrapper.
@@ -475,6 +628,177 @@
             */
             interface CxSpinnerAttributes extends HTMLAttributes<CxSpinner> {
               
+        /**
+          * Make localization attributes reactive
+        */
+        dir?: string;
+        /**
+          * 
+        */
+        lang?: string;
+            } 
+            /**
+              * @summary Menu items provide options for the user to pick from in a menu.
+ * 
+ *  @dependency cx-icon
+ *  @dependency cx-popup
+ *  @dependency cx-spinner
+ * 
+ *  @slot - The menu item's label.
+ *  @slot prefix - Used to prepend an icon or similar element to the menu item.
+ *  @slot suffix - Used to append an icon or similar element to the menu item.
+ *  @slot submenu - Used to denote a nested menu.
+ * 
+ *  @csspart base - The component's base wrapper.
+ *  @csspart checked-icon - The checked icon, which is only visible when the menu item is checked.
+ *  @csspart prefix - The prefix container.
+ *  @csspart label - The menu item label.
+ *  @csspart suffix - The suffix container.
+ *  @csspart spinner - The spinner that shows when the menu item is in the loading state.
+ *  @csspart spinner__base - The spinner's base part.
+ *  @csspart submenu-icon - The submenu icon, visible only when the menu item has a submenu (not yet implemented).
+ * 
+ *  @cssproperty [--submenu-offset=-2px] - The distance submenus shift to overlap the parent menu.
+            */
+            interface CxMenuItemAttributes extends HTMLAttributes<CxMenuItem> {
+              
+        /**
+          * The type of menu item to render. To use `checked`, this value must be set to `checkbox`.
+        */
+        type?: 'normal' | 'checkbox';
+        /**
+          * Draws the item in a checked state.
+        */
+        checked?: boolean;
+        /**
+          * A unique value to store in the menu item. This can be used as a way to identify menu items when selected.
+        */
+        value?: string;
+        /**
+          * When set, the underlying menu item will be rendered as an `a` with this `href`.
+        */
+        href?: string;
+        /**
+          * Tells the browser where to open the link. Only used when `href` is set.
+        */
+        target?: '_blank' | '_parent' | '_self' | '_top';
+        /**
+          * When using `href`, this attribute will map to the underlying link's `rel` attribute. Unlike regular links, the
+ *  default is `noreferrer noopener` to prevent security exploits. However, if you're using `target` to point to a
+ *  specific tab/window, this will prevent that from working correctly. You can remove or change the default value by
+ *  setting the attribute to an empty string or a value of your choice, respectively.
+        */
+        rel?: string;
+        /**
+          * Tells the browser to download the linked file as this filename. Only used when `href` is set.
+        */
+        download?: string;
+        /**
+          * Draws the menu item in a loading state.
+        */
+        loading?: boolean;
+        /**
+          * Draws the menu item in a disabled state, preventing selection.
+        */
+        disabled?: boolean;
+        /**
+          * Makes the menu item readonly
+        */
+        readonly?: boolean;
+        /**
+          * Make localization attributes reactive
+        */
+        dir?: string;
+        /**
+          * 
+        */
+        lang?: string;
+            } 
+            /**
+              * @summary Menus provide a list of options for the user to choose from.
+ * 
+ *  @slot - The menu's content, including menu items, menu labels, and dividers.
+ * 
+ *  @event {{ item: CxMenuItem }} cx-select - Emitted when a menu item is selected.
+            */
+            interface CxMenuAttributes extends HTMLAttributes<CxMenu> {
+              
+        /**
+          * 
+        */
+        horizontal?: boolean;
+        /**
+          * Make localization attributes reactive
+        */
+        dir?: string;
+        /**
+          * 
+        */
+        lang?: string;
+            } 
+            /**
+              * @summary Dropdowns expose additional content that "drops down" in a panel.
+ * 
+ *  @dependency cx-popup
+ * 
+ *  @slot - The dropdown's main content.
+ *  @slot trigger - The dropdown's trigger, usually a `cx-button` element.
+ * 
+ *  @event cx-show - Emitted when the dropdown opens.
+ *  @event cx-after-show - Emitted after the dropdown opens and all animations are complete.
+ *  @event cx-hide - Emitted when the dropdown closes.
+ *  @event cx-after-hide - Emitted after the dropdown closes and all animations are complete.
+ * 
+ *  @csspart base - The component's base wrapper.
+ *  @csspart trigger - The container that wraps the trigger.
+ *  @csspart panel - The panel that gets shown when the dropdown is open.
+ * 
+ *  @animation dropdown.show - The animation to use when showing the dropdown.
+ *  @animation dropdown.hide - The animation to use when hiding the dropdown.
+            */
+            interface CxDropdownAttributes extends HTMLAttributes<CxDropdown> {
+              
+        /**
+          * Indicates whether or not the dropdown is open. You can toggle this attribute to show and hide the dropdown, or you
+ *  can use the `show()` and `hide()` methods and this attribute will reflect the dropdown's open state.
+        */
+        open?: boolean;
+        /**
+          * The preferred placement of the dropdown panel. Note that the actual placement may vary as needed to keep the panel
+ *  inside of the viewport.
+        */
+        placement?: 'top' | 'top-start' | 'top-end' | 'bottom' | 'bottom-start' | 'bottom-end' | 'right' | 'right-start' | 'right-end' | 'left' | 'left-start' | 'left-end';
+        /**
+          * Disables the dropdown so the panel will not open.
+        */
+        disabled?: boolean;
+        /**
+          * By default, the dropdown is closed when an item is selected. This attribute will keep it open instead. Useful for
+ *  dropdowns that allow for multiple interactions.
+        */
+        stayOpenOnSelect?: boolean;
+        /**
+          * The distance in pixels from which to offset the panel away from its trigger.
+        */
+        distance?: number;
+        /**
+          * The distance in pixels from which to offset the panel along its trigger.
+        */
+        skidding?: number;
+        /**
+          * Enable this option to prevent the panel from being clipped when the component is placed inside a container with
+ *  `overflow: auto|scroll`. Hoisting uses a fixed positioning strategy that works in many, but not all, scenarios.
+        */
+        hoist?: boolean;
+        /**
+          * Syncs the popup width or height to that of the trigger element.
+        */
+        sync?: 'both' | 'width' | 'height';
+        /**
+          * The factor by which to multiply the available width when using `auto-size`. E.g: Set to 0.5 to
+ *  make the popup half the width of the available space.
+        */
+        autoWidthFactor?: number;
         /**
           * Make localization attributes reactive
         */
@@ -514,7 +838,7 @@
         /**
           * make reactive to pass through The button's theme variant.
         */
-        variant?: 'primary' | 'success' | 'neutral' | 'warning' | 'danger' | 'default' | 'text' | 'tertiary';
+        variant?: 'primary' | 'success' | 'neutral' | 'warning' | 'danger' | 'default' | 'text' | 'tertiary' | 'custom';
         /**
           * The button's size.
         */
@@ -768,279 +1092,6 @@
         lang?: string;
             } 
             /**
-              * @summary Popup is a utility that lets you declaratively anchor "popup" containers to another element.
- * 
- *  @event cx-reposition - Emitted when the popup is repositioned. This event can fire a lot, so avoid putting expensive
- *   operations in your listener or consider debouncing it.
- * 
- *  @slot - The popup's content.
- *  @slot anchor - The element the popup will be anchored to. If the anchor lives outside of the popup, you can use the
- *   `anchor` attribute or property instead.
- * 
- *  @csspart arrow - The arrow's container. Avoid setting `top|bottom|left|right` properties, as these values are
- *   assigned dynamically as the popup moves. This is most useful for applying a background color to match the popup, and
- *   maybe a border or box shadow.
- *  @csspart popup - The popup's container. Useful for setting a background color, box shadow, etc.
- *  @csspart hover-bridge - The hover bridge element. Only available when the `hover-bridge` option is enabled.
- * 
- *  @cssproperty [--arrow-size=6px] - The size of the arrow. Note that an arrow won't be shown unless the `arrow`
- *   attribute is used.
- *  @cssproperty [--arrow-color=var(--cx-color-neutral-0)] - The color of the arrow.
- *  @cssproperty [--auto-size-available-width] - A read-only custom property that determines the amount of width the
- *   popup can be before overflowing. Useful for positioning child elements that need to overflow. This property is only
- *   available when using `auto-size`.
- *  @cssproperty [--auto-size-available-height] - A read-only custom property that determines the amount of height the
- *   popup can be before overflowing. Useful for positioning child elements that need to overflow. This property is only
- *   available when using `auto-size`.
-            */
-            interface CxPopupAttributes extends HTMLAttributes<CxPopup> {
-              
-        /**
-          * The element the popup will be anchored to. If the anchor lives outside of the popup, you can provide the anchor
- *  element `id`, a DOM element reference, or a `VirtualElement`. If the anchor lives inside the popup, use the
- *  `anchor` slot instead.
-        */
-        anchor?: string;
-        /**
-          * Activates the positioning logic and shows the popup. When this attribute is removed, the positioning logic is torn
- *  down and the popup will be hidden.
-        */
-        active?: boolean;
-        /**
-          * The preferred placement of the popup. Note that the actual placement will vary as configured to keep the
- *  panel inside of the viewport.
-        */
-        placement?: 'top' | 'top-start' | 'top-end' | 'bottom' | 'bottom-start' | 'bottom-end' | 'right' | 'right-start' | 'right-end' | 'left' | 'left-start' | 'left-end';
-        /**
-          * Determines how the popup is positioned. The `absolute` strategy works well in most cases, but if overflow is
- *  clipped, using a `fixed` position strategy can often workaround it.
-        */
-        strategy?: 'absolute' | 'fixed';
-        /**
-          * The distance in pixels from which to offset the panel away from its anchor.
-        */
-        distance?: number;
-        /**
-          * The distance in pixels from which to offset the panel along its anchor.
-        */
-        skidding?: number;
-        /**
-          * Attaches an arrow to the popup. The arrow's size and color can be customized using the `--arrow-size` and
- *  `--arrow-color` custom properties. For additional customizations, you can also target the arrow using
- *  `::part(arrow)` in your stylesheet.
-        */
-        arrow?: boolean;
-        /**
-          * The placement of the arrow. The default is `anchor`, which will align the arrow as close to the center of the
- *  anchor as possible, considering available space and `arrow-padding`. A value of `start`, `end`, or `center` will
- *  align the arrow to the start, end, or center of the popover instead.
-        */
-        arrowPlacement?: 'center' | 'start' | 'end' | 'anchor';
-        /**
-          * The amount of padding between the arrow and the edges of the popup. If the popup has a border-radius, for example,
- *  this will prevent it from overflowing the corners.
-        */
-        arrowPadding?: number;
-        /**
-          * When set, placement of the popup will flip to the opposite site to keep it in view. You can use
- *  `flipFallbackPlacements` to further configure how the fallback placement is determined.
-        */
-        flip?: boolean;
-        /**
-          * If the preferred placement doesn't fit, popup will be tested in these fallback placements until one fits. Must be a
- *  string of any number of placements separated by a space, e.g. "top bottom left". If no placement fits, the flip
- *  fallback strategy will be used instead.
-        */
-        flipFallbackPlacements?: string;
-        /**
-          * When neither the preferred placement nor the fallback placements fit, this value will be used to determine whether
- *  the popup should be positioned using the best available fit based on available space or as it was initially
- *  preferred.
-        */
-        flipFallbackStrategy?: 'best-fit' | 'initial';
-        /**
-          * The amount of padding, in pixels, to exceed before the flip behavior will occur.
-        */
-        flipPadding?: number;
-        /**
-          * Moves the popup along the axis to keep it in view when clipped.
-        */
-        shift?: boolean;
-        /**
-          * The amount of padding, in pixels, to exceed before the shift behavior will occur.
-        */
-        shiftPadding?: number;
-        /**
-          * When set, this will cause the popup to automatically resize itself to prevent it from overflowing.
-        */
-        autoSize?: 'both' | 'horizontal' | 'vertical';
-        /**
-          * Syncs the popup's width or height to that of the anchor element.
-        */
-        sync?: 'both' | 'width' | 'height';
-        /**
-          * The amount of padding, in pixels, to exceed before the auto-size behavior will occur.
-        */
-        autoSizePadding?: number;
-        /**
-          * When a gap exists between the anchor and the popup element, this option will add a "hover bridge" that fills the
- *  gap using an invisible element. This makes listening for events such as `mouseenter` and `mouseleave` more sane
- *  because the pointer never technically leaves the element. The hover bridge will only be drawn when the popover is
- *  active.
-        */
-        hoverBridge?: boolean;
-        /**
-          * The factor by which to multiply the available width when using `auto-size`. E.g: Set to 0.5 to
- *  make the popup half the width of the available space.
-        */
-        autoWidthFactor?: number;
-        /**
-          * Make localization attributes reactive
-        */
-        dir?: string;
-        /**
-          * 
-        */
-        lang?: string;
-            } 
-            /**
-              * @summary Tooltips display additional information based on a specific action.
- * 
- *  @dependency cx-popup
- * 
- *  @slot - The tooltip's target element. Avoid slotting in more than one element, as subsequent ones will be ignored.
- *  @slot content - The content to render in the tooltip. Alternatively, you can use the `content` attribute.
- * 
- *  @event cx-show - Emitted when the tooltip begins to show.
- *  @event cx-after-show - Emitted after the tooltip has shown and all animations are complete.
- *  @event cx-hide - Emitted when the tooltip begins to hide.
- *  @event cx-after-hide - Emitted after the tooltip has hidden and all animations are complete.
- * 
- *  @csspart base - The component's base wrapper, an `cx-popup` element.
- *  @csspart base__popup - The popup's exported `popup` part. Use this to target the tooltip's popup container.
- *  @csspart base__arrow - The popup's exported `arrow` part. Use this to target the tooltip's arrow.
- *  @csspart body - The tooltip's body where its content is rendered.
- *  @csspart hover-bridge - The hover bridge element. Only available when the `hover-bridge` option is enabled.
- *  @cssproperty --max-width - The maximum width of the tooltip before its content will wrap.
- *  @cssproperty --hide-delay - The amount of time to wait before hiding the tooltip when hovering.
- *  @cssproperty --show-delay - The amount of time to wait before showing the tooltip when hovering.
- * 
- *  @animation tooltip.show - The animation to use when showing the tooltip.
- *  @animation tooltip.hide - The animation to use when hiding the tooltip.
-            */
-            interface CxTooltipAttributes extends HTMLAttributes<CxTooltip> {
-              
-        /**
-          * The tooltip's content. If you need to display HTML, use the `content` slot instead.
-        */
-        content?: string;
-        /**
-          * The preferred placement of the tooltip. Note that the actual placement may vary as needed to keep the tooltip
- *  inside of the viewport.
-        */
-        placement?: 'top' | 'top-start' | 'top-end' | 'bottom' | 'bottom-start' | 'bottom-end' | 'right' | 'right-start' | 'right-end' | 'left' | 'left-start' | 'left-end';
-        /**
-          * Disables the tooltip so it won't show when triggered.
-        */
-        disabled?: boolean;
-        /**
-          * The distance in pixels from which to offset the tooltip away from its target.
-        */
-        distance?: number;
-        /**
-          * Indicates whether or not the tooltip is open. You can use this in lieu of the show/hide methods.
-        */
-        open?: boolean;
-        /**
-          * The distance in pixels from which to offset the tooltip along its target.
-        */
-        skidding?: number;
-        /**
-          * Controls how the tooltip is activated. Possible options include `click`, `hover`, `focus`, and `manual`. Multiple
- *  options can be passed by separating them with a space. When manual is used, the tooltip must be activated
- *  programmatically.
-        */
-        trigger?: string;
-        /**
-          * Enable this option to prevent the tooltip from being clipped when the component is placed inside a container with
- *  `overflow: auto|hidden|scroll`. Hoisting uses a fixed positioning strategy that works in many, but not all,
- *  scenarios.
-        */
-        hoist?: boolean;
-        /**
-          * When a gap exists between the anchor and the popup element, this option will add a "hover bridge" that fills the
- *  gap using an invisible element. This makes listening for events such as `mouseenter` and `mouseleave` more sane
- *  because the pointer never technically leaves the element. The hover bridge will only be drawn when the popover is
- *  active.
-        */
-        hoverBridge?: boolean;
-        /**
-          * Make localization attributes reactive
-        */
-        dir?: string;
-        /**
-          * 
-        */
-        lang?: string;
-            } 
-            /**
-              * @summary Renders markdown passed in as a string. cx-markdown is a Light DOM element, so can be styled
- *  from outside the Shadow DOM.
- * 
- *  @event cx-ready - Emitted when the markdown has been rendered.
-            */
-            interface CxMarkdownAttributes extends HTMLAttributes<CxMarkdown> {
-              
-        /**
-          * The class name to apply to the root element. As this is a light DOM element, it can be styled
- *  from outside the Shadow DOM.
-        */
-        classname?: string;
-        /**
-          * 
-        */
-        liveScript?: boolean;
-        /**
-          * The markdown to render.
-        */
-        markdown?: string;
-        /**
-          * A marked renderer object to use when rendering the markdown. This overrides the current renderer
- *  only for those methods that are specifically defined on the passed in renderer object.
-        */
-        renderer?: CxMarkdownRendererObject;
-        /**
-          * Extensions to add to the marked parser.
-        */
-        extensions?: { name: string; level: 'block' | 'inline'; childTokens: string[]; } | { name: string; } | { name: string; level: 'block' | 'inline'; childTokens: string[]; }[];
-        /**
-          * Make localization attributes reactive
-        */
-        dir?: string;
-        /**
-          * 
-        */
-        lang?: string;
-            } 
-            /**
-              * 
-            */
-            interface CxTypographyAttributes extends HTMLAttributes<CxTypography> {
-              
-        /**
-          * 
-        */
-        variant?: 'body1' | 'body2' | 'body3' | 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' | 'small';
-        /**
-          * Make localization attributes reactive
-        */
-        dir?: string;
-        /**
-          * 
-        */
-        lang?: string;
-            } 
-            /**
               * @summary Checkboxes allow the user to toggle an option on or off.
  * 
  *  @dependency cx-icon
@@ -1112,86 +1163,6 @@
           * The checkbox's help text. If you need to display HTML, use the `help-text` slot instead.
         */
         helpText?: string;
-        /**
-          * Make localization attributes reactive
-        */
-        dir?: string;
-        /**
-          * 
-        */
-        lang?: string;
-            } 
-            /**
-              * @summary Menu items provide options for the user to pick from in a menu.
- * 
- *  @dependency cx-icon
- *  @dependency cx-popup
- *  @dependency cx-spinner
- * 
- *  @slot - The menu item's label.
- *  @slot prefix - Used to prepend an icon or similar element to the menu item.
- *  @slot suffix - Used to append an icon or similar element to the menu item.
- *  @slot submenu - Used to denote a nested menu.
- * 
- *  @csspart base - The component's base wrapper.
- *  @csspart checked-icon - The checked icon, which is only visible when the menu item is checked.
- *  @csspart prefix - The prefix container.
- *  @csspart label - The menu item label.
- *  @csspart suffix - The suffix container.
- *  @csspart spinner - The spinner that shows when the menu item is in the loading state.
- *  @csspart spinner__base - The spinner's base part.
- *  @csspart submenu-icon - The submenu icon, visible only when the menu item has a submenu (not yet implemented).
- * 
- *  @cssproperty [--submenu-offset=-2px] - The distance submenus shift to overlap the parent menu.
-            */
-            interface CxMenuItemAttributes extends HTMLAttributes<CxMenuItem> {
-              
-        /**
-          * The type of menu item to render. To use `checked`, this value must be set to `checkbox`.
-        */
-        type?: 'normal' | 'checkbox';
-        /**
-          * Draws the item in a checked state.
-        */
-        checked?: boolean;
-        /**
-          * A unique value to store in the menu item. This can be used as a way to identify menu items when selected.
-        */
-        value?: string;
-        /**
-          * Draws the menu item in a loading state.
-        */
-        loading?: boolean;
-        /**
-          * Draws the menu item in a disabled state, preventing selection.
-        */
-        disabled?: boolean;
-        /**
-          * Makes the menu item readonly
-        */
-        readonly?: boolean;
-        /**
-          * Make localization attributes reactive
-        */
-        dir?: string;
-        /**
-          * 
-        */
-        lang?: string;
-            } 
-            /**
-              * @summary Menus provide a list of options for the user to choose from.
- * 
- *  @slot - The menu's content, including menu items, menu labels, and dividers.
- * 
- *  @event {{ item: CxMenuItem }} cx-select - Emitted when a menu item is selected.
-            */
-            interface CxMenuAttributes extends HTMLAttributes<CxMenu> {
-              
-        /**
-          * 
-        */
-        horizontal?: boolean;
         /**
           * Make localization attributes reactive
         */
@@ -1373,7 +1344,7 @@
           * Tells the browser what type of data will be entered by the user, allowing it to display the appropriate virtual
  *  keyboard on supportive devices.
         */
-        inputmode?: 'none' | 'text' | 'search' | 'email' | 'tel' | 'url' | 'decimal' | 'numeric';
+        inputmode?: 'text' | 'none' | 'search' | 'email' | 'tel' | 'url' | 'decimal' | 'numeric';
         /**
           * #region Input Mask properties The mask pattern to apply to the input.
         */
@@ -1402,7 +1373,7 @@
         /**
           * The Choose file's theme variant.
         */
-        variant?: 'primary' | 'success' | 'neutral' | 'warning' | 'danger' | 'default' | 'text' | 'tertiary';
+        variant?: 'primary' | 'success' | 'neutral' | 'warning' | 'danger' | 'default' | 'text' | 'tertiary' | 'custom';
         /**
           * 
         */
@@ -1411,100 +1382,6 @@
           * 
         */
         buttonOnly?: boolean;
-        /**
-          * Make localization attributes reactive
-        */
-        dir?: string;
-        /**
-          * 
-        */
-        lang?: string;
-            } 
-            /**
-              * @summary Dropdowns expose additional content that "drops down" in a panel.
- * 
- *  @dependency cx-popup
- * 
- *  @slot - The dropdown's main content.
- *  @slot trigger - The dropdown's trigger, usually a `cx-button` element.
- * 
- *  @event cx-show - Emitted when the dropdown opens.
- *  @event cx-after-show - Emitted after the dropdown opens and all animations are complete.
- *  @event cx-hide - Emitted when the dropdown closes.
- *  @event cx-after-hide - Emitted after the dropdown closes and all animations are complete.
- * 
- *  @csspart base - The component's base wrapper.
- *  @csspart trigger - The container that wraps the trigger.
- *  @csspart panel - The panel that gets shown when the dropdown is open.
- * 
- *  @animation dropdown.show - The animation to use when showing the dropdown.
- *  @animation dropdown.hide - The animation to use when hiding the dropdown.
-            */
-            interface CxDropdownAttributes extends HTMLAttributes<CxDropdown> {
-              
-        /**
-          * Indicates whether or not the dropdown is open. You can toggle this attribute to show and hide the dropdown, or you
- *  can use the `show()` and `hide()` methods and this attribute will reflect the dropdown's open state.
-        */
-        open?: boolean;
-        /**
-          * The preferred placement of the dropdown panel. Note that the actual placement may vary as needed to keep the panel
- *  inside of the viewport.
-        */
-        placement?: 'top' | 'top-start' | 'top-end' | 'bottom' | 'bottom-start' | 'bottom-end' | 'right' | 'right-start' | 'right-end' | 'left' | 'left-start' | 'left-end';
-        /**
-          * Disables the dropdown so the panel will not open.
-        */
-        disabled?: boolean;
-        /**
-          * By default, the dropdown is closed when an item is selected. This attribute will keep it open instead. Useful for
- *  dropdowns that allow for multiple interactions.
-        */
-        stayOpenOnSelect?: boolean;
-        /**
-          * The distance in pixels from which to offset the panel away from its trigger.
-        */
-        distance?: number;
-        /**
-          * The distance in pixels from which to offset the panel along its trigger.
-        */
-        skidding?: number;
-        /**
-          * Enable this option to prevent the panel from being clipped when the component is placed inside a container with
- *  `overflow: auto|scroll`. Hoisting uses a fixed positioning strategy that works in many, but not all, scenarios.
-        */
-        hoist?: boolean;
-        /**
-          * Syncs the popup width or height to that of the trigger element.
-        */
-        sync?: 'both' | 'width' | 'height';
-        /**
-          * The factor by which to multiply the available width when using `auto-size`. E.g: Set to 0.5 to
- *  make the popup half the width of the available space.
-        */
-        autoWidthFactor?: number;
-        /**
-          * Make localization attributes reactive
-        */
-        dir?: string;
-        /**
-          * 
-        */
-        lang?: string;
-            } 
-            /**
-              * @summary Dividers are used to visually separate or group elements.
- * 
- *  @cssproperty --color - The color of the divider.
- *  @cssproperty --width - The width of the divider.
- *  @cssproperty --spacing - The spacing of the divider.
-            */
-            interface CxDividerAttributes extends HTMLAttributes<CxDivider> {
-              
-        /**
-          * Draws the divider in a vertical orientation.
-        */
-        vertical?: boolean;
         /**
           * Make localization attributes reactive
         */
@@ -1602,7 +1479,7 @@
         /**
           * The variant of the form control.
         */
-        variant?: 'button' | 'default';
+        variant?: 'default' | 'button';
         /**
           * The format to use. If opacity is enabled, these will translate to HEXA, RGBA, HSLA, and HSVA respectively. The color
  *  picker will accept user input in any format (including CSS color names) and convert it to the desired format.
@@ -1646,6 +1523,10 @@
         */
         clearable?: boolean;
         /**
+          * 
+        */
+        tooltip?: string;
+        /**
           * One or more predefined color swatches to display as presets in the color picker. Can include any format the color
  *  picker can parse, including HEX(A), RGB(A), HSL(A), HSV(A), and CSS color names. Each color must be separated by a
  *  semicolon (`;`). Alternatively, you can pass an array of color values to this property using JavaScript.
@@ -1673,6 +1554,86 @@
           * Makes the color picker a required field.
         */
         required?: boolean;
+        /**
+          * Make localization attributes reactive
+        */
+        dir?: string;
+        /**
+          * 
+        */
+        lang?: string;
+            } 
+            /**
+              * @summary Tooltips display additional information based on a specific action.
+ * 
+ *  @dependency cx-popup
+ * 
+ *  @slot - The tooltip's target element. Avoid slotting in more than one element, as subsequent ones will be ignored.
+ *  @slot content - The content to render in the tooltip. Alternatively, you can use the `content` attribute.
+ * 
+ *  @event cx-show - Emitted when the tooltip begins to show.
+ *  @event cx-after-show - Emitted after the tooltip has shown and all animations are complete.
+ *  @event cx-hide - Emitted when the tooltip begins to hide.
+ *  @event cx-after-hide - Emitted after the tooltip has hidden and all animations are complete.
+ * 
+ *  @csspart base - The component's base wrapper, an `cx-popup` element.
+ *  @csspart base__popup - The popup's exported `popup` part. Use this to target the tooltip's popup container.
+ *  @csspart base__arrow - The popup's exported `arrow` part. Use this to target the tooltip's arrow.
+ *  @csspart body - The tooltip's body where its content is rendered.
+ *  @csspart hover-bridge - The hover bridge element. Only available when the `hover-bridge` option is enabled.
+ *  @cssproperty --max-width - The maximum width of the tooltip before its content will wrap.
+ *  @cssproperty --hide-delay - The amount of time to wait before hiding the tooltip when hovering.
+ *  @cssproperty --show-delay - The amount of time to wait before showing the tooltip when hovering.
+ * 
+ *  @animation tooltip.show - The animation to use when showing the tooltip.
+ *  @animation tooltip.hide - The animation to use when hiding the tooltip.
+            */
+            interface CxTooltipAttributes extends HTMLAttributes<CxTooltip> {
+              
+        /**
+          * The tooltip's content. If you need to display HTML, use the `content` slot instead.
+        */
+        content?: string;
+        /**
+          * The preferred placement of the tooltip. Note that the actual placement may vary as needed to keep the tooltip
+ *  inside of the viewport.
+        */
+        placement?: 'top' | 'top-start' | 'top-end' | 'bottom' | 'bottom-start' | 'bottom-end' | 'right' | 'right-start' | 'right-end' | 'left' | 'left-start' | 'left-end';
+        /**
+          * Disables the tooltip so it won't show when triggered.
+        */
+        disabled?: boolean;
+        /**
+          * The distance in pixels from which to offset the tooltip away from its target.
+        */
+        distance?: number;
+        /**
+          * Indicates whether or not the tooltip is open. You can use this in lieu of the show/hide methods.
+        */
+        open?: boolean;
+        /**
+          * The distance in pixels from which to offset the tooltip along its target.
+        */
+        skidding?: number;
+        /**
+          * Controls how the tooltip is activated. Possible options include `click`, `hover`, `focus`, and `manual`. Multiple
+ *  options can be passed by separating them with a space. When manual is used, the tooltip must be activated
+ *  programmatically.
+        */
+        trigger?: string;
+        /**
+          * Enable this option to prevent the tooltip from being clipped when the component is placed inside a container with
+ *  `overflow: auto|hidden|scroll`. Hoisting uses a fixed positioning strategy that works in many, but not all,
+ *  scenarios.
+        */
+        hoist?: boolean;
+        /**
+          * When a gap exists between the anchor and the popup element, this option will add a "hover bridge" that fills the
+ *  gap using an invisible element. This makes listening for events such as `mouseenter` and `mouseleave` more sane
+ *  because the pointer never technically leaves the element. The hover bridge will only be drawn when the popover is
+ *  active.
+        */
+        hoverBridge?: boolean;
         /**
           * Make localization attributes reactive
         */
@@ -1716,6 +1677,10 @@
           * The text value to copy.
         */
         value?: string;
+        /**
+          * The button's size.
+        */
+        size?: 'small' | 'medium' | 'large' | 'x-large';
         /**
           * An id that references an element in the same document from which data will be copied. If both this and `value` are
  *  present, this value will take precedence. By default, the target element's `textContent` will be copied. To copy an
@@ -1811,6 +1776,36 @@
         lang?: string;
             } 
             /**
+              * @summary Dividers are used to visually separate or group elements.
+ * 
+ *  @cssproperty --color - The color of the divider.
+ *  @cssproperty --width - The width of the divider.
+ *  @cssproperty --spacing - The spacing of the divider.
+            */
+            interface CxDividerAttributes extends HTMLAttributes<CxDivider> {
+              
+        /**
+          * Draws the divider in a vertical orientation.
+        */
+        vertical?: boolean;
+        /**
+          * 
+        */
+        variant?: 'custom' | 'solid';
+        /**
+          * 
+        */
+        usePadding?: boolean;
+        /**
+          * Make localization attributes reactive
+        */
+        dir?: string;
+        /**
+          * 
+        */
+        lang?: string;
+            } 
+            /**
               * @summary Dialogs, sometimes called "modals", appear above the page and require the user's immediate attention.
  * 
  *  @dependency cx-icon-button
@@ -1880,6 +1875,11 @@
  *  clipped, using a `fixed` position strategy can often workaround it.
         */
         strategy?: 'absolute' | 'fixed';
+        /**
+          * Enables the overlay scrollbar plugin, which provides a custom scrollbar that does not take up any content space.
+ *  This is useful for dialogs that contain scrollable content.
+        */
+        useOverlayScrollbar?: boolean;
         /**
           * Make localization attributes reactive
         */
@@ -1979,27 +1979,9 @@
         lang?: string;
             } 
             /**
-              * @summary Details show a brief summary and expand to show additional content.
+              * @summary A component that allows you to clamp the number of elements shown in a container, with a button to toggle
  * 
- *  @dependency cx-icon
- * 
- *  @slot - The details' main content.
- *  @slot summary - The details' summary. Alternatively, you can use the `summary` attribute.
- *  @slot expand-icon - Optional expand icon to use instead of the default. Works best with `cx-icon`.
- *  @slot collapse-icon - Optional collapse icon to use instead of the default. Works best with `cx-icon`.
- * 
- *  @event cx-show - Emitted when the details opens.
- *  @event cx-after-show - Emitted after the details opens and all animations are complete.
- *  @event cx-hide - Emitted when the details closes.
- *  @event cx-after-hide - Emitted after the details closes and all animations are complete.
- * 
- *  @csspart base - The component's base wrapper.
- *  @csspart summary - The container that wraps the summary.
- *  @csspart summary-icon - The container that wraps the expand/collapse icons.
- *  @csspart content - The details content.
- * 
- *  @animation details.show - The animation to use when showing details. You can use `height: auto` with this animation.
- *  @animation details.hide - The animation to use when hiding details. You can use `height: auto` with this animation.
+ *  @dependency cx-button
             */
             interface CxElementClampAttributes extends HTMLAttributes<CxElementClamp> {
               
@@ -2194,6 +2176,132 @@
         lang?: string;
             } 
             /**
+              * @summary The responsive layout grid adapts to screen size and orientation, ensuring consistency across layouts.
+ * 
+ *  @slot - The component's main content.
+ * 
+ *  @csspart content - The component's content.
+            */
+            interface CxGridAttributes extends HTMLAttributes<CxGrid> {
+              
+        /**
+          * The space between children.
+        */
+        spacing?: string;
+        /**
+          * The number of columns to display.
+        */
+        columns?: number;
+        /**
+          * Whether to use flex gap or not.
+        */
+        useFlexGap?: boolean;
+        /**
+          * The space between columns. It overrides the value of the spacing prop.
+        */
+        columnSpacing?: string;
+        /**
+          * The space between rows. It overrides the value of the spacing prop.
+        */
+        rowSpacing?: string;
+        /**
+          * Defines the flex-wrap style property.
+        */
+        wrap?: 'nowrap' | 'wrap' | 'wrap-reverse';
+        /**
+          * Whether to use the "@container" query or not.
+        */
+        useContainer?: boolean;
+        /**
+          * Make localization attributes reactive
+        */
+        dir?: string;
+        /**
+          * 
+        */
+        lang?: string;
+            } 
+            /**
+              * @summary The item of a Grid layout.
+ * 
+ *  @slot - The component’s's main content.
+ * 
+ *  @csspart body -The component’s content
+            */
+            interface CxGridItemAttributes extends HTMLAttributes<CxGridItem> {
+              
+        /**
+          * 
+        */
+        xs?: string;
+        /**
+          * 
+        */
+        sm?: string;
+        /**
+          * 
+        */
+        md?: string;
+        /**
+          * 
+        */
+        lg?: string;
+        /**
+          * 
+        */
+        xl?: string;
+        /**
+          * 
+        */
+        useContainer?: boolean;
+        /**
+          * 
+        */
+        fill?: boolean;
+        /**
+          * Make localization attributes reactive
+        */
+        dir?: string;
+        /**
+          * 
+        */
+        lang?: string;
+            } 
+            /**
+              * 
+            */
+            interface CxHeaderAttributes extends HTMLAttributes<CxHeader> {
+              
+        /**
+          * 
+        */
+        variant?: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
+        /**
+          * 
+        */
+        hasAnchorLink?: boolean;
+        /**
+          * 
+        */
+        anchorLink?: string;
+        /**
+          * 
+        */
+        alignment?: 'center' | 'justify' | 'left' | 'right';
+        /**
+          * 
+        */
+        disabledCopyButton?: boolean;
+        /**
+          * Make localization attributes reactive
+        */
+        dir?: string;
+        /**
+          * 
+        */
+        lang?: string;
+            } 
+            /**
               * @summary The `cx-hub-connection` component is used to establish a connection to a SignalR hub.
  *  https://learn.microsoft.com/en-us/javascript/api/%40microsoft/signalr/hubconnection?view=signalr-js-latest
             */
@@ -2215,6 +2323,71 @@
           * 
         */
         connectMode?: 'auto' | 'manual';
+        /**
+          * Make localization attributes reactive
+        */
+        dir?: string;
+        /**
+          * 
+        */
+        lang?: string;
+            } 
+            /**
+              * @summary Skeletons are used to provide a visual representation of where content will eventually be drawn.
+ * 
+ *  @csspart base - The component's base wrapper.
+ *  @csspart indicator - The skeleton's indicator which is responsible for its color and animation.
+ * 
+ *  @cssproperty --border-radius - The skeleton's border radius.
+ *  @cssproperty --color - The color of the skeleton.
+ *  @cssproperty --sheen-color - The sheen color when the skeleton is in its loading state.
+            */
+            interface CxSkeletonAttributes extends HTMLAttributes<CxSkeleton> {
+              
+        /**
+          * Determines which effect the skeleton will use.
+        */
+        effect?: 'pulse' | 'none' | 'sheen';
+        /**
+          * Make localization attributes reactive
+        */
+        dir?: string;
+        /**
+          * 
+        */
+        lang?: string;
+            } 
+            /**
+              * @summary SpacingContainer allows for flexible layout spacing between child elements, vertically or horizontally, with varying sizes.
+ * 
+ *  @csspart base - The component's base container, applying flex layout.
+            */
+            interface CxSpaceAttributes extends HTMLAttributes<CxSpace> {
+              
+        /**
+          * When set, and in vertical orientation, the child elements will stretch to fill the width of the container.
+        */
+        block?: boolean;
+        /**
+          * The direction of the spacing container. This will determine if the child elements are spaced vertically or horizontally.
+        */
+        direction?: 'horizontal' | 'vertical';
+        /**
+          * The spacing between child elements
+        */
+        spacing?: 'small' | 'medium' | 'large' | 'x-large' | '3x-small' | '2x-small' | 'x-small' | '2x-large' | '3x-large' | '4x-large';
+        /**
+          * The wrap behavior of the container.
+        */
+        wrap?: 'nowrap' | 'wrap' | 'wrap-reverse';
+        /**
+          * Proxy for justify-content CSS property.
+        */
+        justifyContent?: 'normal' | 'right' | 'left' | 'start' | 'end' | 'center' | 'flex-start' | 'flex-end' | 'space-between' | 'space-around' | 'space-evenly' | 'stretch';
+        /**
+          * Proxy for align-items CSS property.
+        */
+        alignItems?: 'normal' | 'start' | 'end' | 'center' | 'flex-start' | 'flex-end' | 'stretch' | 'baseline';
         /**
           * Make localization attributes reactive
         */
@@ -2384,6 +2557,45 @@
         lang?: string;
             } 
             /**
+              * @summary Renders markdown passed in as a string. cx-markdown is a Light DOM element, so can be styled
+ *  from outside the Shadow DOM.
+ * 
+ *  @event cx-ready - Emitted when the markdown has been rendered.
+            */
+            interface CxMarkdownAttributes extends HTMLAttributes<CxMarkdown> {
+              
+        /**
+          * The class name to apply to the root element. As this is a light DOM element, it can be styled
+ *  from outside the Shadow DOM.
+        */
+        classname?: string;
+        /**
+          * 
+        */
+        liveScript?: boolean;
+        /**
+          * The markdown to render.
+        */
+        markdown?: string;
+        /**
+          * A marked renderer object to use when rendering the markdown. This overrides the current renderer
+ *  only for those methods that are specifically defined on the passed in renderer object.
+        */
+        renderer?: CxMarkdownRendererObject;
+        /**
+          * Extensions to add to the marked parser.
+        */
+        extensions?: { name: string; level: 'block' | 'inline'; childTokens: string[]; } | { name: string; } | { name: string; level: 'block' | 'inline'; childTokens: string[]; }[];
+        /**
+          * Make localization attributes reactive
+        */
+        dir?: string;
+        /**
+          * 
+        */
+        lang?: string;
+            } 
+            /**
               * @summary Menu labels are used to describe a group of menu items.
  * 
  *  @slot - The menu label's content.
@@ -2495,6 +2707,137 @@
           * Whether to show check icon prefix for selected option.
         */
         showCheck?: boolean;
+        /**
+          * Make localization attributes reactive
+        */
+        dir?: string;
+        /**
+          * 
+        */
+        lang?: string;
+            } 
+            /**
+              * @summary Trees allow you to display a hierarchical list of selectable [tree items](?s=atoms&id=/tree-item). Items with children can be expanded and collapsed as desired by the user.
+ * 
+ *  @event {{ selection: CxTreeItem[] }} cx-selection-change - Emitted when a tree item is selected or deselected.
+ * 
+ *  @slot - The default slot.
+ *  @slot expand-icon - The icon to show when the tree item is expanded. Works best with `cx-icon`.
+ *  @slot collapse-icon - The icon to show when the tree item is collapsed. Works best with `cx-icon`.
+ * 
+ *  @csspart base - The component's base wrapper.
+ * 
+ *  @cssproperty [--indent-size=var(--cx-spacing-medium)] - The size of the indentation for nested items.
+ *  @cssproperty [--indent-guide-color=var(--cx-color-neutral-200)] - The color of the indentation line.
+ *  @cssproperty [--indent-guide-offset=0] - The amount of vertical spacing to leave between the top and bottom of the
+ *   indentation line's starting position.
+ *  @cssproperty [--indent-guide-style=solid] - The style of the indentation line, e.g. solid, dotted, dashed.
+ *  @cssproperty [--indent-guide-width=0] - The width of the indentation line.
+            */
+            interface CxTreeAttributes extends HTMLAttributes<CxTree> {
+              
+        /**
+          * The selection behavior of the tree. Single selection allows only one node to be selected at a time. Multiple
+ *  displays checkboxes and allows more than one node to be selected. Leaf allows only leaf nodes to be selected.
+        */
+        selection?: 'single' | 'multiple' | 'leaf';
+        /**
+          * Whether to automatically expand after loading finishes
+        */
+        disabledAutoExpand?: boolean;
+        /**
+          * Whether to automatically expand to the selected items
+        */
+        autoExpandToSelected?: boolean;
+        /**
+          * Expand button placement
+        */
+        expandButtonPlacement?: 'start' | 'end';
+        /**
+          * Make localization attributes reactive
+        */
+        dir?: string;
+        /**
+          * 
+        */
+        lang?: string;
+            } 
+            /**
+              * @summary A tree item serves as a hierarchical node that lives inside a [tree](?s=atoms&id=/tree).
+ * 
+ *  @dependency cx-checkbox
+ *  @dependency cx-icon
+ *  @dependency cx-spinner
+ * 
+ *  @event cx-expand - Emitted when the tree item expands.
+ *  @event cx-after-expand - Emitted after the tree item expands and all animations are complete.
+ *  @event cx-collapse - Emitted when the tree item collapses.
+ *  @event cx-after-collapse - Emitted after the tree item collapses and all animations are complete.
+ *  @event cx-lazy-change - Emitted when the tree item's lazy state changes.
+ *  @event cx-lazy-load - Emitted when a lazy item is selected. Use this event to asynchronously load data and append
+ *   items to the tree before expanding. After appending new items, remove the `lazy` attribute to remove the loading
+ *   state and update the tree.
+ * 
+ *  @slot - The default slot.
+ *  @slot expand-icon - The icon to show when the tree item is expanded.
+ *  @slot collapse-icon - The icon to show when the tree item is collapsed.
+ * 
+ *  @csspart base - The component's base wrapper.
+ *  @csspart item - The tree item's container. This element wraps everything except slotted tree item children.
+ *  @csspart item--disabled - Applied when the tree item is disabled.
+ *  @csspart item--expanded - Applied when the tree item is expanded.
+ *  @csspart item--indeterminate - Applied when the selection is indeterminate.
+ *  @csspart item--selected - Applied when the tree item is selected.
+ *  @csspart indentation - The tree item's indentation container.
+ *  @csspart expand-button - The container that wraps the tree item's expand button and spinner.
+ *  @csspart label - The tree item's label.
+ *  @csspart children - The container that wraps the tree item's nested children.
+ *  @csspart checkbox - The checkbox that shows when using multiselect.
+ *  @csspart checkbox__base - The checkbox's exported `base` part.
+ *  @csspart checkbox__control - The checkbox's exported `control` part.
+ *  @csspart checkbox__control--checked - The checkbox's exported `control--checked` part.
+ *  @csspart checkbox__control--indeterminate - The checkbox's exported `control--indeterminate` part.
+ *  @csspart checkbox__checked-icon - The checkbox's exported `checked-icon` part.
+ *  @csspart checkbox__indeterminate-icon - The checkbox's exported `indeterminate-icon` part.
+ *  @csspart checkbox__label - The checkbox's exported `label` part.
+            */
+            interface CxTreeItemAttributes extends HTMLAttributes<CxTreeItem> {
+              
+        /**
+          * Expands the tree item.
+        */
+        expanded?: boolean;
+        /**
+          * Draws the tree item in a selected state.
+        */
+        selected?: boolean;
+        /**
+          * Disables the tree item.
+        */
+        disabled?: boolean;
+        /**
+          * Makes the tree item readonly
+        */
+        readonly?: boolean;
+        /**
+          * Enables lazy loading behavior.
+        */
+        lazy?: boolean;
+        /**
+          * Handled by Cortex: Tree item's ID
+        */
+        itemid?: string;
+        /**
+          * Expand button placement
+        */
+        expandButtonPlacement?: 'start' | 'end';
+        /**
+          * Indicates whether the tree checkboxes should be synced with the selected state of the tree items.
+ *  For example, when select all chilren, the parent checkbox will be checked. When parent checkbox is checked, all children will be checked.
+ *  If set to `true`, the chilren and parent checked state will be independent of each other.
+ *  This is only applicable when `selection` is set to `multiple`.
+        */
+        disabledSyncCheckboxes?: boolean;
         /**
           * Make localization attributes reactive
         */
@@ -2697,6 +3040,10 @@
         */
         stayOpenOnSelect?: boolean;
         /**
+          * When set to true, the `cx-change` event will be emitted on every change of the value, even if the value is not changed.
+        */
+        forceOnChange?: boolean;
+        /**
           * Make localization attributes reactive
         */
         dir?: string;
@@ -2706,66 +3053,14 @@
         lang?: string;
             } 
             /**
-              * @summary A tree item serves as a hierarchical node that lives inside a [tree](?s=atoms&id=/tree).
- * 
- *  @dependency cx-checkbox
- *  @dependency cx-icon
- *  @dependency cx-spinner
- * 
- *  @event cx-expand - Emitted when the tree item expands.
- *  @event cx-after-expand - Emitted after the tree item expands and all animations are complete.
- *  @event cx-collapse - Emitted when the tree item collapses.
- *  @event cx-after-collapse - Emitted after the tree item collapses and all animations are complete.
- *  @event cx-lazy-change - Emitted when the tree item's lazy state changes.
- *  @event cx-lazy-load - Emitted when a lazy item is selected. Use this event to asynchronously load data and append
- *   items to the tree before expanding. After appending new items, remove the `lazy` attribute to remove the loading
- *   state and update the tree.
- * 
- *  @slot - The default slot.
- *  @slot expand-icon - The icon to show when the tree item is expanded.
- *  @slot collapse-icon - The icon to show when the tree item is collapsed.
- * 
- *  @csspart base - The component's base wrapper.
- *  @csspart item - The tree item's container. This element wraps everything except slotted tree item children.
- *  @csspart item--disabled - Applied when the tree item is disabled.
- *  @csspart item--expanded - Applied when the tree item is expanded.
- *  @csspart item--indeterminate - Applied when the selection is indeterminate.
- *  @csspart item--selected - Applied when the tree item is selected.
- *  @csspart indentation - The tree item's indentation container.
- *  @csspart expand-button - The container that wraps the tree item's expand button and spinner.
- *  @csspart label - The tree item's label.
- *  @csspart children - The container that wraps the tree item's nested children.
- *  @csspart checkbox - The checkbox that shows when using multiselect.
- *  @csspart checkbox__base - The checkbox's exported `base` part.
- *  @csspart checkbox__control - The checkbox's exported `control` part.
- *  @csspart checkbox__control--checked - The checkbox's exported `control--checked` part.
- *  @csspart checkbox__control--indeterminate - The checkbox's exported `control--indeterminate` part.
- *  @csspart checkbox__checked-icon - The checkbox's exported `checked-icon` part.
- *  @csspart checkbox__indeterminate-icon - The checkbox's exported `indeterminate-icon` part.
- *  @csspart checkbox__label - The checkbox's exported `label` part.
+              * 
             */
-            interface CxTreeItemAttributes extends HTMLAttributes<CxTreeItem> {
+            interface CxTypographyAttributes extends HTMLAttributes<CxTypography> {
               
         /**
-          * Expands the tree item.
+          * 
         */
-        expanded?: boolean;
-        /**
-          * Draws the tree item in a selected state.
-        */
-        selected?: boolean;
-        /**
-          * Disables the tree item.
-        */
-        disabled?: boolean;
-        /**
-          * Makes the tree item readonly
-        */
-        readonly?: boolean;
-        /**
-          * Enables lazy loading behavior.
-        */
-        lazy?: boolean;
+        variant?: 'body1' | 'body2' | 'body3' | 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' | 'small';
         /**
           * Make localization attributes reactive
         */
@@ -2965,6 +3260,10 @@
         */
         disabled?: boolean;
         /**
+          * Hides the radio's indicator.
+        */
+        hideIndicator?: boolean;
+        /**
           * Make localization attributes reactive
         */
         dir?: string;
@@ -3037,6 +3336,10 @@
         */
         disabled?: boolean;
         /**
+          * Hides the radio's indicator.
+        */
+        hideIndicator?: boolean;
+        /**
           * Make localization attributes reactive
         */
         dir?: string;
@@ -3103,6 +3406,10 @@
           * Arrange the radio buttons in a horizontal layout, making them appear side by side instead of stacked vertically.
         */
         horizontal?: boolean;
+        /**
+          * This attribute disables the spacing behavior of the radio group.
+        */
+        compact?: boolean;
         /**
           * This attribute specifies the number of items to be displayed per row. It is only applicable when the `horizontal` attribute is set to true.
         */
@@ -3277,6 +3584,10 @@
         */
         disabled?: boolean;
         /**
+          * Variant
+        */
+        variant?: 'outlined' | 'default';
+        /**
           * Make localization attributes reactive
         */
         dir?: string;
@@ -3309,71 +3620,6 @@
           * Keep the displayed value up to date as time passes.
         */
         sync?: boolean;
-        /**
-          * Make localization attributes reactive
-        */
-        dir?: string;
-        /**
-          * 
-        */
-        lang?: string;
-            } 
-            /**
-              * @summary Skeletons are used to provide a visual representation of where content will eventually be drawn.
- * 
- *  @csspart base - The component's base wrapper.
- *  @csspart indicator - The skeleton's indicator which is responsible for its color and animation.
- * 
- *  @cssproperty --border-radius - The skeleton's border radius.
- *  @cssproperty --color - The color of the skeleton.
- *  @cssproperty --sheen-color - The sheen color when the skeleton is in its loading state.
-            */
-            interface CxSkeletonAttributes extends HTMLAttributes<CxSkeleton> {
-              
-        /**
-          * Determines which effect the skeleton will use.
-        */
-        effect?: 'pulse' | 'none' | 'sheen';
-        /**
-          * Make localization attributes reactive
-        */
-        dir?: string;
-        /**
-          * 
-        */
-        lang?: string;
-            } 
-            /**
-              * @summary SpacingContainer allows for flexible layout spacing between child elements, vertically or horizontally, with varying sizes.
- * 
- *  @csspart base - The component's base container, applying flex layout.
-            */
-            interface CxSpaceAttributes extends HTMLAttributes<CxSpace> {
-              
-        /**
-          * When set, and in vertical orientation, the child elements will stretch to fill the width of the container.
-        */
-        block?: boolean;
-        /**
-          * The direction of the spacing container. This will determine if the child elements are spaced vertically or horizontally.
-        */
-        direction?: 'horizontal' | 'vertical';
-        /**
-          * The spacing between child elements
-        */
-        spacing?: 'small' | 'medium' | 'large' | 'x-large' | '3x-small' | '2x-small' | 'x-small' | '2x-large' | '3x-large' | '4x-large';
-        /**
-          * The wrap behavior of the container.
-        */
-        wrap?: 'wrap' | 'nowrap' | 'wrap-reverse';
-        /**
-          * Proxy for justify-content CSS property.
-        */
-        justifyContent?: 'normal' | 'center' | 'right' | 'left' | 'start' | 'end' | 'flex-start' | 'flex-end' | 'space-between' | 'space-around' | 'space-evenly' | 'stretch';
-        /**
-          * Proxy for align-items CSS property.
-        */
-        alignItems?: 'normal' | 'center' | 'start' | 'end' | 'flex-start' | 'flex-end' | 'stretch' | 'baseline';
         /**
           * Make localization attributes reactive
         */
@@ -3729,6 +3975,10 @@
         */
         fixedScrollControls?: boolean;
         /**
+          * The variant of the tab group.
+        */
+        variant?: 'default' | 'button';
+        /**
           * Make localization attributes reactive
         */
         dir?: string;
@@ -3853,140 +4103,11 @@
           * Tells the browser what type of data will be entered by the user, allowing it to display the appropriate virtual
  *  keyboard on supportive devices.
         */
-        inputmode?: 'none' | 'text' | 'search' | 'email' | 'tel' | 'url' | 'decimal' | 'numeric';
+        inputmode?: 'text' | 'none' | 'search' | 'email' | 'tel' | 'url' | 'decimal' | 'numeric';
         /**
           * The default value of the form control. Primarily used for resetting the form control.
         */
         defaultValue?: string;
-        /**
-          * Make localization attributes reactive
-        */
-        dir?: string;
-        /**
-          * 
-        */
-        lang?: string;
-            } 
-            /**
-              * @summary Trees allow you to display a hierarchical list of selectable [tree items](?s=atoms&id=/tree-item). Items with children can be expanded and collapsed as desired by the user.
- * 
- *  @event {{ selection: CxTreeItem[] }} cx-selection-change - Emitted when a tree item is selected or deselected.
- * 
- *  @slot - The default slot.
- *  @slot expand-icon - The icon to show when the tree item is expanded. Works best with `cx-icon`.
- *  @slot collapse-icon - The icon to show when the tree item is collapsed. Works best with `cx-icon`.
- * 
- *  @csspart base - The component's base wrapper.
- * 
- *  @cssproperty [--indent-size=var(--cx-spacing-medium)] - The size of the indentation for nested items.
- *  @cssproperty [--indent-guide-color=var(--cx-color-neutral-200)] - The color of the indentation line.
- *  @cssproperty [--indent-guide-offset=0] - The amount of vertical spacing to leave between the top and bottom of the
- *   indentation line's starting position.
- *  @cssproperty [--indent-guide-style=solid] - The style of the indentation line, e.g. solid, dotted, dashed.
- *  @cssproperty [--indent-guide-width=0] - The width of the indentation line.
-            */
-            interface CxTreeAttributes extends HTMLAttributes<CxTree> {
-              
-        /**
-          * The selection behavior of the tree. Single selection allows only one node to be selected at a time. Multiple
- *  displays checkboxes and allows more than one node to be selected. Leaf allows only leaf nodes to be selected.
-        */
-        selection?: 'single' | 'multiple' | 'leaf';
-        /**
-          * Indicates whether the tree checkboxes should be synced with the selected state of the tree items.
- *  For example, when select all chilren, the parent checkbox will be checked. When parent checkbox is checked, all children will be checked.
- *  If set to `true`, the chilren and parent checked state will be independent of each other.
- *  This is only applicable when `selection` is set to `multiple`.
-        */
-        disabledSyncCheckboxes?: boolean;
-        /**
-          * Make localization attributes reactive
-        */
-        dir?: string;
-        /**
-          * 
-        */
-        lang?: string;
-            } 
-            /**
-              * @summary The responsive layout grid adapts to screen size and orientation, ensuring consistency across layouts.
- * 
- *  @slot - The component's main content.
- * 
- *  @csspart content - The component's content.
-            */
-            interface CxGridAttributes extends HTMLAttributes<CxGrid> {
-              
-        /**
-          * The space between children.
-        */
-        spacing?: string;
-        /**
-          * The number of columns to display.
-        */
-        columns?: number;
-        /**
-          * Whether to use flex gap or not.
-        */
-        useFlexGap?: boolean;
-        /**
-          * The space between columns. It overrides the value of the spacing prop.
-        */
-        columnSpacing?: string;
-        /**
-          * The space between rows. It overrides the value of the spacing prop.
-        */
-        rowSpacing?: string;
-        /**
-          * Defines the flex-wrap style property.
-        */
-        wrap?: 'wrap' | 'nowrap' | 'wrap-reverse';
-        /**
-          * Whether to use the "@container" query or not.
-        */
-        useContainer?: boolean;
-        /**
-          * Make localization attributes reactive
-        */
-        dir?: string;
-        /**
-          * 
-        */
-        lang?: string;
-            } 
-            /**
-              * @summary The item of a Grid layout.
- * 
- *  @slot - The component’s's main content.
- * 
- *  @csspart body -The component’s content
-            */
-            interface CxGridItemAttributes extends HTMLAttributes<CxGridItem> {
-              
-        /**
-          * 
-        */
-        xs?: string;
-        /**
-          * 
-        */
-        sm?: string;
-        /**
-          * 
-        */
-        md?: string;
-        /**
-          * 
-        */
-        lg?: string;
-        /**
-          * 
-        */
-        xl?: string;
-        /**
-          * 
-        */
-        useContainer?: boolean;
         /**
           * Make localization attributes reactive
         */
@@ -4053,6 +4174,42 @@
         lang?: string;
             } 
             /**
+              * 
+            */
+            interface CxBicolorPickerAttributes extends HTMLAttributes<CxBicolorPicker> {
+              
+        /**
+          * 
+        */
+        value?: string[];
+        /**
+          * Make localization attributes reactive
+        */
+        dir?: string;
+        /**
+          * 
+        */
+        lang?: string;
+            } 
+            /**
+              * 
+            */
+            interface CxBorderInputGroupAttributes extends HTMLAttributes<CxBorderInputGroup> {
+              
+        /**
+          * 
+        */
+        value?: string[];
+        /**
+          * Make localization attributes reactive
+        */
+        dir?: string;
+        /**
+          * 
+        */
+        lang?: string;
+            } 
+            /**
               * @summary Confirm popover is a component that displays a confirmation dialog with a message and two action buttons.
  * 
  *  @dependency cx-dropdown
@@ -4102,116 +4259,34 @@
         lang?: string;
             } 
             /**
-              * @summary File on Demand is a component that allows users to view and manage their assets.
- * 
- *  @dependency cx-typography
- *  @dependency cx-input
- *  @dependency cx-button
- *  @dependency cx-avatar
- *  @dependency cx-icon-button
- *  @dependency cx-relative-time
- *  @dependency cx-icon
- *  @dependency cx-tab
- *  @dependency cx-tab-group
- *  @dependency cx-tab-panel
- *  @dependency cx-format-bytes
- *  @dependency cx-progress-bar
- *  @dependency cx-line-clamp
- *  @dependency cx-tooltip
- *  @dependency cx-switch
- *  @dependency cx-select
- *  @dependency cx-option
- *  @dependency cx-dialog
- * 
- *  @event {{ assetId: string }} cx-mark-favorite - Emitted when the user marks an asset as favorite.
- *  @event {{ assetId: string }} cx-unmark-favorite - Emitted when the user unmarks an asset as favorite.
- *  @event cx-open-search - Emitted when the user opens the search.
- *  @event {{ assetId: string }} cx-open-drive - Emitted when the user opens the drive.
- *  @event {{ type: string }} cx-load-more - Emitted when the user requests more assets.
- *  @event {{ connectUrl: string }} cx-connect - Emitted when the user requests to connect to the given connectionUrl.
- *  @event {{ connectUrl: string }} cx-disconnect - Emitted when the user requests to disconnect from the given connectionUrl.
- *  @event cx-clear-cache - Emitted when the user requests to clear the cache.
- *  @event cx-import-settings - Emitted when the user requests to import settings.
- *  @event cx-export-settings - Emitted when the user requests to export settings.
- *  @event cx-view-logs - Emitted when the user requests to view logs.
- *  @event cx-add-proxy-format-folders - Emitted when the user requests to add proxy format folders.
- *  @event {{ settings: Settings }} cx-save-settings - Emitted when the user saves the settings.
- *  @event cx-quit - Emitted when the user quits the application.
- *  @event cx-upgrade - Emitted when the user requests to upgrade the application.
+              * 
             */
-            interface CxFileOnDemandAttributes extends HTMLAttributes<CxFileOnDemand> {
+            interface CxCropperAttributes extends HTMLAttributes<CxCropper> {
               
         /**
-          * Indicates if the user is connected to the provided connection URL.
+          * 
         */
-        connectionEstablished?: boolean;
-        /**
-          * The connection status.
-        */
-        connectionStatus?: 'excellent' | 'good' | 'bad';
-        /**
-          * The asset index sync status.
-        */
-        assetIndexSyncStatus?: 'error' | 'loading' | 'loaded';
-        /**
-          * The user's avatar URL.
-        */
-        userAvatarUrl?: string;
+        cropper?: { height: number; percentageHeight: number; percentageWidth: number; width: number; x: number; y: number; };
         /**
           * 
         */
-        username?: string;
+        image?: { extension: string; height: number; originalUrl: string; rotation: number; url: string; width: number; x: number; y: number; };
         /**
           * 
         */
-        recentAssets?: CxFileOnDemandAssetsProp;
+        resizer?: { height: number; width: number; };
         /**
           * 
         */
-        favoriteAssets?: CxFileOnDemandAssetsProp;
+        rotation?: number;
         /**
           * 
         */
-        uploadingAssets?: CxFileOnDemandAssetsProp;
+        disabled?: boolean;
         /**
           * 
         */
-        availableFolderIdentifiers?: CxFileOnDemandFolderOption[];
-        /**
-          * 
-        */
-        settings?: CxFileOnDemandSettings;
-        /**
-          * Indicates if the application has a new version to upgrade to.
-        */
-        hasNewVersion?: boolean;
-        /**
-          * The about content to display in the settings view.
-        */
-        aboutContent?: string;
-        /**
-          * Make localization attributes reactive
-        */
-        dir?: string;
-        /**
-          * 
-        */
-        lang?: string;
-            } 
-            /**
-              * @summary Represents a layout with up-to-2 sidebars of fixed width, and the main content takes up the rest of the available space.
- * 
- *  @slot - The main content.
- *  @slot left - Left sidebar content.
- *  @slot right - Right sidebar content.
- * 
- *  @csspart base - The component's base wrapper.
- *  @csspart left-container - The container that wraps the left sidebar.
- *  @csspart right-container - The container that wraps the right sidebar.
- *  @csspart content - The container that wraps the main content.
-            */
-            interface CxSidebarLayoutAttributes extends HTMLAttributes<CxSidebarLayout> {
-              
+        loadable?: boolean;
         /**
           * Make localization attributes reactive
         */
@@ -4256,6 +4331,77 @@
             /**
               * 
             */
+            interface CxPaddingInputGroupAttributes extends HTMLAttributes<CxPaddingInputGroup> {
+              
+        /**
+          * 
+        */
+        value?: string[];
+        /**
+          * Make localization attributes reactive
+        */
+        dir?: string;
+        /**
+          * 
+        */
+        lang?: string;
+            } 
+            /**
+              * 
+            */
+            interface CxShadowInputGroupAttributes extends HTMLAttributes<CxShadowInputGroup> {
+              
+        /**
+          * 
+        */
+        value?: string[];
+        /**
+          * Make localization attributes reactive
+        */
+        dir?: string;
+        /**
+          * 
+        */
+        lang?: string;
+            } 
+            /**
+              * @summary Represents a sidebar in a sidebar layout.
+ * 
+ *  @dependency cx-divider
+ *  @dependency cx-icon-button
+ * 
+ *  @slot - The main content.
+ *  @slot header - The header.
+ *  @slot open_trigger - The label of the open trigger.
+ * 
+ *  @event cx-after-resize {{ side: 'left' | 'right', size: number }} - Emitted after the sidebar is resized.
+ * 
+ *  @csspart base - The component's base wrapper.
+ *  @csspart header - The container that wraps the header.
+ *  @csspart content - The container that wraps the main content.
+            */
+            interface CxSidebarAttributes extends HTMLAttributes<CxSidebar> {
+              
+        /**
+          * Sets the side for the component.
+        */
+        side?: 'right' | 'left';
+        /**
+          * Is the sidebar open?
+        */
+        open?: boolean;
+        /**
+          * Make localization attributes reactive
+        */
+        dir?: string;
+        /**
+          * 
+        */
+        lang?: string;
+            } 
+            /**
+              * 
+            */
             interface CxStepperWizardAttributes extends HTMLAttributes<CxStepperWizard> {
               
         /**
@@ -4270,6 +4416,194 @@
           * 
         */
         minWidth?: number;
+        /**
+          * Make localization attributes reactive
+        */
+        dir?: string;
+        /**
+          * 
+        */
+        lang?: string;
+            } 
+            /**
+              * 
+            */
+            interface CxStorybookAttributes extends HTMLAttributes<CxStorybook> {
+              
+        /**
+          * Make localization attributes reactive
+        */
+        dir?: string;
+        /**
+          * 
+        */
+        lang?: string;
+            } 
+            /**
+              * @summary File on Demand is a component that allows users to view and manage their assets.
+ * 
+ *  @dependency cx-typography
+ *  @dependency cx-input
+ *  @dependency cx-button
+ *  @dependency cx-avatar
+ *  @dependency cx-icon-button
+ *  @dependency cx-relative-time
+ *  @dependency cx-icon
+ *  @dependency cx-tab
+ *  @dependency cx-tab-group
+ *  @dependency cx-tab-panel
+ *  @dependency cx-format-bytes
+ *  @dependency cx-progress-bar
+ *  @dependency cx-line-clamp
+ *  @dependency cx-tooltip
+ *  @dependency cx-select
+ *  @dependency cx-option
+ *  @dependency cx-dialog
+ * 
+ *  @event {{ assetId: string }} cx-mark-favorite - Emitted when the user marks an asset as favorite.
+ *  @event {{ assetId: string }} cx-unmark-favorite - Emitted when the user unmarks an asset as favorite.
+ *  @event cx-open-search - Emitted when the user opens the search.
+ *  @event {{ assetId: string }} cx-open-drive - Emitted when the user opens the drive.
+ *  @event {{ type: string }} cx-load-more - Emitted when the user requests more assets.
+ *  @event {{ connectUrl: string }} cx-connect - Emitted when the user requests to connect to the given connectionUrl.
+ *  @event {{ connectUrl: string }} cx-disconnect - Emitted when the user requests to disconnect from the given connectionUrl.
+ *  @event cx-clear-cache - Emitted when the user requests to clear the cache.
+ *  @event cx-import-settings - Emitted when the user requests to import settings.
+ *  @event cx-export-settings - Emitted when the user requests to export settings.
+ *  @event cx-view-logs - Emitted when the user requests to view logs.
+ *  @event cx-add-proxy-format-folders - Emitted when the user requests to add proxy format folders.
+ *  @event {{ settings: Settings }} cx-save-settings - Emitted when the user saves the settings.
+ *  @event cx-upgrade - Emitted when the user requests to upgrade the application.
+ *  @event {{ assetId: string }} cx-retry-upload - Emitted when the user retries an upload.
+ *  @event {{ assetId: string }} cx-pause-upload - Emitted when the user pauses an upload.
+ *  @event {{ assetId: string }} cx-resume-upload - Emitted when the user resumes an upload.
+ *  @event {{ assetId: string }} cx-cancel-upload - Emitted when the user cancels an upload.
+ *  @event cx-renew-token - Emitted when fetch fails due to token expiration.
+ *  @event cx-logout - Emitted when the user logs out.
+            */
+            interface CxFileOnDemandAttributes extends HTMLAttributes<CxFileOnDemand> {
+              
+        /**
+          * Indicates if the user is connected to the provided connection URL.
+        */
+        connectionEstablished?: boolean;
+        /**
+          * The connection status.
+        */
+        connectionStatus?: 'excellent' | 'good' | 'bad';
+        /**
+          * The asset index sync status.
+        */
+        assetIndexSyncStatus?: 'error' | 'loading' | 'loaded';
+        /**
+          * The user's avatar URL.
+        */
+        userAvatarUrl?: string;
+        /**
+          * 
+        */
+        username?: string;
+        /**
+          * 
+        */
+        recentAssets?: CxFileOnDemandAssetsProp;
+        /**
+          * 
+        */
+        favoriteAssets?: CxFileOnDemandAssetsProp;
+        /**
+          * 
+        */
+        uploadingAssets?: CxFileOnDemandAssetsProp;
+        /**
+          * 
+        */
+        settings?: CxFileOnDemandSettings;
+        /**
+          * Indicates if the application has a new version to upgrade to.
+        */
+        hasNewVersion?: boolean;
+        /**
+          * The about content to display in the settings view.
+        */
+        aboutContent?: string;
+        /**
+          * The authentication token to use for fetching data from OrangeDAM.
+        */
+        token?: string;
+        /**
+          * Make localization attributes reactive
+        */
+        dir?: string;
+        /**
+          * 
+        */
+        lang?: string;
+            } 
+            /**
+              * @summary Represents a layout with up-to-2 sidebars of fixed width, and the main content takes up the rest of the available space.
+ * 
+ *  @slot - The main content.
+ *  @slot left - Left sidebar content.
+ *  @slot right - Right sidebar content.
+ * 
+ *  @csspart base - The component's base wrapper.
+ *  @csspart left-container - The container that wraps the left sidebar.
+ *  @csspart right-container - The container that wraps the right sidebar.
+ *  @csspart content - The container that wraps the main content.
+            */
+            interface CxSidebarLayoutAttributes extends HTMLAttributes<CxSidebarLayout> {
+              
+        /**
+          * Make localization attributes reactive
+        */
+        dir?: string;
+        /**
+          * 
+        */
+        lang?: string;
+            } 
+            /**
+              * 
+            */
+            interface CxAssetLinkFormatAttributes extends HTMLAttributes<CxAssetLinkFormat> {
+              
+        /**
+          * 
+        */
+        name?: string;
+        /**
+          * 
+        */
+        baseUrl?: string;
+        /**
+          * 
+        */
+        accessToken?: string;
+        /**
+          * 
+        */
+        asset?: CxAssetLinkFormatAsset;
+        /**
+          * 
+        */
+        extensions?: CxAssetLinkFormatPartial;
+        /**
+          * 
+        */
+        proxies?: CxAssetLinkFormatProxy[];
+        /**
+          * 
+        */
+        autoExtension?: string;
+        /**
+          * 
+        */
+        forCropper?: string;
+        /**
+          * 
+        */
+        useSession?: string;
         /**
           * Make localization attributes reactive
         */
@@ -4329,8 +4663,52 @@
             /**
               * 
             */
-            interface CxStorybookAttributes extends HTMLAttributes<CxStorybook> {
+            interface CxCommentAttributes extends HTMLAttributes<CxComment> {
               
+        /**
+          * 
+        */
+        content?: string;
+        /**
+          * 
+        */
+        editable?: boolean;
+        /**
+          * 
+        */
+        autofocus?: boolean;
+        /**
+          * 
+        */
+        canUpload?: boolean;
+        /**
+          * 
+        */
+        recording?: boolean;
+        /**
+          * 
+        */
+        queryName?: string;
+        /**
+          * 
+        */
+        filterName?: string;
+        /**
+          * 
+        */
+        autocompletionViewstate?: string;
+        /**
+          * 
+        */
+        maxCount?: number;
+        /**
+          * 
+        */
+        queryDelay?: number;
+        /**
+          * 
+        */
+        minQueryLength?: number;
         /**
           * Make localization attributes reactive
         */
@@ -4341,31 +4719,148 @@
         lang?: string;
             } 
             /**
-              * @summary Represents a sidebar in a sidebar layout.
- * 
- *  @dependency cx-divider
- *  @dependency cx-icon-button
- * 
- *  @slot - The main content.
- *  @slot header - The header.
- *  @slot open_trigger - The label of the open trigger.
- * 
- *  @event cx-after-resize {{ side: 'left' | 'right', size: number }} - Emitted after the sidebar is resized.
- * 
- *  @csspart base - The component's base wrapper.
- *  @csspart header - The container that wraps the header.
- *  @csspart content - The container that wraps the main content.
+              * 
             */
-            interface CxSidebarAttributes extends HTMLAttributes<CxSidebar> {
+            interface CxColumnAttributes extends HTMLAttributes<CxColumn> {
               
         /**
-          * Sets the side for the component.
+          * 
         */
-        side?: 'right' | 'left';
+        selected?: boolean;
         /**
-          * Is the sidebar open?
+          * 
         */
-        open?: boolean;
+        resizable?: boolean;
+        /**
+          * 
+        */
+        trigger?: 'manual' | 'hover';
+        /**
+          * Make localization attributes reactive
+        */
+        dir?: string;
+        /**
+          * 
+        */
+        lang?: string;
+            } 
+            /**
+              * 
+            */
+            interface CxColumnGroupAttributes extends HTMLAttributes<CxColumnGroup> {
+              
+        /**
+          * 
+        */
+        columnWidths?: number[];
+        /**
+          * 
+        */
+        trigger?: 'manual' | 'hover';
+        /**
+          * 
+        */
+        auto?: boolean;
+        /**
+          * 
+        */
+        minColumnWidth?: number;
+        /**
+          * Make localization attributes reactive
+        */
+        dir?: string;
+        /**
+          * 
+        */
+        lang?: string;
+            } 
+            /**
+              * @summary !!! TODO
+ * 
+ *  @dependency cx-content-builder
+ * 
+ *  @event cx-change - Emitted when the content changes.
+ * 
+ *  @csspart base - The component's base wrapper.
+ *  @csspart left-container - The container that wraps the left sidebar.
+ *  @csspart right-container - The container that wraps the right sidebar.
+ *  @csspart content - The container that wraps the main content.
+            */
+            interface CxContentBuilderAttributes extends HTMLAttributes<CxContentBuilder> {
+              
+        /**
+          * Dark mode
+        */
+        darkMode?: boolean;
+        /**
+          * Initial data
+        */
+        initialData?: string;
+        /**
+          * Device type
+        */
+        device?: string;
+        /**
+          * All devices
+        */
+        devices?: CxContentBuilderDevice[];
+        /**
+          * Custom canvas url
+        */
+        canvasSrc?: string;
+        /**
+          * Custom container selector
+        */
+        containerSelector?: string;
+        /**
+          * Editor mode
+        */
+        mode?: 'content' | 'template';
+        /**
+          * Make localization attributes reactive
+        */
+        dir?: string;
+        /**
+          * 
+        */
+        lang?: string;
+            } 
+            /**
+              * @summary Downloader, but web component.
+ * 
+ *  @dependency cx-icon-button
+ *  @dependency cx-input
+ *  @dependency cx-icon
+ *  @dependency cx-button
+ *  @dependency cx-spinner
+ *  @dependency cx-tooltip
+ *  @dependency cx-menu
+ *  @dependency cx-menu-item
+ *  @dependency cx-switch
+ *  @dependency cx-range
+ *  @dependency cx-dropdown
+ *  @dependency cx-progress-bar
+ *  @dependency cx-badge
+ *  @dependency cx-dialog
+ *  @dependency cx-divider
+ *  @dependency cx-checkbox
+ *  @dependency cx-pagination
+ *  @dependency cx-typography
+            */
+            interface CxDownloaderAttributes extends HTMLAttributes<CxDownloader> {
+              
+        /**
+          * 
+        */
+        ctx?: CxDownloaderExecutionContext;
+        /**
+          * 
+        */
+        userId?: string;
+        /**
+          * 
+        */
+        workerURL?: string;
         /**
           * Make localization attributes reactive
         */
@@ -4504,99 +4999,54 @@
         lang?: string;
             } 
             /**
-              * @summary Downloader, but web component.
+              * @summary Video editor component.
  * 
- *  @dependency cx-icon-button
- *  @dependency cx-input
- *  @dependency cx-icon
- *  @dependency cx-button
- *  @dependency cx-spinner
- *  @dependency cx-tooltip
- *  @dependency cx-menu
- *  @dependency cx-menu-item
- *  @dependency cx-switch
- *  @dependency cx-range
- *  @dependency cx-dropdown
- *  @dependency cx-progress-bar
- *  @dependency cx-badge
- *  @dependency cx-dialog
- *  @dependency cx-divider
- *  @dependency cx-checkbox
- *  @dependency cx-pagination
- *  @dependency cx-typography
+ * 
+ *  @dependency cx-space
+ *  @dependency cx-video-editor-timeline
+ *  @dependency cx-video-editor-toolbar
+ *  @dependency cx-video-editor-tracks
+ * 
+ * 
+ *  @event {{ time: number }} cx-time-update - Fired when the user seeks to a new time in the video.
+ *  @event {{ action: VideoEditorToolbarActions }} cx-video-editor-action - Fired when a toolbar action is triggered.
+ *  @event {{ recordIDs: string[] }} cx-video-editor-tracks-select - Fired when tracks are selected.
+ *  @event {{ recordID: string }} cx-video-editor-tracks-transitions-select - Fired when a transition is selected.
             */
-            interface CxDownloaderAttributes extends HTMLAttributes<CxDownloader> {
+            interface CxVideoEditorAttributes extends HTMLAttributes<CxVideoEditor> {
               
         /**
           * 
         */
-        ctx?: CxDownloaderExecutionContext;
+        data?: { subClips: CxVideoEditorPartial[]; transitions: CxVideoEditorTransition[]; };
         /**
           * 
         */
-        userId?: string;
+        ratios?: CxVideoEditorRatio[];
         /**
           * 
         */
-        workerURL?: string;
-        /**
-          * Make localization attributes reactive
-        */
-        dir?: string;
+        activeRatioLabel?: string;
         /**
           * 
         */
-        lang?: string;
-            } 
-            /**
-              * 
-            */
-            interface CxCommentAttributes extends HTMLAttributes<CxComment> {
-              
+        canUndo?: boolean;
         /**
           * 
         */
-        content?: string;
+        canRedo?: boolean;
         /**
           * 
         */
-        editable?: boolean;
+        canCancelAll?: boolean;
         /**
           * 
         */
-        autofocus?: boolean;
+        scale?: number;
         /**
           * 
         */
-        canUpload?: boolean;
-        /**
-          * 
-        */
-        recording?: boolean;
-        /**
-          * 
-        */
-        queryName?: string;
-        /**
-          * 
-        */
-        filterName?: string;
-        /**
-          * 
-        */
-        autocompletionViewstate?: string;
-        /**
-          * 
-        */
-        maxCount?: number;
-        /**
-          * 
-        */
-        queryDelay?: number;
-        /**
-          * 
-        */
-        minQueryLength?: number;
+        currentTime?: number;
         /**
           * Make localization attributes reactive
         */
@@ -4606,11 +5056,11 @@
         */
         lang?: string;
             }
-              export type CxIconProps = DetailedHTMLProps<CxIconAttributes, CxIcon> & {class?: string};export type CxIconButtonProps = DetailedHTMLProps<CxIconButtonAttributes, CxIconButton> & {class?: string};export type CxAlertProps = DetailedHTMLProps<CxAlertAttributes, CxAlert> & {class?: string};export type CxAnimatedImageProps = DetailedHTMLProps<CxAnimatedImageAttributes, CxAnimatedImage> & {class?: string};export type CxAnimationProps = DetailedHTMLProps<CxAnimationAttributes, CxAnimation> & {class?: string};export type CxAvatarProps = DetailedHTMLProps<CxAvatarAttributes, CxAvatar> & {class?: string};export type CxBadgeProps = DetailedHTMLProps<CxBadgeAttributes, CxBadge> & {class?: string};export type CxBreadcrumbItemProps = DetailedHTMLProps<CxBreadcrumbItemAttributes, CxBreadcrumbItem> & {class?: string};export type CxBreadcrumbProps = DetailedHTMLProps<CxBreadcrumbAttributes, CxBreadcrumb> & {class?: string};export type CxSpinnerProps = DetailedHTMLProps<CxSpinnerAttributes, CxSpinner> & {class?: string};export type CxButtonProps = DetailedHTMLProps<CxButtonAttributes, CxButton> & {class?: string};export type CxButtonGroupProps = DetailedHTMLProps<CxButtonGroupAttributes, CxButtonGroup> & {class?: string};export type CxCardProps = DetailedHTMLProps<CxCardAttributes, CxCard> & {class?: string};export type CxCarouselItemProps = DetailedHTMLProps<CxCarouselItemAttributes, CxCarouselItem> & {class?: string};export type CxCarouselProps = DetailedHTMLProps<CxCarouselAttributes, CxCarousel> & {class?: string};export type CxPopupProps = DetailedHTMLProps<CxPopupAttributes, CxPopup> & {class?: string};export type CxTooltipProps = DetailedHTMLProps<CxTooltipAttributes, CxTooltip> & {class?: string};export type CxMarkdownProps = DetailedHTMLProps<CxMarkdownAttributes, CxMarkdown> & {class?: string};export type CxTypographyProps = DetailedHTMLProps<CxTypographyAttributes, CxTypography> & {class?: string};export type CxCheckboxProps = DetailedHTMLProps<CxCheckboxAttributes, CxCheckbox> & {class?: string};export type CxMenuItemProps = DetailedHTMLProps<CxMenuItemAttributes, CxMenuItem> & {class?: string};export type CxMenuProps = DetailedHTMLProps<CxMenuAttributes, CxMenu> & {class?: string};export type CxInputProps = DetailedHTMLProps<CxInputAttributes, CxInput> & {class?: string};export type CxDropdownProps = DetailedHTMLProps<CxDropdownAttributes, CxDropdown> & {class?: string};export type CxDividerProps = DetailedHTMLProps<CxDividerAttributes, CxDivider> & {class?: string};export type CxVisuallyHiddenProps = DetailedHTMLProps<CxVisuallyHiddenAttributes, CxVisuallyHidden> & {class?: string};export type CxColorPickerProps = DetailedHTMLProps<CxColorPickerAttributes, CxColorPicker> & {class?: string};export type CxCopyButtonProps = DetailedHTMLProps<CxCopyButtonAttributes, CxCopyButton> & {class?: string};export type CxDetailsProps = DetailedHTMLProps<CxDetailsAttributes, CxDetails> & {class?: string};export type CxDialogProps = DetailedHTMLProps<CxDialogAttributes, CxDialog> & {class?: string};export type CxDrawerProps = DetailedHTMLProps<CxDrawerAttributes, CxDrawer> & {class?: string};export type CxElementClampProps = DetailedHTMLProps<CxElementClampAttributes, CxElementClamp> & {class?: string};export type CxFormatBytesProps = DetailedHTMLProps<CxFormatBytesAttributes, CxFormatBytes> & {class?: string};export type CxFormatDateProps = DetailedHTMLProps<CxFormatDateAttributes, CxFormatDate> & {class?: string};export type CxFormatNumberProps = DetailedHTMLProps<CxFormatNumberAttributes, CxFormatNumber> & {class?: string};export type CxHubConnectionProps = DetailedHTMLProps<CxHubConnectionAttributes, CxHubConnection> & {class?: string};export type CxImageComparerProps = DetailedHTMLProps<CxImageComparerAttributes, CxImageComparer> & {class?: string};export type CxIncludeProps = DetailedHTMLProps<CxIncludeAttributes, CxInclude> & {class?: string};export type CxInputGroupProps = DetailedHTMLProps<CxInputGroupAttributes, CxInputGroup> & {class?: string};export type CxResizeObserverProps = DetailedHTMLProps<CxResizeObserverAttributes, CxResizeObserver> & {class?: string};export type CxLineClampProps = DetailedHTMLProps<CxLineClampAttributes, CxLineClamp> & {class?: string};export type CxMenuLabelProps = DetailedHTMLProps<CxMenuLabelAttributes, CxMenuLabel> & {class?: string};export type CxMenuSectionProps = DetailedHTMLProps<CxMenuSectionAttributes, CxMenuSection> & {class?: string};export type CxMutationObserverProps = DetailedHTMLProps<CxMutationObserverAttributes, CxMutationObserver> & {class?: string};export type CxOptionProps = DetailedHTMLProps<CxOptionAttributes, CxOption> & {class?: string};export type CxTagProps = DetailedHTMLProps<CxTagAttributes, CxTag> & {class?: string};export type CxSelectProps = DetailedHTMLProps<CxSelectAttributes, CxSelect> & {class?: string};export type CxTreeItemProps = DetailedHTMLProps<CxTreeItemAttributes, CxTreeItem> & {class?: string};export type CxPaginationProps = DetailedHTMLProps<CxPaginationAttributes, CxPagination> & {class?: string};export type CxProgressBarProps = DetailedHTMLProps<CxProgressBarAttributes, CxProgressBar> & {class?: string};export type CxProgressRingProps = DetailedHTMLProps<CxProgressRingAttributes, CxProgressRing> & {class?: string};export type CxQrCodeProps = DetailedHTMLProps<CxQrCodeAttributes, CxQrCode> & {class?: string};export type CxRadioProps = DetailedHTMLProps<CxRadioAttributes, CxRadio> & {class?: string};export type CxRadioButtonProps = DetailedHTMLProps<CxRadioButtonAttributes, CxRadioButton> & {class?: string};export type CxRadioCardProps = DetailedHTMLProps<CxRadioCardAttributes, CxRadioCard> & {class?: string};export type CxRadioGroupProps = DetailedHTMLProps<CxRadioGroupAttributes, CxRadioGroup> & {class?: string};export type CxRangeProps = DetailedHTMLProps<CxRangeAttributes, CxRange> & {class?: string};export type CxRatingProps = DetailedHTMLProps<CxRatingAttributes, CxRating> & {class?: string};export type CxRelativeTimeProps = DetailedHTMLProps<CxRelativeTimeAttributes, CxRelativeTime> & {class?: string};export type CxSkeletonProps = DetailedHTMLProps<CxSkeletonAttributes, CxSkeleton> & {class?: string};export type CxSpaceProps = DetailedHTMLProps<CxSpaceAttributes, CxSpace> & {class?: string};export type CxSplitPanelProps = DetailedHTMLProps<CxSplitPanelAttributes, CxSplitPanel> & {class?: string};export type CxStepProps = DetailedHTMLProps<CxStepAttributes, CxStep> & {class?: string};export type CxStepperProps = DetailedHTMLProps<CxStepperAttributes, CxStepper> & {class?: string};export type CxSwitchProps = DetailedHTMLProps<CxSwitchAttributes, CxSwitch> & {class?: string};export type CxTabProps = DetailedHTMLProps<CxTabAttributes, CxTab> & {class?: string};export type CxTabPanelProps = DetailedHTMLProps<CxTabPanelAttributes, CxTabPanel> & {class?: string};export type CxTabGroupProps = DetailedHTMLProps<CxTabGroupAttributes, CxTabGroup> & {class?: string};export type CxTextareaProps = DetailedHTMLProps<CxTextareaAttributes, CxTextarea> & {class?: string};export type CxTreeProps = DetailedHTMLProps<CxTreeAttributes, CxTree> & {class?: string};export type CxGridProps = DetailedHTMLProps<CxGridAttributes, CxGrid> & {class?: string};export type CxGridItemProps = DetailedHTMLProps<CxGridItemAttributes, CxGridItem> & {class?: string};export type CxChatbotProps = DetailedHTMLProps<CxChatbotAttributes, CxChatbot> & {class?: string};export type CxConfirmPopoverProps = DetailedHTMLProps<CxConfirmPopoverAttributes, CxConfirmPopover> & {class?: string};export type CxFileOnDemandProps = DetailedHTMLProps<CxFileOnDemandAttributes, CxFileOnDemand> & {class?: string};export type CxSidebarLayoutProps = DetailedHTMLProps<CxSidebarLayoutAttributes, CxSidebarLayout> & {class?: string};export type CxGraphViewProps = DetailedHTMLProps<CxGraphViewAttributes, CxGraphView> & {class?: string};export type CxStepperWizardProps = DetailedHTMLProps<CxStepperWizardAttributes, CxStepperWizard> & {class?: string};export type CxClusterManagementProps = DetailedHTMLProps<CxClusterManagementAttributes, CxClusterManagement> & {class?: string};export type CxStorybookProps = DetailedHTMLProps<CxStorybookAttributes, CxStorybook> & {class?: string};export type CxSidebarProps = DetailedHTMLProps<CxSidebarAttributes, CxSidebar> & {class?: string};export type CxMultiSelectProps = DetailedHTMLProps<CxMultiSelectAttributes, CxMultiSelect> & {class?: string};export type CxTemplateSwitcherProps = DetailedHTMLProps<CxTemplateSwitcherAttributes, CxTemplateSwitcher> & {class?: string};export type CxTextToSpeechProps = DetailedHTMLProps<CxTextToSpeechAttributes, CxTextToSpeech> & {class?: string};export type CxDownloaderProps = DetailedHTMLProps<CxDownloaderAttributes, CxDownloader> & {class?: string};export type CxCommentProps = DetailedHTMLProps<CxCommentAttributes, CxComment> & {class?: string};
+              export type CxIconProps = DetailedHTMLProps<CxIconAttributes, CxIcon> & {class?: string};export type CxIconButtonProps = DetailedHTMLProps<CxIconButtonAttributes, CxIconButton> & {class?: string};export type CxAlertProps = DetailedHTMLProps<CxAlertAttributes, CxAlert> & {class?: string};export type CxAnimatedImageProps = DetailedHTMLProps<CxAnimatedImageAttributes, CxAnimatedImage> & {class?: string};export type CxAnimationProps = DetailedHTMLProps<CxAnimationAttributes, CxAnimation> & {class?: string};export type CxAvatarProps = DetailedHTMLProps<CxAvatarAttributes, CxAvatar> & {class?: string};export type CxBadgeProps = DetailedHTMLProps<CxBadgeAttributes, CxBadge> & {class?: string};export type CxBreadcrumbItemProps = DetailedHTMLProps<CxBreadcrumbItemAttributes, CxBreadcrumbItem> & {class?: string};export type CxBreadcrumbProps = DetailedHTMLProps<CxBreadcrumbAttributes, CxBreadcrumb> & {class?: string};export type CxPopupProps = DetailedHTMLProps<CxPopupAttributes, CxPopup> & {class?: string};export type CxSpinnerProps = DetailedHTMLProps<CxSpinnerAttributes, CxSpinner> & {class?: string};export type CxMenuItemProps = DetailedHTMLProps<CxMenuItemAttributes, CxMenuItem> & {class?: string};export type CxMenuProps = DetailedHTMLProps<CxMenuAttributes, CxMenu> & {class?: string};export type CxDropdownProps = DetailedHTMLProps<CxDropdownAttributes, CxDropdown> & {class?: string};export type CxButtonProps = DetailedHTMLProps<CxButtonAttributes, CxButton> & {class?: string};export type CxButtonGroupProps = DetailedHTMLProps<CxButtonGroupAttributes, CxButtonGroup> & {class?: string};export type CxCardProps = DetailedHTMLProps<CxCardAttributes, CxCard> & {class?: string};export type CxCarouselItemProps = DetailedHTMLProps<CxCarouselItemAttributes, CxCarouselItem> & {class?: string};export type CxCarouselProps = DetailedHTMLProps<CxCarouselAttributes, CxCarousel> & {class?: string};export type CxCheckboxProps = DetailedHTMLProps<CxCheckboxAttributes, CxCheckbox> & {class?: string};export type CxInputProps = DetailedHTMLProps<CxInputAttributes, CxInput> & {class?: string};export type CxVisuallyHiddenProps = DetailedHTMLProps<CxVisuallyHiddenAttributes, CxVisuallyHidden> & {class?: string};export type CxColorPickerProps = DetailedHTMLProps<CxColorPickerAttributes, CxColorPicker> & {class?: string};export type CxTooltipProps = DetailedHTMLProps<CxTooltipAttributes, CxTooltip> & {class?: string};export type CxCopyButtonProps = DetailedHTMLProps<CxCopyButtonAttributes, CxCopyButton> & {class?: string};export type CxDetailsProps = DetailedHTMLProps<CxDetailsAttributes, CxDetails> & {class?: string};export type CxDividerProps = DetailedHTMLProps<CxDividerAttributes, CxDivider> & {class?: string};export type CxDialogProps = DetailedHTMLProps<CxDialogAttributes, CxDialog> & {class?: string};export type CxDrawerProps = DetailedHTMLProps<CxDrawerAttributes, CxDrawer> & {class?: string};export type CxElementClampProps = DetailedHTMLProps<CxElementClampAttributes, CxElementClamp> & {class?: string};export type CxFormatBytesProps = DetailedHTMLProps<CxFormatBytesAttributes, CxFormatBytes> & {class?: string};export type CxFormatDateProps = DetailedHTMLProps<CxFormatDateAttributes, CxFormatDate> & {class?: string};export type CxFormatNumberProps = DetailedHTMLProps<CxFormatNumberAttributes, CxFormatNumber> & {class?: string};export type CxGridProps = DetailedHTMLProps<CxGridAttributes, CxGrid> & {class?: string};export type CxGridItemProps = DetailedHTMLProps<CxGridItemAttributes, CxGridItem> & {class?: string};export type CxHeaderProps = DetailedHTMLProps<CxHeaderAttributes, CxHeader> & {class?: string};export type CxHubConnectionProps = DetailedHTMLProps<CxHubConnectionAttributes, CxHubConnection> & {class?: string};export type CxSkeletonProps = DetailedHTMLProps<CxSkeletonAttributes, CxSkeleton> & {class?: string};export type CxSpaceProps = DetailedHTMLProps<CxSpaceAttributes, CxSpace> & {class?: string};export type CxImageComparerProps = DetailedHTMLProps<CxImageComparerAttributes, CxImageComparer> & {class?: string};export type CxIncludeProps = DetailedHTMLProps<CxIncludeAttributes, CxInclude> & {class?: string};export type CxInputGroupProps = DetailedHTMLProps<CxInputGroupAttributes, CxInputGroup> & {class?: string};export type CxResizeObserverProps = DetailedHTMLProps<CxResizeObserverAttributes, CxResizeObserver> & {class?: string};export type CxLineClampProps = DetailedHTMLProps<CxLineClampAttributes, CxLineClamp> & {class?: string};export type CxMarkdownProps = DetailedHTMLProps<CxMarkdownAttributes, CxMarkdown> & {class?: string};export type CxMenuLabelProps = DetailedHTMLProps<CxMenuLabelAttributes, CxMenuLabel> & {class?: string};export type CxMenuSectionProps = DetailedHTMLProps<CxMenuSectionAttributes, CxMenuSection> & {class?: string};export type CxMutationObserverProps = DetailedHTMLProps<CxMutationObserverAttributes, CxMutationObserver> & {class?: string};export type CxOptionProps = DetailedHTMLProps<CxOptionAttributes, CxOption> & {class?: string};export type CxTreeProps = DetailedHTMLProps<CxTreeAttributes, CxTree> & {class?: string};export type CxTreeItemProps = DetailedHTMLProps<CxTreeItemAttributes, CxTreeItem> & {class?: string};export type CxTagProps = DetailedHTMLProps<CxTagAttributes, CxTag> & {class?: string};export type CxSelectProps = DetailedHTMLProps<CxSelectAttributes, CxSelect> & {class?: string};export type CxTypographyProps = DetailedHTMLProps<CxTypographyAttributes, CxTypography> & {class?: string};export type CxPaginationProps = DetailedHTMLProps<CxPaginationAttributes, CxPagination> & {class?: string};export type CxProgressBarProps = DetailedHTMLProps<CxProgressBarAttributes, CxProgressBar> & {class?: string};export type CxProgressRingProps = DetailedHTMLProps<CxProgressRingAttributes, CxProgressRing> & {class?: string};export type CxQrCodeProps = DetailedHTMLProps<CxQrCodeAttributes, CxQrCode> & {class?: string};export type CxRadioProps = DetailedHTMLProps<CxRadioAttributes, CxRadio> & {class?: string};export type CxRadioButtonProps = DetailedHTMLProps<CxRadioButtonAttributes, CxRadioButton> & {class?: string};export type CxRadioCardProps = DetailedHTMLProps<CxRadioCardAttributes, CxRadioCard> & {class?: string};export type CxRadioGroupProps = DetailedHTMLProps<CxRadioGroupAttributes, CxRadioGroup> & {class?: string};export type CxRangeProps = DetailedHTMLProps<CxRangeAttributes, CxRange> & {class?: string};export type CxRatingProps = DetailedHTMLProps<CxRatingAttributes, CxRating> & {class?: string};export type CxRelativeTimeProps = DetailedHTMLProps<CxRelativeTimeAttributes, CxRelativeTime> & {class?: string};export type CxSplitPanelProps = DetailedHTMLProps<CxSplitPanelAttributes, CxSplitPanel> & {class?: string};export type CxStepProps = DetailedHTMLProps<CxStepAttributes, CxStep> & {class?: string};export type CxStepperProps = DetailedHTMLProps<CxStepperAttributes, CxStepper> & {class?: string};export type CxSwitchProps = DetailedHTMLProps<CxSwitchAttributes, CxSwitch> & {class?: string};export type CxTabProps = DetailedHTMLProps<CxTabAttributes, CxTab> & {class?: string};export type CxTabPanelProps = DetailedHTMLProps<CxTabPanelAttributes, CxTabPanel> & {class?: string};export type CxTabGroupProps = DetailedHTMLProps<CxTabGroupAttributes, CxTabGroup> & {class?: string};export type CxTextareaProps = DetailedHTMLProps<CxTextareaAttributes, CxTextarea> & {class?: string};export type CxChatbotProps = DetailedHTMLProps<CxChatbotAttributes, CxChatbot> & {class?: string};export type CxBicolorPickerProps = DetailedHTMLProps<CxBicolorPickerAttributes, CxBicolorPicker> & {class?: string};export type CxBorderInputGroupProps = DetailedHTMLProps<CxBorderInputGroupAttributes, CxBorderInputGroup> & {class?: string};export type CxConfirmPopoverProps = DetailedHTMLProps<CxConfirmPopoverAttributes, CxConfirmPopover> & {class?: string};export type CxCropperProps = DetailedHTMLProps<CxCropperAttributes, CxCropper> & {class?: string};export type CxGraphViewProps = DetailedHTMLProps<CxGraphViewAttributes, CxGraphView> & {class?: string};export type CxPaddingInputGroupProps = DetailedHTMLProps<CxPaddingInputGroupAttributes, CxPaddingInputGroup> & {class?: string};export type CxShadowInputGroupProps = DetailedHTMLProps<CxShadowInputGroupAttributes, CxShadowInputGroup> & {class?: string};export type CxSidebarProps = DetailedHTMLProps<CxSidebarAttributes, CxSidebar> & {class?: string};export type CxStepperWizardProps = DetailedHTMLProps<CxStepperWizardAttributes, CxStepperWizard> & {class?: string};export type CxStorybookProps = DetailedHTMLProps<CxStorybookAttributes, CxStorybook> & {class?: string};export type CxFileOnDemandProps = DetailedHTMLProps<CxFileOnDemandAttributes, CxFileOnDemand> & {class?: string};export type CxSidebarLayoutProps = DetailedHTMLProps<CxSidebarLayoutAttributes, CxSidebarLayout> & {class?: string};export type CxAssetLinkFormatProps = DetailedHTMLProps<CxAssetLinkFormatAttributes, CxAssetLinkFormat> & {class?: string};export type CxClusterManagementProps = DetailedHTMLProps<CxClusterManagementAttributes, CxClusterManagement> & {class?: string};export type CxCommentProps = DetailedHTMLProps<CxCommentAttributes, CxComment> & {class?: string};export type CxColumnProps = DetailedHTMLProps<CxColumnAttributes, CxColumn> & {class?: string};export type CxColumnGroupProps = DetailedHTMLProps<CxColumnGroupAttributes, CxColumnGroup> & {class?: string};export type CxContentBuilderProps = DetailedHTMLProps<CxContentBuilderAttributes, CxContentBuilder> & {class?: string};export type CxDownloaderProps = DetailedHTMLProps<CxDownloaderAttributes, CxDownloader> & {class?: string};export type CxMultiSelectProps = DetailedHTMLProps<CxMultiSelectAttributes, CxMultiSelect> & {class?: string};export type CxTemplateSwitcherProps = DetailedHTMLProps<CxTemplateSwitcherAttributes, CxTemplateSwitcher> & {class?: string};export type CxTextToSpeechProps = DetailedHTMLProps<CxTextToSpeechAttributes, CxTextToSpeech> & {class?: string};export type CxVideoEditorProps = DetailedHTMLProps<CxVideoEditorAttributes, CxVideoEditor> & {class?: string};
               declare module "react" {
                 namespace JSX {
                   interface IntrinsicElements {
-                    ['cx-icon']: CxIconProps;['cx-icon-button']: CxIconButtonProps;['cx-alert']: CxAlertProps;['cx-animated-image']: CxAnimatedImageProps;['cx-animation']: CxAnimationProps;['cx-avatar']: CxAvatarProps;['cx-badge']: CxBadgeProps;['cx-breadcrumb-item']: CxBreadcrumbItemProps;['cx-breadcrumb']: CxBreadcrumbProps;['cx-spinner']: CxSpinnerProps;['cx-button']: CxButtonProps;['cx-button-group']: CxButtonGroupProps;['cx-card']: CxCardProps;['cx-carousel-item']: CxCarouselItemProps;['cx-carousel']: CxCarouselProps;['cx-popup']: CxPopupProps;['cx-tooltip']: CxTooltipProps;['cx-markdown']: CxMarkdownProps;['cx-typography']: CxTypographyProps;['cx-checkbox']: CxCheckboxProps;['cx-menu-item']: CxMenuItemProps;['cx-menu']: CxMenuProps;['cx-input']: CxInputProps;['cx-dropdown']: CxDropdownProps;['cx-divider']: CxDividerProps;['cx-visually-hidden']: CxVisuallyHiddenProps;['cx-color-picker']: CxColorPickerProps;['cx-copy-button']: CxCopyButtonProps;['cx-details']: CxDetailsProps;['cx-dialog']: CxDialogProps;['cx-drawer']: CxDrawerProps;['cx-element-clamp']: CxElementClampProps;['cx-format-bytes']: CxFormatBytesProps;['cx-format-date']: CxFormatDateProps;['cx-format-number']: CxFormatNumberProps;['cx-hub-connection']: CxHubConnectionProps;['cx-image-comparer']: CxImageComparerProps;['cx-include']: CxIncludeProps;['cx-input-group']: CxInputGroupProps;['cx-resize-observer']: CxResizeObserverProps;['cx-line-clamp']: CxLineClampProps;['cx-menu-label']: CxMenuLabelProps;['cx-menu-section']: CxMenuSectionProps;['cx-mutation-observer']: CxMutationObserverProps;['cx-option']: CxOptionProps;['cx-tag']: CxTagProps;['cx-select']: CxSelectProps;['cx-tree-item']: CxTreeItemProps;['cx-pagination']: CxPaginationProps;['cx-progress-bar']: CxProgressBarProps;['cx-progress-ring']: CxProgressRingProps;['cx-qr-code']: CxQrCodeProps;['cx-radio']: CxRadioProps;['cx-radio-button']: CxRadioButtonProps;['cx-radio-card']: CxRadioCardProps;['cx-radio-group']: CxRadioGroupProps;['cx-range']: CxRangeProps;['cx-rating']: CxRatingProps;['cx-relative-time']: CxRelativeTimeProps;['cx-skeleton']: CxSkeletonProps;['cx-space']: CxSpaceProps;['cx-split-panel']: CxSplitPanelProps;['cx-step']: CxStepProps;['cx-stepper']: CxStepperProps;['cx-switch']: CxSwitchProps;['cx-tab']: CxTabProps;['cx-tab-panel']: CxTabPanelProps;['cx-tab-group']: CxTabGroupProps;['cx-textarea']: CxTextareaProps;['cx-tree']: CxTreeProps;['cx-grid']: CxGridProps;['cx-grid-item']: CxGridItemProps;['cx-chatbot']: CxChatbotProps;['cx-confirm-popover']: CxConfirmPopoverProps;['cx-file-on-demand']: CxFileOnDemandProps;['cx-sidebar-layout']: CxSidebarLayoutProps;['cx-graph-view']: CxGraphViewProps;['cx-stepper-wizard']: CxStepperWizardProps;['cx-cluster-management']: CxClusterManagementProps;['cx-storybook']: CxStorybookProps;['cx-sidebar']: CxSidebarProps;['cx-multi-select']: CxMultiSelectProps;['cx-template-switcher']: CxTemplateSwitcherProps;['cx-text-to-speech']: CxTextToSpeechProps;['cx-downloader']: CxDownloaderProps;['cx-comment']: CxCommentProps;
+                    ['cx-icon']: CxIconProps;['cx-icon-button']: CxIconButtonProps;['cx-alert']: CxAlertProps;['cx-animated-image']: CxAnimatedImageProps;['cx-animation']: CxAnimationProps;['cx-avatar']: CxAvatarProps;['cx-badge']: CxBadgeProps;['cx-breadcrumb-item']: CxBreadcrumbItemProps;['cx-breadcrumb']: CxBreadcrumbProps;['cx-popup']: CxPopupProps;['cx-spinner']: CxSpinnerProps;['cx-menu-item']: CxMenuItemProps;['cx-menu']: CxMenuProps;['cx-dropdown']: CxDropdownProps;['cx-button']: CxButtonProps;['cx-button-group']: CxButtonGroupProps;['cx-card']: CxCardProps;['cx-carousel-item']: CxCarouselItemProps;['cx-carousel']: CxCarouselProps;['cx-checkbox']: CxCheckboxProps;['cx-input']: CxInputProps;['cx-visually-hidden']: CxVisuallyHiddenProps;['cx-color-picker']: CxColorPickerProps;['cx-tooltip']: CxTooltipProps;['cx-copy-button']: CxCopyButtonProps;['cx-details']: CxDetailsProps;['cx-divider']: CxDividerProps;['cx-dialog']: CxDialogProps;['cx-drawer']: CxDrawerProps;['cx-element-clamp']: CxElementClampProps;['cx-format-bytes']: CxFormatBytesProps;['cx-format-date']: CxFormatDateProps;['cx-format-number']: CxFormatNumberProps;['cx-grid']: CxGridProps;['cx-grid-item']: CxGridItemProps;['cx-header']: CxHeaderProps;['cx-hub-connection']: CxHubConnectionProps;['cx-skeleton']: CxSkeletonProps;['cx-space']: CxSpaceProps;['cx-image-comparer']: CxImageComparerProps;['cx-include']: CxIncludeProps;['cx-input-group']: CxInputGroupProps;['cx-resize-observer']: CxResizeObserverProps;['cx-line-clamp']: CxLineClampProps;['cx-markdown']: CxMarkdownProps;['cx-menu-label']: CxMenuLabelProps;['cx-menu-section']: CxMenuSectionProps;['cx-mutation-observer']: CxMutationObserverProps;['cx-option']: CxOptionProps;['cx-tree']: CxTreeProps;['cx-tree-item']: CxTreeItemProps;['cx-tag']: CxTagProps;['cx-select']: CxSelectProps;['cx-typography']: CxTypographyProps;['cx-pagination']: CxPaginationProps;['cx-progress-bar']: CxProgressBarProps;['cx-progress-ring']: CxProgressRingProps;['cx-qr-code']: CxQrCodeProps;['cx-radio']: CxRadioProps;['cx-radio-button']: CxRadioButtonProps;['cx-radio-card']: CxRadioCardProps;['cx-radio-group']: CxRadioGroupProps;['cx-range']: CxRangeProps;['cx-rating']: CxRatingProps;['cx-relative-time']: CxRelativeTimeProps;['cx-split-panel']: CxSplitPanelProps;['cx-step']: CxStepProps;['cx-stepper']: CxStepperProps;['cx-switch']: CxSwitchProps;['cx-tab']: CxTabProps;['cx-tab-panel']: CxTabPanelProps;['cx-tab-group']: CxTabGroupProps;['cx-textarea']: CxTextareaProps;['cx-chatbot']: CxChatbotProps;['cx-bicolor-picker']: CxBicolorPickerProps;['cx-border-input-group']: CxBorderInputGroupProps;['cx-confirm-popover']: CxConfirmPopoverProps;['cx-cropper']: CxCropperProps;['cx-graph-view']: CxGraphViewProps;['cx-padding-input-group']: CxPaddingInputGroupProps;['cx-shadow-input-group']: CxShadowInputGroupProps;['cx-sidebar']: CxSidebarProps;['cx-stepper-wizard']: CxStepperWizardProps;['cx-storybook']: CxStorybookProps;['cx-file-on-demand']: CxFileOnDemandProps;['cx-sidebar-layout']: CxSidebarLayoutProps;['cx-asset-link-format']: CxAssetLinkFormatProps;['cx-cluster-management']: CxClusterManagementProps;['cx-comment']: CxCommentProps;['cx-column']: CxColumnProps;['cx-column-group']: CxColumnGroupProps;['cx-content-builder']: CxContentBuilderProps;['cx-downloader']: CxDownloaderProps;['cx-multi-select']: CxMultiSelectProps;['cx-template-switcher']: CxTemplateSwitcherProps;['cx-text-to-speech']: CxTextToSpeechProps;['cx-video-editor']: CxVideoEditorProps;
                   }
                 }
               }

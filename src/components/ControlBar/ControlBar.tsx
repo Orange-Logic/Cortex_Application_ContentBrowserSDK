@@ -236,9 +236,16 @@ const ControlBar: FC<Props> = ({
 
   const selectedView = useMemo(() => views.find((item) => item.value === view), [view]);
 
-  const renderAppliedFilters = useCallback(() => {
-    const appliedFilersCount = mediaTypes.length + visibilityClasses.length + statuses.length + extensions.length;
+  const appliedFilersCount = useMemo(() => {
+    return mediaTypes.length + visibilityClasses.length + statuses.length + extensions.length;
+  }, [
+    mediaTypes.length,
+    visibilityClasses.length,
+    statuses.length,
+    extensions.length,
+  ]);
 
+  const renderAppliedFilters = useCallback(() => {
     return (
       <cx-details
         open
@@ -320,6 +327,7 @@ const ControlBar: FC<Props> = ({
       </cx-details>
     );
   }, [
+    appliedFilersCount,
     extensions,
     loading,
     mediaTypes,
@@ -360,7 +368,15 @@ const ControlBar: FC<Props> = ({
                 name="filter_alt"
                 label="Filter"
                 outline
-              ></cx-icon-button>
+              >
+                {
+                  appliedFilersCount > 0 && (
+                    <cx-badge slot="badge" pill size="small">
+                      {appliedFilersCount}
+                    </cx-badge>
+                  )
+                }
+              </cx-icon-button>
             </cx-tooltip>
           </div>
           {renderAppliedFilters()}

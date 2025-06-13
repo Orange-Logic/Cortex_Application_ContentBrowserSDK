@@ -108,11 +108,13 @@ export const Card = styled('cx-card')<CxCardProps>`
     }
   }
 
-  .asset-card__secondary-info {
+  .asset-card__info {
     color: var(--cx-color-neutral-500);
+
     * {
       line-height: var(--cx-line-height-small);
     }
+
     .asset-card__placeholder {
       visibility: hidden;
     }

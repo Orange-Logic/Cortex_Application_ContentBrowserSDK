@@ -105,12 +105,12 @@ const VersionHistory: FC<Props> = ({ assetId }) => {
               <cx-grid-item xs="2" sm="3">
                 <cx-space direction="vertical" spacing="2x-small">
                   <cx-line-clamp lines={1}>
-                    <cx-typography variant="body2" className="version__item__name">{version.versionFileName}</cx-typography>
+                    <cx-typography variant="body3" className="version__item__name">{version.versionFileName}</cx-typography>
                   </cx-line-clamp>
                   <cx-line-clamp lines={1}>
-                    <cx-typography variant="body2">{version.createByEmail}</cx-typography>
+                    <cx-typography variant="body3">{version.createByEmail}</cx-typography>
                   </cx-line-clamp>
-                  <cx-typography variant="body2">
+                  <cx-typography variant="body3">
                     {version.versionCreateDate.split(' ')[0]}
                     {index === 0 && (
                       <span className="version__item__latest">Current version</span>

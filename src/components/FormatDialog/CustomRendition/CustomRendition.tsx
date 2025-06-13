@@ -5,7 +5,7 @@ import { Unit } from '@/types/assets';
 import { CxHideEvent, CxShowEvent } from '@/web-component';
 
 import { Container } from './CustomRendition.styled';
-import { Crop, Extension, Format, Resize, Rotate } from './transformations';
+import { Crop, Extension, Format, Metadata, Quality, Resize, Rotate } from './transformations';
 import { Proxy } from '@/types/search';
 
 type Props = {
@@ -29,6 +29,7 @@ type Props = {
     percentageHeight: number;
   };
   extension: string;
+  keepMetadata: boolean;
   lastAppliedResize: Record<Unit, {
     width: number;
     height: number;
@@ -44,6 +45,7 @@ type Props = {
     unit: Unit;
   }>;
   proxy: string;
+  quality: number;
   rotation: number;
   onCropChange: (
     width: number,
@@ -53,6 +55,8 @@ type Props = {
   ) => void;
   onExtensionChange: (extension: string) => void;
   onFormatChange: (format: Proxy) => void;
+  onKeepMetadataChange: (keepMetadata: boolean) => void;
+  onQualityChange: (quality: number) => void;
   onResizeChange: (
     width: number,
     height: number,
@@ -71,13 +75,17 @@ const CustomRendition: FC<Props> = ({
   resize,
   crop,
   extension,
+  keepMetadata,
   lastAppliedCrop,
   lastAppliedResize,
   proxy,
+  quality,
   rotation,
   onCropChange,
   onExtensionChange,
   onFormatChange,
+  onKeepMetadataChange,
+  onQualityChange,
   onResizeChange,
   onRotateChange,
   onViewChange,
@@ -169,6 +177,16 @@ const CustomRendition: FC<Props> = ({
         rotation={rotation}
         onChange={(newRotation) => onRotateChange(newRotation, false)}
         onApply={() => onRotateChange(rotation, true)}
+      />
+      <Quality
+        open={activeSetting === 'quality'}
+        quality={quality}
+        onChange={onQualityChange}
+      />
+      <Metadata
+        open={activeSetting === 'metadata'}
+        keepMetadata={keepMetadata}
+        onChange={onKeepMetadataChange}
       />
       <Extension extension={extension} extensions={extensions} onChange={onExtensionChange} />
     </Container>
