@@ -29,7 +29,7 @@ import { FormatLoaderState } from '@/types/assets';
 import {
   Asset, Filter, Folder, GetAssetLinkResponse, GridView, SortDirection,
 } from '@/types/search';
-import { MOBILE_THRESHOLD, PAGE_SIZE } from '@/utils/constants';
+import { MOBILE_THRESHOLD, PAGE_SIZE, RESIZE_TIMEOUT } from '@/utils/constants';
 import { getData, storeData } from '@/utils/storage';
 import { CxResizeEvent, CxResizeObserver } from '@/web-component';
 import { skipToken } from '@reduxjs/toolkit/query';
@@ -260,7 +260,7 @@ const HomePage: FC<Props> = () => {
   const { data: sortOrders } = useGetSortOrdersQuery({
     useSession,
   });
-  const { data: isFavorite, refetch: refetchIsFavorite } = useGetIsFavoriteQuery(state.selectedAsset ? {
+  const { data: isFavorite, refetch: refetchIsFavorite } = useGetIsFavoriteQuery(state.selectedAsset && allowFavorites ? {
     recordId: state.selectedAsset.id,
   } : skipToken);
 
@@ -279,6 +279,7 @@ const HomePage: FC<Props> = () => {
   const pageSizeRef = useRef(state.pageSize);
   const viewRef = useRef(state.view);
   const isWindowResizing = useRef(false);
+  const resizeTimerRef = useRef<NodeJS.Timeout | null>(null);
   browserMountedRef.current = browserMounted;
   facetsRef.current = state.facets;
   viewRef.current = state.view;
@@ -743,7 +744,16 @@ const HomePage: FC<Props> = () => {
   useEffect(() => {
     const onWindowResize = () => {
       isWindowResizing.current = true;
+
+      if (resizeTimerRef.current) {
+        clearTimeout(resizeTimerRef.current);
+      }
+
+      resizeTimerRef.current = setTimeout(() => {
+        isWindowResizing.current = false;
+      }, RESIZE_TIMEOUT);
     };
+    
     window.addEventListener('resize', onWindowResize);
     return () => {
       window.removeEventListener('resize', onWindowResize);
