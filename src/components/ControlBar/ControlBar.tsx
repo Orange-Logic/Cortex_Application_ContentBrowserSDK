@@ -248,6 +248,7 @@ const ControlBar: FC<Props> = ({
   const renderAppliedFilters = useCallback(() => {
     return (
       <cx-details
+        data-cy="applied-filters"
         open
         className={`filter-details ${appliedFilersCount === 0 ? 'filter-details--empty' : ''}`.trim()}
       >
@@ -368,6 +369,7 @@ const ControlBar: FC<Props> = ({
                 name="filter_alt"
                 label="Filter"
                 outline
+                data-cy="filter-button"
               >
                 {
                   appliedFilersCount > 0 && (
@@ -435,6 +437,7 @@ const ControlBar: FC<Props> = ({
                 name="dashboard"
                 label="View"
                 outline
+                data-cy="view-button"
               ></cx-icon-button>
             </cx-tooltip>
           </div>
@@ -478,7 +481,7 @@ const ControlBar: FC<Props> = ({
         >
           <div slot="trigger">
             <cx-tooltip content="Sort">
-              <cx-icon-button name="sort" label="Sort" outline></cx-icon-button>
+              <cx-icon-button name="sort" label="Sort" outline data-cy="sort-button"></cx-icon-button>
             </cx-tooltip>
           </div>
           <cx-menu>

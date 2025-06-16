@@ -1470,7 +1470,7 @@ const FormatDialog: FC<Props> = ({
                       borderTopWidth: '0',
                     }}
                   >
-                    <cx-menu-item value="custom">
+                    <cx-menu-item value="custom" data-cy="custom-rendition-menu-item">
                       <cx-icon
                         slot="prefix"
                         name="crop_rotate"

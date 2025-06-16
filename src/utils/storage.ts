@@ -173,12 +173,3 @@ export const deleteData = (key: string) => {
   // Remove from cookies
   document.cookie = key + '=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
 };
-
-/**
- * Get the storage key of import proxy for a doc type
- * @param {string}
- * @returns {string} The storage key
- */
-export const GetDocTypeProxyKey = (docType: string) => {
-  return ASSETS_FEATURE_STORAGE_KEY_IMPORT_PROXY + '_' + docType;
-};

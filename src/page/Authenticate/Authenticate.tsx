@@ -219,6 +219,7 @@ const AuthenticatePage = () => {
               <cx-button
                 disabled={url === '' || checkingSite}
                 variant="primary"
+                data-cy="submit-button"
                 style={{
                   width: '100%',
                 }}

@@ -13,7 +13,7 @@ type Props = {
 
 const ViewPreview: FC<Props> = ({
   url,
-  thumbnailOnly = false,
+  thumbnailOnly,
   thumbnailUrl,
   onError,
   loaded,
