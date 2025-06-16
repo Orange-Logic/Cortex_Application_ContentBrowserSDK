@@ -535,8 +535,8 @@ const FormatDialog: FC<Props> = ({
           url: selectedAsset.imageUrl,
           originalUrl: selectedAsset.originalUrl,
           extension: autoExtension ?? selectedAsset.extension,
-          width: availableProxies[0].formatWidth,
-          height: availableProxies[0].formatHeight,
+          width: availableProxies[0].formatWidth || state.defaultSize.width,
+          height: availableProxies[0].formatHeight || state.defaultSize.height,
         },
       });
     } else {
