@@ -26,6 +26,7 @@ export type GlobalConfigContextType = {
   showFavoriteFolder?: boolean;
   showVersions?: boolean;
   useSession?: string;
+  allowLogout?: boolean;
   allowTracking: boolean;
   allowProxy: boolean;
   allowFavorites: boolean;
@@ -48,6 +49,7 @@ export const GlobalConfigContext = createContext<GlobalConfigContextType>({
   showCollections: false,
   showFavoriteFolder: false,
   showVersions: false,
+  allowLogout: true,
   allowTracking: true,
   allowProxy: false,
   allowFavorites: false,

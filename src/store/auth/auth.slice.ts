@@ -206,6 +206,11 @@ export const oAuth = createAsyncThunk<OAuthRes, { siteUrl: string }>(
             accessToken: tokenResp.accessToken,
             siteUrl,
           };
+        } else {
+          return {
+            code: GetAccessKeyResponseCode.NotAuthorized,
+            message: 'Failed to get access token',
+          } as GetAccessKeyRes;
         }
       }
       return getAccessKeyData;

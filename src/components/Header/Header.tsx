@@ -28,15 +28,17 @@ const Header: FC<Props> = ({
   onMenuClick,
   onLogout,
 }) => {
-  const { isContentBrowserPopedup, pluginInfo } = useContext(GlobalConfigContext);
+  const { isContentBrowserPopedup, pluginInfo, allowLogout } =
+    useContext(GlobalConfigContext);
   const { onClose } = useContext(AppContext);
-
 
   const title = useMemo(() => {
     if (!currentFolder.fullPath) {
       return (
         <cx-line-clamp lines={1}>
-          <cx-typography variant="h4">{pluginInfo.publicApplicationName}</cx-typography>
+          <cx-typography variant="h4">
+            {pluginInfo.publicApplicationName}
+          </cx-typography>
         </cx-line-clamp>
       );
     }
@@ -46,43 +48,68 @@ const Header: FC<Props> = ({
         <cx-typography variant="h4">{currentFolder.title}</cx-typography>
       </cx-space>
     );
-  }, [currentFolder.fullPath, currentFolder.title, pluginInfo.publicApplicationName]);
+  }, [
+    currentFolder.fullPath,
+    currentFolder.title,
+    pluginInfo.publicApplicationName,
+  ]);
 
   const Dropdown = useMemo(() => {
-    return isLoading || isFetching ? (
-      <cx-skeleton></cx-skeleton>
-    ) : (
-      <cx-dropdown distance={4}>
-        <cx-avatar
-          slot="trigger"
-          label="User avatar"
-          image={data?.avatar}
-          loading="lazy"
-        ></cx-avatar>
-        <cx-menu>
-          <cx-menu-item className='header__user-info' readonly>
-            {data?.fullName}
-            <cx-avatar
-              slot="prefix"
-              label="User avatar"
-              image={data?.avatar}
-              loading="lazy"
-              style={
-                {
-                  '--size': 'var(--cx-font-size-x-large)',
-                } as CSSProperties
-              }
-            ></cx-avatar>
-          </cx-menu-item>
-          <cx-divider></cx-divider>
-          <cx-menu-item value="logout" onClick={onLogout}>
-            Logout
-            <cx-icon slot="prefix" name="logout"></cx-icon>
-          </cx-menu-item>
-        </cx-menu>
-      </cx-dropdown>
+    if (isLoading || isFetching) {
+      return <cx-skeleton></cx-skeleton>;
+    }
+
+    if (allowLogout) {
+      return (
+        <cx-dropdown distance={4}>
+          <cx-avatar
+            slot="trigger"
+            className="header__user-avatar header__user-avatar--dropdown-trigger"
+            label="User avatar"
+            image={data?.avatar}
+            loading="lazy"
+          ></cx-avatar>
+          <cx-menu>
+            <cx-menu-item className="header__user-info" readonly>
+              {data?.fullName}
+              <cx-avatar
+                slot="prefix"
+                label="User avatar"
+                image={data?.avatar}
+                loading="lazy"
+                style={
+                  {
+                    '--size': 'var(--cx-font-size-x-large)',
+                  } as CSSProperties
+                }
+              ></cx-avatar>
+            </cx-menu-item>
+            <cx-divider></cx-divider>
+            <cx-menu-item value="logout" onClick={onLogout}>
+              Logout
+              <cx-icon slot="prefix" name="logout"></cx-icon>
+            </cx-menu-item>
+          </cx-menu>
+        </cx-dropdown>
+      );
+    }
+
+    return (
+      <cx-avatar
+        className="header__user-avatar"
+        label="User avatar"
+        image={data?.avatar}
+        loading="lazy"
+      ></cx-avatar>
     );
-  }, [isLoading, isFetching, data?.avatar, data?.fullName, onLogout]);
+  }, [
+    isLoading,
+    isFetching,
+    allowLogout,
+    data?.avatar,
+    data?.fullName,
+    onLogout,
+  ]);
 
   return (
     <Container direction="vertical" spacing="small" bordered={bordered}>

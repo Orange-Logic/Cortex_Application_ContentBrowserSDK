@@ -151,6 +151,11 @@ type OrangeDAMContentBrowser = {
      * The flag to allow the user to select favorites
      */
     allowFavorites?: boolean;
+
+    /**
+     * The flag to allow the user to logout
+     */
+    allowLogout?: boolean;
   }) => Promise<void>;
   close: () => void;
   /**
@@ -261,6 +266,7 @@ const ContentBrowser: OrangeDAMContentBrowser = {
     allowTracking,
     allowProxy,
     allowFavorites,
+    allowLogout,
   }) => {
     let container = containerId && document.getElementById(containerId);
     if (!containerId) {
@@ -360,6 +366,7 @@ const ContentBrowser: OrangeDAMContentBrowser = {
             showFavoriteFolder: !!showFavoriteFolder,
             showVersions: !!showVersions,
             useSession,
+            allowLogout: allowLogout !== undefined ? !!allowLogout : true,
             allowTracking: allowTracking !== undefined ? !!allowTracking : true,
             allowProxy: allowProxy !== undefined ? !!allowProxy : true,
             allowFavorites: !!allowFavorites,

@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-use-before-define */
 
-import { ASSETS_FEATURE_STORAGE_KEY_IMPORT_PROXY } from '@/store/assets/assets.slice';
 import { StorageType } from '@/types/storage';
 
 const DATA_EXPIRE_TIME_POSTFIX = '_valid_until';
