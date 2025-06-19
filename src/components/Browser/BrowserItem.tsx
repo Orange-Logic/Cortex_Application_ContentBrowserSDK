@@ -17,6 +17,7 @@ export const getHighlightedTitle = (title: string, searchText?: string) => {
 };
 
 type Props = {
+  allowedFolders?: string[];
   folder: Folder;
   currentFolderID: string;
   icon?: string;
@@ -25,6 +26,7 @@ type Props = {
 };
 
 export const BrowserItem: FC<Props> = ({
+  allowedFolders,
   folder,
   currentFolderID,
   icon,
@@ -39,7 +41,7 @@ export const BrowserItem: FC<Props> = ({
   const {
     data: folders,
     isFetching,
-  } = useGetFoldersQuery({ folder, searchText: '', useSession }, { skip: !isExpanded });
+  } = useGetFoldersQuery({ allowedFolders, folder, searchText: '', useSession }, { skip: !isExpanded });
 
   useEffect(() => {
     Promise.all([

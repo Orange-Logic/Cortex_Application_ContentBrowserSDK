@@ -15,6 +15,7 @@ import { Drawer } from './Browser.styled';
 import BrowserItem, { getHighlightedTitle } from './BrowserItem';
 
 type Props = {
+  allowedFolders?: string[];
   collectionPath?: string;
   currentFolder: Folder;
   favoriteFolderId?: string;
@@ -29,6 +30,7 @@ type Props = {
 };
 
 const Browser: FC<Props> = ({
+  allowedFolders,
   collectionPath,
   currentFolder,
   favoriteFolderId,
@@ -94,11 +96,21 @@ const Browser: FC<Props> = ({
     isLoading: isLoadingFolders,
     isFetching: isFetchingFolders,
     isError: isErrorFolders,
-  } = useGetFoldersQuery({ folder: RootFolder, searchText, useSession });
+  } = useGetFoldersQuery({ allowedFolders, folder: RootFolder, searchText, useSession });
 
   useEffect(() => {
     const handleDefaultFolder = () => {
       if (!folders) return;
+      if (allowedFolders && allowedFolders.length > 0) {
+        const allowedFolder = folders.find((item) =>
+          allowedFolders.includes(item.fullPath),
+        );
+
+        if (allowedFolder) {
+          onFolderSelect(allowedFolder);
+          return;
+        }
+      }
       const libraryFolder = folders.find((folder) => folder.title === LIBRARY_NAME);
 
       if (libraryFolder) {
@@ -116,10 +128,11 @@ const Browser: FC<Props> = ({
             try {
               const folder = JSON.parse(lastLocation) as Folder;
               
-              if (folder.id === favoriteFolderId && !showFavoriteFolder) {
+              if ((folder.id === favoriteFolderId && !showFavoriteFolder) || (allowedFolders && allowedFolders.length > 0)) {
                 handleDefaultFolder();
                 return;
               }
+
               onFolderSelect(folder);
             } catch (error) {
               handleDefaultFolder();
@@ -134,7 +147,7 @@ const Browser: FC<Props> = ({
         handleDefaultFolder();
       }
     }
-  }, [favoriteFolderId, folders, lastLocationMode, onFolderSelect, showFavoriteFolder]);
+  }, [allowedFolders, favoriteFolderId, folders, lastLocationMode, onFolderSelect, showFavoriteFolder]);
 
   const {
     data: collections,
@@ -210,6 +223,7 @@ const Browser: FC<Props> = ({
         ...(folders ?? []).map((folder) => (
           <BrowserItem
             key={folder.id}
+            allowedFolders={allowedFolders}
             folder={folder}
             currentFolderID={currentFolder.id}
             searchText={searchText}
@@ -225,12 +239,13 @@ const Browser: FC<Props> = ({
 
     return <cx-typography variant="body3">No folders found</cx-typography>;
   }, [
-    favoriteFolderId,
-    isLoadingFolders,
-    isFetchingFolders,
-    isErrorFolders,
-    folders,
+    allowedFolders,
     currentFolder.id,
+    favoriteFolderId,
+    folders,
+    isErrorFolders,
+    isFetchingFolders,
+    isLoadingFolders,
     searchText,
     useSession,
   ]);

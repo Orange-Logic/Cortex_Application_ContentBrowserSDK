@@ -110,6 +110,11 @@ type OrangeDAMContentBrowser = {
      */
     allowedExtensions?: string[];
     /**
+     * The allowed folders to be selected
+     * If not provided, all folders will be allowed
+     */
+    allowedFolders?: string[];
+    /**
      * The available subtypes for the content browser
      */
     availableDocTypes?: string[];
@@ -243,6 +248,7 @@ const ContentBrowser: OrangeDAMContentBrowser = {
     onRequestToken,
     availableRepresentativeSubtypes,
     allowedExtensions,
+    allowedFolders,
     availableDocTypes,
     baseUrl,
     containerId,
@@ -350,6 +356,7 @@ const ContentBrowser: OrangeDAMContentBrowser = {
         <GlobalConfigContext.Provider
           value={{
             allowedExtensions,
+            allowedFolders,
             availableDocTypes,
             availableRepresentativeSubtypes,
             ctaText: ctaText ?? 'Insert',

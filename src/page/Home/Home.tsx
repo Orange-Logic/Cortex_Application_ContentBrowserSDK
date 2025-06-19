@@ -221,6 +221,7 @@ const HomePage: FC<Props> = () => {
   const useSession = useAppSelector(applySessionSelector);
   const {
     allowedExtensions,
+    allowedFolders,
     allowFavorites,
     allowProxy,
     allowTracking,
@@ -834,6 +835,7 @@ const HomePage: FC<Props> = () => {
           />
         </Header>
         <Browser
+          allowedFolders={allowedFolders}
           collectionPath={collectionPath}
           currentFolder={state.currentFolder}
           favoriteFolderId={userInfo?.favoriteFolderRecordID}

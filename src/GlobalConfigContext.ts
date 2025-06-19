@@ -14,6 +14,7 @@ export type PluginInfo = {
 
 export type GlobalConfigContextType = {
   allowedExtensions?: string[];
+  allowedFolders?: string[];
   availableDocTypes?: string[];
   availableRepresentativeSubtypes?: string[];
   ctaText: string;

@@ -13,11 +13,19 @@ import { createApi, retry } from '@reduxjs/toolkit/query/react';
 
 const NATURAL_SORT_ORDER_REFERENCE_ID = 'OR4ND000000063615';
 
-const resolveFolderExtraFilters = (searchText: string) => {
-  if (isNullOrWhiteSpace(searchText)) {
-    return 'MediaType:Story OR MediaType:Album';
+const resolveFolderExtraFilters = (searchText: string, allowedFolders?: string[]) => {
+  let baseQuery = 'MediaType:Story OR MediaType:Album';
+  if (!isNullOrWhiteSpace(searchText)) {
+    baseQuery = `(${baseQuery}) AND Story_Title:${searchText}`;
   }
-  return `(MediaType:Story OR MediaType:Album) AND Story_Title:${searchText}`;
+  if (allowedFolders?.length) {
+    const allowedFoldersQuery = allowedFolders
+      .map(folder => `Path:${folder}*`)
+      .join(' OR ');
+    baseQuery = `(${baseQuery}) AND (${allowedFoldersQuery})`;
+  }
+
+  return baseQuery;
 };
 
 const resolveAssetExtraFilters = ({
@@ -79,10 +87,12 @@ export const searchApi = createApi({
   endpoints: (builder) => ({
     getFolders: builder.query({
       query: ({
+        allowedFolders,
         folder,
         searchText,
         useSession,
       }: {
+        allowedFolders?: string[];
         folder: Folder;
         searchText: string;
         useSession?: string;
@@ -90,16 +100,22 @@ export const searchApi = createApi({
         const params = [
           [
             'extraFilters',
-            resolveFolderExtraFilters(searchText),
+            resolveFolderExtraFilters(searchText, allowedFolders),
           ],
           ['fields', FIELD_CORTEX_PATH],
           ['fields', FIELD_DOC_TYPE],
           ['fields', FIELD_TITLE_WITH_FALLBACK],
           ['fields', FIELD_HAS_BROWSER_CHILDREN],
-          ['objectRecordID', folder.id],
           ['orderBy', NATURAL_SORT_ORDER_REFERENCE_ID],
-          ['seeThru', !isNullOrWhiteSpace(searchText)],
         ];
+
+        if (folder.id) {
+          params.push(['objectRecordID', folder.id]);
+        }
+
+        if (!isNullOrWhiteSpace(searchText) || (allowedFolders && allowedFolders.length > 0) ) {
+          params.push(['seeThru', 'true']);
+        }
 
         if (useSession) {
           params.push(['UseSession', useSession]);
