@@ -10,7 +10,7 @@ import {
   ImageCardDisplayInfo,
 } from '@/GlobalConfigContext';
 import { store } from '@/store';
-import { resetImportStatus } from '@/store/assets/assets.slice';
+import { resetImportStatus, setSelectedAssetId } from '@/store/assets/assets.slice';
 import {
   initAuthInfoFromCache,
   setUseHeaders,
@@ -163,6 +163,7 @@ type OrangeDAMContentBrowser = {
     allowLogout?: boolean;
   }) => Promise<void>;
   close: () => void;
+  previewAsset?: (assetId: string) => void;
   /**
    * Global function which mirrored the behavior of onAssetSelected
    */
@@ -395,6 +396,9 @@ const ContentBrowser: OrangeDAMContentBrowser = {
   },
   close: () => {
     window.OrangeDAMContentBrowser._onClose?.();
+  },
+  previewAsset: (identifier: string) => {
+    store.dispatch(setSelectedAssetId(identifier));
   },
 };
 

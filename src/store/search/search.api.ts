@@ -360,10 +360,81 @@ export const searchApi = createApi({
         return response.favoriteRecordIds ? response.favoriteRecordIds[0] === recordId : false;
       },
     }),
+    getAssetById: builder.query({
+      query: ({
+        id,
+        useSession,
+      }: {
+        id: string;
+        useSession?: string;
+      }) => {
+        const params = [
+          ['extraFilters', `SystemIdentifier:${id}`],
+          ['fields', FIELD_TITLE_WITH_FALLBACK],
+          ['fields', DEFAULT_VIEW_SIZE],
+          ['fields', ORIGINAL_VIEW_SIZE],
+          ['fields', FIELD_KEYWORDS],
+          ['fields', FIELD_MAX_WIDTH],
+          ['fields', FIELD_MAX_HEIGHT],
+          ['fields', FIELD_FILE_SIZE],
+          ['fields', FIELD_DOC_TYPE],
+          ['fields', FIELD_SUBTYPE],
+          ['fields', FIELD_IDENTIFIER],
+          ['fields', FIELD_EXTENSION],
+          ['seeThru', 'true'],
+        ];
+
+        if (useSession) {
+          params.push(['UseSession', useSession]);
+        }
+
+        return {
+          url: '/webapi/extensibility/integrations/contentBrowserSDK/getcontent_4bw_v1',
+          params,
+        };
+      },
+      transformResponse: (
+        response: GetContentResponse,
+      ): Asset | undefined => {
+        const item = response.contentItems?.[0];
+        if (!item) {
+          return undefined;
+        }
+
+        let extension = GetValueByKeyCaseInsensitive(item.fields, FIELD_EXTENSION) ?? '';
+        if (extension && !extension.startsWith('.')) {
+          extension = '.' + extension;
+        }
+        return {
+          docType: GetValueByKeyCaseInsensitive(item.fields, FIELD_DOC_TYPE) ?? '',
+          docSubType: GetValueByKeyCaseInsensitive(item.fields, FIELD_SUBTYPE) ?? '',
+          extension,
+          height: GetValueByKeyCaseInsensitive(item.fields, FIELD_MAX_HEIGHT) ?? '0',
+          id: item.recordID,
+          identifier: GetValueByKeyCaseInsensitive(item.fields, FIELD_IDENTIFIER) ?? '',
+          imageUrl: GetValueByKeyCaseInsensitive(item.fields, DEFAULT_VIEW_SIZE) ?? '',
+          originalUrl: GetValueByKeyCaseInsensitive(item.fields, ORIGINAL_VIEW_SIZE) ?? '',
+          name: GetValueByKeyCaseInsensitive(item.fields, FIELD_TITLE_WITH_FALLBACK) ?? '',
+          scrubUrl: GetValueByKeyCaseInsensitive(item.fields, FIELD_SCRUB_URL) ?? '',
+          size: GetValueByKeyCaseInsensitive(item.fields, FIELD_FILE_SIZE) ?? '0 MB',
+          tags: GetValueByKeyCaseInsensitive(item.fields, FIELD_KEYWORDS) ?? '',
+          width: GetValueByKeyCaseInsensitive(item.fields, FIELD_MAX_WIDTH) ?? '0',
+          allowATSLink: GetValueByKeyCaseInsensitive(item.fields, FIELD_ALLOW_ATS_LINK) === 'True',
+        } as Asset;
+      },
+      providesTags: (_result, _error, arg) => {
+        return [{ type: 'Images', id: arg.id }];
+      },
+      serializeQueryArgs: ({ endpointName, queryArgs }) => ({
+        endpointName,
+        id: queryArgs.id,
+        useSession: queryArgs.useSession,
+      }),
+    }),
   }),
 });
 
 // Export hooks for usage in functional components, which are
 // auto-generated based on the defined endpoints
-export const { useGetFoldersQuery, useGetCollectionsQuery, useGetAssetsQuery, useGetIsFavoriteQuery } =
+export const { useGetFoldersQuery, useGetCollectionsQuery, useGetAssetsQuery, useGetAssetByIdQuery, useGetIsFavoriteQuery } =
   searchApi;

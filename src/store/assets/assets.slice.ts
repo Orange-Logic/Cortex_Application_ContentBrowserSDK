@@ -2,6 +2,7 @@ import { AssetsState, TrackingParameter, Transformation } from '@/types/assets';
 import { Asset, GetAssetLinkResponse } from '@/types/search';
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 
+import { RootState } from '@/store';
 import { store } from '../';
 import { applyHeadersSelector } from '../auth/auth.slice';
 import { favoriteAsset, getAssetLinks, unfavoriteAsset } from './assets.service';
@@ -21,6 +22,14 @@ export const assetsSlice = createSlice({
   name: ASSETS_FEATURE_KEY,
   initialState,
   reducers: {
+    setSelectedAssetId: (state, action) => {
+      const { payload } = action;
+      if (payload) {
+        state.selectedAssetId = payload;
+      } else {
+        state.selectedAssetId = undefined;
+      }
+    },
     resetImportStatus: (state) => {
       state.errorMessage = undefined;
     },
@@ -42,7 +51,8 @@ export const assetsSlice = createSlice({
 });
 // #endregion
 
-export const { resetImportStatus } = assetsSlice.actions;
+export default assetsSlice.reducer;
+export const { setSelectedAssetId, resetImportStatus } = assetsSlice.actions;
 
 // #region Action
 export const importAssets = createAsyncThunk<
@@ -174,4 +184,6 @@ boolean,
 );
 // #endregion
 
-export default assetsSlice.reducer;
+
+export const selectedAssetIdSelector = (rootState: RootState) =>
+  rootState[ASSETS_FEATURE_KEY].selectedAssetId;

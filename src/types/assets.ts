@@ -6,6 +6,7 @@ export type GetLargestDownloadLinkRes = {
 
 export type AssetsState = {
   errorMessage?: string;
+  selectedAssetId?: string;
 };
 
 export enum ImageImportStatus {

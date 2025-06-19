@@ -20,9 +20,9 @@ import {
   useGetAvailableExtensionsQuery,
   useGetAvailableProxiesQuery, useGetParametersQuery, useGetSortOrdersQuery,
 } from '@/store/assets/assets.api';
-import { addAssetToFavorite, importAssets, removeAssetFromFavorite } from '@/store/assets/assets.slice';
+import { addAssetToFavorite, importAssets, removeAssetFromFavorite, selectedAssetIdSelector, setSelectedAssetId } from '@/store/assets/assets.slice';
 import { authenticatedSelector, logout, applySessionSelector } from '@/store/auth/auth.slice';
-import { useGetAssetsQuery, useGetIsFavoriteQuery } from '@/store/search/search.api';
+import { useGetAssetByIdQuery, useGetAssetsQuery, useGetIsFavoriteQuery } from '@/store/search/search.api';
 import { explorePath, RootFolder } from '@/store/search/search.slice';
 import { useGetUserInfoQuery } from '@/store/user/user.api';
 import { FormatLoaderState } from '@/types/assets';
@@ -59,7 +59,6 @@ type State = {
   pageSize: number;
   maxPageSize: number;
   searchText: string;
-  selectedAsset: Asset | null;
   shouldResetFilters: boolean;
   sortDirection?: 'ascending' | 'descending';
   sortOrder: string;
@@ -90,7 +89,6 @@ type Action =
     returnToFirstPage: boolean;
   } }
   | { type: 'SET_SEARCH_TEXT'; payload: string }
-  | { type: 'SET_SELECTED_ASSET'; payload: Asset | null }
   | { type: 'SET_SORT_DIRECTION'; payload: 'ascending' | 'descending' | undefined }
   | { type: 'SET_SORT_ORDER'; payload: string }
   | { type: 'SET_TOTAL_COUNT'; payload: number }
@@ -116,7 +114,6 @@ const initialState: State = {
   pageSize: 0,
   maxPageSize: 0,
   searchText: '',
-  selectedAsset: null,
   shouldResetFilters: true,
   sortDirection: undefined,
   sortOrder: '',
@@ -174,8 +171,6 @@ const reducer = (state: State, action: Action): State => {
     }
     case 'SET_SEARCH_TEXT':
       return { ...state,  ...resetPageState, searchText: action.payload };
-    case 'SET_SELECTED_ASSET':
-      return { ...state, selectedAsset: action.payload };
     case 'SET_SORT_DIRECTION':
       return { ...state,  ...resetPageState, sortDirection: action.payload };
     case 'SET_SORT_ORDER':
@@ -205,7 +200,6 @@ const reducer = (state: State, action: Action): State => {
         currentCount: 0,
         currentFolder: RootFolder,
         searchText: '',
-        selectedAsset: null,
         totalCount: 0,
       };
     case 'SET_NEWLY_SELECTED_FACET':
@@ -219,6 +213,7 @@ const HomePage: FC<Props> = () => {
   const [state, dispatch] = useReducer(reducer, initialState);
   const authenticated = useAppSelector(authenticatedSelector);
   const useSession = useAppSelector(applySessionSelector);
+  const selectedAssetId = useAppSelector(selectedAssetIdSelector);
   const {
     allowedExtensions,
     allowedFolders,
@@ -235,6 +230,19 @@ const HomePage: FC<Props> = () => {
     showVersions,
   } = useContext(GlobalConfigContext);
   const { extraFields, onAssetAction } = useContext(AppContext);
+
+  const { data: selectedAssetData, isFetching: isFetchingSelectedAsset, isError: isErrorSelectedAsset } = useGetAssetByIdQuery(selectedAssetId ? {
+    id: selectedAssetId,
+    useSession,
+  } : skipToken);
+
+  const selectedAsset = useMemo(() => {
+    if (!selectedAssetData || !selectedAssetId || selectedAssetData.identifier !== selectedAssetId) {
+      return null;
+    }
+    return selectedAssetData;
+  }, [selectedAssetData, selectedAssetId]); 
+
   const { data: userInfo, isFetching: isFetchingUserInfo, isLoading: isLoadingUserInfo, refetch: refetchUserInfo } = useGetUserInfoQuery({});
   
   useEffect(() => {
@@ -242,11 +250,21 @@ const HomePage: FC<Props> = () => {
       refetchUserInfo();
     }
   }, [authenticated, refetchUserInfo]);
-  const { data: availableProxies, isFetching: isFetchingAvailableProxies, isError: isErrorAvailableProxies } = useGetAvailableProxiesQuery(state.selectedAsset ? {
-    assetImages: state.selectedAsset ? [state.selectedAsset] : [],
-    useSession,
-  } : skipToken);
+
+  const {
+    data: availableProxies,
+    isFetching: isFetchingAvailableProxies,
+    isError: isErrorAvailableProxies,
+  } = useGetAvailableProxiesQuery(selectedAsset
+    ? {
+      assetImages: selectedAsset ? [selectedAsset] : [],
+      useSession,
+    }
+    : skipToken,
+  );
+
   const { data: availableExtensions } = useGetAvailableExtensionsQuery();
+
   const { data: params } = useGetParametersQuery({
     useSession,
   });
@@ -258,12 +276,15 @@ const HomePage: FC<Props> = () => {
     supportedExtensions,
     supportedRepresentativeSubtypes,
   } = params || {};
+
   const { data: sortOrders } = useGetSortOrdersQuery({
     useSession,
   });
-  const { data: isFavorite, refetch: refetchIsFavorite } = useGetIsFavoriteQuery(state.selectedAsset && allowFavorites ? {
-    recordId: state.selectedAsset.id,
-  } : skipToken);
+
+  const { data: isFavorite, refetch: refetchIsFavorite } = useGetIsFavoriteQuery(
+    selectedAsset && allowFavorites ? {
+      recordId: selectedAsset.id,
+    } : skipToken);
 
   const [browserMounted, setBrowserMounted] = useState(false);
   const [isResized, setIsResized] = useState(false);
@@ -341,7 +362,7 @@ const HomePage: FC<Props> = () => {
       let proxyExtension = '';
       if (!proxy.extension) {
         const extensionFromPermanentLinks = proxy.permanentLink?.split('.').at(-1);
-        proxyExtension = extensionFromPermanentLinks || '';
+        proxyExtension = extensionFromPermanentLinks ?? '';
       } else {
         proxyExtension = proxy.extension.replace('.', '');
       }
@@ -368,6 +389,18 @@ const HomePage: FC<Props> = () => {
   } : skipToken);
 
   useEffect(() => {
+    if (isErrorSelectedAsset) {
+      appDispatch(setSelectedAssetId(null));
+    }
+  }, [appDispatch, isErrorSelectedAsset]);
+
+  useEffect(() => {
+    if (onAssetAction && selectedAsset) {
+      onAssetAction('select', selectedAsset.id);
+    }
+  }, [onAssetAction, selectedAsset]);
+
+  useEffect(() => {
     // isFetching is constantly switched between true and false due to the changed parameters
     // Set isLoading to true when isFetching is true for at least 200ms and set it to false when isFetching is false for at least 200ms
     let timer = null;
@@ -389,6 +422,7 @@ const HomePage: FC<Props> = () => {
   
   useEffect(() => {
     if (authenticated) {
+      appDispatch(setSelectedAssetId(null));
       dispatch({ type: 'RESET_SEARCH' });
 
       Promise.all([
@@ -434,7 +468,7 @@ const HomePage: FC<Props> = () => {
         loadedFromStorage.current = true;
       });
     }
-  }, [authenticated, lastLocationMode]);
+  }, [appDispatch, authenticated, lastLocationMode]);
 
   useEffect(() => {
     const resizeObserver = containerResizeObserverRef.current;
@@ -466,7 +500,6 @@ const HomePage: FC<Props> = () => {
       resizeObserver.removeEventListener('cx-resize', onResize);
     };
   }, []);
-
 
   useEffect(() => {
     if (!selectedSortOrder && loadedFromStorage.current) {
@@ -516,17 +549,13 @@ const HomePage: FC<Props> = () => {
   const isMobile = state.containerSize.width <= MOBILE_THRESHOLD;
 
   const onItemSelect = (item: Asset) => {
-    dispatch({ type: 'SET_SELECTED_ASSET', payload: item });
-
-    if (onAssetAction) {
-      onAssetAction('select', item.id);
-    }
+    appDispatch(setSelectedAssetId(item.identifier));
   };
 
   const onSearchChange = useCallback((value: string) => {
-    dispatch({ type: 'SET_SELECTED_ASSET', payload: null });
+    appDispatch(setSelectedAssetId(null));
     dispatch({ type: 'SET_SEARCH_TEXT', payload: value });
-  }, []);
+  }, [appDispatch]);
 
   const lastHeightRef = useRef(0);
   const lastWidthRef = useRef(0);
@@ -686,8 +715,8 @@ const HomePage: FC<Props> = () => {
           folder,
           shouldResetFilters: browserMountedRef.current,
         } });
-        dispatch({ type: 'SET_SELECTED_ASSET', payload: null });
         dispatch({ type: 'SET_OPEN_BROWSER', payload: false });
+        appDispatch(setSelectedAssetId(null));
         storeData('lastLocation', JSON.stringify(folder));
       }
     },
@@ -770,12 +799,12 @@ const HomePage: FC<Props> = () => {
     };
     clearTimeout();
 
-    if (isFetchingAvailableProxies) {
+    if (isFetchingSelectedAsset || isFetchingAvailableProxies) {
       setShowFormatLoader(FormatLoaderState.Hide); // Hide the loader and the dialog when starting to fetch proxies
       formatDialogTimeoutRef.current = window.setTimeout(() => {
         setShowFormatLoader(FormatLoaderState.ShowLoader); // Show loader after 800ms
       }, 800);
-    } else if (!isFetchingAvailableProxies && (availableProxies?.proxies || isErrorAvailableProxies)) {
+    } else if (!isFetchingSelectedAsset && !isFetchingAvailableProxies && (availableProxies?.proxies || isErrorAvailableProxies)) {
       if (formatDialogTimeoutRef.current) {
         clearTimeout();
         setShowFormatLoader(FormatLoaderState.ShowDialog); // Hide loader when proxies are fetched
@@ -786,14 +815,14 @@ const HomePage: FC<Props> = () => {
       clearTimeout();
     };
 
-  }, [availableProxies, isErrorAvailableProxies, isFetchingAvailableProxies]);
+  }, [availableProxies, isErrorAvailableProxies, isFetchingAvailableProxies, isFetchingSelectedAsset]);
 
   useEffect(() =>{
-    if (!state.selectedAsset) {
+    if (!selectedAsset) {
       // If no asset is selected, set this to ShowDialog so the dialog can be shown when there is no need to fetch availableProxies.
       setShowFormatLoader(FormatLoaderState.ShowDialog);
     }
-  }, [state.selectedAsset]);
+  }, [selectedAsset]);
 
   return (
     <cx-resize-observer ref={containerResizeObserverRef}>
@@ -809,6 +838,7 @@ const HomePage: FC<Props> = () => {
           }
           onLogout={() => {
             appDispatch(logout());
+            appDispatch(setSelectedAssetId(null));
             dispatch({ type: 'RESET_SEARCH' });
           }}
         >
@@ -873,7 +903,7 @@ const HomePage: FC<Props> = () => {
                     isLoadingData={state.isLoading || !data}
                     isFetched={!!data || isConfigError}
                     items={data?.items || []}
-                    selectedAsset={state.selectedAsset}
+                    selectedAsset={selectedAsset ?? null}
                     view={state.view}
                     width={width}
                     onItemSelect={onItemSelect}
@@ -901,7 +931,7 @@ const HomePage: FC<Props> = () => {
           </cx-space>
         )}
         <FormatDialog
-          allowCustomFormat={!!ATSEnabled && !!state.selectedAsset?.allowATSLink}
+          allowCustomFormat={!!ATSEnabled && !!selectedAsset?.allowATSLink}
           allowFavorites={allowFavorites}
           allowProxy={allowProxy}
           allowTracking={allowTracking}
@@ -912,9 +942,9 @@ const HomePage: FC<Props> = () => {
           extensions={supportedExtensions ?? []}
           isFavorite={!!isFavorite}
           maxHeight={state.containerSize.height}
-          open={!!state.selectedAsset && showFormatLoader === FormatLoaderState.ShowDialog}
+          open={!!selectedAsset && showFormatLoader === FormatLoaderState.ShowDialog}
           previewUrl={isErrorAvailableProxies || isFetchingAvailableProxies ? undefined : availableProxies?.previewUrl}
-          selectedAsset={state.selectedAsset}
+          selectedAsset={selectedAsset ?? null}
           showVersions={showVersions}
           supportedRepresentativeSubtypes={
             availableRepresentativeSubtypes?.length
@@ -926,22 +956,22 @@ const HomePage: FC<Props> = () => {
           }
           variant={isMobile ? 'drawer' : 'dialog'}
           onClose={() =>
-            dispatch({ type: 'SET_SELECTED_ASSET', payload: null })
+            appDispatch(setSelectedAssetId(null))
           }
           onFavorite={async () => {
-            if (!state.selectedAsset) {
+            if (!selectedAsset) {
               return false;
             }
 
             const result = await appDispatch(
               addAssetToFavorite({
-                recordId: state.selectedAsset.id,
+                recordId: selectedAsset.id,
               }),
             );
 
             if (addAssetToFavorite.fulfilled.match(result)) {
               if (onAssetAction) {
-                onAssetAction('favorite', state.selectedAsset.id);
+                onAssetAction('favorite', selectedAsset.id);
               }
               await refetchIsFavorite();
 
@@ -973,7 +1003,7 @@ const HomePage: FC<Props> = () => {
             parameters,
             useRepresentative,
           }) => {
-            if (!state.selectedAsset) {
+            if (!selectedAsset) {
               return;
             }
 
@@ -984,7 +1014,7 @@ const HomePage: FC<Props> = () => {
                 parameters,
                 permanentLink,
                 proxiesPreference: value,
-                selectedAsset: state.selectedAsset,
+                selectedAsset: selectedAsset,
                 useRepresentative,
                 useSession,
               }),
@@ -995,15 +1025,15 @@ const HomePage: FC<Props> = () => {
             }
           }}
           onFormatConfirm={async ({ value, parameters, proxiesPreference, extension }) => {
-            if (!state.selectedAsset) {
+            if (!selectedAsset) {
               return;
             }
 
-            const maxWidth = state.selectedAsset?.width
-              ? parseInt(state.selectedAsset.width, 10)
+            const maxWidth = selectedAsset?.width
+              ? parseInt(selectedAsset.width, 10)
               : 0;
-            const maxHeight = state.selectedAsset?.height
-              ? parseInt(state.selectedAsset.height, 10)
+            const maxHeight = selectedAsset?.height
+              ? parseInt(selectedAsset.height, 10)
               : 0;
             const images = await appDispatch(
               importAssets({
@@ -1013,7 +1043,7 @@ const HomePage: FC<Props> = () => {
                 maxWidth,
                 parameters,
                 proxiesPreference,
-                selectedAsset: state.selectedAsset,
+                selectedAsset,
                 useSession,
                 transformations: value,
               }),
@@ -1024,19 +1054,19 @@ const HomePage: FC<Props> = () => {
             }
           }}
           onUnFavorite={async () => {
-            if (!state.selectedAsset) {
+            if (!selectedAsset) {
               return false;
             }
 
             const result = await appDispatch(
               removeAssetFromFavorite({
-                recordId: state.selectedAsset.id,
+                recordId: selectedAsset.id,
               }),
             );
 
             if (removeAssetFromFavorite.fulfilled.match(result)) {
               if (onAssetAction) {
-                onAssetAction('unfavorite', state.selectedAsset.id);
+                onAssetAction('unfavorite', selectedAsset.id);
               }
               await refetchIsFavorite();
 
