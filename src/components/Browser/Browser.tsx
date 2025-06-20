@@ -1,18 +1,26 @@
 import _debounce from 'lodash-es/debounce';
-import { FC, useCallback, useEffect, useRef, useState } from 'react';
+import { FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { LIBRARY_NAME } from '@/consts/data';
 import { useGetCollectionsQuery, useGetFoldersQuery } from '@/store/search/search.api';
 import { RootFolder } from '@/store/search/search.slice';
 import { Folder } from '@/types/search';
 import { getData } from '@/utils/storage';
-import {
-  CxChangeEvent, CxDrawer, CxInput, CxMenu, CxSelectEvent, CxSelectionChangeEvent, CxTree,
-} from '@/web-component';
+import type {
+  CxChangeEvent,
+  CxDrawer,
+  CxInput,
+  CxMenu,
+  CxSelectEvent,
+  CxSelectionChangeEvent,
+  CxTree,
+} from '@orangelogic-private/design-system';
 import { skipToken } from '@reduxjs/toolkit/query';
 
 import { Drawer } from './Browser.styled';
 import BrowserItem, { getHighlightedTitle } from './BrowserItem';
+import { FOLDER_PAGE_SIZE } from '@/utils/constants';
+import LoadMoreButton from './LoadMoreButton';
 
 type Props = {
   allowedFolders?: string[];
@@ -45,6 +53,18 @@ const Browser: FC<Props> = ({
 }) => {
   const [searchText, setSearchText] = useState('');
   const [isDefined, setIsDefined] = useState(false);
+  const [isMoreLoading, setIsMoreLoading] = useState(false);
+  const [isMoreCollectionsLoading, setIsMoreCollectionsLoading] = useState(false);
+
+  const [pagination, setPagination] = useState({
+    start: 0,
+    pageSize: FOLDER_PAGE_SIZE,
+  });
+
+  const [collectionPagination, setCollectionPagination] = useState({
+    start: 0,
+    pageSize: FOLDER_PAGE_SIZE,
+  });
 
   const collectionRef = useRef<CxMenu>(null);
   const drawerRef = useRef<CxDrawer>(null);
@@ -92,11 +112,35 @@ const Browser: FC<Props> = ({
   }, [isDefined, onClose]);
 
   const {
-    data: folders,
+    data: folderData,
     isLoading: isLoadingFolders,
     isFetching: isFetchingFolders,
     isError: isErrorFolders,
-  } = useGetFoldersQuery({ allowedFolders, folder: RootFolder, searchText, useSession });
+  } = useGetFoldersQuery({
+    allowedFolders,
+    folder: RootFolder,
+    searchText,
+    useSession,
+    start: pagination.start,
+    pageSize: pagination.pageSize,
+  });
+
+  const folders = useMemo(() => {
+    return folderData?.items ?? undefined;
+  }, [folderData]);
+
+  const totalCount = folderData?.totalCount ?? 0;
+
+  const loadMore = useCallback(() => {
+    if (!folders) return;
+    const start = folders.length;
+    if (start >= totalCount) return;
+    setIsMoreLoading(true);
+    setPagination((prev) => ({
+      ...prev,
+      start,
+    }));
+  }, [folders, totalCount]);
 
   useEffect(() => {
     const handleDefaultFolder = () => {
@@ -150,7 +194,7 @@ const Browser: FC<Props> = ({
   }, [allowedFolders, favoriteFolderId, folders, lastLocationMode, onFolderSelect, showFavoriteFolder]);
 
   const {
-    data: collections,
+    data: collectionData,
     isLoading: isLoadingCollections,
     isFetching: isFetchingCollections,
     isError: isErrorCollections,
@@ -160,9 +204,28 @@ const Browser: FC<Props> = ({
         folder: collectionPath,
         searchText,
         useSession,
+        start: collectionPagination.start,
+        pageSize: collectionPagination.pageSize,
       }
       : skipToken,
   );
+
+  const collections = useMemo(() => {
+    return collectionData?.items ?? undefined;
+  }, [collectionData]);
+
+  const totalCollectionCount = collectionData?.totalCount ?? 0;
+
+  const loadMoreCollections = useCallback(() => {
+    if (!collections) return;
+    setIsMoreCollectionsLoading(true);
+    const start = collections.length;
+    if (start >= totalCollectionCount) return;
+    setCollectionPagination((prev) => ({
+      ...prev,
+      start,
+    }));
+  }, [collections, totalCollectionCount]);
 
   useEffect(() => {
     const tree = treeRef.current;
@@ -190,8 +253,20 @@ const Browser: FC<Props> = ({
     };
   }, [isDefined, collections, onFolderSelect]);
 
+  useEffect(() => {
+    if (!isFetchingFolders) {
+      setIsMoreLoading(false);
+    }
+  }, [isFetchingFolders]);
+
+  useEffect(() => {
+    if (!isFetchingCollections) {
+      setIsMoreCollectionsLoading(false);
+    }
+  }, [isFetchingCollections]);
+
   const renderFolders = useCallback(() => {
-    if (isLoadingFolders || isFetchingFolders) {
+    if (isLoadingFolders || (isFetchingFolders && !isMoreLoading)) {
       return Array.from({ length: 5 }).map((_, index) => (
         <cx-skeleton key={index}></cx-skeleton>
       ));
@@ -248,10 +323,11 @@ const Browser: FC<Props> = ({
     isLoadingFolders,
     searchText,
     useSession,
+    isMoreLoading,
   ]);
 
   const renderCollections = useCallback(() => {
-    if (isLoadingCollections || isFetchingCollections) {
+    if (isLoadingCollections || (isFetchingCollections && !isMoreCollectionsLoading)) {
       return Array.from({ length: 5 }).map((_, index) => (
         <cx-skeleton key={index}></cx-skeleton>
       ));
@@ -279,7 +355,15 @@ const Browser: FC<Props> = ({
     }
 
     return <cx-typography variant="body3">No collections found</cx-typography>;
-  }, [isLoadingCollections, isFetchingCollections, collections, isErrorCollections, currentFolder.id, searchText]);
+  }, [
+    isLoadingCollections,
+    isFetchingCollections,
+    collections,
+    isErrorCollections,
+    currentFolder.id,
+    searchText,
+    isMoreCollectionsLoading,
+  ]);
 
   return (
     <Drawer
@@ -309,7 +393,16 @@ const Browser: FC<Props> = ({
             <cx-icon name="search" slot="prefix" className="icon--large"></cx-icon>
           </cx-input>
           <div className="browser__folders">
-            <cx-tree ref={treeRef}>{renderFolders()}</cx-tree>
+            <cx-tree ref={treeRef}>
+              {renderFolders()}
+              {folders && folders.length < totalCount && !isLoadingFolders && (
+                <LoadMoreButton
+                  loadMore={loadMore}
+                  isLoading={isFetchingFolders}
+                  disabled={isFetchingFolders}
+                />
+              )}
+            </cx-tree>
           </div>
         </cx-space>
         {showCollections && (
@@ -323,6 +416,16 @@ const Browser: FC<Props> = ({
                 className="browser__collections__menu"
               >
                 {renderCollections()}
+                {collections &&
+                  collections.length < totalCollectionCount &&
+                  !isLoadingCollections && (
+                    <LoadMoreButton
+                      loadMore={loadMoreCollections}
+                      isLoading={isFetchingCollections}
+                      disabled={isFetchingCollections}
+                      disabledIndentation
+                    />
+                )}
               </cx-menu>
             </cx-details>
           </div>

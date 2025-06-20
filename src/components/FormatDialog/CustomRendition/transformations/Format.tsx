@@ -1,4 +1,4 @@
-import { CxSelect, CxChangeEvent } from '@/web-component';
+import type { CxSelect, CxChangeEvent } from '@orangelogic-private/design-system';
 import { useState, useRef, useEffect, FC } from 'react';
 import { Proxy } from '@/types/search';
 

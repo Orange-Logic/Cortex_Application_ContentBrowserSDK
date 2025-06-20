@@ -1,4 +1,4 @@
-import { CxChangeEvent, CxCheckbox } from '@/web-component';
+import type { CxChangeEvent, CxCheckbox } from '@orangelogic-private/design-system';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 type Props = {

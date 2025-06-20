@@ -1,4 +1,4 @@
-import { CxDrawerProps } from '@/react-web-component';
+import type { CxDrawerProps } from '@orangelogic-private/design-system/react-types';
 import styled from 'styled-components';
 
 export const Drawer = styled('cx-drawer')<CxDrawerProps>`
@@ -31,6 +31,14 @@ export const Drawer = styled('cx-drawer')<CxDrawerProps>`
       top: 0;
       left: 0;
     }
+  }
+
+  .browser__load-more {
+    align-self: start;
+  }
+
+  .browser__load-more__indentation {
+    width: 1em;
   }
 
   .browser__folders {

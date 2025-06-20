@@ -2,9 +2,9 @@ import { FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { SortOrder } from '@/types/assets';
 import { Filter, GridView, SortDirection } from '@/types/search';
-import {
+import type {
   CxChangeEvent, CxDropdown, CxInput, CxRemoveEvent, CxSelectEvent, CxSelectionChangeEvent,
-} from '@/web-component';
+} from '@orangelogic-private/design-system';
 
 import { sortDirections, views } from './ControlBar.constants';
 import { Container } from './ControlBar.styled';

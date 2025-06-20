@@ -1,9 +1,11 @@
-import { FC, useEffect, useMemo, useRef, useState } from 'react';
+import { FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useGetFoldersQuery } from '@/store/search/search.api';
 import { Folder } from '@/types/search';
 
-import { CxCollapseEvent, CxTreeItem } from '@/web-component';
+import type { CxCollapseEvent, CxTreeItem } from '@orangelogic-private/design-system';
+import { FOLDER_PAGE_SIZE } from '@/utils/constants';
+import LoadMoreButton from './LoadMoreButton';
 
 export const getHighlightedTitle = (title: string, searchText?: string) => {
   if (!searchText) return title;
@@ -35,18 +37,38 @@ export const BrowserItem: FC<Props> = ({
 }) => {
   const [isDefined, setIsDefined] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [pagination, setPagination] = useState({
+    start: 0,
+    pageSize: FOLDER_PAGE_SIZE,
+  });
   const treeItemRef = useRef<CxTreeItem>(null);
   const isSelected = currentFolderID === folder.id;
 
   const {
-    data: folders,
+    data: folderData,
     isFetching,
-  } = useGetFoldersQuery({ allowedFolders, folder, searchText: '', useSession }, { skip: !isExpanded });
+    isLoading,
+  } = useGetFoldersQuery(
+    { allowedFolders, folder, searchText: '', useSession, start: pagination.start, pageSize: pagination.pageSize },
+    { skip: !isExpanded },
+  );
+  const folders = useMemo(() => {
+    return folderData?.items ?? undefined;
+  }, [folderData]);
+
+  const totalCount = folderData?.totalCount ?? 0;
+
+  const loadMore = useCallback(() => {
+    const start = folders?.length || 0;
+    if (start >= totalCount) return;
+    setPagination((prev) => ({
+      ...prev,
+      start,
+    }));
+  }, [folders?.length, totalCount]);
 
   useEffect(() => {
-    Promise.all([
-      customElements.whenDefined('cx-tree-item'),
-    ]).then(() => {
+    Promise.all([customElements.whenDefined('cx-tree-item')]).then(() => {
       setIsDefined(true);
     });
   }, [isDefined]);
@@ -107,6 +129,14 @@ export const BrowserItem: FC<Props> = ({
           currentFolderID={currentFolderID}
         />
       ))}
+      {folders && folders.length < totalCount && !isLoading && (
+        <LoadMoreButton
+          slot="children"
+          loadMore={loadMore}
+          isLoading={isFetching}
+          disabled={isFetching}
+        />
+      )}
     </cx-tree-item>
   );
 };

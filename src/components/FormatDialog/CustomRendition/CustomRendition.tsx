@@ -2,7 +2,7 @@ import _isEqualWith from 'lodash-es/isEqualWith';
 import { FC, useEffect, useMemo, useRef } from 'react';
 
 import { Unit } from '@/types/assets';
-import { CxHideEvent, CxShowEvent } from '@/web-component';
+import type { CxHideEvent, CxShowEvent } from '@orangelogic-private/design-system';
 
 import { Container } from './CustomRendition.styled';
 import { Crop, Extension, Format, Metadata, Quality, Resize, Rotate } from './transformations';

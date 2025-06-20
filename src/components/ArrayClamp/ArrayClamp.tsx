@@ -8,7 +8,7 @@ import React, {
   useState,
 } from 'react';
 
-import { CxResizeObserver } from '@/web-component';
+import type CxResizeObserver from '@orangelogic-private/design-system/components/resize-observer';
 import { Container } from './ArrayClamp.styled';
 
 type ArrayClampProps = {

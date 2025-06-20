@@ -1,5 +1,5 @@
 import _debounce from 'lodash-es/debounce';
-import { CxInput } from '@/web-component';
+import type { CxInput } from '@orangelogic-private/design-system';
 import { FormEvent, useEffect, useRef, useState } from 'react';
 import { INPUT_DEBOUNCE_DELAY } from '../CustomRendition.constants';
 

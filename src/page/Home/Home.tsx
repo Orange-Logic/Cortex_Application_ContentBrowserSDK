@@ -31,7 +31,7 @@ import {
 } from '@/types/search';
 import { MOBILE_THRESHOLD, PAGE_SIZE, RESIZE_TIMEOUT } from '@/utils/constants';
 import { getData, storeData } from '@/utils/storage';
-import { CxResizeEvent, CxResizeObserver } from '@/web-component';
+import type { CxResizeEvent, CxResizeObserver } from '@orangelogic-private/design-system';
 import { skipToken } from '@reduxjs/toolkit/query';
 
 import { Container } from './Home.styled';

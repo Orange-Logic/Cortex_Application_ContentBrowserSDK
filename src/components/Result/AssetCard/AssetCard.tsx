@@ -4,7 +4,7 @@ import ArrayClamp from '@/components/ArrayClamp';
 import { ImageCardDisplayInfo } from '@/GlobalConfigContext';
 import { Asset, GridView, MediaType } from '@/types/search';
 import { isNullOrWhiteSpace } from '@/utils/string';
-import { CxCard } from '@/web-component';
+import type { CxCard } from '@orangelogic-private/design-system';
 
 import AssetPreview from '../AssetPreview';
 import { Card } from './AssetCard.styled';

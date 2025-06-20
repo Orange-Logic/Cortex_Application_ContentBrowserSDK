@@ -11,6 +11,7 @@ import { Asset, Folder, GetContentRequest, GetContentResponse, GetFavoritesRespo
 import { AppBaseQuery, GetValueByKeyCaseInsensitive } from '@/utils/api';
 import { isNullOrWhiteSpace } from '@/utils/string';
 import { createApi, retry } from '@reduxjs/toolkit/query/react';
+import { FOLDER_PAGE_SIZE } from '@/utils/constants';
 
 const NATURAL_SORT_ORDER_REFERENCE_ID = 'OR4ND000000063615';
 
@@ -92,11 +93,15 @@ export const searchApi = createApi({
         folder,
         searchText,
         useSession,
+        start = 0,
+        pageSize = FOLDER_PAGE_SIZE,
       }: {
         allowedFolders?: string[];
         folder: Folder;
         searchText: string;
         useSession?: string;
+        start?: number;
+        pageSize?: number;
       }) => {
         const params = [
           [
@@ -110,6 +115,14 @@ export const searchApi = createApi({
           ['orderBy', NATURAL_SORT_ORDER_REFERENCE_ID],
         ];
 
+        if (start || start >= 0) {
+          params.push(['start', start.toString()]);  
+        }
+
+        if (pageSize) {
+          params.push(['limit', pageSize.toString()]);
+        }
+        
         if (folder.id) {
           params.push(['objectRecordID', folder.id]);
         }
@@ -131,28 +144,52 @@ export const searchApi = createApi({
         response: GetContentResponse,
         _meta,
         arg,
-      ): Folder[] => {
-        return (
-          response.contentItems
-            ?.map((item) => {
-              return {
-                id: item.recordID,
-                title:
+      ): {
+        items: Folder[];
+        totalCount: number;
+      } => {
+        return {
+          items: (
+            response.contentItems
+              ?.map((item) => {
+                return {
+                  id: item.recordID,
+                  title:
                   GetValueByKeyCaseInsensitive(item.fields, FIELD_TITLE_WITH_FALLBACK) ?? '',
-                docType:
+                  docType:
                   GetValueByKeyCaseInsensitive(item.fields, FIELD_DOC_TYPE) ?? '',
-                path: [...arg.folder.path, arg.folder.title],
-                fullPath: (
-                  GetValueByKeyCaseInsensitive(item.fields, FIELD_CORTEX_PATH) ?? ''
-                ).replace(/^Root\//i, ''),
-                parents: [...arg.folder.parents, arg.folder],
-                hasChildren: (GetValueByKeyCaseInsensitive(item.fields, FIELD_HAS_BROWSER_CHILDREN) ?? '0') === '1' ? true : false,
-              };
-            }) ?? []
-        );
+                  path: [...arg.folder.path, arg.folder.title],
+                  fullPath: (
+                    GetValueByKeyCaseInsensitive(item.fields, FIELD_CORTEX_PATH) ?? ''
+                  ).replace(/^Root\//i, ''),
+                  parents: [...arg.folder.parents, arg.folder],
+                  hasChildren: (GetValueByKeyCaseInsensitive(item.fields, FIELD_HAS_BROWSER_CHILDREN) ?? '0') === '1' ? true : false,
+                };
+              }) ?? []
+          ),
+          totalCount: response.totalCount,
+        };
       },
       providesTags: (_result, _error, arg) => {
         return [{ type: 'Folders', id: arg.folder.id }];
+      },
+      merge: (currentCachedData, responseData, request) => {
+        if (request.arg.start && request.arg.start > 0) {
+          currentCachedData.items.push(...responseData.items);
+          return currentCachedData;
+        } else {
+          return responseData;
+        }
+      },
+      forceRefetch({ currentArg, previousArg }) {
+        return currentArg !== previousArg;
+      },
+      serializeQueryArgs: ({ endpointName, queryArgs }) => {
+        return {
+          endpointName,
+          id: queryArgs.folder?.id,
+          type: 'Folders',
+        };
       },
     }),
     getCollections: builder.query({
@@ -160,6 +197,8 @@ export const searchApi = createApi({
         folder,
         searchText,
         useSession,
+        start = 0,
+        pageSize = FOLDER_PAGE_SIZE,
       }) => {
         const params = [
           [
@@ -173,6 +212,14 @@ export const searchApi = createApi({
           ['subtypeCriteria', folder],
         ];
 
+        if (start || start >= 0) {
+          params.push(['start', start.toString()]);  
+        }
+
+        if (pageSize) {
+          params.push(['limit', pageSize.toString()]);
+        }
+
         if (useSession) {
           params.push(['UseSession', useSession]);
         }
@@ -185,9 +232,12 @@ export const searchApi = createApi({
       transformResponse: (
         response: GetContentResponse,
         _meta,
-      ): Folder[] => {
-        return (
-          response.contentItems
+      ): {
+        items: Folder[];
+        totalCount: number;
+      } => {
+        return {
+          items: response.contentItems
             ?.map((item) => ({
               id: item.recordID,
               title:
@@ -200,11 +250,30 @@ export const searchApi = createApi({
               ).replace(/^Root\//i, ''),
               parents: [],
               hasChildren: false,
-            })) ?? []
-        );
+            })) ?? [],
+          totalCount: response.totalCount,
+        };
       },
       providesTags: (_result, _error, arg) => {
         return [{ type: 'Folders', id: arg.folder.id }];
+      },
+      merge: (currentCachedData, responseData, request) => {
+        if (request.arg.start && request.arg.start > 0) {
+          currentCachedData.items.push(...responseData.items);
+          return currentCachedData;
+        } else {
+          return responseData;
+        }
+      },
+      forceRefetch({ currentArg, previousArg }) {
+        return currentArg !== previousArg;
+      },
+      serializeQueryArgs: ({ endpointName, queryArgs }) => {
+        return {
+          endpointName,
+          id: queryArgs.folder?.id,
+          type: 'Folders',
+        };
       },
     }),
     getAssets: builder.query({
