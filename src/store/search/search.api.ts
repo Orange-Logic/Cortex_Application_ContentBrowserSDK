@@ -307,6 +307,7 @@ export const searchApi = createApi({
           ['seeThru', isSeeThrough],
           ['start', start],
           ['limit', pageSize],
+          ['FieldFilters', '{}'],
         ];
         const extraFilters = resolveAssetExtraFilters({
           extensions,
@@ -327,7 +328,7 @@ export const searchApi = createApi({
           params.push(['UseSession', useSession]);
         }
         return {
-          url: '/webapi/extensibility/integrations/contentBrowserSDK/getcontent_4bw_v1',
+          url: '/webapi/extensibility/integrations/contentBrowserSDK/getcontent_4bw_v2',
           params,
         };
       },

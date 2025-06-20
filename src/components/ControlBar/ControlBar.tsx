@@ -39,7 +39,6 @@ type Props = {
     setting: string,
     value: GridView | SortDirection | Filter | string | boolean | string[]
   ) => void;
-  onChangeNewlySelectedFacet: (value: string) => void;
 };
 
 const ControlBar: FC<Props> = ({
@@ -61,7 +60,6 @@ const ControlBar: FC<Props> = ({
   visibilityClasses,
   onSearchChange,
   onSettingChange,
-  onChangeNewlySelectedFacet,
 }) => {
   const [isDefined, setIsDefined] = useState(false);
   const [newlyChangedOption, setNewlyChangedOption] = useState<{
@@ -120,7 +118,6 @@ const ControlBar: FC<Props> = ({
       const target = e.target as HTMLElement;
       const type = target.dataset.type;
       const value = target.dataset.value;
-      onChangeNewlySelectedFacet('');
 
       if (!value) {
         return;
@@ -161,7 +158,6 @@ const ControlBar: FC<Props> = ({
         type: 'filter',
         value: facet,
       });
-      onChangeNewlySelectedFacet(facet ?? '');
 
       const newSelection = e.detail.selection.reduce(
         (acc, item) => {
@@ -232,7 +228,7 @@ const ControlBar: FC<Props> = ({
       filterDropdown?.removeEventListener('cx-remove', onFilterRemove);
       sortDropdown?.removeEventListener('cx-select', onSortSelect);
     };
-  }, [isDefined, extensions, mediaTypes, statuses, visibilityClasses, onSettingChange, onChangeNewlySelectedFacet]);
+  }, [isDefined, extensions, mediaTypes, statuses, visibilityClasses, onSettingChange]);
 
   const selectedView = useMemo(() => views.find((item) => item.value === view), [view]);
 
@@ -312,7 +308,6 @@ const ControlBar: FC<Props> = ({
             variant="text"
             className='clear-all-button'
             onClick={() => {
-              onChangeNewlySelectedFacet('');
               onSettingChange('filter', {
                 mediaTypes: [],
                 visibilityClasses: [],
@@ -335,7 +330,6 @@ const ControlBar: FC<Props> = ({
     newlyChangedOption.type,
     statuses,
     visibilityClasses,
-    onChangeNewlySelectedFacet,
     onSettingChange,
   ]);
 

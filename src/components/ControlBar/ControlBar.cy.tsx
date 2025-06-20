@@ -73,7 +73,6 @@ const ControlBarWrapper = () => {
         isMobile={false}
         isSeeThrough={isSeeThrough}
         mediaTypes={appliedFilter.mediaTypes}
-        onChangeNewlySelectedFacet={() => {}}
         onSearchChange={onSearchChange}
         onSettingChange={onSettingChange}
         searchValue=""

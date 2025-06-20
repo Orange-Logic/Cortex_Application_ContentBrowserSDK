@@ -60,7 +60,6 @@ export const Container = styled.div`
     display: flex;
     width: 100%;
     height: 88px;
-    border-radius: 6px;
     overflow: hidden;
   }
 
@@ -81,6 +80,7 @@ export const Container = styled.div`
     max-width: 100%;
     max-height: 100%;
     object-fit: cover;
+    border-radius: 6px;
   }
 
   .version__item__name::part(base) {

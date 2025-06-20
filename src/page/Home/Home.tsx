@@ -66,7 +66,6 @@ type State = {
   totalCount: number;
   view: GridView;
   visibilityClasses: string[];
-  newlySelectedFacet: string;
 };
 
 type Action =
@@ -92,8 +91,7 @@ type Action =
   | { type: 'SET_SORT_DIRECTION'; payload: 'ascending' | 'descending' | undefined }
   | { type: 'SET_SORT_ORDER'; payload: string }
   | { type: 'SET_TOTAL_COUNT'; payload: number }
-  | { type: 'SET_VIEW'; payload: GridView }
-  | { type: 'SET_NEWLY_SELECTED_FACET'; payload: string };
+  | { type: 'SET_VIEW'; payload: GridView };
 
 const initialState: State = {
   containerSize: {
@@ -121,7 +119,6 @@ const initialState: State = {
   totalCount: 0,
   view: GridView.Medium,
   visibilityClasses: [],
-  newlySelectedFacet:'', 
 };
 
 const reducer = (state: State, action: Action): State => {
@@ -202,8 +199,6 @@ const reducer = (state: State, action: Action): State => {
         searchText: '',
         totalCount: 0,
       };
-    case 'SET_NEWLY_SELECTED_FACET':
-      return { ...state, newlySelectedFacet: action.payload };
     default:
       return state;
   }
@@ -429,12 +424,11 @@ const HomePage: FC<Props> = () => {
         getData('selectedSortOrder'),
         getData('selectedSortDirection'),
         getData('selectedView'),
-        getData('newlySelectedFacet'),
         getData('newFacets'),
         getData('selectedFilter'),
         getData('selectedIsSeeThrough'),
         getData('searchText'),
-      ]).then(([sortOrder, sortDirection, view, newlySelectedFacet, newFacets, selectedFilter, selectedIsSeeThrough, searchText]) => {
+      ]).then(([sortOrder, sortDirection, view, newFacets, selectedFilter, selectedIsSeeThrough, searchText]) => {
         if (sortOrder) {
           dispatch({ type: 'SET_SORT_ORDER', payload: sortOrder });
         }
@@ -446,9 +440,6 @@ const HomePage: FC<Props> = () => {
         }
         
         if (lastLocationMode) {
-          if (newlySelectedFacet) {
-            dispatch({ type: 'SET_NEWLY_SELECTED_FACET', payload: newlySelectedFacet });
-          }
           if (newFacets) {
             const parsedFacets = JSON.parse(newFacets);
             dispatch({ type: 'SET_FACETS', payload: parsedFacets });
@@ -517,7 +508,6 @@ const HomePage: FC<Props> = () => {
       storeData('selectedSortDirection', state.sortDirection);
     }
     storeData('selectedView', state.view);
-    storeData('newlySelectedFacet', state.newlySelectedFacet);
     storeData('newFacets', JSON.stringify(state.facets));
     storeData(
       'selectedFilter',
@@ -537,7 +527,6 @@ const HomePage: FC<Props> = () => {
     state.facets,
     state.isSeeThrough,
     state.mediaTypes,
-    state.newlySelectedFacet,
     state.sortDirection,
     state.sortOrder,
     state.searchText,
@@ -655,50 +644,10 @@ const HomePage: FC<Props> = () => {
       currentCount: number;
     }) => {
       dispatch({ type: 'SET_CURRENT_COUNT', payload: newData.currentCount });
-      if (state.shouldResetFilters) {
-        dispatch({ type: 'SET_FACETS', payload: newData.facets });
-      } else if (state.newlySelectedFacet === '') {
-        dispatch({ type: 'SET_FACETS', payload: newData.facets });
-      } else {
-        const newFacets: Record<string, Record<string, number>> = {};
-        Object.entries(facetsRef.current).forEach(([filter, facets]) => {
-          newFacets[filter] = {};
-          if (filter !== state.newlySelectedFacet) {
-            Object.keys(facets).forEach((facet) => {
-              if (newData?.facets?.[filter]?.[facet]) {
-                newFacets[filter][facet] = newData.facets[filter][facet];
-              }
-            });
-          } else {
-            Object.keys(facets).forEach((facet) => {
-              newFacets[filter][facet] = facetsRef.current?.[filter]?.[facet];
-            });
-          }
-        });
-        Object.entries(newData.facets).forEach(([filter, facets]) => {
-          if (!newFacets[filter]) {
-            newFacets[filter] = {};
-          }
-          Object.keys(facets).forEach((facet) => {
-            newFacets[filter][facet] = newData.facets?.[filter]?.[facet];
-          });
-        });
-
-        if (_isEqual(newFacets, facetsRef.current)) {
-          return;
-        }
-
-        dispatch({
-          type: 'SET_FACETS',
-          payload: {
-            ...newFacets,
-          },
-        });
-      }
-      
       dispatch({ type: 'SET_TOTAL_COUNT', payload: newData.totalCount });
+      dispatch({ type: 'SET_FACETS', payload: newData.facets });
     },
-    [state.shouldResetFilters, state.newlySelectedFacet],
+    [],
   );
 
   const onFolderSelect = useCallback(
@@ -755,10 +704,6 @@ const HomePage: FC<Props> = () => {
     () => (data ? state.start + state.pageSize < state.totalCount : false),
     [data, state.pageSize, state.start, state.totalCount],
   );
-
-  const setNewlySelectedFacet = useCallback((newFacet: string) => {
-    dispatch({ type: 'SET_NEWLY_SELECTED_FACET', payload: newFacet });
-  }, []);
 
   useEffect(() => {
     if (onDataChange) {
@@ -859,7 +804,6 @@ const HomePage: FC<Props> = () => {
             totalCount={state.totalCount}
             view={state.view}
             visibilityClasses={state.visibilityClasses}
-            onChangeNewlySelectedFacet={setNewlySelectedFacet}
             onSearchChange={onSearchChange}
             onSettingChange={onSettingChange}
           />
