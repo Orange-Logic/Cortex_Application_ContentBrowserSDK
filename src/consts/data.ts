@@ -7,6 +7,7 @@ export const FIELD_IDENTIFIER = 'CoreField.Identifier';
 export const FIELD_KEYWORDS = 'CoreField.Keywords';
 export const FIELD_MAX_HEIGHT = 'CoreField.MaxHeight';
 export const FIELD_MAX_WIDTH = 'CoreField.MaxWidth';
+export const FIELD_RECORD_ID = 'Document.RecordID';
 export const FIELD_SCRUB_URL = 'ScrubURL';
 export const FIELD_SUBTYPE = 'CoreField.DocSubType';
 export const FIELD_TITLE_WITH_FALLBACK = 'CoreField.TitleWithFallback';

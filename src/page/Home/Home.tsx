@@ -395,8 +395,8 @@ const HomePage: FC<Props> = () => {
   }, [appDispatch, isErrorSelectedAsset]);
 
   useEffect(() => {
-    if (onAssetAction && selectedAsset) {
-      onAssetAction('select', selectedAsset.id);
+    if (onAssetAction && selectedAsset?.recordId) {
+      onAssetAction('select', selectedAsset.recordId);
     }
   }, [onAssetAction, selectedAsset]);
 

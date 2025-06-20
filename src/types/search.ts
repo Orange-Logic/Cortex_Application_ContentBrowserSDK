@@ -24,6 +24,7 @@ export type Asset = {
   tags: string;
   width?: string;
   allowATSLink?: boolean;
+  recordId?: string;
 };
 
 export type ContentItem = {

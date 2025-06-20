@@ -5,6 +5,7 @@ import {
   DEFAULT_VIEW_SIZE, ORIGINAL_VIEW_SIZE, FIELD_CORTEX_PATH, FIELD_DOC_TYPE, FIELD_EXTENSION, FIELD_FILE_SIZE,
   FIELD_HAS_BROWSER_CHILDREN,
   FIELD_IDENTIFIER, FIELD_KEYWORDS, FIELD_MAX_HEIGHT, FIELD_MAX_WIDTH, FIELD_SCRUB_URL, FIELD_SUBTYPE, FIELD_TITLE_WITH_FALLBACK, FIELD_ALLOW_ATS_LINK,
+  FIELD_RECORD_ID,
 } from '@/consts/data';
 import { Asset, Folder, GetContentRequest, GetContentResponse, GetFavoritesResponse } from '@/types/search';
 import { AppBaseQuery, GetValueByKeyCaseInsensitive } from '@/utils/api';
@@ -381,6 +382,7 @@ export const searchApi = createApi({
           ['fields', FIELD_SUBTYPE],
           ['fields', FIELD_IDENTIFIER],
           ['fields', FIELD_EXTENSION],
+          ['fields', FIELD_RECORD_ID],
           ['seeThru', 'true'],
         ];
 
@@ -420,6 +422,7 @@ export const searchApi = createApi({
           tags: GetValueByKeyCaseInsensitive(item.fields, FIELD_KEYWORDS) ?? '',
           width: GetValueByKeyCaseInsensitive(item.fields, FIELD_MAX_WIDTH) ?? '0',
           allowATSLink: GetValueByKeyCaseInsensitive(item.fields, FIELD_ALLOW_ATS_LINK) === 'True',
+          recordId: GetValueByKeyCaseInsensitive(item.fields, FIELD_RECORD_ID) ?? '',
         } as Asset;
       },
       providesTags: (_result, _error, arg) => {
