@@ -15,14 +15,22 @@ import { FOLDER_PAGE_SIZE } from '@/utils/constants';
 
 const NATURAL_SORT_ORDER_REFERENCE_ID = 'OR4ND000000063615';
 
-const resolveFolderExtraFilters = (searchText: string, allowedFolders?: string[]) => {
+const resolveFolderExtraFilters = ({
+  searchText,
+  folder,
+  allowedFolders,
+}: {
+  searchText: string;
+  folder?: Folder;
+  allowedFolders?: string[];
+}) => {
   let baseQuery = 'MediaType:Story OR MediaType:Album';
   if (!isNullOrWhiteSpace(searchText)) {
     baseQuery = `(${baseQuery}) AND Story_Title:${searchText}`;
   }
   if (allowedFolders?.length) {
     const allowedFoldersQuery = allowedFolders
-      .map(folder => `Path:${folder}*`)
+      .map((item) => `Path:${item}${folder?.id ? '/*' : ''}`)
       .join(' OR ');
     baseQuery = `(${baseQuery}) AND (${allowedFoldersQuery})`;
   }
@@ -32,7 +40,6 @@ const resolveFolderExtraFilters = (searchText: string, allowedFolders?: string[]
 
 const resolveAssetExtraFilters = ({
   extensions,
-  searchText,
   statuses,
   visibilityClasses,
 }: {
@@ -41,14 +48,14 @@ const resolveAssetExtraFilters = ({
   statuses: string[];
   visibilityClasses: string[];
 }) => {
+  const filterResult: Record<string, string> = {};
+
   let statusQuery = '';
   if (statuses?.length) {
     statusQuery = statuses
       .map(status => `WorkflowStatus:${status}`)
       .join(' OR ');
-    if (statuses.length > 1) {
-      statusQuery = `(${statusQuery})`;
-    }
+    filterResult.Status = statusQuery;
   }
 
   let extensionsQuery = '';
@@ -56,9 +63,7 @@ const resolveAssetExtraFilters = ({
     extensionsQuery = extensions
       .map(extension => `FileExtension:${extension}`)
       .join(' OR ');
-    if (extensions.length > 1) {
-      extensionsQuery = `(${extensionsQuery})`;
-    }
+    filterResult.Extension = extensionsQuery;
   }
 
   let visibilityClassesQuery = '';
@@ -66,16 +71,10 @@ const resolveAssetExtraFilters = ({
     visibilityClassesQuery = visibilityClasses
       .map(visibilityClass => `Purpose:${visibilityClass}`)
       .join(' OR ');
-    if (visibilityClasses.length > 1) {
-      visibilityClassesQuery = `(${visibilityClassesQuery})`;
-    }
+    filterResult.VisibilityClass = visibilityClassesQuery;
   }
 
-  const searchTextQuery = isNullOrWhiteSpace(searchText) ? '' : `Text:${searchText}`;
-
-  const filters = [statusQuery, extensionsQuery, visibilityClassesQuery, searchTextQuery].filter(filter => filter.length > 0);
-
-  return filters.join(' AND ');
+  return filterResult;
 };
 
 const baseQueryWithRetry = retry(AppBaseQuery, { 
@@ -106,7 +105,7 @@ export const searchApi = createApi({
         const params = [
           [
             'extraFilters',
-            resolveFolderExtraFilters(searchText, allowedFolders),
+            resolveFolderExtraFilters({ searchText, folder, allowedFolders }),
           ],
           ['fields', FIELD_CORTEX_PATH],
           ['fields', FIELD_DOC_TYPE],
@@ -203,7 +202,7 @@ export const searchApi = createApi({
         const params = [
           [
             'extraFilters',
-            resolveFolderExtraFilters(searchText),
+            resolveFolderExtraFilters({ searchText }),
           ],
           ['fields', FIELD_CORTEX_PATH],
           ['fields', FIELD_DOC_TYPE],
@@ -304,25 +303,30 @@ export const searchApi = createApi({
           ['fields', FIELD_SUBTYPE],
           ['fields', FIELD_IDENTIFIER],
           ['fields', FIELD_EXTENSION],
+          ['fields', FIELD_RECORD_ID],
           ['seeThru', isSeeThrough],
           ['start', start],
           ['limit', pageSize],
-          ['FieldFilters', '{}'],
         ];
-        const extraFilters = resolveAssetExtraFilters({
+        const fieldFilters = resolveAssetExtraFilters({
           extensions,
           searchText,
           statuses,
           visibilityClasses,
         });
-        if (extraFilters) {
-          params.push(['extraFilters', extraFilters]);
-        }
+
+        Object.entries(fieldFilters).forEach(([key, value]) => {
+          params.push([`fieldFilters[${key}]`, value]);
+        }, '');
+
         if (sortOrder) {
           params.push(['orderBy', sortOrder]);
         }
         if (mappedMediaTypes.length) {
           params.push(...mappedMediaTypes);
+        }
+        if (searchText) {
+          params.push(['extraFilters', `Text:${searchText}`]);
         }
         if (useSession) {
           params.push(['UseSession', useSession]);
@@ -361,6 +365,7 @@ export const searchApi = createApi({
               tags: GetValueByKeyCaseInsensitive(item.fields, FIELD_KEYWORDS) ?? '',
               width: GetValueByKeyCaseInsensitive(item.fields, FIELD_MAX_WIDTH) ?? '0',
               allowATSLink: GetValueByKeyCaseInsensitive(item.fields, FIELD_ALLOW_ATS_LINK) === 'True',
+              recordId: GetValueByKeyCaseInsensitive(item.fields, FIELD_RECORD_ID) ?? '',
             } as Asset;
           }) ?? [],
         totalCount: response.totalCount,
@@ -440,7 +445,7 @@ export const searchApi = createApi({
         useSession?: string;
       }) => {
         const params = [
-          ['extraFilters', `SystemIdentifier:${id}`],
+          ['extraFilters', `RecordID:${id}`],
           ['fields', FIELD_TITLE_WITH_FALLBACK],
           ['fields', DEFAULT_VIEW_SIZE],
           ['fields', ORIGINAL_VIEW_SIZE],

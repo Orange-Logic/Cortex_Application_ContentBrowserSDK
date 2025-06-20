@@ -23,6 +23,7 @@ describe('AssetPreview Component', () => {
           tags: '',
           width: '475',
           allowATSLink: true,
+          recordId: 'Q0LDO000001895618',
         }}
         imageLoaded={true}
         slot="image"
@@ -52,6 +53,7 @@ describe('AssetPreview Component', () => {
           tags: '',
           width: '475',
           allowATSLink: true,
+          recordId: 'Q0LDO000001895618',
         }}
         imageLoaded={true}
         slot="video"
@@ -81,6 +83,7 @@ describe('AssetPreview Component', () => {
           tags: '',
           width: '475',
           allowATSLink: true,
+          recordId: 'Q0LDO000001895618',
         }}
         imageLoaded={false}
         slot="image"
@@ -110,6 +113,7 @@ describe('AssetPreview Component', () => {
           tags: '',
           width: '475',
           allowATSLink: true,
+          recordId: 'Q0LDO000001895618',
         }}
         imageLoaded={true}
         slot="image"

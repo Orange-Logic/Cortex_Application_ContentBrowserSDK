@@ -249,6 +249,7 @@ const FormatDialogProps = {
     tags: '',
     width: '400',
     allowATSLink: true,
+    recordId: 'Q0LDO000001895618',
   },
   onClose: () => {},
   onProxyConfirm: () => {},

@@ -23,6 +23,7 @@ const AssetCardWrapperProps = {
       allowATSLink: true,
       imageUrl: 'https://placehold.co/400x400/png',
       originalUrl: 'https://placehold.co/400x400/png',
+      recordId: 'Q0LDO000001895618',
     },
     {
       docType: MediaType.Video,
@@ -41,6 +42,7 @@ const AssetCardWrapperProps = {
         'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
       originalUrl:
         'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+      recordId: 'Q0LDO000001895619',
     },
   ],
   isError: false,

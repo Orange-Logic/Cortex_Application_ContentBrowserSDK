@@ -397,8 +397,8 @@ const ContentBrowser: OrangeDAMContentBrowser = {
   close: () => {
     window.OrangeDAMContentBrowser._onClose?.();
   },
-  previewAsset: (identifier: string) => {
-    store.dispatch(setSelectedAssetId(identifier));
+  previewAsset: (recordId: string) => {
+    store.dispatch(setSelectedAssetId(recordId));
   },
 };
 

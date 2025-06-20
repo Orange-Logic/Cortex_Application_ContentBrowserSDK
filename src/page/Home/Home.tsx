@@ -1,6 +1,5 @@
 import _debounce from 'lodash-es/debounce';
 import _intersection from 'lodash-es/intersection';
-import _isEqual from 'lodash-es/isEqual';
 import {
   FC, useCallback, useContext, useEffect, useMemo, useReducer, useRef, useState,
 } from 'react';
@@ -232,7 +231,7 @@ const HomePage: FC<Props> = () => {
   } : skipToken);
 
   const selectedAsset = useMemo(() => {
-    if (!selectedAssetData || !selectedAssetId || selectedAssetData.identifier !== selectedAssetId) {
+    if (!selectedAssetData || !selectedAssetId || selectedAssetData.recordId !== selectedAssetId) {
       return null;
     }
     return selectedAssetData;
@@ -304,15 +303,16 @@ const HomePage: FC<Props> = () => {
   const formatDialogTimeoutRef = useRef<number | null>(null);
 
   const mappedMediaTypes = useMemo(() => {
-    const globalIntersection = availableDocTypes?.length ? _intersection(availableDocTypes, supportedDocTypes) : supportedDocTypes;
+    const globalIntersection = (availableDocTypes?.length ? _intersection(availableDocTypes, supportedDocTypes) : supportedDocTypes)?.map(item => item.toLowerCase());
     if (!globalIntersection || globalIntersection.length === 0) return state.mediaTypes;
     const intersection = state.mediaTypes.reduce((acc, mediaType) => {
       const [parent] = mediaType.split('>>');
 
-      if (globalIntersection.includes(`${parent}*`) || globalIntersection.includes(parent)) {
+      if (globalIntersection.includes(`${parent.toLowerCase()}*`) || globalIntersection.includes(parent.toLowerCase())) {
         if (!mediaType.includes('>>')) {
           return acc.concat(`${parent}*`);
         }
+
         return acc.concat(mediaType);
       }
 
@@ -368,6 +368,8 @@ const HomePage: FC<Props> = () => {
       });
     });
   }, [availableProxies, allowedExtensions]);
+
+  useEffect(() => console.log(mappedMediaTypes), [mappedMediaTypes]);
 
   const { data, isFetching, isError, refetch } = useGetAssetsQuery(isResized && sortOrders && mappedMediaTypes?.length && browserMounted ? {
     extensions: state.extensions,
@@ -538,7 +540,7 @@ const HomePage: FC<Props> = () => {
   const isMobile = state.containerSize.width <= MOBILE_THRESHOLD;
 
   const onItemSelect = (item: Asset) => {
-    appDispatch(setSelectedAssetId(item.identifier));
+    appDispatch(setSelectedAssetId(item.recordId));
   };
 
   const onSearchChange = useCallback((value: string) => {
