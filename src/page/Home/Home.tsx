@@ -369,8 +369,6 @@ const HomePage: FC<Props> = () => {
     });
   }, [availableProxies, allowedExtensions]);
 
-  useEffect(() => console.log(mappedMediaTypes), [mappedMediaTypes]);
-
   const { data, isFetching, isError, refetch } = useGetAssetsQuery(isResized && sortOrders && mappedMediaTypes?.length && browserMounted ? {
     extensions: state.extensions,
     folderID: state.currentFolder.id,
@@ -657,9 +655,6 @@ const HomePage: FC<Props> = () => {
       if (!browserMountedRef.current) {
         setBrowserMounted(true);
       }
-      if (folder.id === state.currentFolder.id) {
-        return;
-      }
       const resultAction = await appDispatch(explorePath(folder));
       if (explorePath.fulfilled.match(resultAction)) {
         dispatch({ type: 'SET_CURRENT_FOLDER', payload: {
@@ -671,7 +666,7 @@ const HomePage: FC<Props> = () => {
         storeData('lastLocation', JSON.stringify(folder));
       }
     },
-    [appDispatch, state.currentFolder.id],
+    [appDispatch],
   );
 
   const onLoadMore = useCallback(() => {

@@ -393,7 +393,7 @@ const Browser: FC<Props> = ({
             <cx-icon name="search" slot="prefix" className="icon--large"></cx-icon>
           </cx-input>
           <div className="browser__folders">
-            <cx-tree ref={treeRef}>
+            <cx-tree ref={treeRef} force-on-change>
               {renderFolders()}
               {folders && folders.length < totalCount && !isLoadingFolders && (
                 <LoadMoreButton
