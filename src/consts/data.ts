@@ -16,3 +16,4 @@ export const LIBRARY_NAME = 'Library';
 export const MESSAGE_NEW_LINE = '\n';
 export const ORIGINAL_VIEW_SIZE = 'CoreField.OriginalPreview';
 export const FIELD_ALLOW_ATS_LINK = 'AllowATSLink';
+export const COMPUTED_FIELDS = ['ScrubUrl', 'AllowATSLink'];

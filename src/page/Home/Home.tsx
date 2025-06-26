@@ -1,3 +1,4 @@
+import _camelCase from 'lodash-es/camelCase';
 import _debounce from 'lodash-es/debounce';
 import _intersection from 'lodash-es/intersection';
 import {
@@ -34,6 +35,7 @@ import type { CxResizeEvent, CxResizeObserver } from '@orangelogic-private/desig
 import { skipToken } from '@reduxjs/toolkit/query';
 
 import { Container } from './Home.styled';
+import { COMPUTED_FIELDS } from '@/consts/data';
 
 type Props = {
   multiSelect?: boolean;
@@ -690,12 +692,23 @@ const HomePage: FC<Props> = () => {
   }, []);
 
   const handleSelectedAsset = useCallback((images: GetAssetLinkResponse[]) => {
-    window.OrangeDAMContentBrowser._onAssetSelected?.(images);
+    const payload = [...images];
+    COMPUTED_FIELDS.forEach((item) => {
+      const key = _camelCase(item) as keyof typeof selectedAsset;
+      if (selectedAsset && extraFields?.includes(item)) {
+        payload[0] = {
+          ...payload[0],
+          [item]: selectedAsset[key],
+        };
+      }
+    });
+    
+    window.OrangeDAMContentBrowser._onAssetSelected?.(payload);
     if (persistMode) {
       return;
     }
     window.OrangeDAMContentBrowser._onClose?.();
-  }, [persistMode]);
+  }, [extraFields, persistMode, selectedAsset]);
 
   const hasNextPage = useMemo(
     () => (data ? state.start + state.pageSize < state.totalCount : false),
