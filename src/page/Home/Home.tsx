@@ -786,7 +786,7 @@ const HomePage: FC<Props> = () => {
           bordered={state.hasScrolled}
           currentFolder={state.currentFolder}
           isFetching={isFetchingUserInfo}
-          isLoading={state.isLoading || isLoadingUserInfo}
+          isLoading={isLoadingUserInfo}
           userInfo={userInfo}
           onMenuClick={() =>
             dispatch({ type: 'SET_OPEN_BROWSER', payload: true })

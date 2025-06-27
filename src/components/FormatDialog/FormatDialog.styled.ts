@@ -3,6 +3,7 @@ import styled from 'styled-components';
 
 export const Dialog = styled('cx-dialog')<CxDialogProps>`
   --body-spacing: var(--cx-spacing-small);
+  --divider-spacing: 0;
   --max-height: 100%;
   --max-width: 520px;
   --width: 90%;
