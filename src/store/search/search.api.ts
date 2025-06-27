@@ -381,6 +381,7 @@ export const searchApi = createApi({
             sortOrder: arg.sortOrder,
             statuses: arg.statuses,
             type: 'ImagesInFolders',
+            visibilityClasses: arg.visibilityClasses,
           },
           'Images',
         ];
@@ -406,6 +407,7 @@ export const searchApi = createApi({
           searchText: queryArgs.searchText,
           sortOrder: queryArgs.sortOrder,
           statuses: queryArgs.statuses,
+          visibilityClasses: queryArgs.visibilityClasses,
           type: 'ImagesInFolders',
         };
       },

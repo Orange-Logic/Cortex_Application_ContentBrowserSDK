@@ -1,4 +1,4 @@
-import { forwardRef, useCallback, useContext, useMemo, useRef } from 'react';
+import { forwardRef, useCallback, useContext, useEffect, useMemo, useRef } from 'react';
 import InfiniteScroll from 'react-infinite-scroll-component';
 import Masonry from 'react-responsive-masonry';
 
@@ -58,6 +58,38 @@ export const AssetCardWrapper = forwardRef<HTMLDivElement, Props>(({
     const breakPoint = ASSET_SIZE[view]?.minWidth || ASSET_SIZE[GridView.Large].minWidth;
     return Math.max(1, Math.floor((actualWidth + gutter) / (breakPoint + gutter)));
   }, [gutter, view, width]);
+
+  useEffect(() => {
+    if (!infiniteScrollRef.current) {
+      return;
+    }
+
+    let resizeObserver: ResizeObserver | null = null;
+    const scrollableTarget = infiniteScrollRef.current.getScrollableTarget();
+
+    if (!scrollableTarget) {
+      return;
+    }
+
+    if (scrollableTarget && typeof ResizeObserver !== 'undefined') {
+      resizeObserver = new ResizeObserver(() => {
+        /**
+         * Force re-render or recalculate columns when the container size changes.
+         * This is necessary to ensure that the Masonry layout adapts to the new size.
+         * For now, just force a scroll event to trigger layout recalculation
+         */
+        scrollableTarget.dispatchEvent(new Event('scroll'));
+      });
+      resizeObserver.observe(scrollableTarget);
+    }
+
+    return () => {
+      if (resizeObserver && scrollableTarget) {
+        resizeObserver.unobserve(scrollableTarget);
+        resizeObserver.disconnect();
+      }
+    };
+  }, [items.length]);
 
 
   const renderContent = useCallback(() => {
