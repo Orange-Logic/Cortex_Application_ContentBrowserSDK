@@ -59,7 +59,8 @@
         onError: console.error,
         // baseUrl: "local.orangelogic.com",
         // allowedExtensions: ["jpg"],
-        availableDocTypes: ['Images*', 'Videos*', 'Audio*', 'Others*'],
+        // allowedFolders: ["Library/Trung_InDesign_02", "Personal Folders/V/Trung Vo personal Folder/Trung_upload_test", "Library/Trung_FileOnDemand/root_02/test_upload"],
+        availableDocTypes: ['DO_DOCUMENTS.Image_DbBO.*', 'DO_DOCUMENTS.Audio_DbBO.*', 'DO_DOCUMENTS.Multimedia_DbBO.*', 'DO_DOCUMENTS.Video_DbBO.*'],
         availableRepresentativeSubtypes: ['Other'],
         containerId: 'react-app-root',
         // displayInfo: {
@@ -67,8 +68,7 @@
         //   dimension: true,
         //   fileSize: false,
         //   tags: false,
-        // },
-        extraFields: ['coreField.OriginalFileName', 'document.CortexPath'],
+        extraFields: ['coreField.OriginalFileName', 'document.CortexPath', 'ScrubUrl'],
         persistMode: true,
         // lastLocationMode: true,
         // publicApplicationName: "",
@@ -76,6 +76,8 @@
         searchInDrive: false,
         showCollections: true,
         allowTracking: true,
+        allowFavorites: true,
+        showVersions: true,
         onClose: () => { },
       }
       settings.onClose = () => {

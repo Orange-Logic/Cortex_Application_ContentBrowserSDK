@@ -309,16 +309,7 @@ const HomePage: FC<Props> = () => {
   }, [availableDocTypes, supportedDocTypes]);
 
   const mappedMediaTypes = useMemo(() => {
-    const intersection = state.mediaTypes.reduce((acc, mediaType) => {
-      const [parent] = mediaType.split('>>');
-
-      if (!mediaType.includes('>>')) {
-        return acc.concat(`${parent}*`);
-      }
-
-      return acc.concat(mediaType);
-    }, [] as string[]);
-    if (intersection.length > 0) return intersection;
+    if (state.mediaTypes.length > 0) return state.mediaTypes;
     return ['*'];
   }, [state.mediaTypes]);
 
