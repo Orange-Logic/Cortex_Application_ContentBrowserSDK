@@ -76,6 +76,7 @@ const Facet: FC<Props> = ({
                   data-type={type}
                   readonly={loading}
                   selected={selected}
+                  disabled-sync-checkboxes
                 >
                   {capitalize ? _capitalize(key) : key} {!!all && `(${all})`}
                   {Object.entries(rest).map(([subtype, count]) => (
