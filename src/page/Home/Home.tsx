@@ -304,25 +304,23 @@ const HomePage: FC<Props> = () => {
   pageSizeRef.current = state.pageSize;
   const formatDialogTimeoutRef = useRef<number | null>(null);
 
+  const mappedAvailableDocTypes = useMemo(() => {
+    return _intersection(availableDocTypes, supportedDocTypes);
+  }, [availableDocTypes, supportedDocTypes]);
+
   const mappedMediaTypes = useMemo(() => {
-    const globalIntersection = (availableDocTypes?.length ? _intersection(availableDocTypes, supportedDocTypes) : supportedDocTypes)?.map(item => item.toLowerCase());
-    if (!globalIntersection || globalIntersection.length === 0) return state.mediaTypes;
     const intersection = state.mediaTypes.reduce((acc, mediaType) => {
       const [parent] = mediaType.split('>>');
 
-      if (globalIntersection.includes(`${parent.toLowerCase()}*`) || globalIntersection.includes(parent.toLowerCase())) {
-        if (!mediaType.includes('>>')) {
-          return acc.concat(`${parent}*`);
-        }
-
-        return acc.concat(mediaType);
+      if (!mediaType.includes('>>')) {
+        return acc.concat(`${parent}*`);
       }
 
-      return acc;
+      return acc.concat(mediaType);
     }, [] as string[]);
     if (intersection.length > 0) return intersection;
-    return globalIntersection;
-  }, [availableDocTypes, state.mediaTypes, supportedDocTypes]);
+    return ['*'];
+  }, [state.mediaTypes]);
 
   const isConfigError = useMemo(() => (!mappedMediaTypes?.length || mappedMediaTypes.length === 0) && !!supportedDocTypes, [mappedMediaTypes, supportedDocTypes]);
 
@@ -375,14 +373,15 @@ const HomePage: FC<Props> = () => {
     extensions: state.extensions,
     folderID: state.currentFolder.id,
     isSeeThrough: state.isSeeThrough,
+    limitedToDocTypes: mappedAvailableDocTypes,
     mediaTypes: mappedMediaTypes,
-    start: state.start,
     pageSize: state.pageSize,
     searchText: state.searchText,
     sortOrder: selectedSortOrder?.id,
+    start: state.start,
     statuses: state.statuses ?? [],
-    visibilityClasses: state.visibilityClasses,
     useSession,
+    visibilityClasses: state.visibilityClasses,
   } : skipToken);
 
   useEffect(() => {

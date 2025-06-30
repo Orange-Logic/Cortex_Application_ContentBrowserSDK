@@ -280,15 +280,17 @@ export const searchApi = createApi({
         extensions,
         folderID,
         isSeeThrough,
+        limitedToDocTypes,
         mediaTypes,
-        start,
         pageSize,
         searchText,
         sortOrder,
+        start,
         statuses,
-        visibilityClasses,
         useSession,
+        visibilityClasses,
       }: GetContentRequest) => {
+        const mappedLimitedToDocTypes = limitedToDocTypes.map((docType) => ['limitedToDocTypes', docType]);
         const mappedMediaTypes = mediaTypes.map((mediaType) => ['subtypeCriteria', mediaType]);
         const params = [
           ['objectRecordID', folderID],
@@ -321,6 +323,9 @@ export const searchApi = createApi({
 
         if (sortOrder) {
           params.push(['orderBy', sortOrder]);
+        }
+        if (mappedLimitedToDocTypes.length) {
+          params.push(...mappedLimitedToDocTypes);
         }
         if (mappedMediaTypes.length) {
           params.push(...mappedMediaTypes);

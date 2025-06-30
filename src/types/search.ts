@@ -44,14 +44,15 @@ export type GetContentRequest = {
   extensions: string[];
   folderID: string;
   isSeeThrough: boolean;
+  limitedToDocTypes: string[];
   mediaTypes: string[];
-  start: number;
   pageSize: number;
   searchText: string;
   sortOrder?: string;
+  start: number;
   statuses: string[];
-  visibilityClasses: string[];
   useSession?: string;
+  visibilityClasses: string[];
 };
 
 export type GetAssetLinkResponse = {

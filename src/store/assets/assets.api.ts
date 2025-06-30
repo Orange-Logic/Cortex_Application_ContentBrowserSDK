@@ -10,7 +10,7 @@ const Parameters = {
   ExtensionsThatSupportTransformationUsingATS: 'ExtensionsThatSupportTransformationUsingATS',
   EnableATSInGetLink: 'EnableATSInGetLink',
   CollectionSubtypeCriteria: 'CollectionSubtypeCriteria',
-  SupportDocTypes: 'SupportDocTypes',
+  SupportDocTypes: 'SupportedDocSubTypesV2',
   RepresentativeSupportedDocSubType: 'RepresentativeSupportedDocSubType',
   ExtensionAuto: 'ExtensionAuto',
 };
