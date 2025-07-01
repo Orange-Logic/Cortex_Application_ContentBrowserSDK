@@ -10,6 +10,7 @@ import { rotateBox } from './rotate';
 import { deleteData, getData, storeData } from './storage';
 import { generateRandomString, isNullOrWhiteSpace } from './string';
 import { calculateAspectRatioFit, cropImage, resizeImage, rotateImage } from './image';
+import { isPromise } from './function';
 
 describe('Utils - array', () => {
   it('Should check if an array has elements', () => {
@@ -249,5 +250,15 @@ describe('Utils - image', () => {
     const result2 = calculateAspectRatioFit(1920, 1080, 300, 100);
     expect(result2.width).to.equal(1920);
     expect(result2.height).to.equal(640);
+  });
+});
+
+describe('Utils - function', () => {
+  it('Should check if a value is a promise', () => {
+    const promise = Promise.resolve('test');
+    const notPromise = 'test';
+
+    expect(isPromise(promise)).toBe(true);
+    expect(isPromise(notPromise)).toBe(false);
   });
 });

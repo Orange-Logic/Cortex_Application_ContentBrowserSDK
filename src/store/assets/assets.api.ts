@@ -176,7 +176,7 @@ export const assetsApi = createApi({
             fileImportDate: GetValueByKeyCaseInsensitive(version, 'FileImportDate'),
             scrubUrl: GetValueByKeyCaseInsensitive(version, 'ScrubUrl'),
             versionCreateDate: GetValueByKeyCaseInsensitive(version, 'VersionCreateDate'),
-            versionFileName: GetValueByKeyCaseInsensitive(version, 'VersionFileName'),
+            versionFileName: GetValueByKeyCaseInsensitive(version, 'UpdatedFileName'),
             versionFileUrl: GetValueByKeyCaseInsensitive(version, 'PreviewUrl'),
             versionId: GetValueByKeyCaseInsensitive(version, 'VersionID'),
             versionNumber: GetValueByKeyCaseInsensitive(version, 'VersionNumber'),

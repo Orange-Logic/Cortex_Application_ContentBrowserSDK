@@ -36,6 +36,7 @@ import { skipToken } from '@reduxjs/toolkit/query';
 
 import { Container } from './Home.styled';
 import { COMPUTED_FIELDS } from '@/consts/data';
+import { isPromise } from '@/utils/function';
 
 type Props = {
   multiSelect?: boolean;
@@ -225,7 +226,7 @@ const HomePage: FC<Props> = () => {
     showFavoriteFolder,
     showVersions,
   } = useContext(GlobalConfigContext);
-  const { extraFields, onAssetAction } = useContext(AppContext);
+  const { extraFields, onAssetAction, onAssetSelected, onClose } = useContext(AppContext);
 
   const { data: selectedAssetData, isFetching: isFetchingSelectedAsset, isError: isErrorSelectedAsset } = useGetAssetByIdQuery(selectedAssetId ? {
     id: selectedAssetId,
@@ -681,7 +682,7 @@ const HomePage: FC<Props> = () => {
     }
   }, []);
 
-  const handleSelectedAsset = useCallback((images: GetAssetLinkResponse[]) => {
+  const handleSelectedAsset = useCallback(async (images: GetAssetLinkResponse[]) => {
     const payload = [...images];
     COMPUTED_FIELDS.forEach((item) => {
       const key = _camelCase(item) as keyof typeof selectedAsset;
@@ -692,13 +693,25 @@ const HomePage: FC<Props> = () => {
         };
       }
     });
-    
-    window.OrangeDAMContentBrowser._onAssetSelected?.(payload);
+
+    const result = onAssetSelected(payload);
+
+    if (isPromise(result)) {
+      try {
+        await result;
+      } catch (error) {
+        console.error('Error in onAssetSelected:', error);
+        return;
+      }
+    } else {
+      onAssetSelected?.(payload);
+    }
+
     if (persistMode) {
       return;
     }
-    window.OrangeDAMContentBrowser._onClose?.();
-  }, [extraFields, persistMode, selectedAsset]);
+    onClose?.();
+  }, [extraFields, onAssetSelected, onClose, persistMode, selectedAsset]);
 
   const hasNextPage = useMemo(
     () => (data ? state.start + state.pageSize < state.totalCount : false),
@@ -965,7 +978,7 @@ const HomePage: FC<Props> = () => {
             );
 
             if (importAssets.fulfilled.match(images)) {
-              handleSelectedAsset(images.payload);
+              await handleSelectedAsset(images.payload);
             }
           }}
           onFormatConfirm={async ({ value, parameters, proxiesPreference, extension }) => {
@@ -994,7 +1007,7 @@ const HomePage: FC<Props> = () => {
             );
 
             if (importAssets.fulfilled.match(images)) {
-              handleSelectedAsset(images.payload);
+              await handleSelectedAsset(images.payload);
             }
           }}
           onUnFavorite={async () => {
