@@ -17,12 +17,15 @@ const LoadMoreButton = ({
     <cx-space direction="horizontal" slot={slot}>
       {!disabledIndentation && <div className="browser__load-more__indentation"></div>}
       <cx-button
+        variant="text"
+        size="small"
         onClick={loadMore}
         disabled={disabled}
         loading={isLoading}
         className="browser__load-more"
       >
-        Load more
+        <cx-icon name="add" slot="prefix"></cx-icon>
+        More
       </cx-button>
     </cx-space>
   );

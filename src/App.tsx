@@ -1,4 +1,4 @@
-import '@orangelogic-private/design-system/assets/styles.css';
+import '@orangelogic-private/design-system/assets/style.css';
 import '@orangelogic-private/design-system/components/alert';
 import '@orangelogic-private/design-system/components/avatar';
 import '@orangelogic-private/design-system/components/badge';
