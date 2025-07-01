@@ -318,7 +318,7 @@ export const searchApi = createApi({
         });
 
         Object.entries(fieldFilters).forEach(([key, value]) => {
-          params.push([`fieldFilters[${key}]`, value]);
+          params.push([`facetFilters[${key}]`, value]);
         }, '');
 
         if (sortOrder) {
@@ -331,7 +331,7 @@ export const searchApi = createApi({
           params.push(...mappedMediaTypes);
         }
         if (searchText) {
-          params.push(['FieldFilters[Text]', searchText]);
+          params.push(['extraFilters', `Text:${searchText}`]);
         }
         if (useSession) {
           params.push(['UseSession', useSession]);
