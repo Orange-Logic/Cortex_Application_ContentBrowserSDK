@@ -43,13 +43,13 @@ type Props = {
     parameters?: TrackingParameter[];
     useRepresentative?: boolean;
     value: string;
-  }) => void;
+  }) => Promise<void>;
   onFormatConfirm: (value: {
     value: Transformation[];
     parameters?: TrackingParameter[];
     proxiesPreference?: string;
     extension?: string;
-  }) => void;
+  }) => Promise<void>;
   onUnFavorite: () => Promise<boolean>;
 };
 
@@ -94,6 +94,7 @@ type State = {
     y: number;
     unit: Unit;
   }>;
+  isLoadingConfirm: boolean;
   isLoadingFavorites: boolean;
   rotation: number;
   quality: number;
@@ -121,6 +122,7 @@ type Action =
   | { type: 'SET_LAST_RESIZE_SIZE'; payload: Partial<State['lastResizeSize']> }
   | { type: 'SET_LAST_CROP_SIZE'; payload: Partial<State['lastCropSize']> }
   | { type: 'SET_LOADING'; payload: boolean }
+  | { type: 'SET_LOADING_CONFIRM'; payload: boolean }
   | { type: 'SET_LOADING_FAVORITES'; payload: boolean }
   | { type: 'SET_PREVIEW_LOADABLE'; payload: boolean }
   | { type: 'SET_QUALITY'; payload: number }
@@ -197,6 +199,7 @@ const initialState: State = {
       unit: Unit.Pixel,
     },
   },
+  isLoadingConfirm: false,
   isLoadingFavorites: false,
   rotation: 0,
   quality: 100,
@@ -320,6 +323,11 @@ const reducer = (state: State, action: Action): State => {
       return {
         ...state,
         isLoading: action.payload,
+      };
+    case 'SET_LOADING_CONFIRM':
+      return {
+        ...state,
+        isLoadingConfirm: action.payload,
       };
     case 'SET_LOADING_FAVORITES':
       return {
@@ -1588,16 +1596,19 @@ const FormatDialog: FC<Props> = ({
         content = (
           <cx-button
             className="dialog__footer__button"
-            onClick={() => {
+            loading={state.isLoadingConfirm}
+            onClick={async () => {
               if (!selectedAsset?.docType) {
                 return;
               }
 
-              onProxyConfirm({
+              dispatch({ type: 'SET_LOADING_CONFIRM', payload: true });
+              await onProxyConfirm({
                 extension: selectedAsset.extension,
                 useRepresentative: true,
                 value: '',
               });
+              dispatch({ type: 'SET_LOADING_CONFIRM', payload: false });
             }}
             variant="primary"
           >
@@ -1636,13 +1647,15 @@ const FormatDialog: FC<Props> = ({
           </cx-space>
         );
       } else {
+        console.log(state.isLoadingConfirm);
         content = (
           <cx-button
           className="dialog__footer__button"
           disabled={disabledInsert}
+          loading={state.isLoadingConfirm}
           variant="primary"
           style={{ flex: 1 }}
-          onClick={() => {
+          onClick={async () => {
             const selectedProxy = availableProxies?.find((proxy) => {
               return proxy.id === state.selectedProxy;
             });
@@ -1656,7 +1669,8 @@ const FormatDialog: FC<Props> = ({
                 return;
               }
 
-              onProxyConfirm({
+              dispatch({ type: 'SET_LOADING_CONFIRM', payload: true });
+              await onProxyConfirm({
                 extension: selectedProxy.extension ?? selectedAsset.extension,
                 value: selectedProxy.proxyName,
                 permanentLink: selectedProxy.permanentLink ?? undefined,
@@ -1665,8 +1679,10 @@ const FormatDialog: FC<Props> = ({
                   : undefined,
                 useRepresentative: state.useRepresentative,
               });
+              dispatch({ type: 'SET_LOADING_CONFIRM', payload: false });
             } else {
-              onFormatConfirm({
+              dispatch({ type: 'SET_LOADING_CONFIRM', payload: true });
+              await onFormatConfirm({
                 value: state.transformations,
                 parameters: state.enabledTracking
                   ? state.trackingParameters
@@ -1674,6 +1690,7 @@ const FormatDialog: FC<Props> = ({
                 proxiesPreference: selectedProxy?.proxyName,
                 extension: state.selectedFormat.extension,
               });
+              dispatch({ type: 'SET_LOADING_CONFIRM', payload: false });
             }
             dispatch({ type: 'RESET_DATA' });
             onClose();

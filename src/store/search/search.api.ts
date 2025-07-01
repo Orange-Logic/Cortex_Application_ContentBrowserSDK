@@ -331,7 +331,7 @@ export const searchApi = createApi({
           params.push(...mappedMediaTypes);
         }
         if (searchText) {
-          params.push(['FieldFilters[Text]', searchText]);
+          params.push(['fieldFilters[Text]', searchText]);
         }
         if (useSession) {
           params.push(['UseSession', useSession]);
