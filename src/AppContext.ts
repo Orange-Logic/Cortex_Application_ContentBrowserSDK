@@ -8,6 +8,7 @@ export type AppContextType = {
   onImageSelected: (image: GetAssetLinkResponse[]) => void;
   onError: (errorMessage?: string, error?: Error) => void;
   onClose: () => void;
+  onConnectClicked: () => void;
 };
 
 export const AppContext = createContext<AppContextType>({
@@ -17,4 +18,5 @@ export const AppContext = createContext<AppContextType>({
   onImageSelected: () => { },
   onError: () => { },
   onClose: () => { },
+  onConnectClicked: () => { },
 });

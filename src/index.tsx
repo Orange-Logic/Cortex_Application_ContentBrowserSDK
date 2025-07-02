@@ -50,6 +50,14 @@ type OrangeDAMContentBrowser = {
      * Callback when we make an action on the asset
      */
     onAssetAction?: AppContextType['onAssetAction'];
+    /* 
+     * Callback when the user clicks Connect button
+     * Currently, it is used only for Canva integration
+     * because Canva blocks the CBSDK from opening new tab
+     * without using its predefined method.
+     * https://www.canva.dev/docs/apps/design-guidelines/external-links/#only-open-links-with-requestopenexternalurl
+    */
+   onConnectClicked?: () => void;
     /**
      * whether you want to select multiple assets
      */

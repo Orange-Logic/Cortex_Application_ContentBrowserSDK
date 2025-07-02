@@ -11,7 +11,7 @@ import { useDebounceState } from '@/utils/hooks';
 import type { CxChangeEvent, CxInput } from '@orangelogic-private/design-system';
 
 const AuthenticatePage = () => {
-  const { onClose } = useContext(AppContext);
+  const { onClose, onConnectClicked } = useContext(AppContext);
   const dispatch = useDispatch<AppDispatch>();
   const siteUrl = useSelector(siteUrlSelector);
   const authError = useSelector(authErrorSelector);
@@ -64,7 +64,7 @@ const AuthenticatePage = () => {
     const urlWithProtocol = url.indexOf('://') === -1 ? `https://${url}` : url;
     checkCorrectSiteUrl(urlWithProtocol)
       .then(() => {
-        dispatch(oAuth({ siteUrl: urlWithProtocol }));
+        dispatch(oAuth({ siteUrl: urlWithProtocol, callbackFn: onConnectClicked }));
         if (session) {
           dispatch(setUseSession(session));
         }
