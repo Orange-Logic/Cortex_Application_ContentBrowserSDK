@@ -1243,7 +1243,7 @@ const FormatDialog: FC<Props> = ({
           {allowFavorites && (
             <cx-tooltip
               slot="header-actions"
-              content={isFavorite ? 'Favorite' : 'Unfavorite'}
+              content={isFavorite ? 'Unfavorite' : 'Favorite'}
               placement="bottom"
             >
               {state.isLoadingFavorites ? (
