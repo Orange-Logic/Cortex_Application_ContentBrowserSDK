@@ -57,7 +57,7 @@ type OrangeDAMContentBrowser = {
      * without using its predefined method.
      * https://www.canva.dev/docs/apps/design-guidelines/external-links/#only-open-links-with-requestopenexternalurl
     */
-   onConnectClicked?: () => void;
+    onConnectClicked?: () => void;
     /**
      * whether you want to select multiple assets
      */
@@ -282,6 +282,7 @@ const ContentBrowser: OrangeDAMContentBrowser = {
     allowProxy,
     allowFavorites,
     allowLogout,
+    onConnectClicked,
   }) => {
     let container = containerId && document.getElementById(containerId);
     if (!containerId) {
@@ -397,6 +398,7 @@ const ContentBrowser: OrangeDAMContentBrowser = {
             onAssetSelected={assetSelectedHandler}
             onImageSelected={imageSelectedHandler}
             onClose={handleClose}
+            onConnectClicked={onConnectClicked!}
           />
         </GlobalConfigContext.Provider>
       </Provider>,

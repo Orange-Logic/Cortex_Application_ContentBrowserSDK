@@ -58,6 +58,7 @@ type Props = {
   onAssetAction: AppContextType['onAssetAction'];
   onAssetSelected: AppContextType['onAssetSelected'];
   onImageSelected: AppContextType['onImageSelected'];
+  onConnectClicked: () => void;
 };
 
 const Container = styled.div<{ open?: boolean }>`
@@ -80,6 +81,7 @@ export const App: FC<Props> = ({
   onAssetAction,
   onAssetSelected,
   onImageSelected,
+  onConnectClicked,
 }) => {
   const [open, setOpen] = useState(true);
 
@@ -110,8 +112,9 @@ export const App: FC<Props> = ({
       onImageSelected,
       onError,
       onClose: handleClose,
+      onConnectClicked,
     }),
-    [extraFields, handleClose, onAssetAction, onAssetSelected, onError, onImageSelected],
+    [extraFields, handleClose, onAssetAction, onAssetSelected, onError, onImageSelected, onConnectClicked],
   );
 
   return (

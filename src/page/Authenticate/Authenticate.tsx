@@ -75,7 +75,7 @@ const AuthenticatePage = () => {
       },
       )
       .finally(() => setCheckingSite(false));
-  }, [dispatch, session, setCheckingSite, url]);
+  }, [dispatch, session, setCheckingSite, url, onConnectClicked]);
 
   const cancelConnect = useCallback(() => {
     setCheckingSite(false, true);
