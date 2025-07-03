@@ -169,6 +169,11 @@ type OrangeDAMContentBrowser = {
      * The flag to allow the user to logout
      */
     allowLogout?: boolean;
+
+    /**
+     * The flag to toggle between loading external fonts from direct links and from internal CSS file
+     */
+    loadExternalFonts?: boolean;
   }) => Promise<void>;
   close: () => void;
   previewAsset?: (assetId: string) => void;
@@ -270,6 +275,7 @@ const ContentBrowser: OrangeDAMContentBrowser = {
     },
     extraFields,
     lastLocationMode,
+    loadExternalFonts,
     multiSelect,
     persistMode,
     publicApplicationName,
@@ -392,6 +398,7 @@ const ContentBrowser: OrangeDAMContentBrowser = {
           <App
             containerId={containerId}
             extraFields={extraFields}
+            loadExternalFonts={loadExternalFonts}
             multiSelect={multiSelect}
             onError={errorHandler}
             onAssetAction={assetActionHandler}

@@ -46,6 +46,7 @@ import AssetsPicker from '@/view/AssetsPicker';
 type Props = {
   containerId?: string;
   extraFields?: string[];
+  loadExternalFonts?: boolean;
   multiSelect?: boolean;
   publicApplicationName?: string;
   /**
@@ -75,6 +76,7 @@ const Container = styled.div<{ open?: boolean }>`
 export const App: FC<Props> = ({
   extraFields = [],
   containerId,
+  loadExternalFonts = true,
   multiSelect,
   onClose,
   onError,
@@ -86,18 +88,23 @@ export const App: FC<Props> = ({
   const [open, setOpen] = useState(true);
 
   useEffect(() => {
-    WebFont.load({
-      google: {
-        families: [
-          'Fira Code',
-          'Fira Mono',
-          'Fira Sans',
-          'Fira Sans Condensed',
-          'Fira Sans Extra Condensed',
-        ],
-      },
-    });
-  }, []);
+    if (loadExternalFonts) {
+      WebFont.load({
+        google: {
+          families: [
+            'Fira Code',
+            'Fira Mono',
+            'Fira Sans',
+            'Fira Sans Condensed',
+            'Fira Sans Extra Condensed',
+          ],
+        },
+      });
+    } else {
+      // @ts-expect-error
+      import('./fonts.css');
+    }
+  }, [loadExternalFonts]);
 
   const handleClose = useCallback(() => {
     setOpen(false);
