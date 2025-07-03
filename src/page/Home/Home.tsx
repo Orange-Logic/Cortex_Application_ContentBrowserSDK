@@ -689,7 +689,10 @@ const HomePage: FC<Props> = () => {
       if (selectedAsset && extraFields?.includes(item)) {
         payload[0] = {
           ...payload[0],
-          [item]: selectedAsset[key],
+          extraFields: {
+            ...(payload[0]?.extraFields || {}),
+            [item]: selectedAsset[key],
+          },
         };
       }
     });
