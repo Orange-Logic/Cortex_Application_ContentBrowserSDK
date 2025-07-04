@@ -9,6 +9,7 @@ export type AppContextType = {
   onError: (errorMessage?: string, error?: Error) => void;
   onClose: () => void;
   onConnectClicked: () => void;
+  onTokenChanged?: (token: string) => void;
 };
 
 export const AppContext = createContext<AppContextType>({

@@ -50,14 +50,18 @@ type OrangeDAMContentBrowser = {
      * Callback when we make an action on the asset
      */
     onAssetAction?: AppContextType['onAssetAction'];
-    /* 
+    /**
      * Callback when the user clicks Connect button
      * Currently, it is used only for Canva integration
      * because Canva blocks the CBSDK from opening new tab
      * without using its predefined method.
      * https://www.canva.dev/docs/apps/design-guidelines/external-links/#only-open-links-with-requestopenexternalurl
-    */
+     */
     onConnectClicked?: () => void;
+    /**
+     * Callback when the token is changed
+     */
+    onTokenChanged?: (token: string) => void;
     /**
      * whether you want to select multiple assets
      */
@@ -260,6 +264,7 @@ const ContentBrowser: OrangeDAMContentBrowser = {
     onError,
     onClose,
     onRequestToken,
+    onTokenChanged,
     availableRepresentativeSubtypes,
     allowedExtensions,
     allowedFolders,
@@ -347,6 +352,10 @@ const ContentBrowser: OrangeDAMContentBrowser = {
       typeof onImageSelected === 'function' && !!onImageSelected
         ? onImageSelected
         : console.log;
+    const onTokenChangedHandler =
+      typeof onTokenChanged === 'function' && !!onTokenChanged
+        ? onTokenChanged
+        : undefined;
     const handleClose = () => {
       store.dispatch(resetImportStatus());
       store.dispatch(searchApi.util.resetApiState());
@@ -406,6 +415,8 @@ const ContentBrowser: OrangeDAMContentBrowser = {
             onImageSelected={imageSelectedHandler}
             onClose={handleClose}
             onConnectClicked={onConnectClicked!}
+            onTokenChanged={onTokenChangedHandler}
+            
           />
         </GlobalConfigContext.Provider>
       </Provider>,

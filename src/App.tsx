@@ -34,14 +34,17 @@ import '@orangelogic-private/design-system/components/tree';
 import '@orangelogic-private/design-system/components/tree-item';
 import '@orangelogic-private/design-system/components/typography';
 import '@orangelogic-private/design-system/css/ol-light.css';
-
 import '@orangelogic-private/design-system/react-types';
+
 import { FC, useCallback, useEffect, useMemo, useState } from 'react';
 import styled from 'styled-components';
 import WebFont from 'webfontloader';
 
 import { AppContext, AppContextType } from '@/AppContext';
 import AssetsPicker from '@/view/AssetsPicker';
+
+import { useAppSelector } from './store';
+import { accessTokenSelector } from './store/auth/auth.slice';
 
 type Props = {
   containerId?: string;
@@ -60,6 +63,7 @@ type Props = {
   onAssetSelected: AppContextType['onAssetSelected'];
   onImageSelected: AppContextType['onImageSelected'];
   onConnectClicked: () => void;
+  onTokenChanged?: (token: string) => void;
 };
 
 const Container = styled.div<{ open?: boolean }>`
@@ -84,7 +88,9 @@ export const App: FC<Props> = ({
   onAssetSelected,
   onImageSelected,
   onConnectClicked,
+  onTokenChanged,
 }) => {
+  const accessToken = useAppSelector(accessTokenSelector);
   const [open, setOpen] = useState(true);
 
   useEffect(() => {
@@ -105,6 +111,12 @@ export const App: FC<Props> = ({
       import('./fonts.css');
     }
   }, [loadExternalFonts]);
+
+  useEffect(() => {
+    if (onTokenChanged && accessToken) {
+      onTokenChanged(accessToken);
+    }
+  }, [accessToken, onTokenChanged]);
 
   const handleClose = useCallback(() => {
     setOpen(false);
