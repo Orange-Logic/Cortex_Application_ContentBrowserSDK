@@ -6,6 +6,8 @@ import {
   FIELD_HAS_BROWSER_CHILDREN,
   FIELD_IDENTIFIER, FIELD_KEYWORDS, FIELD_MAX_HEIGHT, FIELD_MAX_WIDTH, FIELD_SCRUB_URL, FIELD_SUBTYPE, FIELD_TITLE_WITH_FALLBACK, FIELD_ALLOW_ATS_LINK,
   FIELD_RECORD_ID,
+  FIELD_ORIGINAL_FILE_NAME,
+  FIELD_UPDATED_FILE_NAME,
 } from '@/consts/data';
 import { Asset, Folder, GetContentRequest, GetContentResponse, GetFavoritesResponse } from '@/types/search';
 import { AppBaseQuery, GetValueByKeyCaseInsensitive } from '@/utils/api';
@@ -306,6 +308,8 @@ export const searchApi = createApi({
           ['fields', FIELD_IDENTIFIER],
           ['fields', FIELD_EXTENSION],
           ['fields', FIELD_RECORD_ID],
+          ['fields', FIELD_ORIGINAL_FILE_NAME],
+          ['fields', FIELD_UPDATED_FILE_NAME],
           ['seeThru', isSeeThrough],
           ['start', start],
           ['limit', pageSize],
@@ -352,9 +356,15 @@ export const searchApi = createApi({
         items:
           response.contentItems?.map((item) => {
             let extension = GetValueByKeyCaseInsensitive(item.fields, FIELD_EXTENSION) ?? '';
+            let name = GetValueByKeyCaseInsensitive(item.fields, FIELD_UPDATED_FILE_NAME);
             if (extension && !extension.startsWith('.')) {
               extension = '.' + extension;
             }
+
+            if (isNullOrWhiteSpace(name)) {
+              name = GetValueByKeyCaseInsensitive(item.fields, FIELD_ORIGINAL_FILE_NAME);
+            }
+
             return {
               docType: GetValueByKeyCaseInsensitive(item.fields, FIELD_DOC_TYPE) ?? '',
               docSubType: GetValueByKeyCaseInsensitive(item.fields, FIELD_SUBTYPE) ?? '',
@@ -364,7 +374,7 @@ export const searchApi = createApi({
               identifier: GetValueByKeyCaseInsensitive(item.fields, FIELD_IDENTIFIER) ?? '',
               imageUrl: GetValueByKeyCaseInsensitive(item.fields, DEFAULT_VIEW_SIZE) ?? '',
               originalUrl: GetValueByKeyCaseInsensitive(item.fields, ORIGINAL_VIEW_SIZE) ?? '',
-              name: GetValueByKeyCaseInsensitive(item.fields, FIELD_TITLE_WITH_FALLBACK) ?? '',
+              name: name ?? '',
               scrubUrl: GetValueByKeyCaseInsensitive(item.fields, FIELD_SCRUB_URL) ?? '',
               size: GetValueByKeyCaseInsensitive(item.fields, FIELD_FILE_SIZE) ?? '0 MB',
               tags: GetValueByKeyCaseInsensitive(item.fields, FIELD_KEYWORDS) ?? '',
