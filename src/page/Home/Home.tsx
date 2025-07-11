@@ -461,6 +461,32 @@ const HomePage: FC<Props> = () => {
   }, [appDispatch, authenticated, lastLocationMode]);
 
   useEffect(() => {
+    /**
+     * Force re-render of the container to ensure that the width is recalculated correctly.
+     * The issue is that the container width is not updated correctly when the Content Browser is mounted inside custom windows, e.g. in the File on Demand, Contentful.
+     */
+    let timeout = null;
+    const container = containerRef.current;
+
+    if (!container) {
+      return;
+    }
+
+    const currentWidth = container.offsetWidth;
+    container.style.width = (currentWidth - 1) + 'px';
+
+    timeout = setTimeout(() => {
+      container.style.width = '100%';
+    }, 50);
+
+    return () => {
+      if (timeout) {
+        clearTimeout(timeout);
+      }
+    };
+  }, [authenticated]);
+
+  useEffect(() => {
     const resizeObserver = containerResizeObserverRef.current;
     if (!resizeObserver) {
       return;
