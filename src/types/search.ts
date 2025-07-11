@@ -34,25 +34,34 @@ export type ContentItem = {
   recordID: string;
 };
 
+export type Facet = {
+  facetDetails: {
+    displayName: string;
+    facetFieldName: string;
+  };
+  values: {
+    count: number;
+    displayValue: string;
+    value: string;
+  }[];
+};
+
 export type GetContentResponse = {
   contentItems?: ContentItem[];
-  facets: Record<string, Record<string, number>>;
+  facets: Facet[];
   totalCount: number;
 };
 
 export type GetContentRequest = {
-  extensions: string[];
   folderID: string;
   isSeeThrough: boolean;
   limitedToDocTypes: string[];
-  mediaTypes: string[];
   pageSize: number;
   searchText: string;
+  selectedFacets?: Record<string, string[]>;
   sortOrder?: string;
   start: number;
-  statuses: string[];
   useSession?: string;
-  visibilityClasses: string[];
 };
 
 export type GetAssetLinkResponse = {

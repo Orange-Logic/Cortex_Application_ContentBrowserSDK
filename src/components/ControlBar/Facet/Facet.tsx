@@ -1,24 +1,25 @@
 import LoadMoreButton from '@/components/Browser/LoadMoreButton';
-import _capitalize from 'lodash-es/capitalize';
 import { FC, useMemo, useState } from 'react';
 
 const ITEMS_PER_PAGE = 20;
 
 type Props = {
-  facet: Record<string, number>;
+  values: {
+    count: number;
+    displayValue: string;
+    value: string;
+  }[];
   type: string;
   displayName: string;
   collections: string[];
-  capitalize?: boolean;
   loading?: boolean;
 };
 
 const Facet: FC<Props> = ({
-  facet,
+  values,
   type,
   displayName,
   collections,
-  capitalize = true,
   loading = false,
 }) => {
   const [page, setPage] = useState(1);
@@ -32,7 +33,7 @@ const Facet: FC<Props> = ({
   */
 
   const mappedSubtypes = useMemo(() => {
-    return Object.entries(facet).reduce((acc, [key, value]) => {
+    return values.reduce((acc, { value: key, count: value }) => {
       const [parent, subtype] = key.split('>>');
 
       if (!acc[parent] || typeof acc[parent] !== 'object') {
@@ -51,14 +52,22 @@ const Facet: FC<Props> = ({
 
       return acc;
     }, {} as Record<string, Record<string, number> | number>);
-  }, [facet]);
+  }, [values]);
+
+  const mappedDisplayNames = useMemo(() => {
+    return values.reduce((acc, { value: key, displayValue: value }) => {
+      acc[key] = value;
+
+      return acc;
+    }, {} as Record<string, string>);
+  }, [values]);
 
   const hasNextPage = useMemo(
     () => Object.keys(mappedSubtypes).length > page * ITEMS_PER_PAGE,
     [mappedSubtypes, page],
   );
 
-  if (!facet || Object.values(facet).length === 0) {
+  if (values.length === 0) {
     return null;
   }
 
@@ -74,7 +83,7 @@ const Facet: FC<Props> = ({
         {loading && <cx-spinner></cx-spinner>}
       </cx-space>
       <cx-space direction="vertical">
-        <cx-tree selection="multiple" data-facet={type}>
+        <cx-tree selection="multiple" label-selects-single data-facet={type}>
           {Object.entries(mappedSubtypes)
             .slice(0, page * ITEMS_PER_PAGE)
             .map(([key, value]) => {
@@ -83,6 +92,11 @@ const Facet: FC<Props> = ({
 
                 const { all, ...rest } = value;
 
+                const totalCount = Object.values(rest).reduce(
+                  (sum, count) => sum + count,
+                  0,
+                );
+
                 return (
                   <cx-tree-item
                     key={key}
@@ -90,9 +104,9 @@ const Facet: FC<Props> = ({
                     data-type={type}
                     readonly={loading}
                     selected={selected}
-                    disabled-sync-checkboxes
+                    disabled-sync-checkboxes={totalCount !== all ? true : undefined}
                   >
-                    {capitalize ? _capitalize(key) : key} {!!all && `(${all})`}
+                    {mappedDisplayNames[key]} {!!all && `(${all})`}
                     {Object.entries(rest).map(([subtype, count]) => (
                       <cx-tree-item
                         key={subtype}
@@ -101,7 +115,7 @@ const Facet: FC<Props> = ({
                         readonly={loading}
                         selected={collections.includes(`${key}>>${subtype}`)}
                       >
-                        {capitalize ? _capitalize(subtype) : subtype} ({count})
+                        {mappedDisplayNames[`${key}>>${subtype}`]} ({count})
                       </cx-tree-item>
                     ))}
                   </cx-tree-item>
@@ -115,7 +129,7 @@ const Facet: FC<Props> = ({
                   readonly={loading}
                   selected={collections.includes(key)}
                 >
-                  {capitalize ? _capitalize(key) : key} ({value})
+                  {mappedDisplayNames[key]} ({value})
                 </cx-tree-item>
               );
             })}

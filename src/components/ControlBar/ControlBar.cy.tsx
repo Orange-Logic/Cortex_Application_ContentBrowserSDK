@@ -1,6 +1,6 @@
 /// <reference types="cypress" />
 
-import { Filter, GridView, SortDirection } from '@/types/search';
+import { Facet, GridView, SortDirection } from '@/types/search';
 import ControlBar from './ControlBar';
 import { useState } from 'react';
 
@@ -19,40 +19,70 @@ const ControlBarWrapper = () => {
 
   const [isSeeThrough, setIsSeeThrough] = useState(false);
   const [view, setView] = useState(GridView.Medium);
-  const [appliedFilter, setAppliedFilter] = useState<Filter>(defaultFiltes);
+  const [appliedFilter, setAppliedFilter] = useState<Record<string, string[]>>(defaultFiltes);
   const [sortOrder, setSortOrder] = useState('date created');
   const [sortDirection, setSortDirection] = useState(SortDirection.Descending);
-  const [facets, setFacets] = useState<Record<string, any> | undefined>({
-    status: {
-      'Not started': 7,
-      'Completed': 3,
+  const [facets, setFacets] = useState<Facet[] | undefined>([
+    {
+      'facetDetails': {
+        'displayName': 'Types',
+        'facetFieldName': 'Types',
+      },
+      'values': [
+        {
+          'displayValue': 'images',
+          'value': 'images',
+          'count': 50,
+        },
+        {
+          'displayValue': 'others',
+          'value': 'others',
+          'count': 9,
+        },
+        {
+          'displayValue': 'videos',
+          'value': 'videos',
+          'count': 5,
+        },
+        {
+          'displayValue': '3d assets',
+          'value': '3d assets',
+          'count': 4,
+        },
+        {
+          'displayValue': 'audio',
+          'value': 'audio',
+          'count': 3,
+        },
+        {
+          'displayValue': 'image',
+          'value': 'image',
+          'count': 1,
+        },
+        {
+          'displayValue': 'images>>image 1s',
+          'value': 'images>>image 1s',
+          'count': 1,
+        },
+        {
+          'displayValue': 'images>>image 2s',
+          'value': 'images>>image 2s',
+          'count': 1,
+        },
+      ],
     },
-    visibilityClass: {
-      'Published': 7,
-      'Pending': 3,
-    },
-    extension: {
-      '.png': 3,
-      '.gif': 2,
-      '.jpg': 2,
-      '.jpeg': 2,
-    },
-    type: {
-      'Images': 7,
-      'Videos': 3,
-    },
-  });
+  ]);
 
   const onSettingChange = (
     setting: string,
-    value: GridView | SortDirection | Filter | string | boolean | string[],
+    value: GridView | SortDirection | Record<string, string[]> | string | boolean | string[],
   ) => {
     if (setting === 'view') {
       setView(value as GridView);
     } else if (setting === 'isSeeThrough') {
       setIsSeeThrough(value as boolean);
     } else if (setting === 'filter') {
-      setAppliedFilter(value as Filter);
+      setAppliedFilter(value as Record<string, string[]>);
     } else if (setting === 'sortOrder') {
       setSortOrder(value as string);
     } else if (setting === 'sortDirection') {
@@ -65,17 +95,17 @@ const ControlBarWrapper = () => {
   return (
     <div>
       <ControlBar
+        availableFacets={[]}
         allowSorting={true}
         currentCount={10}
         loading={false}
-        extensions={appliedFilter.extensions}
         facets={facets}
         isMobile={false}
         isSeeThrough={isSeeThrough}
-        mediaTypes={appliedFilter.mediaTypes}
         onSearchChange={onSearchChange}
         onSettingChange={onSettingChange}
         searchValue=""
+        selectedFacets={appliedFilter}
         sortDirection={sortDirection}
         sortOrder={sortOrder}
         sortOrders={{
@@ -211,10 +241,8 @@ const ControlBarWrapper = () => {
             },
           ],
         }}
-        statuses={appliedFilter.statuses}
         totalCount={200}
         view={view}
-        visibilityClasses={appliedFilter.visibilityClasses}
       />
       {searchText && <span data-cy="search-text">{searchText}</span>}
       <span data-cy="isSeeThrough">{isSeeThrough ? 'See Through On' : 'See Through Off'}</span>

@@ -1,6 +1,8 @@
 import _camelCase from 'lodash-es/camelCase';
 import _debounce from 'lodash-es/debounce';
 import _intersection from 'lodash-es/intersection';
+import _isArray from 'lodash-es/isArray';
+import _pickBy from 'lodash-es/pickBy';
 import {
   FC, useCallback, useContext, useEffect, useMemo, useReducer, useRef, useState,
 } from 'react';
@@ -14,30 +16,35 @@ import FormatDialog from '@/components/FormatDialog';
 import Header from '@/components/Header/Header';
 import AssetCardWrapper from '@/components/Result/AssetCard';
 import { ASSET_SIZE } from '@/consts/asset';
+import { COMPUTED_FIELDS } from '@/consts/data';
 import { GlobalConfigContext } from '@/GlobalConfigContext';
 import { useAppDispatch, useAppSelector } from '@/store';
 import {
-  useGetAvailableExtensionsQuery,
-  useGetAvailableProxiesQuery, useGetParametersQuery, useGetSortOrdersQuery,
+  useGetAvailableExtensionsQuery, useGetAvailableFacetsQuery, useGetAvailableProxiesQuery,
+  useGetParametersQuery, useGetSortOrdersQuery,
 } from '@/store/assets/assets.api';
-import { addAssetToFavorite, importAssets, removeAssetFromFavorite, selectedAssetIdSelector, setSelectedAssetId } from '@/store/assets/assets.slice';
-import { authenticatedSelector, logout, applySessionSelector } from '@/store/auth/auth.slice';
-import { useGetAssetByIdQuery, useGetAssetsQuery, useGetIsFavoriteQuery } from '@/store/search/search.api';
+import {
+  addAssetToFavorite, importAssets, removeAssetFromFavorite, selectedAssetIdSelector,
+  setSelectedAssetId,
+} from '@/store/assets/assets.slice';
+import { applySessionSelector, authenticatedSelector, logout } from '@/store/auth/auth.slice';
+import {
+  useGetAssetByIdQuery, useGetAssetsQuery, useGetIsFavoriteQuery,
+} from '@/store/search/search.api';
 import { explorePath, RootFolder } from '@/store/search/search.slice';
 import { useGetUserInfoQuery } from '@/store/user/user.api';
 import { FormatLoaderState } from '@/types/assets';
 import {
-  Asset, Filter, Folder, GetAssetLinkResponse, GridView, SortDirection,
+  Asset, Facet, Folder, GetAssetLinkResponse, GridView, SortDirection,
 } from '@/types/search';
 import { MOBILE_THRESHOLD, PAGE_SIZE, RESIZE_TIMEOUT } from '@/utils/constants';
+import { isPromise } from '@/utils/function';
 import { getData, storeData } from '@/utils/storage';
-import type { CxResizeEvent, CxResizeObserver } from '@orangelogic-private/design-system';
 import { skipToken } from '@reduxjs/toolkit/query';
 
 import { Container } from './Home.styled';
-import { COMPUTED_FIELDS } from '@/consts/data';
-import { isPromise } from '@/utils/function';
 
+import type { CxResizeEvent, CxResizeObserver } from '@orangelogic-private/design-system';
 type Props = {
   multiSelect?: boolean;
 };
@@ -50,24 +57,21 @@ type State = {
   currentCount: number;
   currentFolder: Folder;
   defaultPageSize: number;
-  extensions: string[];
-  facets: Record<string, Record<string, number>>;
+  facets: Facet[];
   hasScrolled: boolean;
   isLoading: boolean;
   isSeeThrough: boolean;
-  mediaTypes: string[];
   openBrowser: boolean;
   start: number;
   pageSize: number;
   maxPageSize: number;
   searchText: string;
+  selectedFacets: Record<string, string[]>;
   shouldResetFilters: boolean;
   sortDirection?: 'ascending' | 'descending';
   sortOrder: string;
-  statuses: string[];
   totalCount: number;
   view: GridView;
-  visibilityClasses: string[];
 };
 
 type Action =
@@ -78,8 +82,8 @@ type Action =
     folder: Folder,
     shouldResetFilters?: boolean;
   } }
-  | { type: 'SET_FACETS'; payload: Record<string, Record<string, number>> }
-  | { type: 'SET_FILTERS'; payload: Filter }
+  | { type: 'SET_FACETS'; payload: Facet[] }
+  | { type: 'SET_FILTERS'; payload: Record<string, string[]> }
   | { type: 'SET_HAS_SCROLLED'; payload: boolean }
   | { type: 'SET_IS_LOADING'; payload: boolean }
   | { type: 'SET_IS_SEE_THROUGH'; payload: boolean }
@@ -103,24 +107,21 @@ const initialState: State = {
   currentCount: 0,
   currentFolder: RootFolder,
   defaultPageSize: PAGE_SIZE,
-  extensions: [],
-  facets: {},
+  facets: [],
   hasScrolled: false,
   isLoading: false,
   isSeeThrough: true,
-  mediaTypes: [],
   openBrowser: false,
   start: 0,
   pageSize: 0,
   maxPageSize: 0,
   searchText: '',
+  selectedFacets: {},
   shouldResetFilters: true,
   sortDirection: undefined,
   sortOrder: '',
-  statuses: [],
   totalCount: 0,
   view: GridView.Medium,
-  visibilityClasses: [],
 };
 
 const reducer = (state: State, action: Action): State => {
@@ -140,11 +141,8 @@ const reducer = (state: State, action: Action): State => {
     case 'SET_FILTERS':
       return {
         ...state,
-        mediaTypes: action.payload.mediaTypes,
-        visibilityClasses: action.payload.visibilityClasses,
+        selectedFacets: action.payload,
         shouldResetFilters: false,
-        statuses: action.payload.statuses,
-        extensions: action.payload.extensions,
         ...resetPageState,
       };
     case 'SET_HAS_SCROLLED':
@@ -257,7 +255,7 @@ const HomePage: FC<Props> = () => {
     : skipToken,
   );
 
-  const { data: availableExtensions } = useGetAvailableExtensionsQuery();
+  const { data: availableExtensions } = useGetAvailableExtensionsQuery({ useSession });
 
   const { data: params } = useGetParametersQuery({
     useSession,
@@ -275,6 +273,8 @@ const HomePage: FC<Props> = () => {
     useSession,
   });
 
+  const { data: availableFacets } = useGetAvailableFacetsQuery({ useSession });
+
   const { data: isFavorite, refetch: refetchIsFavorite } = useGetIsFavoriteQuery(
     selectedAsset && allowFavorites ? {
       recordId: selectedAsset.id,
@@ -290,7 +290,7 @@ const HomePage: FC<Props> = () => {
   const resultRef = useRef<HTMLDivElement>(null);
   const containerResizeObserverRef = useRef<CxResizeObserver>(null);
   const loadedFromStorage = useRef(false);
-  const facetsRef = useRef<Record<string, Record<string, number>>>({});
+  const facetsRef = useRef<Facet[]>([]);
   const appDispatch = useAppDispatch();
 
   const pageSizeRef = useRef(state.pageSize);
@@ -308,9 +308,9 @@ const HomePage: FC<Props> = () => {
   }, [availableDocTypes, supportedDocTypes]);
 
   const mappedMediaTypes = useMemo(() => {
-    if (state.mediaTypes.length > 0) return state.mediaTypes;
+    if (state.selectedFacets.Types && state.selectedFacets.Types.length > 0) return state.selectedFacets.Types;
     return ['*'];
-  }, [state.mediaTypes]);
+  }, [state.selectedFacets]);
 
   const isConfigError = useMemo(() => (!mappedMediaTypes?.length || mappedMediaTypes.length === 0) && !!supportedDocTypes, [mappedMediaTypes, supportedDocTypes]);
 
@@ -360,22 +360,19 @@ const HomePage: FC<Props> = () => {
   }, [availableProxies, allowedExtensions]);
 
   const shouldFetch = useMemo(() => {
-    return isResized && sortOrders && mappedMediaTypes?.length && browserMounted && state.start + state.pageSize > itemsCount;
-  }, [isResized, sortOrders, mappedMediaTypes, browserMounted, state.start, state.pageSize, itemsCount]);
+    return isResized && sortOrders && mappedMediaTypes?.length && browserMounted;
+  }, [isResized, sortOrders, mappedMediaTypes, browserMounted]);
 
   const { data, isFetching, isError, refetch } = useGetAssetsQuery(shouldFetch ? {
-    extensions: state.extensions,
     folderID: state.currentFolder.id,
     isSeeThrough: state.isSeeThrough,
     limitedToDocTypes: mappedAvailableDocTypes,
-    mediaTypes: mappedMediaTypes,
     pageSize: state.pageSize,
     searchText: state.searchText,
+    selectedFacets: state.selectedFacets,
     sortOrder: selectedSortOrder?.id,
     start: state.start,
-    statuses: state.statuses ?? [],
     useSession,
-    visibilityClasses: state.visibilityClasses,
   } : skipToken);
 
   useEffect(() => {
@@ -448,11 +445,20 @@ const HomePage: FC<Props> = () => {
         if (lastLocationMode) {
           if (newFacets) {
             const parsedFacets = JSON.parse(newFacets);
-            dispatch({ type: 'SET_FACETS', payload: parsedFacets });
+            if (_isArray(parsedFacets)) {
+              dispatch({ type: 'SET_FACETS', payload: parsedFacets });
+            } else {
+              dispatch({ type: 'SET_FACETS', payload: [] });
+            }
           }
           if (selectedFilter) {
             const parsedFilter = JSON.parse(selectedFilter);
-            dispatch({ type: 'SET_FILTERS', payload: parsedFilter });
+
+            if (parsedFilter) {
+              dispatch({ type: 'SET_FILTERS', payload: _pickBy(parsedFilter, _isArray) });
+            } else {
+              dispatch({ type: 'SET_FILTERS', payload: {} });
+            }
           }
           if (selectedIsSeeThrough) {
             dispatch({ type: 'SET_IS_SEE_THROUGH', payload: selectedIsSeeThrough === 'true' });
@@ -543,29 +549,11 @@ const HomePage: FC<Props> = () => {
     storeData('newFacets', JSON.stringify(state.facets));
     storeData(
       'selectedFilter',
-      JSON.stringify({
-        mediaTypes: state.mediaTypes,
-        visibilityClasses: state.visibilityClasses,
-        shouldResetFilters: false,
-        statuses: state.statuses,
-        extensions: state.extensions,
-      }),
+      JSON.stringify(state.selectedFacets),
     );
     storeData('selectedIsSeeThrough', state.isSeeThrough.toString());
     storeData('searchText', state.searchText);
-  }, [
-    state.currentFolder,
-    state.extensions,
-    state.facets,
-    state.isSeeThrough,
-    state.mediaTypes,
-    state.sortDirection,
-    state.sortOrder,
-    state.searchText,
-    state.statuses,
-    state.view,
-    state.visibilityClasses,
-  ]);
+  }, [state.currentFolder, state.facets, state.isSeeThrough, state.sortDirection, state.sortOrder, state.searchText, state.view, state.selectedFacets]);
 
   const isMobile = state.containerSize.width <= MOBILE_THRESHOLD;
 
@@ -640,7 +628,7 @@ const HomePage: FC<Props> = () => {
   const onSettingChange = useCallback(
     (
       setting: string,
-      value: GridView | SortDirection | Filter | string | boolean | string[],
+      value: GridView | SortDirection | Record<string, string[]> | string | boolean | string[],
     ) => {
       switch (setting) {
         case 'view':
@@ -659,7 +647,7 @@ const HomePage: FC<Props> = () => {
           dispatch({ type: 'SET_IS_SEE_THROUGH', payload: Boolean(value) });
           break;
         case 'filter':
-          dispatch({ type: 'SET_FILTERS', payload: value as Filter });
+          dispatch({ type: 'SET_FILTERS', payload: value as Record<string, string[]> });
           break;
         default:
           break;
@@ -670,7 +658,7 @@ const HomePage: FC<Props> = () => {
 
   const onDataChange = useCallback(
     (newData: {
-      facets: Record<string, Record<string, number>>;
+      facets: Facet[];
       items: Asset[];
       totalCount: number;
       currentCount: number;
@@ -766,8 +754,8 @@ const HomePage: FC<Props> = () => {
     if (onDataChange) {
       onDataChange({
         currentCount: data?.items.length ?? 0,
-        items: data?.items || [],
-        facets: data?.facets || {},
+        items: data?.items ?? [],
+        facets: data?.facets ?? [],
         totalCount: data?.totalCount ?? 0,
       });
     }
@@ -846,21 +834,19 @@ const HomePage: FC<Props> = () => {
         >
           <ControlBar
             allowSorting={selectedSortOrder?.sortDirection !== 'Mono' && !!selectedSortOrder}
+            availableFacets={availableFacets ?? []}
             currentCount={state.currentCount}
-            extensions={state.extensions}
             facets={state.facets}
             isMobile={isMobile}
             isSeeThrough={state.isSeeThrough}
             loading={state.isLoading}
-            mediaTypes={state.mediaTypes}
             searchValue={state.searchText}
+            selectedFacets={state.selectedFacets}
             sortDirection={state.sortDirection}
             sortOrder={state.sortOrder}
             sortOrders={sortOrders}
-            statuses={state.statuses}
             totalCount={state.totalCount}
             view={state.view}
-            visibilityClasses={state.visibilityClasses}
             onSearchChange={onSearchChange}
             onSettingChange={onSettingChange}
           />
@@ -913,10 +899,7 @@ const HomePage: FC<Props> = () => {
                     key={
                       state.currentFolder.id +
                       state.searchText +
-                      state.mediaTypes.join('+') +
-                      state.extensions.join('+') +
-                      state.statuses.join('+') +
-                      state.visibilityClasses.join('+') +
+                      Object.values(state.selectedFacets).join('+') +
                       state.isSeeThrough +
                       state.view
                     }

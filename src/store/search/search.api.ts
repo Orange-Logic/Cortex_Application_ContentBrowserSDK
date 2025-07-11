@@ -1,5 +1,3 @@
-import _mapKeys from 'lodash-es/mapKeys';
-import _camelCase from 'lodash-es/camelCase';
 import _uniqBy from 'lodash-es/uniqBy';
 
 import {
@@ -10,7 +8,7 @@ import {
   FIELD_ORIGINAL_FILE_NAME,
   FIELD_UPDATED_FILE_NAME,
 } from '@/consts/data';
-import { Asset, Folder, GetContentRequest, GetContentResponse, GetFavoritesResponse } from '@/types/search';
+import { Asset, Facet, Folder, GetContentRequest, GetContentResponse, GetFavoritesResponse } from '@/types/search';
 import { AppBaseQuery, GetValueByKeyCaseInsensitive } from '@/utils/api';
 import { isNullOrWhiteSpace } from '@/utils/string';
 import { createApi, retry } from '@reduxjs/toolkit/query/react';
@@ -41,43 +39,26 @@ const resolveFolderExtraFilters = ({
   return baseQuery;
 };
 
-const resolveAssetExtraFilters = ({
-  extensions,
-  statuses,
-  visibilityClasses,
-}: {
-  extensions: string[];
-  searchText: string;
-  statuses: string[];
-  visibilityClasses: string[];
-}) => {
-  const filterResult: Record<string, string> = {};
-
-  let statusQuery = '';
-  if (statuses?.length) {
-    statusQuery = statuses
-      .map(status => `WorkflowStatus:${status}`)
-      .join(' OR ');
-    filterResult.Status = statusQuery;
+const resolveAssetExtraFilters = (selectedFacets?: Record<string, string[]>) => {
+  if (!selectedFacets || Object.keys(selectedFacets).length === 0) {
+    return [];
   }
+  
+  return Object.entries(selectedFacets).reduce<[string, string][]>((acc, [key, values]) => {
+    if (!values || values.length === 0) {
+      return acc;
+    }
 
-  let extensionsQuery = '';
-  if (extensions?.length) {
-    extensionsQuery = extensions
-      .map(extension => `FileExtension:${extension}`)
-      .join(' OR ');
-    filterResult.Extension = extensionsQuery;
-  }
+    if (key === 'Types') {
+      return acc.concat(
+        values.map((value) => ['subtypeCriteria', value] as [string, string]),
+      );
+    }
 
-  let visibilityClassesQuery = '';
-  if (visibilityClasses?.length) {
-    visibilityClassesQuery = visibilityClasses
-      .map(visibilityClass => `Purpose:${visibilityClass}`)
-      .join(' OR ');
-    filterResult.VisibilityClass = visibilityClassesQuery;
-  }
-
-  return filterResult;
+    return acc.concat(
+      values.map((value) => [`facetFilters[${key}]`, value] as [string, string]),
+    );
+  }, []);
 };
 
 const baseQueryWithRetry = retry(AppBaseQuery, { 
@@ -165,7 +146,7 @@ export const searchApi = createApi({
                     GetValueByKeyCaseInsensitive(item.fields, FIELD_CORTEX_PATH) ?? ''
                   ).replace(/^Root\//i, ''),
                   parents: [...arg.folder.parents, arg.folder],
-                  hasChildren: (GetValueByKeyCaseInsensitive(item.fields, FIELD_HAS_BROWSER_CHILDREN) ?? '0') === '1' ? true : false,
+                  hasChildren: (GetValueByKeyCaseInsensitive(item.fields, FIELD_HAS_BROWSER_CHILDREN) ?? '0') === '1',
                 };
               }) ?? []
           ),
@@ -280,21 +261,17 @@ export const searchApi = createApi({
     }),
     getAssets: builder.query({
       query: ({
-        extensions,
         folderID,
         isSeeThrough,
         limitedToDocTypes,
-        mediaTypes,
         pageSize,
         searchText,
+        selectedFacets,
         sortOrder,
         start,
-        statuses,
         useSession,
-        visibilityClasses,
       }: GetContentRequest) => {
         const mappedLimitedToDocTypes = limitedToDocTypes.map((docType) => ['limitedToDocTypes', docType]);
-        const mappedMediaTypes = mediaTypes.map((mediaType) => ['subtypeCriteria', mediaType]);
         const params = [
           ['objectRecordID', folderID],
           ['fields', FIELD_TITLE_WITH_FALLBACK],
@@ -315,15 +292,10 @@ export const searchApi = createApi({
           ['start', start],
           ['limit', pageSize],
         ];
-        const fieldFilters = resolveAssetExtraFilters({
-          extensions,
-          searchText,
-          statuses,
-          visibilityClasses,
-        });
+        const fieldFilters = resolveAssetExtraFilters(selectedFacets);
 
-        Object.entries(fieldFilters).forEach(([key, value]) => {
-          params.push([`facetFilters[${key}]`, value]);
+        fieldFilters.forEach((filter) => {
+          params.push(filter);
         }, '');
 
         if (sortOrder) {
@@ -332,11 +304,8 @@ export const searchApi = createApi({
         if (mappedLimitedToDocTypes.length) {
           params.push(...mappedLimitedToDocTypes);
         }
-        if (mappedMediaTypes.length) {
-          params.push(...mappedMediaTypes);
-        }
         if (searchText) {
-          params.push(['extraFilters', `Text:${searchText}`]);
+          params.push(['Text', searchText]);
         }
         if (useSession) {
           params.push(['UseSession', useSession]);
@@ -349,11 +318,11 @@ export const searchApi = createApi({
       transformResponse: (
         response: GetContentResponse,
       ): {
-        facets: Record<string, Record<string, number>>;
+        facets: Facet[];
         items: Asset[];
         totalCount: number;
       } => ({
-        facets: _mapKeys(response.facets, (_, key) => _camelCase(key)),
+        facets: response.facets,
         items:
           response.contentItems?.map((item) => {
             let extension = GetValueByKeyCaseInsensitive(item.fields, FIELD_EXTENSION) ?? '';
@@ -389,15 +358,12 @@ export const searchApi = createApi({
       providesTags: (_result, _error, arg) => {
         return [
           {
-            extensions: arg.extensions,
+            selectedFacets: Object.values(arg.selectedFacets ?? {}),
             id: arg.folderID,
             isSeeThrough: arg.isSeeThrough,
-            mediaTypes: arg.mediaTypes,
             searchText: arg.searchText,
             sortOrder: arg.sortOrder,
-            statuses: arg.statuses,
             type: 'ImagesInFolders',
-            visibilityClasses: arg.visibilityClasses,
           },
           'Images',
         ];
@@ -413,19 +379,23 @@ export const searchApi = createApi({
         }
       },
       forceRefetch({ currentArg, previousArg }) {
+        if (currentArg?.start === previousArg?.start) {
+          /**
+           * Handle case when user changes page size by resizing the browser
+           * Only refetch when page size is bigger
+           */
+          return !!currentArg?.pageSize && !!previousArg?.pageSize && currentArg.pageSize > previousArg.pageSize;
+        }
         return currentArg !== previousArg;
       },
       serializeQueryArgs: ({ endpointName, queryArgs }) => {
         return {
           endpointName,
-          extensions: queryArgs.extensions,
+          selectedFacets: Object.values(queryArgs.selectedFacets ?? {}),
           id: queryArgs.folderID,
           isSeeThrough: queryArgs.isSeeThrough,
-          mediaTypes: queryArgs.mediaTypes,
           searchText: queryArgs.searchText,
           sortOrder: queryArgs.sortOrder,
-          statuses: queryArgs.statuses,
-          visibilityClasses: queryArgs.visibilityClasses,
           type: 'ImagesInFolders',
         };
       },

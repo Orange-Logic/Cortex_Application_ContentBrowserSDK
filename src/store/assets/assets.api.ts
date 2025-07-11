@@ -1,7 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
 
 import { SortOrder } from '@/types/assets';
-import { Asset, MediaType, Proxy } from '@/types/search';
+import { Asset, Facet, MediaType, Proxy } from '@/types/search';
 import { AppBaseQuery, GetValueByKeyCaseInsensitive } from '@/utils/api';
 import { hasElements, uniqueArray } from '@/utils/array';
 import { createApi, retry } from '@reduxjs/toolkit/query/react';
@@ -27,6 +27,8 @@ export type GetAvailableProxiesResponse = {
 };
 
 type GetAvailableExtensionsResponse = Record<MediaType, { displayName: string; value: string }[]>;
+
+type GetAvailableFacetsResponse = Facet['facetDetails'][];
 
 /**
  * get query parameter for AvailableProxies_4ea_v2 API
@@ -61,11 +63,12 @@ const baseQueryWithRetry = retry(AppBaseQuery, {
 export const assetsApi = createApi({
   reducerPath: 'assetsApi',
   baseQuery: baseQueryWithRetry,
-  tagTypes: ['AvailableExtensions', 'AvailableProxies', 'Parameters', 'SortOrders', 'VersionHistory'],
+  tagTypes: ['AvailableExtensions', 'AvailableFacets', 'AvailableProxies', 'Parameters', 'SortOrders', 'VersionHistory'],
   endpoints: (builder) => ({
-    getAvailableExtensions: builder.query<GetAvailableExtensionsResponse, void>({
-      query: () => ({
+    getAvailableExtensions: builder.query<GetAvailableExtensionsResponse, { useSession: string }>({
+      query: ({ useSession }) => ({
         url: '/webapi/extensibility/integrations/gab/assetbrowser/getavailableextensionsfortransformation_419v_v1',
+        params: useSession ? [['UseSession', useSession]] : [],
       }),
       transformResponse: (response: { extensions: GetAvailableExtensionsResponse }) => {
         return response.extensions;
@@ -95,6 +98,15 @@ export const assetsApi = createApi({
       },
       serializeQueryArgs: ({ queryArgs }) => getAvailableProxiesAPIParams(queryArgs),
       providesTags: (_result, _error, _args) => ['AvailableProxies'],
+    }),
+    getAvailableFacets: builder.query<GetAvailableFacetsResponse,  { useSession: string }>({
+      keepUnusedDataFor: 0,
+      query: ({ useSession }) => ({
+        url: '/webapi/extensibility/integrations/gab/assetbrowser/getavailablefacets',
+        params: useSession ? [['UseSession', useSession]] : [],
+      }),
+      transformResponse: (response: { facets: Facet['facetDetails'][] }) => response.facets,
+      providesTags: ['AvailableFacets'],
     }),
     getParameters: builder.query<{
       ATSEnabled: boolean;
@@ -162,12 +174,21 @@ export const assetsApi = createApi({
       versions: Record<string, string>[];
     }, {
       assetId: string;
+      useSession?: string;
     }>({
       keepUnusedDataFor: 0,
-      query: ({ assetId }) => ({
-        url: '/webapi/extensibility/integrations/contentBrowserSDK/getassetversion_418f',
-        params: [['RecordID', assetId]],
-      }),
+      query: ({ assetId, useSession }) => {
+        const params = [['RecordID', assetId]];
+
+        if (useSession) {
+          params.push(['UseSession', useSession]);
+        }
+
+        return {
+          url: '/webapi/extensibility/integrations/contentBrowserSDK/getassetversion_418f',
+          params,
+        };
+      },
       transformResponse: (response: { count: number, versions: Record<string, string>[] }) => {
         return {
           count: response.count,
@@ -195,6 +216,7 @@ export const assetsApi = createApi({
 // auto-generated based on the defined endpoints
 export const {
   useGetAvailableExtensionsQuery,
+  useGetAvailableFacetsQuery,
   useGetAvailableProxiesQuery,
   useGetParametersQuery,
   useGetSortOrdersQuery,
