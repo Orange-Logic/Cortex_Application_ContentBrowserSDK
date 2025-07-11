@@ -435,7 +435,14 @@ const HomePage: FC<Props> = () => {
           dispatch({ type: 'SET_SORT_DIRECTION', payload: sortDirection });
         }
         if (typeof view === 'string') {
-          dispatch({ type: 'SET_VIEW', payload: view as GridView });
+          if (!Object.values(GridView).includes(view as GridView)) {
+            /**
+             * Default to Medium if the stored view is invalid.
+             */
+            dispatch({ type: 'SET_VIEW', payload: GridView.Medium });
+          } else {
+            dispatch({ type: 'SET_VIEW', payload: view as GridView });
+          }
         }
         
         if (lastLocationMode) {
