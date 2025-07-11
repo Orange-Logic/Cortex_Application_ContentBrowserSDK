@@ -1,5 +1,6 @@
 import _mapKeys from 'lodash-es/mapKeys';
 import _camelCase from 'lodash-es/camelCase';
+import _uniqBy from 'lodash-es/uniqBy';
 
 import {
   DEFAULT_VIEW_SIZE, ORIGINAL_VIEW_SIZE, FIELD_CORTEX_PATH, FIELD_DOC_TYPE, FIELD_EXTENSION, FIELD_FILE_SIZE,
@@ -403,8 +404,10 @@ export const searchApi = createApi({
       },
       merge: (currentCachedData, responseData, request) => {
         if (request.arg.start > 0) {
-          currentCachedData.items.push(...responseData.items);
-          return currentCachedData;
+          return {
+            ...currentCachedData,
+            items: _uniqBy([...currentCachedData.items, ...responseData.items], 'recordId'),
+          };
         } else {
           return responseData;
         }

@@ -156,15 +156,12 @@ const reducer = (state: State, action: Action): State => {
     case 'SET_OPEN_BROWSER':
       return { ...state, openBrowser: action.payload };
     case 'SET_START':{
-      return { ...state, start: state.start + state.pageSize, pageSize: state.defaultPageSize };
+      return { ...state, start: action.payload, pageSize: state.defaultPageSize };
     }
     case 'SET_PAGE_SIZE': {
       const result = { ...state, pageSize: action.payload.pageSize, maxPageSize: action.payload.pageSize };
       if (action.payload.returnToFirstPage) {
         result.start = 0;
-      } else {
-        result.start = state.start + state.pageSize;
-        result.pageSize = Math.abs(action.payload.pageSize - result.start);
       }
       return result;
     }
@@ -286,6 +283,7 @@ const HomePage: FC<Props> = () => {
   const [browserMounted, setBrowserMounted] = useState(false);
   const [isResized, setIsResized] = useState(false);
   const [showFormatLoader, setShowFormatLoader] = useState<FormatLoaderState>(FormatLoaderState.Hide);
+  const [itemsCount, setItemsCount] = useState(0);
 
   const browserMountedRef = useRef(browserMounted);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -361,7 +359,11 @@ const HomePage: FC<Props> = () => {
     });
   }, [availableProxies, allowedExtensions]);
 
-  const { data, isFetching, isError, refetch } = useGetAssetsQuery(isResized && sortOrders && mappedMediaTypes?.length && browserMounted ? {
+  const shouldFetch = useMemo(() => {
+    return isResized && sortOrders && mappedMediaTypes?.length && browserMounted && state.start + state.pageSize > itemsCount;
+  }, [isResized, sortOrders, mappedMediaTypes, browserMounted, state.start, state.pageSize, itemsCount]);
+
+  const { data, isFetching, isError, refetch } = useGetAssetsQuery(shouldFetch ? {
     extensions: state.extensions,
     folderID: state.currentFolder.id,
     isSeeThrough: state.isSeeThrough,
@@ -375,6 +377,10 @@ const HomePage: FC<Props> = () => {
     useSession,
     visibilityClasses: state.visibilityClasses,
   } : skipToken);
+
+  useEffect(() => {
+    setItemsCount(data?.items.length ?? 0);
+  }, [data?.items.length]);
 
   useEffect(() => {
     if (isErrorSelectedAsset) {
@@ -565,7 +571,7 @@ const HomePage: FC<Props> = () => {
     const rowCount = Math.ceil(containerHeight / (breakpoint + gutter));
     const newPageSize = Math.ceil((rowCount * columnCount) / defaultPageSizeRef.current + 1) * defaultPageSizeRef.current;
     setIsResized(true);
-    if (newPageSize !== pageSizeRef.current) {
+    if (newPageSize !== pageSizeRef.current && newPageSize !== 0) {
       dispatch({
         type: 'SET_PAGE_SIZE',
         payload: {
@@ -577,7 +583,7 @@ const HomePage: FC<Props> = () => {
   }, []);
 
   const debouncedHandleResize = useMemo(() => {
-    return _debounce(handleResize, 300, {
+    return _debounce(handleResize, RESIZE_TIMEOUT, {
       leading: false,
     });
   }, [handleResize]);
@@ -667,15 +673,17 @@ const HomePage: FC<Props> = () => {
       isWindowResizing.current = false;
       return;
     }
-    dispatch({ type: 'SET_START', payload: 1 });
-  }, []);
+    dispatch({ type: 'SET_START', payload: itemsCount ?? 0 });
+  }, [itemsCount]);
 
   const onScroll = useCallback((e: MouseEvent) => {
     if (!e.target) {
       return;
     }
 
-    if ((e.target as HTMLElement).scrollTop === 0) {
+    const newScrollTop = (e.target as HTMLElement).scrollTop;
+
+    if (newScrollTop === 0) {
       dispatch({ type: 'SET_HAS_SCROLLED', payload: false });
     } else {
       dispatch({ type: 'SET_HAS_SCROLLED', payload: true });
