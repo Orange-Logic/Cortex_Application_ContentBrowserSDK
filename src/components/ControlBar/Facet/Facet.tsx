@@ -83,7 +83,7 @@ const Facet: FC<Props> = ({
         {loading && <cx-spinner></cx-spinner>}
       </cx-space>
       <cx-space direction="vertical">
-        <cx-tree selection="multiple" label-selects-single data-facet={type}>
+        <cx-tree selection="multiple" label-select-single data-facet={type}>
           {Object.entries(mappedSubtypes)
             .slice(0, page * ITEMS_PER_PAGE)
             .map(([key, value]) => {
@@ -104,7 +104,7 @@ const Facet: FC<Props> = ({
                     data-type={type}
                     readonly={loading}
                     selected={selected}
-                    disabled-sync-checkboxes={totalCount !== all ? true : undefined}
+                    partial-sync-checkboxes={totalCount < all ? true : undefined}
                   >
                     {mappedDisplayNames[key]} {!!all && `(${all})`}
                     {Object.entries(rest).map(([subtype, count]) => (

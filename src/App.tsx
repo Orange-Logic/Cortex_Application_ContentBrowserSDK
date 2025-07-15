@@ -51,7 +51,6 @@ type Props = {
   extraFields?: string[];
   loadExternalFonts?: boolean;
   multiSelect?: boolean;
-  publicApplicationName?: string;
   /**
    * Call back when we close the app modal.
    * Note: This only applicable when containerId is not defined
