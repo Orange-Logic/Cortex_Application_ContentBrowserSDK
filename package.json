@@ -2,8 +2,11 @@
   "name": "@orangelogic/orange-dam-content-browser-sdk",
   "version": "2.1.0",
   "description": "OrangeDAM Content Browser SDK source code",
-  "main": "index.js",
-  "homepage": "/",
+  "main": "build/OrangeDAMContentBrowserSDK.min.js",
+  "types": "build/index.d.ts",
+  "files": [
+    "build"
+  ],
   "author": "Orange Logic",
   "license": "MIT",
   "engines": {
@@ -23,9 +26,12 @@
     ]
   },
   "scripts": {
-    "build": "node scripts/build.js",
-    "start": "node scripts/start.js",
-    "test": "node scripts/test.js",
+    "start": "craco start",
+    "build": "npm run build:library && npm run build:types",
+    "build:library": "craco build",
+    "build:types": "tsc --declaration --emitDeclarationOnly --outDir build",
+    "test": "craco test --env=jsdom",
+    "eject": "react-scripts eject",
     "format": "eslint --fix .",
     "lint": "tsc --noEmit && eslint src/**/*.ts{,x}",
     "cypress:test": "cypress run --component --browser chrome"
@@ -63,10 +69,12 @@
     "eslint-plugin-react-hooks": "^5.1.0",
     "eslint-webpack-plugin": "^4.0.1",
     "glob": "^10.3.3",
-    "standard": "^17.1.0"
+    "standard": "^17.1.0",
+    "ts-loader": "^9.5.2"
   },
   "dependencies": {
     "@babel/core": "^7.16.0",
+    "@craco/craco": "^7.1.0",
     "@orangelogic-private/design-system": "^1.0.286",
     "@pmmmwh/react-refresh-webpack-plugin": "^0.5.3",
     "@reduxjs/toolkit": "^1.9.5",
@@ -116,6 +124,7 @@
     "react-redux": "^8.1.2",
     "react-refresh": "^0.11.0",
     "react-responsive-masonry": "2.1.7",
+    "react-scripts": "^5.0.1",
     "react-virtualized-auto-sizer": "^1.0.20",
     "resolve": "^1.20.0",
     "resolve-url-loader": "^5.0.0",

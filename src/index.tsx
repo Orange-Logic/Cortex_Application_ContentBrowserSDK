@@ -28,20 +28,20 @@ type OrangeDAMContentBrowser = {
      * Callback when asset(s) selected (deprecated)
      * @returns
      */
-    onImageSelected: AppContextType['onImageSelected'];
+    onImageSelected?: AppContextType['onImageSelected'];
     /**
      * Callback when asset(s) selected
      * @returns
      */
-    onAssetSelected: AppContextType['onAssetSelected'];
+    onAssetSelected?: AppContextType['onAssetSelected'];
     /**
      * Callback when we have any error while using content browser
      */
-    onError: AppContextType['onError'];
+    onError?: AppContextType['onError'];
     /**
      * Callback when we close the content browser
      */
-    onClose: () => void;
+    onClose?: () => void;
     /**
      * Callback when we need to request a token
      */
@@ -65,7 +65,7 @@ type OrangeDAMContentBrowser = {
     /**
      * whether you want to select multiple assets
      */
-    multiSelect: boolean;
+    multiSelect?: boolean;
     /**
      * The containerId to inject to component to
      * If not defined, we will create a new popup inside
@@ -408,7 +408,7 @@ const ContentBrowser: OrangeDAMContentBrowser = {
             containerId={containerId}
             extraFields={extraFields}
             loadExternalFonts={loadExternalFonts}
-            multiSelect={multiSelect}
+            multiSelect={!!multiSelect}
             onError={errorHandler}
             onAssetAction={assetActionHandler}
             onAssetSelected={assetSelectedHandler}
