@@ -1,5 +1,6 @@
 import LoadMoreButton from '@/components/Browser/LoadMoreButton';
-import { FC, useMemo, useState } from 'react';
+import { CxTreeItem } from '@orangelogic-private/design-system';
+import { FC, useEffect, useMemo, useRef, useState } from 'react';
 
 const ITEMS_PER_PAGE = 20;
 
@@ -13,6 +14,71 @@ type Props = {
   displayName: string;
   collections: string[];
   loading?: boolean;
+};
+
+const FacetTreeItemWithSubtypes: FC<{
+  itemKey: string;
+  type: string;
+  loading: boolean;
+  selected: boolean;
+  all: number;
+  rest: Record<string, number>;
+  mappedDisplayNames: Record<string, string>;
+  collections: string[];
+  partialSyncCheckbox?: boolean;
+}> = ({
+  itemKey,
+  type,
+  loading,
+  selected,
+  all,
+  rest,
+  mappedDisplayNames,
+  collections,
+  partialSyncCheckbox,
+}) => {
+  const ref = useRef<CxTreeItem>(null);
+
+  useEffect(() => {
+    const treeItem = ref.current;
+
+    if (!treeItem) {
+      return;
+    }
+
+    const hasSelectedChildren = Object.keys(rest).some(subtype => collections.includes(`${itemKey}>>${subtype}`));
+
+    if (!selected && !hasSelectedChildren) {
+      treeItem.previouslySelected = false;
+      treeItem.indeterminate = false;
+    } else if (hasSelectedChildren) {
+      treeItem.indeterminate = true;
+    }
+  }, [selected, collections, rest, itemKey]);
+
+  return (
+    <cx-tree-item
+      ref={ref}
+      data-value={itemKey}
+      data-type={type}
+      readonly={loading}
+      selected={selected}
+      partial-sync-checkboxes={partialSyncCheckbox}
+    >
+      {mappedDisplayNames[itemKey]} {!!all && `(${all})`}
+      {Object.entries(rest).map(([subtype, count]) => (
+        <cx-tree-item
+          key={subtype}
+          data-value={`${itemKey}>>${subtype}`}
+          data-type={type}
+          readonly={loading}
+          selected={collections.includes(`${itemKey}>>${subtype}`)}
+        >
+          {mappedDisplayNames[`${itemKey}>>${subtype}`]} ({count})
+        </cx-tree-item>
+      ))}
+    </cx-tree-item>
+  );
 };
 
 const Facet: FC<Props> = ({
@@ -98,27 +164,20 @@ const Facet: FC<Props> = ({
                 );
 
                 return (
-                  <cx-tree-item
+                  <FacetTreeItemWithSubtypes
                     key={key}
-                    data-value={key}
-                    data-type={type}
-                    readonly={loading}
+                    itemKey={key}
+                    type={type}
+                    loading={loading}
                     selected={selected}
-                    partial-sync-checkboxes={totalCount < all ? true : undefined}
-                  >
-                    {mappedDisplayNames[key]} {!!all && `(${all})`}
-                    {Object.entries(rest).map(([subtype, count]) => (
-                      <cx-tree-item
-                        key={subtype}
-                        data-value={`${key}>>${subtype}`}
-                        data-type={type}
-                        readonly={loading}
-                        selected={collections.includes(`${key}>>${subtype}`)}
-                      >
-                        {mappedDisplayNames[`${key}>>${subtype}`]} ({count})
-                      </cx-tree-item>
-                    ))}
-                  </cx-tree-item>
+                    all={all}
+                    rest={rest}
+                    mappedDisplayNames={mappedDisplayNames}
+                    collections={collections}
+                    partialSyncCheckbox={
+                      totalCount < all ? true : undefined
+                    }
+                  />
                 );
               }
               return (

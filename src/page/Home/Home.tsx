@@ -625,21 +625,6 @@ const HomePage: FC<Props> = () => {
     }
   }, [debouncedHandleResize, state.view]);
 
-  useEffect(() => {
-    /**
-     * https://link.orangelogic.com/Tasks/41Q8ZR
-     * Default behavior for Types should be all types selected.
-     * If at any point the Types facet group have no facet selected, then all facets of the group Types should be selected
-     */
-    if (Object.values(state.selectedFacets).every(facet => facet.length === 0)) {
-      dispatch({ type: 'SET_FILTERS', payload: state.facets.reduce((acc, facet) => {
-        acc[facet.facetDetails.facetFieldName] = facet.values.map(value => value.value);
-        return acc;
-      }, {} as Record<string, string[]>),
-      });
-    }
-  }, [state.facets, state.selectedFacets]);
-
   const onSettingChange = useCallback(
     (
       setting: string,

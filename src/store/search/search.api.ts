@@ -14,8 +14,6 @@ import { isNullOrWhiteSpace } from '@/utils/string';
 import { createApi, retry } from '@reduxjs/toolkit/query/react';
 import { FOLDER_PAGE_SIZE } from '@/utils/constants';
 
-const NATURAL_SORT_ORDER_REFERENCE_ID = 'OR4ND000000063615';
-
 const resolveFolderExtraFilters = ({
   searchText,
   folder,
@@ -86,32 +84,29 @@ export const searchApi = createApi({
         start?: number;
         pageSize?: number;
       }) => {
-        const params = [
-          [
-            'extraFilters',
-            resolveFolderExtraFilters({ searchText, folder, allowedFolders }),
-          ],
-          ['fields', FIELD_CORTEX_PATH],
-          ['fields', FIELD_DOC_TYPE],
-          ['fields', FIELD_TITLE_WITH_FALLBACK],
-          ['fields', FIELD_HAS_BROWSER_CHILDREN],
-          ['orderBy', NATURAL_SORT_ORDER_REFERENCE_ID],
-        ];
+        const params = [];
 
         if (start || start >= 0) {
-          params.push(['start', start.toString()]);  
+          params.push(['Start', start.toString()]);  
+        }
+
+        if (searchText) {
+          params.push(['Text', searchText]);
         }
 
         if (pageSize) {
-          params.push(['limit', pageSize.toString()]);
-        }
-        
-        if (folder.id) {
-          params.push(['objectRecordID', folder.id]);
+          params.push(['Limit', pageSize.toString()]);
         }
 
-        if (!isNullOrWhiteSpace(searchText) || (allowedFolders && allowedFolders.length > 0) ) {
-          params.push(['seeThru', 'true']);
+        if (allowedFolders?.length && !folder.id) {
+          allowedFolders.forEach((item) => {
+            params.push(['ObjectRecordIDs', item]);
+          });
+          params.push(['Self', 'true']);
+          params.push(['IncludeDirectChild', 'false']);
+        } else if (folder.id) {
+          params.push(['ObjectRecordIDs', folder.id]);
+          params.push(['IncludeDirectChild', 'true']);
         }
 
         if (useSession) {
@@ -119,7 +114,7 @@ export const searchApi = createApi({
         }
 
         return {
-          url: '/webapi/extensibility/integrations/contentBrowserSDK/getcontent_4bw_v1',
+          url: '/webapi/extensibility/integrations/gab/assetbrowser/gethierarchy_41e8',
           params,
         };
       },

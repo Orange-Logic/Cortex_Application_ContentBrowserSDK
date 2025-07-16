@@ -152,15 +152,13 @@ const ControlBar: FC<Props> = ({
             return acc;
           }
 
-          const copiedAcc = { ...acc };
-
-          if (!selectedFacets[type]) {
-            copiedAcc[type] = [];
+          if (!acc[type]) {
+            acc[type] = [];
           }
 
-          copiedAcc[type].push(value);
+          acc[type].push(value);
 
-          return copiedAcc;
+          return acc;
         },
         {
           ...selectedFacets,
@@ -268,7 +266,7 @@ const ControlBar: FC<Props> = ({
             return values.map((value) => {
               return (
                 <cx-tag
-                  key={key}
+                  key={value}
                   removable
                   data-value={value}
                   data-type={key}

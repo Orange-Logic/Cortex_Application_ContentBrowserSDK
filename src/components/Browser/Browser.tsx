@@ -147,7 +147,7 @@ const Browser: FC<Props> = ({
       if (!folders) return;
       if (allowedFolders && allowedFolders.length > 0) {
         const allowedFolder = folders.find((item) =>
-          allowedFolders.includes(item.fullPath),
+          allowedFolders.includes(item.id),
         );
 
         if (allowedFolder) {
