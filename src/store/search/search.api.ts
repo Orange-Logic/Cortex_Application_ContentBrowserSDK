@@ -422,6 +422,7 @@ export const searchApi = createApi({
       },
     }),
     getAssetById: builder.query({
+      keepUnusedDataFor: 0,
       query: ({
         id,
         useSession,

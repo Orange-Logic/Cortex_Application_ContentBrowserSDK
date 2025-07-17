@@ -14,9 +14,11 @@ module.exports = {
       const miniCssExtractPluginIndex = webpackConfig.plugins.findIndex(
         ({ constructor }) => constructor && constructor.name === 'MiniCssExtractPlugin',
       );
-      
-      webpackConfig.plugins[miniCssExtractPluginIndex].options.filename = 'OrangeDAMContentBrowserSDK.min.css';
 
+      if (miniCssExtractPluginIndex !== -1) {
+        webpackConfig.plugins[miniCssExtractPluginIndex].options.filename = 'OrangeDAMContentBrowserSDK.min.css';
+      }
+      
       delete webpackConfig.output.chunkFilename;
 
       const terserPluginIndex = webpackConfig.optimization.minimizer.findIndex(
