@@ -259,7 +259,7 @@ export const searchApi = createApi({
       query: ({
         folderID,
         isSeeThrough,
-        limitedToDocTypes,
+        limitedToDocTypes = [],
         pageSize,
         searchText,
         selectedFacets,
@@ -269,7 +269,6 @@ export const searchApi = createApi({
       }: GetContentRequest) => {
         const mappedLimitedToDocTypes = limitedToDocTypes.map((docType) => ['limitedToDocTypes', docType]);
         const params = [
-          ['objectRecordID', folderID],
           ['fields', FIELD_TITLE_WITH_FALLBACK],
           ['fields', DEFAULT_VIEW_SIZE],
           ['fields', ORIGINAL_VIEW_SIZE],
@@ -284,10 +283,19 @@ export const searchApi = createApi({
           ['fields', FIELD_RECORD_ID],
           ['fields', FIELD_ORIGINAL_FILE_NAME],
           ['fields', FIELD_UPDATED_FILE_NAME],
-          ['seeThru', isSeeThrough],
-          ['start', start],
-          ['limit', pageSize],
+          ['seeThru', !!isSeeThrough],
         ];
+
+        if (folderID !== undefined && folderID !== null) {
+          params.push(['objectRecordID', folderID]);
+        }
+        if (start !== undefined && start !== null) {
+          params.push(['start', start.toString()]);
+        }
+        if (pageSize !== undefined && pageSize !== null) {
+          params.push(['limit', pageSize.toString()]);
+        }
+
         const fieldFilters = resolveAssetExtraFilters(selectedFacets);
 
         fieldFilters.forEach((filter) => {
@@ -365,7 +373,7 @@ export const searchApi = createApi({
         ];
       },
       merge: (currentCachedData, responseData, request) => {
-        if (request.arg.start > 0) {
+        if (request.arg.start && request.arg.start > 0) {
           return {
             ...currentCachedData,
             items: _uniqBy([...currentCachedData.items, ...responseData.items], 'recordId'),

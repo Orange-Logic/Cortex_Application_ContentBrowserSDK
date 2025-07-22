@@ -20,6 +20,8 @@ import {
 import { assetsApi } from './store/assets/assets.api';
 import { searchApi } from './store/search/search.api';
 import { userApi } from './store/user/user.api';
+import { Asset, Facet, GetContentRequest } from './types/search';
+import { ContentBrowserApiService } from './ApiService';
 
 type OrangeDAMContentBrowser = {
   help: () => void;
@@ -180,6 +182,11 @@ type OrangeDAMContentBrowser = {
     loadExternalFonts?: boolean;
   }) => Promise<void>;
   close: () => void;
+  fetchAssets: (params: GetContentRequest) => Promise<{
+    facets: Facet[];
+    items: Asset[];
+    totalCount: number;
+  } | undefined>;
   previewAsset?: (assetId: string) => void;
   /**
    * Global function which mirrored the behavior of onAssetSelected
@@ -424,6 +431,9 @@ const ContentBrowser: OrangeDAMContentBrowser = {
   },
   close: () => {
     window.OrangeDAMContentBrowser._onClose?.();
+  },
+  fetchAssets: (params: GetContentRequest) => {
+    return ContentBrowserApiService.fetchAssets(params);
   },
   previewAsset: (recordId: string) => {
     store.dispatch(setSelectedAssetId(recordId));

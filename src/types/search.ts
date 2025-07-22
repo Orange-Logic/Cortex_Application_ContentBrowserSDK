@@ -53,14 +53,14 @@ export type GetContentResponse = {
 };
 
 export type GetContentRequest = {
-  folderID: string;
-  isSeeThrough: boolean;
-  limitedToDocTypes: string[];
-  pageSize: number;
-  searchText: string;
+  folderID?: string;
+  isSeeThrough?: boolean;
+  limitedToDocTypes?: string[];
+  pageSize?: number;
+  searchText?: string;
   selectedFacets?: Record<string, string[]>;
   sortOrder?: string;
-  start: number;
+  start?: number;
   useSession?: string;
 };
 
