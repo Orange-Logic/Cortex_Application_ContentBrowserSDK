@@ -12,6 +12,9 @@
       user's mobile device or desktop. See https://developers.google.com/web/fundamentals/web-app-manifest/
     -->
   <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+  <!-- <link rel="stylesheet" href="http://192.168.1.198:8080/css/ol-light.css" />
+  <script type="module" src="http://192.168.1.198:8080/entry.latest.js"></script> -->
+
   <!--
       Notice the use of %PUBLIC_URL% in the tags above.
       It will be replaced with the URL of the `public` folder during the build.
@@ -54,7 +57,13 @@
     const debugCBSDK = () => {
       const settings = {
         onAssetSelected: function (assets) {
-          console.log(assets);
+          return new Promise((resolve) => {
+            console.log('Asset selected:', assets);
+            setTimeout(() => {
+              console.log('Timeout completed, returning to Content Browser');
+              resolve();
+            }, 5000);
+          });
         },
         onError: console.error,
         // baseUrl: "local.orangelogic.com",
@@ -78,7 +87,12 @@
         allowTracking: true,
         allowFavorites: true,
         showVersions: true,
+        loadExternalFonts: false,
+        lastLocationMode: true,
         onClose: () => { },
+        onTokenChanged: (token) => {
+          console.log('Token changed:', token);
+        },
       }
       settings.onClose = () => {
         console.log('Content Browser closed, reopening ...');
