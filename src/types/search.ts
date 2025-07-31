@@ -90,6 +90,15 @@ export type GetFavoritesResponse = {
   favoriteRecordIds: string[] | null;
 };
 
+export type GetFoldersRequest = {
+  allowedFolders?: string[];
+  folder?: Folder;
+  searchText: string;
+  useSession?: string;
+  start?: number;
+  pageSize?: number;
+};
+
 export enum MediaType {
   Album = 'Album',
   Audio = 'Audio',

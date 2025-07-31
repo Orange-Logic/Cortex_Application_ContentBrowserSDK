@@ -8,7 +8,7 @@ import {
   FIELD_ORIGINAL_FILE_NAME,
   FIELD_UPDATED_FILE_NAME,
 } from '@/consts/data';
-import { Asset, Facet, Folder, GetContentRequest, GetContentResponse, GetFavoritesResponse } from '@/types/search';
+import { Asset, Facet, Folder, GetContentRequest, GetContentResponse, GetFavoritesResponse, GetFoldersRequest } from '@/types/search';
 import { AppBaseQuery, GetValueByKeyCaseInsensitive } from '@/utils/api';
 import { isNullOrWhiteSpace } from '@/utils/string';
 import { createApi, retry } from '@reduxjs/toolkit/query/react';
@@ -76,14 +76,7 @@ export const searchApi = createApi({
         useSession,
         start = 0,
         pageSize = FOLDER_PAGE_SIZE,
-      }: {
-        allowedFolders?: string[];
-        folder: Folder;
-        searchText: string;
-        useSession?: string;
-        start?: number;
-        pageSize?: number;
-      }) => {
+      }: GetFoldersRequest) => {
         const params = [];
 
         if (start || start >= 0) {
@@ -99,13 +92,13 @@ export const searchApi = createApi({
           params.push(['Limit', pageSize.toString()]);
         }
 
-        if (allowedFolders?.length && !folder.id) {
+        if (allowedFolders?.length && !folder?.id) {
           allowedFolders.forEach((item) => {
             params.push(['ObjectRecordIDs', item]);
           });
           params.push(['Self', 'true']);
           params.push(['IncludeDirectChild', 'false']);
-        } else if (folder.id) {
+        } else if (folder?.id) {
           params.push(['ObjectRecordIDs', folder.id]);
           params.push(['IncludeDirectChild', 'true']);
         }
@@ -137,11 +130,11 @@ export const searchApi = createApi({
                   GetValueByKeyCaseInsensitive(item.fields, FIELD_TITLE_WITH_FALLBACK) ?? '',
                   docType:
                   GetValueByKeyCaseInsensitive(item.fields, FIELD_DOC_TYPE) ?? '',
-                  path: [...arg.folder.path, arg.folder.title],
+                  path: arg.folder ? [...arg.folder.path, arg.folder.title] : [],
                   fullPath: (
                     GetValueByKeyCaseInsensitive(item.fields, FIELD_CORTEX_PATH) ?? ''
                   ).replace(/^Root\//i, ''),
-                  parents: [...arg.folder.parents, arg.folder],
+                  parents: arg.folder ? [...arg.folder.parents, arg.folder] : [],
                   hasChildren: (GetValueByKeyCaseInsensitive(item.fields, FIELD_HAS_BROWSER_CHILDREN) ?? '0') === '1',
                 };
               }) ?? []
@@ -150,7 +143,7 @@ export const searchApi = createApi({
         };
       },
       providesTags: (_result, _error, arg) => {
-        return [{ type: 'Folders', id: arg.folder.id }];
+        return [{ type: 'Folders', id: arg.folder?.id ?? 'Root' }];
       },
       merge: (currentCachedData, responseData, request) => {
         if (request.arg.start && request.arg.start > 0) {

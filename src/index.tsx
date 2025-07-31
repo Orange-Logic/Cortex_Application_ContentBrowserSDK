@@ -20,7 +20,7 @@ import {
 import { assetsApi } from './store/assets/assets.api';
 import { searchApi } from './store/search/search.api';
 import { userApi } from './store/user/user.api';
-import { Asset, Facet, GetContentRequest } from './types/search';
+import { Asset, Facet, Folder, GetContentRequest, GetFoldersRequest } from './types/search';
 import { ContentBrowserApiService } from './ApiService';
 
 type OrangeDAMContentBrowser = {
@@ -185,6 +185,10 @@ type OrangeDAMContentBrowser = {
   fetchAssets: (params: GetContentRequest) => Promise<{
     facets: Facet[];
     items: Asset[];
+    totalCount: number;
+  } | undefined>;
+  fetchFolders: (params: GetFoldersRequest) => Promise<{
+    items: Folder[];
     totalCount: number;
   } | undefined>;
   previewAsset?: (assetId: string) => void;
@@ -434,6 +438,9 @@ const ContentBrowser: OrangeDAMContentBrowser = {
   },
   fetchAssets: (params: GetContentRequest) => {
     return ContentBrowserApiService.fetchAssets(params);
+  },
+  fetchFolders: (params: GetFoldersRequest) => {
+    return ContentBrowserApiService.fetchFolders(params);
   },
   previewAsset: (recordId: string) => {
     store.dispatch(setSelectedAssetId(recordId));
