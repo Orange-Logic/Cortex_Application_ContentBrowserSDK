@@ -35,7 +35,7 @@ const Quality = ({ open, quality, onChange }: Props) => {
   const handleQualityChange = _debounce((e: FormEvent<CxInput>) => {
     const newValue = (e.target as HTMLInputElement).value;
     const newQuality = Number(newValue);
-    if (!newValue || isNaN(newQuality) || newQuality < 0 || newQuality > 100) {
+    if (!newValue || isNaN(newQuality) || newQuality < 1 || newQuality > 100) {
       setInvalidQuality(true);
     } else {
       setInvalidQuality(false);
@@ -63,12 +63,11 @@ const Quality = ({ open, quality, onChange }: Props) => {
             disabled={!isDefined}
             type="number"
             value={isDefined ? value.toString() : ''}
-            min="0"
+            min="1"
             max="100"
             step="1"
             onInput={handleQualityChange}
           >
-            Preserve metadata
           </cx-input>
         </cx-tooltip>
         <cx-button
