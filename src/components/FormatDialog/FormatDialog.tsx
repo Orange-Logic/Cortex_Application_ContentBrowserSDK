@@ -1664,15 +1664,15 @@ const FormatDialog: FC<Props> = ({
                 return;
               }
 
-              if (!selectedProxy) {
+              if (!selectedProxy && !state.useRepresentative) {
                 return;
               }
 
               dispatch({ type: 'SET_LOADING_CONFIRM', payload: true });
               await onProxyConfirm({
-                extension: selectedProxy.extension ?? selectedAsset.extension,
-                value: selectedProxy.proxyName,
-                permanentLink: selectedProxy.permanentLink ?? undefined,
+                extension: selectedProxy?.extension ?? selectedAsset.extension,
+                value: selectedProxy?.proxyName ?? '',
+                permanentLink: selectedProxy?.permanentLink ?? undefined,
                 parameters: state.enabledTracking
                   ? state.trackingParameters
                   : undefined,
