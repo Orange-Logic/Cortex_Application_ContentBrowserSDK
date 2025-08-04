@@ -69,6 +69,7 @@ export const searchApi = createApi({
   tagTypes: ['Folders', 'Images', 'ImagesInFolders'],
   endpoints: (builder) => ({
     getFolders: builder.query({
+      keepUnusedDataFor: 0,
       query: ({
         allowedFolders,
         folder,
@@ -165,6 +166,7 @@ export const searchApi = createApi({
       },
     }),
     getCollections: builder.query({
+      keepUnusedDataFor: 0,
       query: ({
         folder,
         searchText,
@@ -249,6 +251,7 @@ export const searchApi = createApi({
       },
     }),
     getAssets: builder.query({
+      keepUnusedDataFor: 0,
       query: ({
         folderID,
         isSeeThrough,
