@@ -8,7 +8,7 @@ export type AppContextType = {
   onImageSelected: (image: GetAssetLinkResponse[]) => void;
   onError: (errorMessage?: string, error?: Error) => void;
   onClose: () => void;
-  onConnectClicked: () => void;
+  onConnectClicked?: (url: string) => void;
   onTokenChanged?: (token: string) => void;
 };
 

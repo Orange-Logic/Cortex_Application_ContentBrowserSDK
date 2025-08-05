@@ -59,7 +59,13 @@ type OrangeDAMContentBrowser = {
      * without using its predefined method.
      * https://www.canva.dev/docs/apps/design-guidelines/external-links/#only-open-links-with-requestopenexternalurl
      */
-    onConnectClicked?: () => void;
+    onConnectClicked?: (url: string) => void;
+
+    /**
+     * Callback when the site url is changed
+     * this is used to sync CBSDK site url with external integrations
+     */
+    onSiteUrlChanged?: (siteUrl: string) => void;
     /**
      * Callback when the token is changed
      */
@@ -305,6 +311,7 @@ const ContentBrowser: OrangeDAMContentBrowser = {
     allowFavorites,
     allowLogout,
     onConnectClicked,
+    onSiteUrlChanged,
   }) => {
     let container = containerId && document.getElementById(containerId);
     if (!containerId) {
@@ -425,9 +432,9 @@ const ContentBrowser: OrangeDAMContentBrowser = {
             onAssetSelected={assetSelectedHandler}
             onImageSelected={imageSelectedHandler}
             onClose={handleClose}
-            onConnectClicked={onConnectClicked!}
+            onConnectClicked={onConnectClicked}
             onTokenChanged={onTokenChangedHandler}
-            
+            onSiteUrlChanged={onSiteUrlChanged}
           />
         </GlobalConfigContext.Provider>
       </Provider>,

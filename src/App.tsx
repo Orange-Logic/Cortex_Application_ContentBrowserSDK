@@ -36,7 +36,7 @@ import '@orangelogic-private/design-system/components/typography';
 import '@orangelogic-private/design-system/css/ol-light.css';
 import '@orangelogic-private/design-system/react-types';
 
-import { FC, useCallback, useEffect, useMemo, useState } from 'react';
+import { FC, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import styled from 'styled-components';
 import WebFont from 'webfontloader';
 
@@ -44,7 +44,7 @@ import { AppContext, AppContextType } from '@/AppContext';
 import AssetsPicker from '@/view/AssetsPicker';
 
 import { useAppSelector } from './store';
-import { accessTokenSelector } from './store/auth/auth.slice';
+import { accessTokenSelector, siteUrlSelector } from './store/auth/auth.slice';
 
 type Props = {
   containerId?: string;
@@ -61,8 +61,9 @@ type Props = {
   onAssetAction: AppContextType['onAssetAction'];
   onAssetSelected: AppContextType['onAssetSelected'];
   onImageSelected: AppContextType['onImageSelected'];
-  onConnectClicked: () => void;
+  onConnectClicked?: (url: string) => void;
   onTokenChanged?: (token: string) => void;
+  onSiteUrlChanged?: (siteUrl: string) => void;
 };
 
 const Container = styled.div<{ open?: boolean }>`
@@ -88,8 +89,10 @@ export const App: FC<Props> = ({
   onImageSelected,
   onConnectClicked,
   onTokenChanged,
+  onSiteUrlChanged,
 }) => {
   const accessToken = useAppSelector(accessTokenSelector);
+  const siteUrl = useAppSelector(siteUrlSelector);
   const [open, setOpen] = useState(true);
 
   useEffect(() => {
@@ -116,6 +119,12 @@ export const App: FC<Props> = ({
       onTokenChanged(accessToken);
     }
   }, [accessToken, onTokenChanged]);
+
+  useEffect(() => {
+    if (onSiteUrlChanged && siteUrl) {
+      onSiteUrlChanged(siteUrl);
+    }
+  }, [siteUrl, onSiteUrlChanged]);
 
   const handleClose = useCallback(() => {
     setOpen(false);

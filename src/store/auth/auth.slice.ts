@@ -179,7 +179,7 @@ export const cancelAuth = createAsyncThunk(`${AUTH_FEATURE_KEY}/oauth`, (_, { di
   }
 });
 
-export const oAuth = createAsyncThunk<OAuthRes, { siteUrl: string, callbackFn?: () => void }>(
+export const oAuth = createAsyncThunk<OAuthRes, { siteUrl: string, callbackFn?: (url: string) => void }>(
   `${AUTH_FEATURE_KEY}/oauth`,
 async ({ siteUrl, callbackFn }, { rejectWithValue, dispatch, getState }) => {
   dispatch(authSlice.actions.setSiteUrl(siteUrl));
@@ -195,7 +195,7 @@ async ({ siteUrl, callbackFn }, { rejectWithValue, dispatch, getState }) => {
     const requestID = resp.requestID;
     const popupUrl = appAuthUrlSelector(getState() as RootState);
     dispatch(authSlice.actions.setAuthStatus('waitForAuthorise'));
-    if (callbackFn) callbackFn();
+    if (callbackFn) callbackFn(siteUrl);
     else window.open(popupUrl, '_blank');
     const getAccessKeyData = await getAccessKeyService(requestID);
     if (getAccessKeyData.accessKey) {
