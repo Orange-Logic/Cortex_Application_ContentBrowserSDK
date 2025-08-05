@@ -195,7 +195,7 @@ async ({ siteUrl, callbackFn }, { rejectWithValue, dispatch, getState }) => {
     const requestID = resp.requestID;
     const popupUrl = appAuthUrlSelector(getState() as RootState);
     dispatch(authSlice.actions.setAuthStatus('waitForAuthorise'));
-    if (callbackFn) callbackFn(siteUrl);
+    if (callbackFn) callbackFn(popupUrl);
     else window.open(popupUrl, '_blank');
     const getAccessKeyData = await getAccessKeyService(requestID);
     if (getAccessKeyData.accessKey) {
