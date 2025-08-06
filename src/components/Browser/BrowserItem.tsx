@@ -7,14 +7,19 @@ import type { CxCollapseEvent, CxTreeItem } from '@orangelogic-private/design-sy
 import { FOLDER_PAGE_SIZE } from '@/utils/constants';
 import LoadMoreButton from './LoadMoreButton';
 
+const escapeRegExp = (str: string) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 export const getHighlightedTitle = (title: string, searchText?: string) => {
   if (!searchText) return title;
-  const searchWords = searchText.toLowerCase().split(' ').filter(Boolean);
-  const regex = new RegExp(`(${searchWords.join('|')})`, 'gi');
+
+  const originalWords = searchText.toLowerCase().split(' ').filter(Boolean);
+  const escapedWords = originalWords.map(escapeRegExp);
+  const regex = new RegExp(`(${escapedWords.join('|')})`, 'gi');
+
   const parts = title.split(regex);
 
   return parts.map((part, index) =>
-    searchWords.includes(part.toLowerCase()) ? <strong key={index}>{part}</strong> : part,
+    originalWords.includes(part.toLowerCase()) ? <strong key={index}>{part}</strong> : part,
   );
 };
 
