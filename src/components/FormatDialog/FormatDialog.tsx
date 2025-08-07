@@ -111,7 +111,7 @@ type State = {
 };
 
 type Action =
-  | { type: 'CANCEL_USE_CUSTOM_RENDITION'; payload: { width: number; height: number, url: string, originalUrl: string, extension: string } }
+  | { type: 'CANCEL_USE_CUSTOM_RENDITION'; payload: { width: number; height: number, url: string, originalUrl: string, extension: string, useCustomRendition: boolean } }
   | { type: 'CONFIRM_USE_CUSTOM_RENDITION' }
   | { type: 'RESET_DATA' }
   | { type: 'SET_ACTIVE_SETTING'; payload: string }
@@ -249,7 +249,6 @@ const reducer = (state: State, action: Action): State => {
         rotation: 0,
         transformations: [],
         showCustomRendition: false,
-        useCustomRendition: false,
         activeSetting: 'resize',
       };
     case 'CONFIRM_USE_CUSTOM_RENDITION':
@@ -396,7 +395,6 @@ const reducer = (state: State, action: Action): State => {
         // Remove selected proxy when custom rendition is selected
         selectedProxy: '',
         showCustomRendition: action.payload,
-        useCustomRendition: false,
       };
     case 'SET_SHOW_VERSION_HISTORY':
       return {
@@ -1622,16 +1620,32 @@ const FormatDialog: FC<Props> = ({
             <cx-button
               variant="default"
               onClick={() => {
-                dispatch({
-                  type: 'CANCEL_USE_CUSTOM_RENDITION',
-                  payload: {
-                    url: selectedAsset?.imageUrl ?? '',
-                    originalUrl: selectedAsset?.originalUrl ?? '',
-                    width: parseInt(selectedAsset?.width ?? '0', 10),
-                    height: parseInt(selectedAsset?.height ?? '0', 10),
-                    extension: selectedAsset?.extension ?? '',
-                  },
-                });
+                if (state.useCustomRendition) {
+                  dispatch({
+                    type: 'CANCEL_USE_CUSTOM_RENDITION',
+                    payload: {
+                      url: state.selectedFormat.url,
+                      originalUrl: state.selectedFormat.originalUrl,
+                      width: state.selectedFormat.width,
+                      height: state.selectedFormat.height,
+                      extension: state.selectedFormat.extension,
+                      useCustomRendition: true,
+                    },
+                  });
+                } else {
+                  dispatch({
+                    type: 'CANCEL_USE_CUSTOM_RENDITION',
+                    payload: {
+                      url: selectedAsset?.imageUrl ?? '',
+                      originalUrl: selectedAsset?.originalUrl ?? '',
+                      width: parseInt(selectedAsset?.width ?? '0', 10),
+                      height: parseInt(selectedAsset?.height ?? '0', 10),
+                      extension: selectedAsset?.extension ?? '',
+                      useCustomRendition: false,
+                    },
+                  });
+                }
+
               }}
             >
               Cancel

@@ -36,7 +36,7 @@ import '@orangelogic-private/design-system/components/typography';
 import '@orangelogic-private/design-system/css/ol-light.css';
 import '@orangelogic-private/design-system/react-types';
 
-import { FC, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { FC, useCallback, useEffect, useMemo, useState } from 'react';
 import styled from 'styled-components';
 import WebFont from 'webfontloader';
 
