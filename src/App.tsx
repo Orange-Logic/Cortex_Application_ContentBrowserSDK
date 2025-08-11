@@ -35,6 +35,7 @@ import '@orangelogic-private/design-system/components/tree-item';
 import '@orangelogic-private/design-system/components/typography';
 import '@orangelogic-private/design-system/css/ol-light.css';
 import '@orangelogic-private/design-system/react-types';
+import '@orangelogic-private/design-system/components/copy-button';
 
 import { FC, useCallback, useEffect, useMemo, useState } from 'react';
 import styled from 'styled-components';

@@ -36,7 +36,10 @@ const RequestLogin: FC<Props> = ({ onCancel }) => {
   return (
     <ConnectingBackground onCancel={onCancel}>
       <cx-typography variant="h3">
-        Requesting login url from {siteUrl}
+        Requesting login url from 
+        <cx-typography variant="body1" style={{ overflowWrap:'break-word', lineBreak:'anywhere' }}>
+          {siteUrl}
+        </cx-typography>
       </cx-typography>
     </ConnectingBackground>
   );
@@ -45,17 +48,45 @@ const RequestLogin: FC<Props> = ({ onCancel }) => {
 const WaitForAuthorize: FC<Props> = ({ onCancel }) => {
   const appAuthUrl = useAppSelector(appAuthUrlSelector);
   const { pluginInfo } = useContext(GlobalConfigContext);
-
+  
   return (
     <ConnectingBackground
       footer={
-        <>
+        <cx-space spacing="small" direction="vertical">
           <cx-typography variant="body2">
+          <cx-space spacing="3x-small" direction="horizontal" alignItems="center" justifyContent="center" >
             I was not redirected automatically?
+            <cx-tooltip >
+              <cx-icon
+                name="error_outline"
+                aria-hidden="true"
+                variant="outlined"
+                style={{ cursor:'default' }}
+              />
+              <div slot="content" style={{ maxWidth: '250px', justifyContent:'center' }}>
+                Some platforms or browsers may block automatic redirection
+              </div>
+            </cx-tooltip>
+          </cx-space>
           </cx-typography>
-
-          <a href={appAuthUrl} target="_blank" rel="noopener noreferrer">{appAuthUrl}</a>
-        </>
+          <cx-typography variant="body2">
+            Please copy the following URL and open it in a new tab or window:
+          </cx-typography>
+          <cx-typography variant="body3">
+            <cx-space spacing="3x-small" direction="horizontal" wrap="nowrap" alignItems="center" justifyContent="center"> 
+              <a
+                id="OL-redirect-url"
+                href={appAuthUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ minWidth: 0, flexShrink: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+              >
+                {appAuthUrl}
+              </a>
+              <cx-copy-button size="small" from="OL-redirect-url[href]"/>
+            </cx-space>
+          </cx-typography>
+        </cx-space>
       }
       onCancel={onCancel}
     >

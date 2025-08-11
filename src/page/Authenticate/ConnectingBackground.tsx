@@ -13,6 +13,7 @@ const ConnectingBackground: FC<Props> = ({ children, footer, onCancel }) => {
       spacing="large"
       align-items="center"
       justify-content="center"
+      block
       style={{
         height: '100%',
         overflowY: 'auto',
