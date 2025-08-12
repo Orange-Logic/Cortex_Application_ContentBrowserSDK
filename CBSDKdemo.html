@@ -167,15 +167,19 @@
         <li>
           <b>availableDocTypes</b>
           <p>
-            An array of available OrangeDAM asset types to filter the assets.
-            The available doc types will be configured in OL Platform. If not provided, all doc types will be available.
-            To get the available asset of a doc type, you can add a wildcard (*) at the end of the doc type name.
-            <br/>
-            <span>E.g. Images*, Videos*, Audio*, Others*,...</span>
+            An array of OrangeDAM asset types used to filter the displayed assets.
+            These types are configured in the OL Platform. If not provided, all asset types will be shown.
+            Currently, supported types include:
+            <ul>
+              <li>DO_DOCUMENTS.Image_DbBO.*</li>
+              <li>DO_DOCUMENTS.Audio_DbBO.*</li>
+              <li>DO_DOCUMENTS.Multimedia_DbBO.*</li>
+              <li>DO_DOCUMENTS.Video_DbBO.*</li>
+            </ul>
           </p>
           <p>
             <small>
-              Note: The asset types are case-sensitive.
+              Note: Asset type names are case-sensitive.
             </small>
           </p>
         </li>
@@ -266,7 +270,7 @@
         },
         onError: (errorMessage, error) => {
         },
-        availableDocTypes: ['Images*', 'Videos*', 'Audio*', 'Others*'],
+        availableDocTypes: ['DO_DOCUMENTS.Image_DbBO.*', 'DO_DOCUMENTS.Audio_DbBO.*', 'DO_DOCUMENTS.Multimedia_DbBO.*', 'DO_DOCUMENTS.Video_DbBO.*'],
         availableRepresentativeSubtypes: ['Other'],
         // container element to attach, leave blank to open popup 
         containerId: 'react-app-root',

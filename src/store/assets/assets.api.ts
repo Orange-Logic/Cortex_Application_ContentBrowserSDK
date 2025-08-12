@@ -10,7 +10,6 @@ const Parameters = {
   ExtensionsThatSupportTransformationUsingATS: 'ExtensionsThatSupportTransformationUsingATS',
   EnableATSInGetLink: 'EnableATSInGetLink',
   CollectionSubtypeCriteria: 'CollectionSubtypeCriteria',
-  SupportDocTypes: 'SupportedDocSubTypesV2',
   RepresentativeSupportedDocSubType: 'RepresentativeSupportedDocSubType',
   ExtensionAuto: 'ExtensionAuto',
 };
@@ -114,7 +113,6 @@ export const assetsApi = createApi({
       collectionPath: string;
       supportedExtensions: string[];
       supportedRepresentativeSubtypes: string[];
-      supportedDocTypes: string[];
     }, {
       useSession?: string;
     }>({
@@ -134,7 +132,6 @@ export const assetsApi = createApi({
         return {
           ATSEnabled: response[Parameters.EnableATSInGetLink].toLowerCase() === 'true',
           collectionPath: response[Parameters.CollectionSubtypeCriteria]?.toLowerCase() ?? '',
-          supportedDocTypes: response[Parameters.SupportDocTypes]?.split(/\r?\n/) ?? [],
           supportedExtensions: response[Parameters.ExtensionsThatSupportTransformationUsingATS]?.split('\n') ?? [],
           supportedRepresentativeSubtypes: response[Parameters.RepresentativeSupportedDocSubType]?.split('\r\n') ?? [],
           autoExtension: response[Parameters.ExtensionAuto]?.toLowerCase() ?? '.auto',

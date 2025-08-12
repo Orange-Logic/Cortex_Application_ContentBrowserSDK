@@ -264,7 +264,6 @@ const HomePage: FC<Props> = () => {
     ATSEnabled,
     autoExtension = '.auto',
     collectionPath,
-    supportedDocTypes,
     supportedExtensions,
     supportedRepresentativeSubtypes,
   } = params || {};
@@ -303,16 +302,12 @@ const HomePage: FC<Props> = () => {
   pageSizeRef.current = state.pageSize;
   const formatDialogTimeoutRef = useRef<number | null>(null);
 
-  const mappedAvailableDocTypes = useMemo(() => {
-    return _intersection(availableDocTypes, supportedDocTypes);
-  }, [availableDocTypes, supportedDocTypes]);
-
   const mappedMediaTypes = useMemo(() => {
     if (state.selectedFacets.Types && state.selectedFacets.Types.length > 0) return state.selectedFacets.Types;
     return ['*'];
   }, [state.selectedFacets]);
 
-  const isConfigError = useMemo(() => (!mappedMediaTypes?.length || mappedMediaTypes.length === 0) && !!supportedDocTypes, [mappedMediaTypes, supportedDocTypes]);
+  const isConfigError = useMemo(() => !mappedMediaTypes?.length || mappedMediaTypes.length === 0, [mappedMediaTypes]);
 
   const selectedSortOrder = useMemo(() => {
     if (!sortOrders) {
@@ -366,7 +361,7 @@ const HomePage: FC<Props> = () => {
   const { data, isFetching, isError, refetch } = useGetAssetsQuery(shouldFetch ? {
     folderID: state.currentFolder.id,
     isSeeThrough: state.isSeeThrough,
-    limitedToDocTypes: mappedAvailableDocTypes,
+    limitedToDocTypes: availableDocTypes,
     pageSize: state.pageSize,
     searchText: state.searchText,
     selectedFacets: state.selectedFacets,
