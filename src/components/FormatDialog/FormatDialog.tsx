@@ -70,6 +70,16 @@ type State = {
     extension: string;
     rotation: number;
   };
+  defaultSelectedFormat: {
+    url: string;
+    originalUrl: string;
+    width: number;
+    height: number;
+    x: number;
+    y: number;
+    extension: string;
+    rotation: number;
+  },
   resizeSize: {
     width: number;
     height: number;
@@ -144,6 +154,16 @@ const initialState: State = {
   },
   selectedProxy: '',
   selectedFormat: {
+    url: '',
+    originalUrl: '',
+    width: 0,
+    height: 0,
+    x: 0,
+    y: 0,
+    extension: '',
+    rotation: 0,
+  },
+  defaultSelectedFormat: {
     url: '',
     originalUrl: '',
     width: 0,
@@ -249,7 +269,7 @@ const reducer = (state: State, action: Action): State => {
         rotation: 0,
         transformations: [],
         showCustomRendition: false,
-        activeSetting: 'resize',
+        activeSetting: 'format',
       };
     case 'CONFIRM_USE_CUSTOM_RENDITION':
       return {
@@ -265,9 +285,12 @@ const reducer = (state: State, action: Action): State => {
           height: state.selectedFormat.height,
         },
         rotation: 0,
-        activeSetting: 'resize',
+        activeSetting: 'format',
         showCustomRendition: false,
         useCustomRendition: true,
+        defaultSelectedFormat: {
+          ...state.selectedFormat,
+        },
       };
     case 'SET_DEFAULT_SIZE':
       return {
@@ -1624,11 +1647,11 @@ const FormatDialog: FC<Props> = ({
                   dispatch({
                     type: 'CANCEL_USE_CUSTOM_RENDITION',
                     payload: {
-                      url: state.selectedFormat.url,
-                      originalUrl: state.selectedFormat.originalUrl,
-                      width: state.selectedFormat.width,
-                      height: state.selectedFormat.height,
-                      extension: state.selectedFormat.extension,
+                      url: state.defaultSelectedFormat.url,
+                      originalUrl: state.defaultSelectedFormat.originalUrl,
+                      width: state.defaultSelectedFormat.width,
+                      height: state.defaultSelectedFormat.height,
+                      extension: state.defaultSelectedFormat.extension,
                       useCustomRendition: true,
                     },
                   });
