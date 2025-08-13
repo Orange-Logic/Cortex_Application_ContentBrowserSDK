@@ -117,32 +117,33 @@ export const BrowserItem: FC<Props> = ({
   const isLazy = folder.hasChildren && (folders === undefined || isFetching);
 
   return (
-    <cx-tree-item
-      ref={treeItemRef}
-      data-value={JSON.stringify(folder)}
-      expanded={isExpanded}
-      selected={isSelected}
-      lazy={isLazy}
-    >
-      <cx-icon name={iconName}></cx-icon>
-      <cx-line-clamp lines={1}>{getHighlightedTitle(folder.title, searchText)}</cx-line-clamp>
-      {folders?.map((item) => (
-        <BrowserItem
-          key={item.id}
-          folder={item}
-          searchText={searchText}
-          currentFolderID={currentFolderID}
-        />
-      ))}
+    <>
+      <cx-tree-item
+        ref={treeItemRef}
+        data-value={JSON.stringify(folder)}
+        expanded={isExpanded}
+        selected={isSelected}
+        lazy={isLazy}
+      >
+        <cx-icon name={iconName}></cx-icon>
+        <cx-line-clamp lines={1}>{getHighlightedTitle(folder.title, searchText)}</cx-line-clamp>
+        {folders?.map((item) => (
+          <BrowserItem
+            key={item.id}
+            folder={item}
+            searchText={searchText}
+            currentFolderID={currentFolderID}
+          />
+        ))}
+      </cx-tree-item>
       {folders && folders.length < totalCount && !isLoading && (
         <LoadMoreButton
-          slot="children"
           loadMore={loadMore}
           isLoading={isFetching}
           disabled={isFetching}
         />
       )}
-    </cx-tree-item>
+    </>
   );
 };
 

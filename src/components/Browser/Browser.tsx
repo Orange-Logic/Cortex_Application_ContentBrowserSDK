@@ -237,6 +237,10 @@ const Browser: FC<Props> = ({
       onFolderSelect?.(folder);
     };
     tree.addEventListener('cx-selection-change', onTreeSelect);
+
+    return () => {
+      tree.removeEventListener('cx-selection-change', onTreeSelect);
+    };
   }, [isDefined, onFolderSelect]);
 
   useEffect(() => {
@@ -395,14 +399,14 @@ const Browser: FC<Props> = ({
           <div className="browser__folders">
             <cx-tree ref={treeRef} force-on-change>
               {renderFolders()}
-              {folders && folders.length < totalCount && !isLoadingFolders && (
-                <LoadMoreButton
-                  loadMore={loadMore}
-                  isLoading={isFetchingFolders}
-                  disabled={isFetchingFolders}
-                />
-              )}
             </cx-tree>
+            {folders && folders.length < totalCount && !isLoadingFolders && (
+              <LoadMoreButton
+                loadMore={loadMore}
+                isLoading={isFetchingFolders}
+                disabled={isFetchingFolders}
+              />
+            )}
           </div>
         </cx-space>
         {showCollections && (
