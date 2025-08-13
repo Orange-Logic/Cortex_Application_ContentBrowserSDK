@@ -265,20 +265,20 @@ export const searchApi = createApi({
       }: GetContentRequest) => {
         const mappedLimitedToDocTypes = limitedToDocTypes.map((docType) => ['limitedToDocTypes', docType]);
         const params = [
-          ['fields', FIELD_TITLE_WITH_FALLBACK],
           ['fields', DEFAULT_VIEW_SIZE],
-          ['fields', ORIGINAL_VIEW_SIZE],
-          ['fields', FIELD_KEYWORDS],
-          ['fields', FIELD_MAX_WIDTH],
-          ['fields', FIELD_MAX_HEIGHT],
-          ['fields', FIELD_FILE_SIZE],
           ['fields', FIELD_DOC_TYPE],
-          ['fields', FIELD_SUBTYPE],
-          ['fields', FIELD_IDENTIFIER],
           ['fields', FIELD_EXTENSION],
-          ['fields', FIELD_RECORD_ID],
+          ['fields', FIELD_FILE_SIZE],
+          ['fields', FIELD_IDENTIFIER],
+          ['fields', FIELD_KEYWORDS],
+          ['fields', FIELD_MAX_HEIGHT],
+          ['fields', FIELD_MAX_WIDTH],
           ['fields', FIELD_ORIGINAL_FILE_NAME],
+          ['fields', FIELD_RECORD_ID],
+          ['fields', FIELD_SUBTYPE],
+          ['fields', FIELD_TITLE_WITH_FALLBACK],
           ['fields', FIELD_UPDATED_FILE_NAME],
+          ['fields', ORIGINAL_VIEW_SIZE],
           ['seeThru', !!isSeeThrough],
         ];
 
@@ -437,18 +437,20 @@ export const searchApi = createApi({
       }) => {
         const params = [
           ['extraFilters', `RecordID:${id}`],
-          ['fields', FIELD_TITLE_WITH_FALLBACK],
           ['fields', DEFAULT_VIEW_SIZE],
-          ['fields', ORIGINAL_VIEW_SIZE],
-          ['fields', FIELD_KEYWORDS],
-          ['fields', FIELD_MAX_WIDTH],
-          ['fields', FIELD_MAX_HEIGHT],
-          ['fields', FIELD_FILE_SIZE],
           ['fields', FIELD_DOC_TYPE],
-          ['fields', FIELD_SUBTYPE],
-          ['fields', FIELD_IDENTIFIER],
           ['fields', FIELD_EXTENSION],
+          ['fields', FIELD_FILE_SIZE],
+          ['fields', FIELD_IDENTIFIER],
+          ['fields', FIELD_KEYWORDS],
+          ['fields', FIELD_MAX_HEIGHT],
+          ['fields', FIELD_MAX_WIDTH],
+          ['fields', FIELD_ORIGINAL_FILE_NAME],
           ['fields', FIELD_RECORD_ID],
+          ['fields', FIELD_SUBTYPE],
+          ['fields', FIELD_TITLE_WITH_FALLBACK],
+          ['fields', FIELD_UPDATED_FILE_NAME],
+          ['fields', ORIGINAL_VIEW_SIZE],
           ['seeThru', 'true'],
         ];
 
@@ -473,6 +475,16 @@ export const searchApi = createApi({
         if (extension && !extension.startsWith('.')) {
           extension = '.' + extension;
         }
+
+        let name = GetValueByKeyCaseInsensitive(item.fields, FIELD_UPDATED_FILE_NAME);
+        if (extension && !extension.startsWith('.')) {
+          extension = '.' + extension;
+        }
+
+        if (isNullOrWhiteSpace(name)) {
+          name = GetValueByKeyCaseInsensitive(item.fields, FIELD_ORIGINAL_FILE_NAME);
+        }
+
         return {
           docType: GetValueByKeyCaseInsensitive(item.fields, FIELD_DOC_TYPE) ?? '',
           docSubType: GetValueByKeyCaseInsensitive(item.fields, FIELD_SUBTYPE) ?? '',
@@ -482,7 +494,7 @@ export const searchApi = createApi({
           identifier: GetValueByKeyCaseInsensitive(item.fields, FIELD_IDENTIFIER) ?? '',
           imageUrl: GetValueByKeyCaseInsensitive(item.fields, DEFAULT_VIEW_SIZE) ?? '',
           originalUrl: GetValueByKeyCaseInsensitive(item.fields, ORIGINAL_VIEW_SIZE) ?? '',
-          name: GetValueByKeyCaseInsensitive(item.fields, FIELD_TITLE_WITH_FALLBACK) ?? '',
+          name,
           scrubUrl: GetValueByKeyCaseInsensitive(item.fields, FIELD_SCRUB_URL) ?? '',
           size: GetValueByKeyCaseInsensitive(item.fields, FIELD_FILE_SIZE) ?? '0 MB',
           tags: GetValueByKeyCaseInsensitive(item.fields, FIELD_KEYWORDS) ?? '',
