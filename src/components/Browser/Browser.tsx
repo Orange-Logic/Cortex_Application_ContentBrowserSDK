@@ -11,9 +11,11 @@ import type {
   CxDrawer,
   CxInput,
   CxMenu,
+  CxMenuItem,
   CxSelectEvent,
   CxSelectionChangeEvent,
   CxTree,
+  CxTreeItem,
 } from '@orangelogic-private/design-system';
 import { skipToken } from '@reduxjs/toolkit/query';
 
@@ -230,7 +232,7 @@ const Browser: FC<Props> = ({
   useEffect(() => {
     const tree = treeRef.current;
     if (!tree) return;
-    const onTreeSelect = (e: CxSelectionChangeEvent) => {
+    const onTreeSelect = (e: CxSelectionChangeEvent<CxTreeItem>) => {
       const folder = JSON.parse(
         e.detail.selection[0].dataset.value ?? '{}',
       ) as Folder;
@@ -246,7 +248,7 @@ const Browser: FC<Props> = ({
   useEffect(() => {
     const collection = collectionRef.current;
     if (!collection) return;
-    const onCollectionSelect = (e: CxSelectEvent) => {
+    const onCollectionSelect = (e: CxSelectEvent<CxMenuItem>) => {
       const folder = JSON.parse(e.detail.item.value ?? '{}') as Folder;
       onFolderSelect?.(folder);
     };

@@ -6,9 +6,11 @@ import type {
   CxChangeEvent,
   CxDropdown,
   CxInput,
+  CxMenuItem,
   CxRemoveEvent,
   CxSelectEvent,
   CxSelectionChangeEvent,
+  CxTreeItem,
 } from '@orangelogic-private/design-system';
 
 import { sortDirections, views } from './ControlBar.constants';
@@ -97,7 +99,7 @@ const ControlBar: FC<Props> = ({
   }, [isDefined, searchText, onSearchChange]);
 
   useEffect(() => {
-    const onViewSelect = (e: CxSelectEvent) => {
+    const onViewSelect = (e: CxSelectEvent<CxMenuItem>) => {
       const value = e.detail.item.value;
 
       if (value === 'see-thru') {
@@ -131,7 +133,7 @@ const ControlBar: FC<Props> = ({
 
       onSettingChange('filter', newFilter);
     };
-    const onFilterSelectionChange = (e: CxSelectionChangeEvent) => {
+    const onFilterSelectionChange = (e: CxSelectionChangeEvent<CxTreeItem>) => {
       const facet = (e.target as HTMLElement).dataset.facet;
 
       if (!facet) {
@@ -168,7 +170,7 @@ const ControlBar: FC<Props> = ({
 
       onSettingChange('filter', newSelection);
     };
-    const onSortSelect = (e: CxSelectEvent) => {
+    const onSortSelect = (e: CxSelectEvent<CxMenuItem>) => {
       const type = e.detail.item.dataset.type;
       const value = e.detail.item.value;
 

@@ -7,7 +7,7 @@ import { TrackingParameter, Transformation, TransformationAction, Unit } from '@
 import { Asset, MediaType, Proxy } from '@/types/search';
 import { convertPixelsToAspectRatio } from '@/utils/number';
 import { rotateBox } from '@/utils/rotate';
-import type { CxDialog, CxDrawer, CxRequestCloseEvent, CxSelectEvent } from '@orangelogic-private/design-system';
+import type { CxDialog, CxDrawer, CxMenuItem, CxRequestCloseEvent, CxSelectEvent } from '@orangelogic-private/design-system';
 
 import CropPreviewer, { CropPreviewerHandle } from './CropPreviewer';
 import CustomRendition from './CustomRendition';
@@ -35,6 +35,7 @@ type Props = {
   showVersions?: boolean;
   supportedRepresentativeSubtypes?: string[];
   variant?: 'dialog' | 'drawer';
+  boundary?: HTMLElement | null;
   onClose: () => void;
   onFavorite: () => Promise<boolean>;
   onProxyConfirm: (value: {
@@ -463,6 +464,7 @@ const FormatDialog: FC<Props> = ({
   showVersions,
   supportedRepresentativeSubtypes,
   variant = 'dialog',
+  boundary,
   onClose,
   onFavorite,
   onProxyConfirm,
@@ -631,7 +633,15 @@ const FormatDialog: FC<Props> = ({
       dialog?.removeEventListener('cx-request-close', onRequestClose);
       drawer?.removeEventListener('cx-request-close', onRequestClose);
     };
-  }, [isDefined, onClose, state.isLoadingFavorites, state.showVersionHistory]);
+  }, [boundary, isDefined, onClose, state.isLoadingFavorites, state.showVersionHistory]);
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+
+    if (dialog && boundary) {
+      dialog.boundary = boundary;
+    }
+  });
 
   useEffect(() => {
     const onAfterShow = () => {
@@ -651,7 +661,7 @@ const FormatDialog: FC<Props> = ({
   }, [isDefined, state.showCustomRendition, variant]);
 
   useEffect(() => {
-    const onProxySelect = (e: CxSelectEvent) => {
+    const onProxySelect = (e: CxSelectEvent<CxMenuItem>) => {
       const value = e.detail.item.value;
 
       if (value === 'custom') {
@@ -1804,7 +1814,6 @@ const FormatDialog: FC<Props> = ({
       ref={dialogRef}
       className="dialog"
       open={open}
-      strategy="absolute"
       use-overlay-scrollbar
       style={
         {

@@ -934,6 +934,7 @@ const HomePage: FC<Props> = () => {
               : supportedRepresentativeSubtypes
           }
           variant={isMobile ? 'drawer' : 'dialog'}
+          boundary={containerRef.current}
           onClose={() =>
             appDispatch(setSelectedAssetId(null))
           }

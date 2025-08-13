@@ -6,7 +6,6 @@ export const Dialog = styled('cx-dialog')<CxDialogProps>`
   --divider-spacing: 0;
   --max-height: 100%;
   --max-width: 520px;
-  --width: 90%;
 
   &::part(header) {
     align-items: center;

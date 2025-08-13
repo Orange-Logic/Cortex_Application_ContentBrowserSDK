@@ -1,4 +1,4 @@
-import '@orangelogic-private/design-system/assets/style.css';
+import '@orangelogic-private/design-system/assets/design-system.css';
 import '@orangelogic-private/design-system/components/alert';
 import '@orangelogic-private/design-system/components/avatar';
 import '@orangelogic-private/design-system/components/badge';
@@ -20,6 +20,7 @@ import '@orangelogic-private/design-system/components/input-group';
 import '@orangelogic-private/design-system/components/line-clamp';
 import '@orangelogic-private/design-system/components/menu';
 import '@orangelogic-private/design-system/components/menu-item';
+import '@orangelogic-private/design-system/components/menu-label';
 import '@orangelogic-private/design-system/components/option';
 import '@orangelogic-private/design-system/components/progress-bar';
 import '@orangelogic-private/design-system/components/resize-observer';
