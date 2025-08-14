@@ -123,6 +123,12 @@
           </p>
         </li>
         <li>
+          <b>onImageSelected</b> (deprecated)
+          <p>
+            A function that will be called when an image is selected. This is deprecated, use onAssetSelected instead.
+          </p>
+        </li>
+        <li>
           <b>onError</b>
           <p>
             A function that will be called when an error occurs. The function will receive an error message and the error object.
@@ -132,6 +138,60 @@
           <b>onClose</b>
           <p>
             A function that will be called when the content browser is closed.
+          </p>
+        </li>
+        <li>
+          <b>onRequestToken</b>
+          <p>
+            A function that will be called when a token is needed. Should return a Promise that resolves to an object containing:
+          </p>
+          <ul>
+            <li><b>token</b> (required): The authentication token string</li>
+            <li><b>siteUrl</b> (optional): The site URL to use with the token</li>
+          </ul>
+          <p>
+            This function is called:
+            <ul>
+              <li>During initial authentication when the SDK is opened</li>
+              <li>When the current token expires (401 error)</li>
+              <li>Before making API calls that require authentication</li>
+            </ul>
+          </p>
+          <p>
+            <small>Note: When this callback is provided, the SDK uses Bearer token authentication headers instead of query parameters.</small>
+          </p>
+        </li>
+        <li>
+          <b>onAssetAction</b>
+          <p>
+            A function that will be called when an action is performed on an asset.
+          </p>
+        </li>
+        <li>
+          <b>onConnectClicked</b>
+          <p>
+            A function that will be called when the Connect button is clicked.
+          </p>
+        </li>
+        <li>
+          <b>onSiteUrlChanged</b>
+          <p>
+            A function that will be called when the site URL is changed, useful for invalidating browser cache when change sites.
+          </p>
+        </li>
+        <li>
+          <b>onTokenChanged</b>
+          <p>
+            A function that will be called whenever the authentication token is updated. Receives the new access token as a parameter.
+            This is useful for keeping external integrations synchronized with the SDK's authentication state.
+          </p>
+          <p>
+            This callback is triggered when:
+            <ul>
+              <li>Initial authentication is successful</li>
+              <li>Token is refreshed after expiration</li>
+              <li>User logs in with new credentials</li>
+            </ul>
           </p>
         </li>
         <li>
@@ -159,9 +219,27 @@
           </p>
         </li>
         <li>
+          <b>onlyIIIFPrefix</b> (default false)
+          <p>
+            When enabled, only returns the IIIF URL prefix instead of the full IIIF image URL.
+          </p>
+        </li>
+        <li>
+          <b>onlyIIIFPrefix</b> (default false)
+          <p>
+            When enabled, only returns the IIIF URL prefix instead of the full IIIF image URL.
+          </p>
+        </li>
+        <li>
           <b>ctaText</b> (default "Insert")
           <p>
             The text to display on the insert button.
+          </p>
+        </li>
+        <li>
+          <b>allowedExtensions</b>
+          <p>
+            An array of allowed file extensions to be selected. If none are specified, it will allow all available file extensions.
           </p>
         </li>
         <li>
@@ -217,13 +295,16 @@
           </p>
         </li>
         <li>
-          <b>lastLocationMode</b> (default false)
+          <b>lastLocationMode</b> (default true)
+          <b>lastLocationMode</b> (default true)
           <p>
-            A boolean to enable the last location mode. When enabled, the content browser open the last selected folder on loaded.
+            A boolean to enable the last location mode. When enabled, the content browser opens the last selected folder on load.
+            A boolean to enable the last location mode. When enabled, the content browser opens the last selected folder on load.
           </p>
         </li>
         <li>
-          <b>persistMode</b> (default true)
+          <b>persistMode</b> (default false)
+          <b>persistMode</b> (default false)
           <p>
             A boolean to enable the persist mode. When enabled, the content browser will not close after selecting an asset.
           </p>
@@ -231,7 +312,32 @@
         <li>
           <b>allowTracking</b> (default true)
           <p>
-            A boolean to enable tracking. When enabled, the user will be able to input tracking parameters to be added to the asset URL.
+            A boolean to enable tracking. When enabled, tracking parameters will be added to asset URLs.
+          </p>
+        </li>
+        <li>
+          <b>allowProxy</b> (default true)
+          <p>
+            A boolean to allow the user to select proxy images.
+          </p>
+        </li>
+        <li>
+          <b>allowFavorites</b> (default false)
+          <p>
+            A boolean to allow the user to select favorites.
+            A boolean to enable tracking. When enabled, tracking parameters will be added to asset URLs.
+          </p>
+        </li>
+        <li>
+          <b>allowProxy</b> (default true)
+          <p>
+            A boolean to allow the user to select proxy images.
+          </p>
+        </li>
+        <li>
+          <b>allowFavorites</b> (default false)
+          <p>
+            A boolean to allow the user to select favorites.
           </p>
         </li>
         <li>
@@ -247,15 +353,53 @@
           </p>
         </li>
         <li>
-          <b>showCollections</b> (default true)
+          <b>showCollections</b> (default false)
+          <b>showCollections</b> (default false)
           <p>
             A boolean to show collections in the content browser.
           </p>
         </li>
         <li>
+          <b>showFavoriteFolder</b> (default false)
+          <p>
+            A boolean to show the favorite folder in the content browser.
+          </p>
+        </li>
+        <li>
+          <b>showVersions</b> (default false)
+          <p>
+            A boolean to show asset versions in the content browser.
+          </p>
+        </li>
+        <li>
+          <b>showFavoriteFolder</b> (default false)
+          <p>
+            A boolean to show the favorite folder in the content browser.
+          </p>
+        </li>
+        <li>
+          <b>showVersions</b> (default false)
+          <p>
+            A boolean to show asset versions in the content browser.
+          </p>
+        </li>
+        <li>
           <b>useSession</b>
           <p>
-            The session id to use for the content browser. Try logging out and in whenever you change the sesssion.
+            The session id to use for the content browser. Try logging out and in whenever you change the session.
+          </p>
+        </li>
+        <li>
+          <b>loadExternalFonts</b> (default false)
+          <p>
+            A boolean to toggle between loading external fonts from direct links and from internal CSS file.
+            The session id to use for the content browser. Try logging out and in whenever you change the session.
+          </p>
+        </li>
+        <li>
+          <b>loadExternalFonts</b> (default false)
+          <p>
+            A boolean to toggle between loading external fonts from direct links and from internal CSS file.
           </p>
         </li>
       </ul>
