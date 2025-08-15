@@ -46,7 +46,7 @@ const Extension: FC<Props> = ({ format, formats, open, onApply }) => {
     <cx-details open={open} data-value="format" className="format">
       <cx-space slot="summary" align-items="center">
         <div className="details__summary__icon">
-          <cx-icon name="photo_size_select_large"></cx-icon>
+          <cx-icon name="aspect_ratio"></cx-icon>
         </div>
         <cx-typography variant="body3">Format</cx-typography>
       </cx-space>

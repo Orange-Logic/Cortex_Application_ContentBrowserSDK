@@ -1265,7 +1265,7 @@ const FormatDialog: FC<Props> = ({
               spacing="2x-small"
               style={{ flex: '1' }}
             >
-              <cx-typography variant="h4">{allowProxy ? 'Custom format' : 'Preview'}</cx-typography>
+              <cx-typography variant="h4">{allowProxy ? 'Formats' : 'Preview'}</cx-typography>
               <cx-typography variant="body3" className="asset-name">
                 <cx-line-clamp lines={1}>{selectedAsset?.name}</cx-line-clamp>
               </cx-typography>
