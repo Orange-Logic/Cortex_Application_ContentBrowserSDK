@@ -265,7 +265,7 @@ const ControlBar: FC<Props> = ({
               return null;
             }
 
-            return values.map((value) => {
+            return values.filter(value => mappedDisplayNames[key][value]).map((value) => {
               return (
                 <cx-tag
                   key={value}
