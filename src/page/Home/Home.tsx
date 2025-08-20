@@ -935,9 +935,10 @@ const HomePage: FC<Props> = () => {
           }
           variant={isMobile ? 'drawer' : 'dialog'}
           boundary={containerRef.current}
-          onClose={() =>
-            appDispatch(setSelectedAssetId(null))
-          }
+          onClose={() => {
+            appDispatch(setSelectedAssetId(null));
+            onAssetAction('unselect', '');
+          }}
           onFavorite={async () => {
             if (!selectedAsset) {
               return false;
