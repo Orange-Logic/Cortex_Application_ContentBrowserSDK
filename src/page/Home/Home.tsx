@@ -207,7 +207,7 @@ const HomePage: FC<Props> = () => {
   const useSession = useAppSelector(applySessionSelector);
   const selectedAssetId = useAppSelector(selectedAssetIdSelector);
   const {
-    allowedExtensions,
+    allowedExtensions, // list of allowed extensions from runtime properties. e.g. ['.jpg', '.png', '.mp4']
     allowedFolders,
     allowFavorites,
     allowProxy,
@@ -809,6 +809,24 @@ const HomePage: FC<Props> = () => {
     }
   }, [selectedAsset]);
 
+  const filteredAllowedExtensions = useMemo(() => { // list of extensions that's available for selection in the custom format dialog. E.g. [{display: 'JPG', value: '.jpg'}]
+    if (!availableExtensions || !allowedExtensions || allowedExtensions.length === 0) {
+      return availableExtensions;
+    }
+    
+    return Object.entries(availableExtensions).reduce((acc, [key, value]) => {
+      return {
+        ...acc,
+        [key]: value.filter((ext) => {
+          if (!allowedExtensions || allowedExtensions.length === 0) {
+            return true;
+          }
+          return allowedExtensions.some((item) => ext.value.toLowerCase() === `.${item.toLowerCase()}`);
+        }),
+      };
+    }, availableExtensions);
+  }, [availableExtensions, allowedExtensions]);
+
   return (
     <cx-resize-observer ref={containerResizeObserverRef}>
       <Container ref={containerRef}>
@@ -914,8 +932,9 @@ const HomePage: FC<Props> = () => {
           allowFavorites={allowFavorites}
           allowProxy={allowProxy}
           allowTracking={allowTracking}
+          appendAutoExtension={allowedExtensions?.includes(autoExtension) ?? false}
           autoExtension={autoExtension}
-          availableExtensions={availableExtensions}
+          availableExtensions={filteredAllowedExtensions}
           availableProxies={isErrorAvailableProxies ? [] : isFetchingAvailableProxies ? undefined : filteredProxies}
           ctaText={ctaText}
           extensions={supportedExtensions ?? []}

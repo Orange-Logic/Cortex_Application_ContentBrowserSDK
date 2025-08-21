@@ -18,13 +18,14 @@ import TrackingParameters from './TrackingParameters';
 import VersionHistory from './VersionHistory';
 
 type Props = {
-  allowCustomFormat: boolean;
-  allowFavorites: boolean;
-  allowProxy: boolean;
-  allowTracking: boolean;
-  autoExtension: string;
-  availableExtensions?: Record<MediaType, { displayName: string; value: string }[]>;
-  availableProxies?: Proxy[];
+  allowCustomFormat: boolean; // whether to allow custom format
+  allowFavorites: boolean; // whether to allow favorites
+  allowProxy: boolean; // whether to allow proxies
+  allowTracking: boolean; // whether to allow tracking parameter injection to the retrieved url
+  appendAutoExtension?: boolean; // whether to append auto extension, due to the allowed extension list excluding .auto
+  autoExtension: string; // the actual extension of auto extension, retrieved from param, usually is '.auto'
+  availableExtensions?: Record<MediaType, { displayName: string; value: string }[]>; // filtered list of available extension for selection in the custom format dialog
+  availableProxies?: Proxy[]; // filtered list of available proxy, attuned by the allowed extension list
   ctaText?: string;
   extensions: string[];
   isFavorite?: boolean;
@@ -451,6 +452,7 @@ const FormatDialog: FC<Props> = ({
   allowFavorites,
   allowProxy,
   allowTracking,
+  appendAutoExtension,
   autoExtension,
   availableExtensions,
   availableProxies,
@@ -553,6 +555,8 @@ const FormatDialog: FC<Props> = ({
       },
     });
 
+    const extension = appendAutoExtension ? autoExtension : selectedAsset.docType ?  availableExtensions?.[selectedAsset.docType]?.[0]?.value : selectedAsset.extension;
+
     if (availableProxies && availableProxies.length > 0) {
       dispatch({
         type: 'SET_SELECTED_PROXY',
@@ -565,7 +569,7 @@ const FormatDialog: FC<Props> = ({
           ...initialState.selectedFormat,
           url: selectedAsset.imageUrl,
           originalUrl: selectedAsset.originalUrl,
-          extension: autoExtension ?? selectedAsset.extension,
+          extension,
           width: availableProxies[0].formatWidth || state.defaultSize.width,
           height: availableProxies[0].formatHeight || state.defaultSize.height,
         },
@@ -577,13 +581,13 @@ const FormatDialog: FC<Props> = ({
           ...initialState.selectedFormat,
           url: selectedAsset.imageUrl,
           originalUrl: selectedAsset.originalUrl,
-          extension: autoExtension ?? selectedAsset.extension,
+          extension,
           width: state.defaultSize.width,
           height: state.defaultSize.height,
         },
       });
     }
-  }, [autoExtension, availableProxies, selectedAsset, state.defaultSize.height, state.defaultSize.width]);
+  }, [autoExtension, availableProxies, selectedAsset, state.defaultSize.height, state.defaultSize.width, appendAutoExtension, availableExtensions]);
 
   useEffect(() => {
     if (selectedAsset?.width && selectedAsset?.height) {
@@ -1408,12 +1412,12 @@ const FormatDialog: FC<Props> = ({
           <CustomRendition
             activeSetting={state.activeSetting}
             extensions={
-              availableExtensions && selectedAsset?.docType
+              (availableExtensions && selectedAsset?.docType
                 ? _uniqBy([
                   ...availableExtensions[selectedAsset.docType],
                   { displayName: 'Automatic', value: autoExtension },
                 ], 'value')
-                : [{ displayName: 'Automatic', value: autoExtension }]
+                : [{ displayName: 'Automatic', value: autoExtension }]).filter(item => appendAutoExtension || item.value !== autoExtension)
             }
             availableProxies={availableProxies}
             imageSize={{
@@ -1605,7 +1609,7 @@ const FormatDialog: FC<Props> = ({
                   className="ic_warning_amber"
                 ></cx-icon>
                 <cx-typography variant="body3" className="proxy__name">
-                  You don&apos;t have permission to share this asset.
+                  There are no available options for this asset. This might be due to your permissions or the application&apos;s settings.
                 </cx-typography>
               </cx-space>
             )}
@@ -1766,6 +1770,7 @@ const FormatDialog: FC<Props> = ({
     allowFavorites,
     allowProxy,
     allowTracking,
+    appendAutoExtension,
     autoExtension,
     availableExtensions,
     availableProxies,
