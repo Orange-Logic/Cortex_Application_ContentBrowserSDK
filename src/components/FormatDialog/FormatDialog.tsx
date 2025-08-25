@@ -478,6 +478,23 @@ const FormatDialog: FC<Props> = ({
   const dialogRef = useRef<CxDialog>(null);
   const drawerRef = useRef<CxDrawer>(null);
   const previewerRef = useRef<CropPreviewerHandle>(null);
+  const filteredProxies = useMemo(() => {
+    if (!availableProxies || !availableExtensions) {
+      return [];
+    }
+    return availableProxies.filter((proxy) => {
+      if (!proxy.extension && selectedAsset) {
+        const TRXExtensionAllowed = availableExtensions?.[selectedAsset.docType]?.some(
+          (ext) => ext.value === selectedAsset.extension,
+        );
+        if (TRXExtensionAllowed) {
+          return true;
+        }
+        return false;
+      }
+      return true;
+    });
+  }, [availableProxies, availableExtensions, selectedAsset]);
 
   const setDefaultValues = useCallback(() => {
     if (!selectedAsset) {
@@ -556,11 +573,10 @@ const FormatDialog: FC<Props> = ({
     });
 
     const extension = appendAutoExtension ? autoExtension : selectedAsset.docType ?  availableExtensions?.[selectedAsset.docType]?.[0]?.value : selectedAsset.extension;
-
-    if (availableProxies && availableProxies.length > 0) {
+    if (filteredProxies && filteredProxies.length > 0) {
       dispatch({
         type: 'SET_SELECTED_PROXY',
-        payload: availableProxies[0]?.id,
+        payload: filteredProxies[0]?.id,
       });
 
       dispatch({
@@ -570,8 +586,8 @@ const FormatDialog: FC<Props> = ({
           url: selectedAsset.imageUrl,
           originalUrl: selectedAsset.originalUrl,
           extension,
-          width: availableProxies[0].formatWidth || state.defaultSize.width,
-          height: availableProxies[0].formatHeight || state.defaultSize.height,
+          width: filteredProxies[0].formatWidth || state.defaultSize.width,
+          height: filteredProxies[0].formatHeight || state.defaultSize.height,
         },
       });
     } else {
@@ -587,7 +603,7 @@ const FormatDialog: FC<Props> = ({
         },
       });
     }
-  }, [autoExtension, availableProxies, selectedAsset, state.defaultSize.height, state.defaultSize.width, appendAutoExtension, availableExtensions]);
+  }, [autoExtension, filteredProxies, selectedAsset, state.defaultSize.height, state.defaultSize.width, appendAutoExtension, availableExtensions]);
 
   useEffect(() => {
     if (selectedAsset?.width && selectedAsset?.height) {
@@ -692,8 +708,8 @@ const FormatDialog: FC<Props> = ({
         return;
       }
 
-      if (value && availableProxies) {
-        if (!availableProxies.map(item => item.id).includes(value)) {
+      if (value && filteredProxies) {
+        if (!filteredProxies.map(item => item.id).includes(value)) {
           return;
         }
         dispatch({ type: 'SET_SELECTED_PROXY', payload: value });
@@ -716,7 +732,7 @@ const FormatDialog: FC<Props> = ({
     state.useCustomRendition,
     state.useRepresentative,
     setDefaultValues,
-    availableProxies,
+    filteredProxies,
     selectedAsset?.extension,
   ]);
 
@@ -1226,12 +1242,12 @@ const FormatDialog: FC<Props> = ({
   }, []);
 
   useEffect(() => {
-    if (!availableProxies || availableProxies.length === 0) {
+    if (!filteredProxies || filteredProxies.length === 0) {
       dispatch({ type: 'SET_SELECTED_PROXY', payload: '' });
       return;
     }
-    dispatch({ type: 'SET_SELECTED_PROXY', payload: availableProxies[0].id });
-  }, [availableProxies, selectedAsset]);
+    dispatch({ type: 'SET_SELECTED_PROXY', payload: filteredProxies[0].id });
+  }, [filteredProxies, selectedAsset]);
 
   const renderContent = useCallback(() => {
     const disabledInsert =
@@ -1239,7 +1255,7 @@ const FormatDialog: FC<Props> = ({
     const supportedATS = allowCustomFormat && extensions.includes(
       selectedAsset ? selectedAsset.extension : '',
     );
-    const supportedProxies = availableProxies && Object.values(availableProxies).flat().length > 0;
+    const supportedProxies = filteredProxies && Object.values(filteredProxies).flat().length > 0;
 
     const showCustomDimension = Boolean(state.selectedFormat.width && state.selectedFormat.height && state.useCustomRendition);
 
@@ -1407,7 +1423,7 @@ const FormatDialog: FC<Props> = ({
         return previewer;
       }
 
-      if (state.showCustomRendition && availableProxies) {
+      if (state.showCustomRendition && filteredProxies) {
         rendition = (
           <CustomRendition
             activeSetting={state.activeSetting}
@@ -1419,7 +1435,7 @@ const FormatDialog: FC<Props> = ({
                 ], 'value')
                 : [{ displayName: 'Automatic', value: autoExtension }]).filter(item => appendAutoExtension || item.value !== autoExtension)
             }
-            availableProxies={availableProxies}
+            availableProxies={filteredProxies}
             imageSize={{
               width: state.selectedFormat.width
                 ? state.selectedFormat.width
@@ -1462,7 +1478,7 @@ const FormatDialog: FC<Props> = ({
               >
                 {supportedProxies && (
                   <ProxyMenu
-                    items={availableProxies?.map((proxy) => {
+                    items={filteredProxies?.map((proxy) => {
                       if (proxy.proxyName === 'TRX' && selectedAsset) {
                         return {
                           value: proxy.id,
@@ -1706,7 +1722,7 @@ const FormatDialog: FC<Props> = ({
           variant="primary"
           style={{ flex: 1 }}
           onClick={async () => {
-            const selectedProxy = availableProxies?.find((proxy) => {
+            const selectedProxy = filteredProxies?.find((proxy) => {
               return proxy.id === state.selectedProxy;
             });
 
@@ -1773,11 +1789,11 @@ const FormatDialog: FC<Props> = ({
     appendAutoExtension,
     autoExtension,
     availableExtensions,
-    availableProxies,
     ctaText,
     extensions,
-    isFavorite,
+    filteredProxies,
     handleVersionHistory,
+    isFavorite,
     previewUrl,
     selectedAsset,
     showVersions,

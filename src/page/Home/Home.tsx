@@ -730,9 +730,7 @@ const HomePage: FC<Props> = () => {
         console.error('Error in onAssetSelected:', error);
         return;
       }
-    } else {
-      onAssetSelected?.(payload);
-    }
+    } 
 
     if (persistMode) {
       return;
@@ -809,7 +807,9 @@ const HomePage: FC<Props> = () => {
     }
   }, [selectedAsset]);
 
-  const filteredAllowedExtensions = useMemo(() => { // list of extensions that's available for selection in the custom format dialog. E.g. [{display: 'JPG', value: '.jpg'}]
+  const filteredAllowedExtensions = useMemo(() => { 
+    // object of extensions that's available for selection in the custom format dialog. 
+    // E.g. {Image: [{display: 'JPG', value: '.jpg'}], Audio: [{display: 'MP3', value: '.mp3'}]}
     if (!availableExtensions || !allowedExtensions || allowedExtensions.length === 0) {
       return availableExtensions;
     }

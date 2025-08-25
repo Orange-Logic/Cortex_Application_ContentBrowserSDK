@@ -361,15 +361,15 @@ const ContentBrowser: OrangeDAMContentBrowser = {
     const assetActionHandler =
       typeof onAssetAction === 'function' && !!onAssetAction
         ? onAssetAction
-        : console.log;
+        : ()=>{};
     const assetSelectedHandler =
       typeof onAssetSelected === 'function' && !!onAssetSelected
         ? onAssetSelected
-        : console.log;
+        : ()=>{};
     const imageSelectedHandler =
       typeof onImageSelected === 'function' && !!onImageSelected
         ? onImageSelected
-        : console.log;
+        : ()=>{};
     const onTokenChangedHandler =
       typeof onTokenChanged === 'function' && !!onTokenChanged
         ? onTokenChanged
