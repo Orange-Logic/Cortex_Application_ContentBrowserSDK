@@ -9,7 +9,6 @@ import {
 
 import AuthenticatePage from './Authenticate';
 import ConnectingBackground from './ConnectingBackground';
-import { WaitForAuthorizeContainer } from './Authenticate.styled';
 
 type Props = {
   onCancel: () => void;
@@ -51,14 +50,11 @@ const WaitForAuthorize: FC<Props> = ({ onCancel }) => {
   const { pluginInfo } = useContext(GlobalConfigContext);
   
   return (
-    <WaitForAuthorizeContainer>
       <ConnectingBackground
         footer={
           <cx-space spacing="small" direction="vertical">
-            <cx-typography variant="body2">
             <cx-typography className='footer__title' variant='body2'>
-              I was not redirected automatically?
-            </cx-typography>
+              <span style={{ fontWeight: 'var(--cx-font-weight-semibold)' }}>I was not redirected automatically?</span>
             </cx-typography>
             <cx-typography variant="body2">
               Copy the URL and open it in a new tab
@@ -88,7 +84,6 @@ const WaitForAuthorize: FC<Props> = ({ onCancel }) => {
           You will be automatically redirected to authorize {pluginInfo.pluginName} {pluginInfo.publicApplicationName ? `in ${pluginInfo.publicApplicationName}` : ''}
         </cx-typography>
       </ConnectingBackground>
-    </WaitForAuthorizeContainer>
   );
 };
 
