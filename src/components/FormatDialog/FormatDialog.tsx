@@ -273,7 +273,7 @@ const reducer = (state: State, action: Action): State => {
           y: 0,
         },
         rotation: 0,
-        transformations: [],
+        transformations: state.useCustomRendition ? state.transformations : [],
         showCustomRendition: false,
         activeSetting: 'format',
       };
