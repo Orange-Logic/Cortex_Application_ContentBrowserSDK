@@ -64,6 +64,25 @@ export type GetContentRequest = {
   useSession?: string;
 };
 
+export type AssetLinkInfo = {
+  cdnName: string | null;
+  extension: string | null;
+  isCustomFormat: boolean | null;
+  permanentLink: string | null;
+  proxyLabel: string | null;
+  proxyName: string | null;
+  width: number | null;
+  height: number | null;
+};
+
+export type AssetTransformationInfo = {
+  extension: string | null;
+  isCustomFormat: boolean | null;
+  height: number | null;
+  width: number | null;
+  permanentLink: string | null;
+};
+
 export type GetAssetLinkResponse = {
   extraFields?: {
     [key: string]: string;
@@ -72,6 +91,8 @@ export type GetAssetLinkResponse = {
   metadata?: {
     [key: string]: string;
   };
+  assetLinkInfo?: AssetLinkInfo | AssetTransformationInfo;
+  assetTransformationSource?: AssetLinkInfo;
 };
 
 export type GetTransformedAssetLinkResponse = {

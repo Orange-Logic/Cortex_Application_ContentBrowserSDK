@@ -4,7 +4,7 @@ import {
 } from 'react';
 
 import { TrackingParameter, Transformation, TransformationAction, Unit } from '@/types/assets';
-import { Asset, MediaType, Proxy } from '@/types/search';
+import { Asset, AssetLinkInfo, AssetTransformationInfo, MediaType, Proxy } from '@/types/search';
 import { convertPixelsToAspectRatio } from '@/utils/number';
 import { rotateBox } from '@/utils/rotate';
 import type { CxDialog, CxDrawer, CxMenuItem, CxRequestCloseEvent, CxSelectEvent } from '@orangelogic-private/design-system';
@@ -19,6 +19,7 @@ import VersionHistory from './VersionHistory';
 
 type Props = {
   allowCustomFormat: boolean; // whether to allow custom format
+  allowedExtensions?: string[]; // list of allowed extensions from runtime properties. e.g. ['jpg', 'png', 'mp4']
   allowFavorites: boolean; // whether to allow favorites
   allowProxy: boolean; // whether to allow proxies
   allowTracking: boolean; // whether to allow tracking parameter injection to the retrieved url
@@ -41,16 +42,19 @@ type Props = {
   onFavorite: () => Promise<boolean>;
   onProxyConfirm: (value: {
     extension: string;
-    permanentLink?: string;
     parameters?: TrackingParameter[];
+    permanentLink?: string;
     useRepresentative?: boolean;
     value: string;
+    selectedProxyMetadata?: AssetLinkInfo;
   }) => Promise<void>;
   onFormatConfirm: (value: {
-    value: Transformation[];
+    extension?: string;
     parameters?: TrackingParameter[];
     proxiesPreference?: string;
-    extension?: string;
+    value: Transformation[];
+    sourceProxyMetadata?: AssetLinkInfo;
+    transformedAssetMetadata?: AssetTransformationInfo;
   }) => Promise<void>;
   onUnFavorite: () => Promise<boolean>;
 };
@@ -452,9 +456,10 @@ const FormatDialog: FC<Props> = ({
   allowFavorites,
   allowProxy,
   allowTracking,
+  allowedExtensions,
   appendAutoExtension,
   autoExtension,
-  availableExtensions,
+  availableExtensions: extensionsForTransformation,
   availableProxies,
   ctaText = 'Insert',
   extensions,
@@ -479,13 +484,12 @@ const FormatDialog: FC<Props> = ({
   const drawerRef = useRef<CxDrawer>(null);
   const previewerRef = useRef<CropPreviewerHandle>(null);
   const filteredProxies = useMemo(() => {
-    if (!availableProxies || !availableExtensions) {
-      return [];
-    }
+    if (!allowedExtensions) return availableProxies;
+    if (!availableProxies) return [];
     return availableProxies.filter((proxy) => {
       if (!proxy.extension && selectedAsset) {
-        const TRXExtensionAllowed = availableExtensions?.[selectedAsset.docType]?.some(
-          (ext) => ext.value === selectedAsset.extension,
+        const TRXExtensionAllowed = allowedExtensions?.some(
+          (ext) => ext === selectedAsset.extension.replace(/^\./, ''),
         );
         if (TRXExtensionAllowed) {
           return true;
@@ -494,8 +498,7 @@ const FormatDialog: FC<Props> = ({
       }
       return true;
     });
-  }, [availableProxies, availableExtensions, selectedAsset]);
-
+  }, [availableProxies, allowedExtensions, selectedAsset]);
   const setDefaultValues = useCallback(() => {
     if (!selectedAsset) {
       return;
@@ -572,7 +575,7 @@ const FormatDialog: FC<Props> = ({
       },
     });
 
-    const extension = appendAutoExtension ? autoExtension : selectedAsset.docType ?  availableExtensions?.[selectedAsset.docType]?.[0]?.value : selectedAsset.extension;
+    const extension = appendAutoExtension ? autoExtension : selectedAsset.docType ?  extensionsForTransformation?.[selectedAsset.docType]?.[0]?.value : selectedAsset.extension;
     if (filteredProxies && filteredProxies.length > 0) {
       dispatch({
         type: 'SET_SELECTED_PROXY',
@@ -603,7 +606,7 @@ const FormatDialog: FC<Props> = ({
         },
       });
     }
-  }, [autoExtension, filteredProxies, selectedAsset, state.defaultSize.height, state.defaultSize.width, appendAutoExtension, availableExtensions]);
+  }, [autoExtension, filteredProxies, selectedAsset, state.defaultSize.height, state.defaultSize.width, appendAutoExtension, extensionsForTransformation]);
 
   useEffect(() => {
     if (selectedAsset?.width && selectedAsset?.height) {
@@ -1248,17 +1251,20 @@ const FormatDialog: FC<Props> = ({
     }
     dispatch({ type: 'SET_SELECTED_PROXY', payload: filteredProxies[0].id });
   }, [filteredProxies, selectedAsset]);
-
   const renderContent = useCallback(() => {
     const disabledInsert =
-      state.isLoading || (!state.selectedProxy && !state.useCustomRendition && !state.useRepresentative);
-    const supportedATS = allowCustomFormat && extensions.includes(
+    state.isLoading || (!state.selectedProxy && !state.useCustomRendition && !state.useRepresentative);
+    const extensionListForDDL = (extensionsForTransformation && selectedAsset?.docType
+      ? _uniqBy([
+        ...extensionsForTransformation[selectedAsset.docType],
+        { displayName: 'Automatic', value: autoExtension },
+      ], 'value')
+      : [{ displayName: 'Automatic', value: autoExtension }]).filter(item => appendAutoExtension || item.value !== autoExtension);
+    const supportedATS = allowCustomFormat && extensionListForDDL.length > 0 && extensions.includes(
       selectedAsset ? selectedAsset.extension : '',
     );
     const supportedProxies = filteredProxies && Object.values(filteredProxies).flat().length > 0;
-
     const showCustomDimension = Boolean(state.selectedFormat.width && state.selectedFormat.height && state.useCustomRendition);
-
     const renderHeader = () => {
       if (state.showVersionHistory) {
         return (
@@ -1427,14 +1433,7 @@ const FormatDialog: FC<Props> = ({
         rendition = (
           <CustomRendition
             activeSetting={state.activeSetting}
-            extensions={
-              (availableExtensions && selectedAsset?.docType
-                ? _uniqBy([
-                  ...availableExtensions[selectedAsset.docType],
-                  { displayName: 'Automatic', value: autoExtension },
-                ], 'value')
-                : [{ displayName: 'Automatic', value: autoExtension }]).filter(item => appendAutoExtension || item.value !== autoExtension)
-            }
+            extensions={extensionListForDDL}
             availableProxies={filteredProxies}
             imageSize={{
               width: state.selectedFormat.width
@@ -1725,7 +1724,6 @@ const FormatDialog: FC<Props> = ({
             const selectedProxy = filteredProxies?.find((proxy) => {
               return proxy.id === state.selectedProxy;
             });
-
             if (!state.useCustomRendition) {
               if (!selectedAsset?.docType) {
                 return;
@@ -1744,9 +1742,22 @@ const FormatDialog: FC<Props> = ({
                   ? state.trackingParameters
                   : undefined,
                 useRepresentative: state.useRepresentative,
+                selectedProxyMetadata:{
+                  cdnName: selectedProxy?.cdnName ?? null,
+                  extension: selectedProxy?.proxyName === 'TRX' ? selectedAsset.extension : selectedProxy?.extension ?? null,
+                  isCustomFormat: false,
+                  width: selectedProxy?.proxyName === 'TRX' ? parseInt(selectedAsset.width ?? '0', 10) : selectedProxy?.formatWidth ?? null,
+                  height: selectedProxy?.proxyName === 'TRX' ? parseInt(selectedAsset.height ?? '0', 10) : selectedProxy?.formatHeight ?? null,
+                  permanentLink: selectedProxy?.permanentLink ?? null,
+                  proxyLabel: selectedProxy?.proxyLabel ?? null,
+                  proxyName: selectedProxy?.proxyName ?? null,
+                },
               });
               dispatch({ type: 'SET_LOADING_CONFIRM', payload: false });
             } else {
+              if (!selectedAsset?.docType) {
+                return;
+              }
               dispatch({ type: 'SET_LOADING_CONFIRM', payload: true });
               await onFormatConfirm({
                 value: state.transformations,
@@ -1755,6 +1766,23 @@ const FormatDialog: FC<Props> = ({
                   : undefined,
                 proxiesPreference: selectedProxy?.proxyName,
                 extension: state.selectedFormat.extension,
+                sourceProxyMetadata: {
+                  cdnName: selectedProxy?.cdnName ?? null,
+                  extension: selectedProxy?.proxyName === 'TRX' ? selectedAsset.extension : selectedProxy?.extension ?? null,
+                  isCustomFormat: null,
+                  width: selectedProxy?.proxyName === 'TRX' ? parseInt(selectedAsset.width ?? '0', 10) : selectedProxy?.formatWidth ?? null,
+                  height: selectedProxy?.proxyName === 'TRX' ? parseInt(selectedAsset.height ?? '0', 10) : selectedProxy?.formatHeight ?? null,
+                  permanentLink: selectedProxy?.permanentLink ?? null,
+                  proxyLabel: selectedProxy?.proxyLabel ?? null,
+                  proxyName: selectedProxy?.proxyName ?? null,
+                },
+                transformedAssetMetadata: {
+                  extension: state.selectedFormat?.extension ?? null,
+                  isCustomFormat: true,
+                  height: state.selectedFormat?.height ?? null,
+                  width: state.selectedFormat?.width ?? null,
+                  permanentLink: null,
+                },
               });
               dispatch({ type: 'SET_LOADING_CONFIRM', payload: false });
             }
@@ -1788,7 +1816,7 @@ const FormatDialog: FC<Props> = ({
     allowTracking,
     appendAutoExtension,
     autoExtension,
-    availableExtensions,
+    extensionsForTransformation,
     ctaText,
     extensions,
     filteredProxies,

@@ -35,7 +35,7 @@ import { explorePath, RootFolder } from '@/store/search/search.slice';
 import { useGetUserInfoQuery } from '@/store/user/user.api';
 import { FormatLoaderState } from '@/types/assets';
 import {
-  Asset, Facet, Folder, GetAssetLinkResponse, GridView, SortDirection,
+  Asset, AssetLinkInfo, AssetTransformationInfo, Facet, Folder, GetAssetLinkResponse, GridView, SortDirection,
 } from '@/types/search';
 import { MOBILE_THRESHOLD, PAGE_SIZE, RESIZE_TIMEOUT } from '@/utils/constants';
 import { isPromise } from '@/utils/function';
@@ -706,18 +706,46 @@ const HomePage: FC<Props> = () => {
     }
   }, []);
 
-  const handleSelectedAsset = useCallback(async (images: GetAssetLinkResponse[]) => {
+  const handleSelectedAsset = useCallback(async (images: GetAssetLinkResponse[], selectedProxyMetadata?: AssetLinkInfo, transformedAssetMetadata?: AssetTransformationInfo) => {
     const payload = [...images];
     COMPUTED_FIELDS.forEach((item) => {
       const key = _camelCase(item) as keyof typeof selectedAsset;
       if (selectedAsset && extraFields?.includes(item)) {
-        payload[0] = {
-          ...payload[0],
-          extraFields: {
-            ...(payload[0]?.extraFields || {}),
-            [item]: selectedAsset[key],
-          },
-        };
+        if (transformedAssetMetadata) {
+          payload[0] = {
+            ...payload[0],
+            extraFields: {
+              ...(payload[0]?.extraFields || {}),
+              [item]: transformedAssetMetadata[key],
+            },
+            assetTransformationSource: selectedProxyMetadata,
+            assetLinkInfo: {
+              extension: transformedAssetMetadata.extension,
+              isCustomFormat: transformedAssetMetadata.isCustomFormat ?? true,
+              permanentLink: payload[0].imageUrl,
+              width: transformedAssetMetadata.width,
+              height: transformedAssetMetadata.height,
+            },
+          };
+        } else {
+          payload[0] = {
+            ...payload[0],
+            extraFields: {
+              ...(payload[0]?.extraFields || {}),
+              [item]: selectedAsset[key],
+            },
+            assetLinkInfo: {
+              cdnName: selectedProxyMetadata?.cdnName ?? null,
+              extension: selectedProxyMetadata?.extension ?? null,
+              isCustomFormat: selectedProxyMetadata?.isCustomFormat ?? false,
+              permanentLink: payload[0].imageUrl ?? null,
+              proxyLabel: selectedProxyMetadata?.proxyLabel ?? null,
+              proxyName: selectedProxyMetadata?.proxyName ?? null,
+              width: selectedProxyMetadata?.width ?? null,
+              height: selectedProxyMetadata?.height ?? null,
+            },
+          };
+        }
       }
     });
 
@@ -932,6 +960,7 @@ const HomePage: FC<Props> = () => {
           allowFavorites={allowFavorites}
           allowProxy={allowProxy}
           allowTracking={allowTracking}
+          allowedExtensions={allowedExtensions}
           appendAutoExtension={allowedExtensions?.includes(autoExtension) ?? false}
           autoExtension={autoExtension}
           availableExtensions={filteredAllowedExtensions}
@@ -1002,6 +1031,7 @@ const HomePage: FC<Props> = () => {
             permanentLink,
             parameters,
             useRepresentative,
+            selectedProxyMetadata,
           }) => {
             if (!selectedAsset) {
               return;
@@ -1021,10 +1051,10 @@ const HomePage: FC<Props> = () => {
             );
 
             if (importAssets.fulfilled.match(images)) {
-              await handleSelectedAsset(images.payload);
+              await handleSelectedAsset(images.payload, selectedProxyMetadata);
             }
           }}
-          onFormatConfirm={async ({ value, parameters, proxiesPreference, extension }) => {
+          onFormatConfirm={async ({ value, parameters, proxiesPreference, extension, sourceProxyMetadata, transformedAssetMetadata }) => {
             if (!selectedAsset) {
               return;
             }
@@ -1050,7 +1080,7 @@ const HomePage: FC<Props> = () => {
             );
 
             if (importAssets.fulfilled.match(images)) {
-              await handleSelectedAsset(images.payload);
+              await handleSelectedAsset(images.payload, sourceProxyMetadata, transformedAssetMetadata);
             }
           }}
           onUnFavorite={async () => {
