@@ -77,6 +77,8 @@ export const searchApi = createApi({
         useSession,
         start = 0,
         pageSize = FOLDER_PAGE_SIZE,
+        self = false,
+        includeDirectChild,
       }: GetFoldersRequest) => {
         const params = [];
 
@@ -98,14 +100,18 @@ export const searchApi = createApi({
             params.push(['ObjectRecordIDs', item]);
           });
           params.push(['Self', 'true']);
-          params.push(['IncludeDirectChild', 'false']);
+          params.push(['IncludeDirectChild', includeDirectChild?.toString() ?? 'false']);
         } else if (folder?.id) {
           params.push(['ObjectRecordIDs', folder.id]);
-          params.push(['IncludeDirectChild', 'true']);
+          params.push(['IncludeDirectChild', includeDirectChild?.toString() ?? 'true']);
         }
 
         if (useSession) {
           params.push(['UseSession', useSession]);
+        }
+
+        if (self) {
+          params.push(['Self', 'true']);
         }
 
         return {

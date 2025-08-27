@@ -24,6 +24,16 @@ import BrowserItem, { getHighlightedTitle } from './BrowserItem';
 import { FOLDER_PAGE_SIZE } from '@/utils/constants';
 import LoadMoreButton from './LoadMoreButton';
 
+const defaultFavoriteFolder = {
+  id: '',
+  title: 'My Favorites',
+  docType: 'Story',
+  path: [],
+  parents: [],
+  fullPath: 'My Favorites',
+  hasChildren: false,
+};
+
 type Props = {
   allowedFolders?: string[];
   collectionPath?: string;
@@ -126,6 +136,23 @@ const Browser: FC<Props> = ({
     start: pagination.start,
     pageSize: pagination.pageSize,
   });
+
+  const { data: favoriteFolderData } = useGetFoldersQuery(
+    {
+      allowedFolders,
+      folder: {
+        ...defaultFavoriteFolder,
+        id: favoriteFolderId ?? '',
+      },
+      searchText: '',
+      useSession,
+      self: true,
+      includeDirectChild: false,
+    },
+    {
+      skip: !favoriteFolderId,
+    },
+  );
 
   const folders = useMemo(() => {
     return folderData?.items ?? undefined;
@@ -284,13 +311,9 @@ const Browser: FC<Props> = ({
           <BrowserItem
             key={favoriteFolderId}
             folder={{
+              ...defaultFavoriteFolder,
               id: favoriteFolderId,
-              title: 'My Favorites',
-              docType: 'Story',
-              path: [],
-              parents: [],
-              fullPath: 'My Favorites',
-              hasChildren: false,
+              hasChildren: favoriteFolderData?.items?.[0]?.hasChildren ?? false,
             }}
             currentFolderID={currentFolder.id}
             icon="star"
@@ -330,6 +353,7 @@ const Browser: FC<Props> = ({
     searchText,
     useSession,
     isMoreLoading,
+    favoriteFolderData,
   ]);
 
   const renderCollections = useCallback(() => {

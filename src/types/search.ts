@@ -118,6 +118,8 @@ export type GetFoldersRequest = {
   useSession?: string;
   start?: number;
   pageSize?: number;
+  self?: boolean;
+  includeDirectChild?: boolean;
 };
 
 export enum MediaType {
