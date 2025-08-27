@@ -121,11 +121,22 @@ const Facet: FC<Props> = ({
   }, [values]);
 
   const mappedDisplayNames = useMemo(() => {
-    return values.reduce((acc, { value: key, displayValue: value }) => {
-      acc[key] = value;
-
-      return acc;
-    }, {} as Record<string, string>);
+    const acc: Record<string, string> = {};
+    values.forEach((facetName) => {
+      acc[facetName.value] = facetName.displayValue;
+    });
+    // iterate through the values again, spliting them by ">>" and checking if the parent is already in the acc
+    values.forEach((facetName) => {
+      const parts = facetName.value.split('>>');
+      if (parts.length > 1) {
+        // For multi-level hierarchies, get the immediate parent (everything except the last part)
+        const parent = parts.slice(0, -1).join('>>');
+        if (!acc[parent]) {
+          acc[parent] = parent.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+        }
+      }
+    });
+    return acc;
   }, [values]);
 
   const hasNextPage = useMemo(
