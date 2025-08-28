@@ -994,13 +994,13 @@ const HomePage: FC<Props> = () => {
 
             const result = await appDispatch(
               addAssetToFavorite({
-                recordId: selectedAsset.id,
+                recordId: selectedAsset.recordId,
               }),
             );
 
             if (addAssetToFavorite.fulfilled.match(result)) {
               if (onAssetAction) {
-                onAssetAction('favorite', selectedAsset.id);
+                onAssetAction('favorite', selectedAsset.recordId);
               }
               await refetchIsFavorite();
 
@@ -1090,13 +1090,13 @@ const HomePage: FC<Props> = () => {
 
             const result = await appDispatch(
               removeAssetFromFavorite({
-                recordId: selectedAsset.id,
+                recordId: selectedAsset.recordId,
               }),
             );
 
             if (removeAssetFromFavorite.fulfilled.match(result)) {
               if (onAssetAction) {
-                onAssetAction('unfavorite', selectedAsset.id);
+                onAssetAction('unfavorite', selectedAsset.recordId);
               }
               await refetchIsFavorite();
 
