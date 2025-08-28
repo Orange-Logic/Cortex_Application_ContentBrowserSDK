@@ -708,44 +708,47 @@ const HomePage: FC<Props> = () => {
 
   const handleSelectedAsset = useCallback(async (images: GetAssetLinkResponse[], selectedProxyMetadata?: AssetLinkInfo, transformedAssetMetadata?: AssetTransformationInfo) => {
     const payload = [...images];
+    // inject info from COMPUTED_FIELDS if requested, which are from the getContent api, not from the extrafields of the getLink response
     COMPUTED_FIELDS.forEach((item) => {
       const key = _camelCase(item) as keyof typeof selectedAsset;
       if (selectedAsset && extraFields?.includes(item)) {
-        if (transformedAssetMetadata) {
-          payload[0] = {
-            ...payload[0],
-            extraFields: {
-              ...(payload[0]?.extraFields || {}),
-              [item]: transformedAssetMetadata[key],
-            },
-            assetTransformationSource: selectedProxyMetadata,
-            assetLinkInfo: {
-              extension: transformedAssetMetadata.extension,
-              isCustomFormat: transformedAssetMetadata.isCustomFormat ?? true,
-              permanentLink: payload[0].imageUrl,
-              width: transformedAssetMetadata.width,
-              height: transformedAssetMetadata.height,
-            },
-          };
-        } else {
-          payload[0] = {
-            ...payload[0],
-            extraFields: {
-              ...(payload[0]?.extraFields || {}),
-              [item]: selectedAsset[key],
-            },
-            assetLinkInfo: {
-              cdnName: selectedProxyMetadata?.cdnName ?? null,
-              extension: selectedProxyMetadata?.extension ?? null,
-              isCustomFormat: selectedProxyMetadata?.isCustomFormat ?? false,
-              permanentLink: payload[0].imageUrl ?? null,
-              proxyLabel: selectedProxyMetadata?.proxyLabel ?? null,
-              proxyName: selectedProxyMetadata?.proxyName ?? null,
-              width: selectedProxyMetadata?.width ?? null,
-              height: selectedProxyMetadata?.height ?? null,
-            },
-          };
-        }
+        payload[0] = {
+          ...payload[0],
+          extraFields: {
+            ...(payload[0]?.extraFields || {}),
+            [item]: selectedAsset[key],
+          },
+        };
+      }
+      // inject info from the selected proxy or transformation
+      if (transformedAssetMetadata) { 
+        // inject info stored in the selected transformation in UI, the transformation source from the AvailableProxies api, and the link from the getLink response
+        payload[0] = {
+          ...payload[0],
+          assetTransformationSource: selectedProxyMetadata,
+          assetLinkInfo: {
+            extension: transformedAssetMetadata.extension,
+            isCustomFormat: transformedAssetMetadata.isCustomFormat ?? true,
+            permanentLink: payload[0].imageUrl,
+            width: transformedAssetMetadata.width,
+            height: transformedAssetMetadata.height,
+          },
+        };
+      } else {
+        // inject info from the selected proxy from the AvailableProxies api, and the link from the getLink response
+        payload[0] = { 
+          ...payload[0],
+          assetLinkInfo: { 
+            cdnName: selectedProxyMetadata?.cdnName ?? null,
+            extension: selectedProxyMetadata?.extension ?? null,
+            isCustomFormat: selectedProxyMetadata?.isCustomFormat ?? false,
+            permanentLink: payload[0].imageUrl ?? null,
+            proxyLabel: selectedProxyMetadata?.proxyLabel ?? null,
+            proxyName: selectedProxyMetadata?.proxyName ?? null,
+            width: selectedProxyMetadata?.width ?? null,
+            height: selectedProxyMetadata?.height ?? null,
+          },
+        };
       }
     });
 
