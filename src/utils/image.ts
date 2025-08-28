@@ -27,8 +27,13 @@ export const resizeImage = (
         const heightRatio = maxHeight / height;
         const ratio = Math.min(widthRatio, heightRatio);
 
-        canvas.width = width * ratio;
-        canvas.height = height * ratio;
+        if (ratio > 0) {
+          canvas.width = width * ratio;
+          canvas.height = height * ratio;
+        } else {
+          canvas.width = width;
+          canvas.height = height;
+        }
       } else {
         canvas.width = width;
         canvas.height = height;
