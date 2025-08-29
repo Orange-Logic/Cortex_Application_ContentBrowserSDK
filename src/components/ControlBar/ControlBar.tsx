@@ -411,7 +411,9 @@ const ControlBar: FC<Props> = ({
                     value={item.value.toString()}
                     class={item.value === view ? 'selected' : ''}
                   >
-                    {item.label}
+                    <cx-line-clamp lines={1}>
+                      {item.label}
+                    </cx-line-clamp>
                     {
                       <cx-icon
                         slot="prefix"
