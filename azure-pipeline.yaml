@@ -11,7 +11,7 @@ resources:
     - repository: infra-templates
       type: git
       name: Infra_Pipelines-templates-dev
-      ref: refs/tags/1.0.10
+      ref: refs/tags/1.0.13
     - repository: gab-extension
       type: git
       name: GAB_Browser_Extension
@@ -76,6 +76,13 @@ stages:
               isCustomNpmEndpoint: true
               version: '$(GitVersion.FullSemVer)'
               skipBuild: false
+              skipPublish: true
+
+          - task: Npm@1
+            displayName: 'NPM publish'
+            inputs:
+              command: 'custom'
+              customCommand: 'run publish:library'
 
           - template: azure-pipelines/common/steps-s3-publish.yml@infra-templates
             parameters:

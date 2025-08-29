@@ -34,7 +34,8 @@
     "eject": "react-scripts eject",
     "format": "eslint --fix .",
     "lint": "tsc --noEmit && eslint src/**/*.ts{,x}",
-    "cypress:test": "cypress run --component --browser chrome"
+    "cypress:test": "cypress run --component --browser chrome",
+    "publish:library": "./scripts/publishIfNeeded.mjs"
   },
   "devDependencies": {
     "@babel/preset-env": "^7.26.9",
