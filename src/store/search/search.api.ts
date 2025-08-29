@@ -332,13 +332,9 @@ export const searchApi = createApi({
         items:
           response.contentItems?.map((item) => {
             let extension = GetValueByKeyCaseInsensitive(item.fields, FIELD_EXTENSION) ?? '';
-            let name = GetValueByKeyCaseInsensitive(item.fields, FIELD_UPDATED_FILE_NAME);
+            const name = GetValueByKeyCaseInsensitive(item.fields, FIELD_ORIGINAL_FILE_NAME);
             if (extension && !extension.startsWith('.')) {
               extension = '.' + extension;
-            }
-
-            if (isNullOrWhiteSpace(name)) {
-              name = GetValueByKeyCaseInsensitive(item.fields, FIELD_ORIGINAL_FILE_NAME);
             }
 
             return {
@@ -482,13 +478,9 @@ export const searchApi = createApi({
           extension = '.' + extension;
         }
 
-        let name = GetValueByKeyCaseInsensitive(item.fields, FIELD_UPDATED_FILE_NAME);
+        const name = GetValueByKeyCaseInsensitive(item.fields, FIELD_ORIGINAL_FILE_NAME);
         if (extension && !extension.startsWith('.')) {
           extension = '.' + extension;
-        }
-
-        if (isNullOrWhiteSpace(name)) {
-          name = GetValueByKeyCaseInsensitive(item.fields, FIELD_ORIGINAL_FILE_NAME);
         }
 
         return {
