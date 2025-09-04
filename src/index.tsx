@@ -186,6 +186,12 @@ type OrangeDAMContentBrowser = {
      * The flag to toggle between loading external fonts from direct links and from internal CSS file
      */
     loadExternalFonts?: boolean;
+
+    /**
+     * The default grid view to be used when showing asset (default Medium)
+     * Available values: small, medium, large
+     */
+    defaultGridView?: string;
   }) => Promise<void>;
   close: () => void;
   fetchAssets: (params: GetContentRequest) => Promise<{
@@ -312,6 +318,7 @@ const ContentBrowser: OrangeDAMContentBrowser = {
     showFavoriteFolder,
     showVersions,
     useSession,
+    defaultGridView,
   }) => {
     let container = containerId && document.getElementById(containerId);
     if (!containerId) {
@@ -420,6 +427,7 @@ const ContentBrowser: OrangeDAMContentBrowser = {
             allowTracking: allowTracking !== undefined ? !!allowTracking : true,
             allowProxy: allowProxy !== undefined ? !!allowProxy : true,
             allowFavorites: !!allowFavorites,
+            defaultGridView: defaultGridView ?? '',
           }}
         >
           <App

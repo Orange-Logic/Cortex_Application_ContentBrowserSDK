@@ -59,6 +59,7 @@ const WaitForAuthorize: FC<Props> = ({ onCancel }) => {
             <cx-typography variant="body2">
               Copy the URL and open it in a new tab
             </cx-typography>
+            <br />
             <cx-typography variant="body3">
               <cx-space spacing="3x-small" direction="horizontal" wrap="nowrap" alignItems="center" justifyContent="center"> 
                 <a

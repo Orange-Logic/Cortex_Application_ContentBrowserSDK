@@ -220,6 +220,7 @@ const HomePage: FC<Props> = () => {
     showCollections,
     showFavoriteFolder,
     showVersions,
+    defaultGridView,
   } = useContext(GlobalConfigContext);
   const { extraFields, onAssetAction, onAssetSelected, onClose } = useContext(AppContext);
 
@@ -426,6 +427,11 @@ const HomePage: FC<Props> = () => {
         if (sortDirection === 'ascending' || sortDirection === 'descending') {
           dispatch({ type: 'SET_SORT_DIRECTION', payload: sortDirection });
         }
+        
+        if (view === null) {
+          view = defaultGridView;
+        }
+
         if (typeof view === 'string') {
           if (!Object.values(GridView).includes(view as GridView)) {
             /**
@@ -466,7 +472,7 @@ const HomePage: FC<Props> = () => {
         loadedFromStorage.current = true;
       });
     }
-  }, [appDispatch, authenticated, lastLocationMode]);
+  }, [appDispatch, authenticated, lastLocationMode, defaultGridView]);
 
   useEffect(() => {
     /**

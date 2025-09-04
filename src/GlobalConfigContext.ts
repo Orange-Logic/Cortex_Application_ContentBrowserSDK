@@ -1,4 +1,5 @@
 import { createContext } from 'react';
+import { GridView } from './types/search';
 
 export type ImageCardDisplayInfo = {
   title?: boolean,
@@ -31,6 +32,7 @@ export type GlobalConfigContextType = {
   allowTracking: boolean;
   allowProxy: boolean;
   allowFavorites: boolean;
+  defaultGridView: string;
 };
 
 export const GlobalConfigContext = createContext<GlobalConfigContextType>({
@@ -54,4 +56,5 @@ export const GlobalConfigContext = createContext<GlobalConfigContextType>({
   allowTracking: true,
   allowProxy: false,
   allowFavorites: false,
+  defaultGridView: '',
 });
