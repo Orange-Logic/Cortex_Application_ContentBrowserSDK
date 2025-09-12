@@ -42,9 +42,11 @@ import { isPromise } from '@/utils/function';
 import { getData, storeData } from '@/utils/storage';
 import { skipToken } from '@reduxjs/toolkit/query';
 
-import { Container } from './Home.styled';
+import { Container, Content } from './Home.styled';
 
 import type { CxResizeEvent, CxResizeObserver } from '@orangelogic-private/design-system';
+import { FORCE_OVERLAY_THRESHOLD } from '@/components/Browser/Browser.constants';
+
 type Props = {
   multiSelect?: boolean;
 };
@@ -208,7 +210,6 @@ const HomePage: FC<Props> = () => {
   const selectedAssetId = useAppSelector(selectedAssetIdSelector);
   const {
     allowedExtensions, // list of allowed extensions from runtime properties. e.g. ['.jpg', '.png', '.mp4']
-    allowedFolders,
     allowFavorites,
     allowProxy,
     allowTracking,
@@ -218,7 +219,6 @@ const HomePage: FC<Props> = () => {
     lastLocationMode,
     persistMode,
     showCollections,
-    showFavoriteFolder,
     showVersions,
     defaultGridView,
   } = useContext(GlobalConfigContext);
@@ -284,6 +284,7 @@ const HomePage: FC<Props> = () => {
   const [isResized, setIsResized] = useState(false);
   const [showFormatLoader, setShowFormatLoader] = useState<FormatLoaderState>(FormatLoaderState.Hide);
   const [itemsCount, setItemsCount] = useState(0);
+  const [isPersistent, setIsPersistent] = useState(false);
 
   const browserMountedRef = useRef(browserMounted);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -682,12 +683,14 @@ const HomePage: FC<Props> = () => {
           folder,
           shouldResetFilters: browserMountedRef.current,
         } });
-        dispatch({ type: 'SET_OPEN_BROWSER', payload: false });
+        if (!isPersistent) {
+          dispatch({ type: 'SET_OPEN_BROWSER', payload: false });
+        }
         appDispatch(setSelectedAssetId(null));
         storeData('lastLocation', JSON.stringify(folder));
       }
     },
-    [appDispatch],
+    [appDispatch, isPersistent],
   );
 
   const onLoadMore = useCallback(() => {
@@ -864,107 +867,110 @@ const HomePage: FC<Props> = () => {
     }, availableExtensions);
   }, [availableExtensions, allowedExtensions]);
 
+  const forceOverlay = state.containerSize.width < FORCE_OVERLAY_THRESHOLD;
+
   return (
     <cx-resize-observer ref={containerResizeObserverRef}>
       <Container ref={containerRef}>
-        <Header
-          bordered={state.hasScrolled}
-          currentFolder={state.currentFolder}
-          isFetching={isFetchingUserInfo}
-          isLoading={isLoadingUserInfo}
-          userInfo={userInfo}
-          onMenuClick={() =>
-            dispatch({ type: 'SET_OPEN_BROWSER', payload: true })
-          }
-          onLogout={() => {
-            appDispatch(logout());
-            appDispatch(setSelectedAssetId(null));
-            dispatch({ type: 'RESET_SEARCH' });
-          }}
-        >
-          <ControlBar
-            allowSorting={selectedSortOrder?.sortDirection !== 'Mono' && !!selectedSortOrder}
-            availableFacets={availableFacets ?? []}
-            currentCount={state.currentCount}
-            facets={state.facets}
-            isMobile={isMobile}
-            isSeeThrough={state.isSeeThrough}
-            loading={state.isLoading}
-            searchValue={state.searchText}
-            selectedFacets={state.selectedFacets}
-            sortDirection={state.sortDirection}
-            sortOrder={state.sortOrder}
-            sortOrders={sortOrders}
-            totalCount={state.totalCount}
-            view={state.view}
-            onSearchChange={onSearchChange}
-            onSettingChange={onSettingChange}
-          />
-        </Header>
         <Browser
-          allowedFolders={allowedFolders}
           collectionPath={collectionPath}
           currentFolder={state.currentFolder}
-          favoriteFolderId={userInfo?.favoriteFolderRecordID}
           lastLocationMode={lastLocationMode}
           open={state.openBrowser}
           showCollections={showCollections}
-          showFavoriteFolder={showFavoriteFolder}
           useSession={useSession}
           onFolderSelect={onFolderSelect}
           onClose={() => dispatch({ type: 'SET_OPEN_BROWSER', payload: false })}
+          isPersistent={isPersistent}
+          onChangePersistent={setIsPersistent}
+          forceOverlay={forceOverlay}
         />
-        <div
-          style={{
-            flex: 1,
-            minHeight: '320px',
-            padding: '0 var(--cx-spacing-medium)',
-            position: 'relative',
-          }}
-        >
-          <AutoSizer onResize={debouncedHandleResize}>
-            {({ height, width }: Size) => {
-              return (
-                <div
-                  style={{
-                    height: height + 'px',
-                    width: width + 'px',
-                  }}
-                >
-                  <AssetCardWrapper
-                    ref={resultRef}
-                    isError={isError}
-                    isConfigError={isConfigError}
-                    hasNextPage={hasNextPage}
-                    height={height}
-                    isLoadingData={state.isLoading || !data}
-                    isFetched={!!data || isConfigError}
-                    items={data?.items || []}
-                    selectedAsset={selectedAsset ?? null}
-                    view={state.view}
-                    width={width}
-                    onItemSelect={onItemSelect}
-                    onLoadMore={onLoadMore}
-                    onScroll={onScroll}
-                    key={
-                      state.currentFolder.id +
-                      state.searchText +
-                      Object.values(state.selectedFacets).join('+') +
-                      state.isSeeThrough +
-                      state.view
-                    }
-                  />
-                </div>
-              );
+        <Content>
+          <Header
+            bordered={state.hasScrolled}
+            currentFolder={state.currentFolder}
+            isFetching={isFetchingUserInfo}
+            isLoading={isLoadingUserInfo}
+            userInfo={userInfo}
+            onMenuClick={() =>
+              dispatch({ type: 'SET_OPEN_BROWSER', payload: true })
+            }
+            onLogout={() => {
+              appDispatch(logout());
+              appDispatch(setSelectedAssetId(null));
+              dispatch({ type: 'RESET_SEARCH' });
             }}
-          </AutoSizer>
-        </div>
-        {showFormatLoader === FormatLoaderState.ShowLoader && (
-          <cx-space className="format-loader">
-            <cx-spinner></cx-spinner>
-          </cx-space>
-        )}
-        <FormatDialog
+          >
+            <ControlBar
+              allowSorting={selectedSortOrder?.sortDirection !== 'Mono' && !!selectedSortOrder}
+              availableFacets={availableFacets ?? []}
+              currentCount={state.currentCount}
+              facets={state.facets}
+              isMobile={isMobile}
+              isSeeThrough={state.isSeeThrough}
+              loading={state.isLoading}
+              searchValue={state.searchText}
+              selectedFacets={state.selectedFacets}
+              sortDirection={state.sortDirection}
+              sortOrder={state.sortOrder}
+              sortOrders={sortOrders}
+              totalCount={state.totalCount}
+              view={state.view}
+              onSearchChange={onSearchChange}
+              onSettingChange={onSettingChange}
+            />
+          </Header>
+            <div
+              style={{
+                flex: 1,
+                minHeight: '320px',
+                padding: '0 var(--cx-spacing-medium)',
+                position: 'relative',
+              }}
+            >
+            <AutoSizer onResize={debouncedHandleResize}>
+              {({ height, width }: Size) => {
+                return (
+                  <div 
+                    style={{
+                      height: height + 'px',
+                      width: width + 'px',
+                    }}
+                  >
+                    <AssetCardWrapper
+                      ref={resultRef}
+                      isError={isError}
+                      isConfigError={isConfigError}
+                      hasNextPage={hasNextPage}
+                      height={height}
+                      isLoadingData={state.isLoading || !data}
+                      isFetched={!!data || isConfigError}
+                      items={data?.items || []}
+                      selectedAsset={selectedAsset ?? null}
+                      view={state.view}
+                      width={width}
+                      onItemSelect={onItemSelect}
+                      onLoadMore={onLoadMore}
+                      onScroll={onScroll}
+                      key={
+                        state.currentFolder.id +
+                        state.searchText +
+                        Object.values(state.selectedFacets).join('+') +
+                        state.isSeeThrough +
+                        state.view
+                      }
+                    />
+                  </div>
+                );
+              }}
+            </AutoSizer>
+          </div>
+          {showFormatLoader === FormatLoaderState.ShowLoader && (
+            <cx-space className="format-loader">
+              <cx-spinner></cx-spinner>
+            </cx-space>
+          )}
+          <FormatDialog
           allowCustomFormat={!!ATSEnabled && !!selectedAsset?.allowATSLink}
           allowFavorites={allowFavorites}
           allowProxy={allowProxy}
@@ -1131,6 +1137,7 @@ const HomePage: FC<Props> = () => {
             return result;
           }}
         />
+        </Content>
       </Container>
     </cx-resize-observer>
   );

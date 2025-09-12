@@ -23,6 +23,8 @@ import { Drawer } from './Browser.styled';
 import BrowserItem, { getHighlightedTitle } from './BrowserItem';
 import { FOLDER_PAGE_SIZE } from '@/utils/constants';
 import LoadMoreButton from './LoadMoreButton';
+import { LeftPanelCloseIcon, LeftPanelOpenIcon } from './Browser.constants';
+import { constructIconDataUrl } from '@/utils/icon';
 
 const defaultFavoriteFolder = {
   id: '',
@@ -47,6 +49,9 @@ type Props = {
   useSession?: string;
   onFolderSelect: (selectedFolder: Folder) => void;
   onClose: () => void;
+  isPersistent: boolean;
+  onChangePersistent: (persistent: boolean) => void;
+  forceOverlay: boolean;
 };
 
 const Browser: FC<Props> = ({
@@ -62,6 +67,9 @@ const Browser: FC<Props> = ({
   useSession,
   onFolderSelect,
   onClose,
+  isPersistent,
+  onChangePersistent,
+  forceOverlay,
 }) => {
   const [searchText, setSearchText] = useState('');
   const [isDefined, setIsDefined] = useState(false);
@@ -115,13 +123,14 @@ const Browser: FC<Props> = ({
     if (!drawer) return;
     const onDrawerClose = () => {
       onClose();
+      onChangePersistent(false);
     };
     drawer.addEventListener('cx-request-close', onDrawerClose);
 
     return () => {
       drawer.removeEventListener('cx-request-close', onDrawerClose);
     };
-  }, [isDefined, onClose]);
+  }, [isDefined, onClose, onChangePersistent]);
 
   const {
     data: folderData,
@@ -395,6 +404,23 @@ const Browser: FC<Props> = ({
     isMoreCollectionsLoading,
   ]);
 
+  const IconHeaderMapper = {
+    'persistent': {
+      src: constructIconDataUrl(LeftPanelCloseIcon),
+      onclick: () => {
+        onClose();
+        onChangePersistent(false);
+      },
+    },
+    'overlay': {
+      src: constructIconDataUrl(LeftPanelOpenIcon),
+      onclick: () => onChangePersistent(true),
+    },
+  };
+
+  
+  const IconHeaderProps = isPersistent ? IconHeaderMapper.persistent : IconHeaderMapper.overlay;
+
   return (
     <Drawer
       ref={drawerRef}
@@ -402,7 +428,12 @@ const Browser: FC<Props> = ({
       placement="start"
       contained
       open={open}
+      variant={forceOverlay ? 'overlay' : isPersistent ? 'persistent' : 'overlay'}
+      noCloseButton={forceOverlay ? false : isPersistent ? true : false}
     >
+      {!forceOverlay ? (
+        <cx-icon-button slot="header-actions" {...IconHeaderProps} ></cx-icon-button>
+      ) : null}
       <cx-space direction="vertical" spacing="small" wrap="nowrap">
         <cx-space
           direction="vertical"

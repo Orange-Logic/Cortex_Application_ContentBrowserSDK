@@ -1,5 +1,4 @@
 import { createContext } from 'react';
-import { GridView } from './types/search';
 
 export type ImageCardDisplayInfo = {
   title?: boolean,
