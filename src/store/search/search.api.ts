@@ -87,7 +87,7 @@ export const searchApi = createApi({
         }
 
         if (searchText) {
-          params.push(['Text', `"${searchText}"`]);
+          params.push(['Text', searchText]);
           params.push(['SeeThru', 'true']);
         }
 
