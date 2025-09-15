@@ -428,12 +428,12 @@ const Browser: FC<Props> = ({
       placement="start"
       contained
       open={open}
-      variant={forceOverlay ? 'overlay' : isPersistent ? 'persistent' : 'overlay'}
-      noCloseButton={forceOverlay ? false : isPersistent ? true : false}
+      // variant={forceOverlay ? 'overlay' : isPersistent ? 'persistent' : 'overlay'}
+      // noCloseButton={forceOverlay ? false : isPersistent ? true : false}
     >
-      {!forceOverlay ? (
+      {/* {!forceOverlay ? (
         <cx-icon-button slot="header-actions" {...IconHeaderProps} ></cx-icon-button>
-      ) : null}
+      ) : null} */}
       <cx-space direction="vertical" spacing="small" wrap="nowrap">
         <cx-space
           direction="vertical"

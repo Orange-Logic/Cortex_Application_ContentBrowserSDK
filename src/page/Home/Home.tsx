@@ -210,6 +210,7 @@ const HomePage: FC<Props> = () => {
   const selectedAssetId = useAppSelector(selectedAssetIdSelector);
   const {
     allowedExtensions, // list of allowed extensions from runtime properties. e.g. ['.jpg', '.png', '.mp4']
+    allowedFolders,
     allowFavorites,
     allowProxy,
     allowTracking,
@@ -219,6 +220,7 @@ const HomePage: FC<Props> = () => {
     lastLocationMode,
     persistMode,
     showCollections,
+    showFavoriteFolder,
     showVersions,
     defaultGridView,
   } = useContext(GlobalConfigContext);
@@ -873,11 +875,14 @@ const HomePage: FC<Props> = () => {
     <cx-resize-observer ref={containerResizeObserverRef}>
       <Container ref={containerRef}>
         <Browser
+          allowedFolders={allowedFolders}
           collectionPath={collectionPath}
           currentFolder={state.currentFolder}
+          favoriteFolderId={userInfo?.favoriteFolderRecordID}
           lastLocationMode={lastLocationMode}
           open={state.openBrowser}
           showCollections={showCollections}
+          showFavoriteFolder={showFavoriteFolder}
           useSession={useSession}
           onFolderSelect={onFolderSelect}
           onClose={() => dispatch({ type: 'SET_OPEN_BROWSER', payload: false })}
