@@ -329,6 +329,16 @@ const ContentBrowser: OrangeDAMContentBrowser = {
     useSession,
     defaultGridView,
   }) => {
+    // !! Always assign this first to make sure that storage functionality works
+    const customStorageHandlers =
+      typeof customStorage === 'object' && !!customStorage
+      && typeof customStorage.delete === 'function' && !!customStorage.delete
+      && typeof customStorage.get === 'function' && !!customStorage.get
+      && typeof customStorage.set === 'function' && !!customStorage.set
+        ? customStorage
+        : undefined;
+    window.OrangeDAMContentBrowser._customStorage = customStorageHandlers;
+
     let container = containerId && document.getElementById(containerId);
     if (!containerId) {
       container = document.body;
@@ -390,13 +400,6 @@ const ContentBrowser: OrangeDAMContentBrowser = {
       typeof onTokenChanged === 'function' && !!onTokenChanged
         ? onTokenChanged
         : undefined;
-    const customStorageHandlers =
-      typeof customStorage === 'object' && !!customStorage
-      && typeof customStorage.delete === 'function' && !!customStorage.delete
-      && typeof customStorage.get === 'function' && !!customStorage.get
-      && typeof customStorage.set === 'function' && !!customStorage.set
-        ? customStorage
-        : undefined;
 
     const handleClose = () => {
       store.dispatch(resetImportStatus());
@@ -418,7 +421,6 @@ const ContentBrowser: OrangeDAMContentBrowser = {
     window.OrangeDAMContentBrowser._onImageSelected = imageSelectedHandler;
     window.OrangeDAMContentBrowser._onError = errorHandler;
     window.OrangeDAMContentBrowser._onClose = handleClose;
-    window.OrangeDAMContentBrowser._customStorage = customStorageHandlers;
 
     root.render(
       <Provider store={store}>
