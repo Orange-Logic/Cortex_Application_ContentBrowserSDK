@@ -1,4 +1,4 @@
-import { FC, useCallback, useContext, useMemo } from 'react';
+import { FC, useCallback, useContext, useEffect, useMemo } from 'react';
 
 import { GlobalConfigContext } from '@/GlobalConfigContext';
 import { useAppDispatch, useAppSelector } from '@/store';
@@ -7,6 +7,7 @@ import {
   USE_SESSION,
 } from '@/store/auth/auth.slice';
 
+import { getData } from '@/utils/storage';
 import AuthenticatePage from './Authenticate';
 import ConnectingBackground from './ConnectingBackground';
 
@@ -16,12 +17,11 @@ type Props = {
 
 const RestoreSession: FC<Props> = ({ onCancel }) => {
   const dispatch = useAppDispatch();
-  const localStorageSession = localStorage.getItem(USE_SESSION);
+  useEffect(() => {
+    getData(USE_SESSION).then((storedSession) => storedSession && dispatch(setUseSession(storedSession)));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  if (localStorageSession) {
-    dispatch(setUseSession(localStorageSession));
-  }
-  
   return (
     <ConnectingBackground onCancel={onCancel}>
       <cx-typography variant="h3">

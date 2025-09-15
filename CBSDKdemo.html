@@ -211,6 +211,33 @@
             </ul>
             </p>
           </li>
+          <li>
+            <b>customStorage</b>
+            <p>
+              An object that provides custom storage implementation for the SDK. This allows integrations to control how the SDK stores and retrieves persistent data.
+            </p>
+            <p>
+              The customStorage object must implement the following interface:
+            </p>
+            <ul>
+              <li><b>get(key: string): Promise&lt;string | null&gt;</b> - Retrieve data from storage by key</li>
+              <li><b>set(key: string, value: string, ttl?: number): void</b> - Store data with the given key, with optional TTL (time-to-live) in seconds</li>
+              <li><b>delete(key: string): void</b> - Remove data from storage by key</li>
+            </ul>
+            <p>
+              Example implementation:
+            </p>
+            <pre>
+customStorage: {
+  get: async (key) => localStorage.getItem(key),
+  set: (key, value) => localStorage.setItem(key, value),
+  delete: (key) => localStorage.removeItem(key)
+}
+            </pre>
+            <p>
+              <small>Note: If not provided or missing one of the action, the SDK will use its default storage mechanism.</small>
+            </p>
+          </li>
         </ul>
       </div>
     </details>

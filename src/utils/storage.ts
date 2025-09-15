@@ -66,14 +66,19 @@ export const getData = async (
   storageType?: StorageType,
 ): Promise<string | null> => {
   // When type is not defined, we will try to get the data from every possible options
-  if (storageType == null) {
+  if (!storageType) {
     return (
+      (await getData(key, 'CustomStorage')) ??
       (await getData(key, 'LocalStorage')) ??
       (await getData(key, 'SessionStorage')) ??
       (await getData(key, 'Cookies'))
     );
   }
   switch (storageType) {
+    case 'CustomStorage':
+      return (await isValueExpired(key, 'CustomStorage'))
+        ? null
+        : (window.OrangeDAMContentBrowser._customStorage?.get(key) ?? null);
     case 'SessionStorage':
       return (await isValueExpired(key, 'SessionStorage'))
         ? null
@@ -130,21 +135,41 @@ const isValueExpired = async (key: string, type?: StorageType) => {
 export const storeData = (
   key: string,
   value: string,
-  storageType: StorageType = 'LocalStorage',
-  ttl = 0,
-) => {
+  storageType?: StorageType,
+  ttl: number = 0,
+): void => {
   const dataExpireTimeKey = key + DATA_EXPIRE_TIME_POSTFIX;
   const expireDate = new Date();
   expireDate.setTime(expireDate.getTime() + (ttl || DEFAULT_EXPIRED_DURATION));
   const expireDateStr = expireDate.toUTCString();
 
+  if (!storageType) {
+    storageType = !window.OrangeDAMContentBrowser._customStorage?.set
+      ? 'LocalStorage'
+      : 'CustomStorage';
+  }
+
   switch (storageType) {
-    case 'SessionStorage':
-      if (ttl) {
-        sessionStorage.setItem(dataExpireTimeKey, expireDateStr);
+    case 'CustomStorage':
+      const set = window.OrangeDAMContentBrowser._customStorage?.set;
+      if (!!set) {
+        if (ttl) {
+          set(dataExpireTimeKey, expireDateStr);
+        }
+        return set(key, value);
+      } else {
+        return storeData(key, value, 'SessionStorage', ttl);
       }
-      return sessionStorage.setItem(key, value);
-    case 'Cookies': // If local storage is not available or user force to save to cookie
+    case 'SessionStorage':
+      try {
+        if (ttl) {
+          sessionStorage.setItem(dataExpireTimeKey, expireDateStr);
+        }
+        return sessionStorage.setItem(key, value);
+      } catch (e) {
+        return storeData(key, value, 'Cookies', ttl);
+      }
+    case 'Cookies': // If no other storage is available or user force to save to cookie
       return createCookie(key, value, !ttl ? undefined : expireDateStr);
     case 'LocalStorage': // By default, we will always store data to local storage
     default:
@@ -153,8 +178,9 @@ export const storeData = (
           localStorage.setItem(dataExpireTimeKey, expireDateStr);
         }
         return localStorage.setItem(key, value);
+      } else {
+        return storeData(key, value, 'CustomStorage', ttl);
       }
-      return null;
   }
 };
 
@@ -171,4 +197,6 @@ export const deleteData = (key: string) => {
   }
   // Remove from cookies
   document.cookie = key + '=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+  // Remove from custom storage
+  window.OrangeDAMContentBrowser._customStorage?.delete(key);
 };

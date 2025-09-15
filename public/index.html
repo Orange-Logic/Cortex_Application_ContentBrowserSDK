@@ -93,6 +93,20 @@
         onTokenChanged: (token) => {
           console.log('Token changed:', token);
         },
+        customStorage: {
+          get: (key) => {
+            console.log('Get key from custom storage: ' + key);
+            return localStorage.getItem("custom_storage_" + key);
+          },
+          set: (key, value) => {
+            console.log('Set key from custom storage: ' + key + ":" + value);
+            return localStorage.setItem("custom_storage_" + key, value);
+          },
+          delete: (key) => {
+            console.log('Delete key from custom storage: ' + key);
+            return localStorage.removeItem("custom_storage_" + key);
+          }
+        }
       }
       settings.onClose = () => {
         console.log('Content Browser closed, reopening ...');

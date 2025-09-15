@@ -62,6 +62,10 @@ type OrangeDAMContentBrowser = {
     onConnectClicked?: (url: string) => void;
 
     /**
+     * Custom storage implementation for storing data
+     */
+    customStorage?: AppContextType['customStorage'];
+    /**
      * Callback when the site url is changed
      * this is used to sync CBSDK site url with external integrations
      */
@@ -231,6 +235,10 @@ type OrangeDAMContentBrowser = {
    * Global function which mirrored the behavior of onAssetAction
    */
   _onAssetAction?: AppContextType['onAssetAction'];
+  /**
+   * Global function which mirrored the behavior of customStorage
+   */
+  _customStorage?: AppContextType['customStorage'];
 };
 
 declare global {
@@ -290,6 +298,7 @@ const ContentBrowser: OrangeDAMContentBrowser = {
     onTokenChanged,
     onConnectClicked,
     onSiteUrlChanged,
+    customStorage,
     allowedExtensions,
     allowedFolders,
     allowFavorites,
@@ -381,6 +390,14 @@ const ContentBrowser: OrangeDAMContentBrowser = {
       typeof onTokenChanged === 'function' && !!onTokenChanged
         ? onTokenChanged
         : undefined;
+    const customStorageHandlers =
+      typeof customStorage === 'object' && !!customStorage
+      && typeof customStorage.delete === 'function' && !!customStorage.delete
+      && typeof customStorage.get === 'function' && !!customStorage.get
+      && typeof customStorage.set === 'function' && !!customStorage.set
+        ? customStorage
+        : undefined;
+
     const handleClose = () => {
       store.dispatch(resetImportStatus());
       store.dispatch(searchApi.util.resetApiState());
@@ -392,6 +409,7 @@ const ContentBrowser: OrangeDAMContentBrowser = {
       window.OrangeDAMContentBrowser._onImageSelected = undefined;
       window.OrangeDAMContentBrowser._onError = undefined;
       window.OrangeDAMContentBrowser._onClose = undefined;
+      window.OrangeDAMContentBrowser._customStorage = undefined;
 
       onClose?.();
     };
@@ -400,6 +418,7 @@ const ContentBrowser: OrangeDAMContentBrowser = {
     window.OrangeDAMContentBrowser._onImageSelected = imageSelectedHandler;
     window.OrangeDAMContentBrowser._onError = errorHandler;
     window.OrangeDAMContentBrowser._onClose = handleClose;
+    window.OrangeDAMContentBrowser._customStorage = customStorageHandlers;
 
     root.render(
       <Provider store={store}>
