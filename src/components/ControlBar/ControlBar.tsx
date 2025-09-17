@@ -215,12 +215,6 @@ const ControlBar: FC<Props> = ({
     [view],
   );
 
-  const appliedFilersCount = useMemo(() => {
-    return Object.values(selectedFacets).reduce((acc, values) => {
-      return acc + values.length;
-    }, 0);
-  }, [selectedFacets]);
-
   const mappedDisplayNames = useMemo(() => {
     return facets?.reduce((acc, facet) => {
       const displayNames = facet.values.reduce((displayNamesAcc, { value, displayValue }) => {
@@ -236,13 +230,22 @@ const ControlBar: FC<Props> = ({
     }, {} as Record<string, Record<string, string>>) ?? {};
   }, [facets]);
 
+  const appliedFiltersCount = useMemo(() => {
+    return Object.entries(selectedFacets).reduce((acc, [key, values]) => {
+      if (!mappedDisplayNames[key]) {
+        return acc;
+      }
+      return acc + values.filter(value => mappedDisplayNames[key][value]).length;
+    }, 0);
+  }, [selectedFacets, mappedDisplayNames]);
+
   const renderAppliedFilters = useCallback(() => {
     return (
       <cx-details
         data-cy="applied-filters"
         open
         className={`filter-details ${
-          appliedFilersCount === 0 ? 'filter-details--empty' : ''
+          appliedFiltersCount === 0 ? 'filter-details--empty' : ''
         }`.trim()}
       >
         <cx-space
@@ -253,7 +256,7 @@ const ControlBar: FC<Props> = ({
         >
           <span>
             Applied filters{' '}
-            {appliedFilersCount > 0 ? ` (${appliedFilersCount})` : ''}
+            {appliedFiltersCount > 0 ? ` (${appliedFiltersCount})` : ''}
           </span>
           {loading && newlyChangedOption.type === 'filter' && (
             <cx-spinner></cx-spinner>
@@ -281,7 +284,7 @@ const ControlBar: FC<Props> = ({
             });
           })}
         </cx-space>
-        {appliedFilersCount > 0 && (
+        {appliedFiltersCount > 0 && (
           <cx-button
             variant="text"
             className="clear-all-button"
@@ -300,7 +303,7 @@ const ControlBar: FC<Props> = ({
         )}
       </cx-details>
     );
-  }, [appliedFilersCount, loading, mappedDisplayNames, newlyChangedOption.type, onSettingChange, selectedFacets]);
+  }, [appliedFiltersCount, loading, mappedDisplayNames, newlyChangedOption.type, onSettingChange, selectedFacets]);
 
   return (
     <Container>
@@ -334,9 +337,9 @@ const ControlBar: FC<Props> = ({
                 outline
                 data-cy="filter-button"
               >
-                {appliedFilersCount > 0 && (
+                {appliedFiltersCount > 0 && (
                   <cx-badge slot="badge" pill size="small">
-                    {appliedFilersCount}
+                    {appliedFiltersCount}
                   </cx-badge>
                 )}
               </cx-icon-button>
