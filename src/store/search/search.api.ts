@@ -39,24 +39,40 @@ const resolveFolderExtraFilters = ({
 
 const resolveAssetExtraFilters = (selectedFacets?: Record<string, string[]>) => {
   if (!selectedFacets || Object.keys(selectedFacets).length === 0) {
-    return [];
+    return {
+      subtypeCriteria: [],
+      facetFilters: {},
+    };
   }
   
-  return Object.entries(selectedFacets).reduce<[string, string][]>((acc, [key, values]) => {
+  return Object.entries(selectedFacets).reduce<{
+    subtypeCriteria: string[];
+    facetFilters: Record<string, string[]>;
+  }>((acc, [key, values]) => {
     if (!values || values.length === 0) {
       return acc;
     }
 
     if (key === 'Types') {
-      return acc.concat(
-        values.map((value) => ['subtypeCriteria', value] as [string, string]),
-      );
+      return {
+        ...acc,
+        subtypeCriteria: acc.subtypeCriteria.concat(
+          values,
+        ),
+      };
     }
 
-    return acc.concat(
-      values.map((value) => [`facetFilters[${key}]`, value] as [string, string]),
-    );
-  }, []);
+    return {
+      ...acc,
+      facetFilters: {
+        ...acc.facetFilters,
+        [key]: values,
+      },
+    };
+  }, {
+    subtypeCriteria: [],
+    facetFilters: {},
+  });
 };
 
 const baseQueryWithRetry = retry(AppBaseQuery, { 
@@ -269,56 +285,38 @@ export const searchApi = createApi({
         start,
         useSession,
       }: GetContentRequest) => {
-        const mappedLimitedToDocTypes = limitedToDocTypes.map((docType) => ['limitedToDocTypes', docType]);
-        const params = [
-          ['fields', DEFAULT_VIEW_SIZE],
-          ['fields', FIELD_DOC_TYPE],
-          ['fields', FIELD_EXTENSION],
-          ['fields', FIELD_FILE_SIZE],
-          ['fields', FIELD_IDENTIFIER],
-          ['fields', FIELD_KEYWORDS],
-          ['fields', FIELD_MAX_HEIGHT],
-          ['fields', FIELD_MAX_WIDTH],
-          ['fields', FIELD_ORIGINAL_FILE_NAME],
-          ['fields', FIELD_RECORD_ID],
-          ['fields', FIELD_SUBTYPE],
-          ['fields', FIELD_TITLE_WITH_FALLBACK],
-          ['fields', FIELD_UPDATED_FILE_NAME],
-          ['fields', ORIGINAL_VIEW_SIZE],
-          ['seeThru', !!isSeeThrough],
-        ];
+        const body = {
+          fields: [
+            DEFAULT_VIEW_SIZE,
+            FIELD_DOC_TYPE,
+            FIELD_EXTENSION,
+            FIELD_FILE_SIZE,
+            FIELD_IDENTIFIER,
+            FIELD_KEYWORDS,
+            FIELD_MAX_HEIGHT,
+            FIELD_MAX_WIDTH,
+            FIELD_ORIGINAL_FILE_NAME,
+            FIELD_RECORD_ID,
+            FIELD_SUBTYPE,
+            FIELD_TITLE_WITH_FALLBACK,
+            FIELD_UPDATED_FILE_NAME,
+            ORIGINAL_VIEW_SIZE,
+          ],
+          seeThru: !!isSeeThrough,
+          objectRecordID: folderID ?? undefined,
+          start: start ?? undefined,
+          limit: pageSize ?? undefined,
+          orderBy: sortOrder,
+          limitedToDocTypes,
+          text: searchText,
+          useSession,
+          ...resolveAssetExtraFilters(selectedFacets),
+        };
 
-        if (folderID !== undefined && folderID !== null) {
-          params.push(['objectRecordID', folderID]);
-        }
-        if (start !== undefined && start !== null) {
-          params.push(['start', start.toString()]);
-        }
-        if (pageSize !== undefined && pageSize !== null) {
-          params.push(['limit', pageSize.toString()]);
-        }
-
-        const fieldFilters = resolveAssetExtraFilters(selectedFacets);
-
-        fieldFilters.forEach((filter) => {
-          params.push(filter);
-        }, '');
-
-        if (sortOrder) {
-          params.push(['orderBy', sortOrder]);
-        }
-        if (mappedLimitedToDocTypes.length) {
-          params.push(...mappedLimitedToDocTypes);
-        }
-        if (searchText) {
-          params.push(['Text', searchText]);
-        }
-        if (useSession) {
-          params.push(['UseSession', useSession]);
-        }
         return {
-          url: '/webapi/extensibility/integrations/contentBrowserSDK/getcontent_4bw_v2',
-          params,
+          url: '/webapi/extensibility/integrations/contentBrowserSDK/getcontent_4bw_v3',
+          body,
+          method: 'POST',
         };
       },
       transformResponse: (
