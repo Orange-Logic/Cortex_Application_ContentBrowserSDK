@@ -11,7 +11,7 @@ resources:
     - repository: infra-templates
       type: git
       name: Infra_Pipelines-templates-dev
-      ref: refs/tags/1.0.0
+      ref: refs/tags/1.0.14
     - repository: gab-extension
       type: git
       name: GAB_Browser_Extension
@@ -49,7 +49,7 @@ stages:
 
           - template: azure-pipelines/common/steps-gitversion.yml@infra-templates
 
-          - template: azure-pipelines/common/steps-node-setup.yml@infra-templates
+          - template: azure-pipelines/common/npm/steps-node-setup.yml@infra-templates
             parameters:
               versionSpec: 18.x
 
@@ -65,7 +65,7 @@ stages:
               additionalVariables: |
                 - tag: v$(GitVersion.FullSemVer)
 
-          - template: azure-pipelines/common/steps-npm-package.yml@infra-templates
+          - template: azure-pipelines/common/npm/steps-npm-package.yml@infra-templates
             parameters:
               npmEndpoint: 'OL NPM registry'
               isCustomNpmEndpoint: true
