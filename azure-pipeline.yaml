@@ -11,7 +11,8 @@ resources:
     - repository: infra-templates
       type: git
       name: Infra_Pipelines-templates-dev
-      ref: refs/tags/1.0.14
+      ref: refs/tags/1.0.15
+
     - repository: gab-extension
       type: git
       name: GAB_Browser_Extension
