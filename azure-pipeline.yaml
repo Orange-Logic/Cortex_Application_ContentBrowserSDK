@@ -33,7 +33,7 @@ stages:
       - job: BuildPackage
         displayName: 'Build GAB'
         pool:
-          name: VN Tests
+          name: VN Linux
         steps:
           - checkout: self
             clean: true
