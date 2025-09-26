@@ -116,6 +116,7 @@ type State = {
   quality: number;
   keepMetadata: boolean;
   transformations: Transformation[];
+  confirmedTransformations: Transformation[];
   enabledTracking: boolean;
   trackingParameters: TrackingParameter[];
   showCustomRendition: boolean;
@@ -231,6 +232,7 @@ const initialState: State = {
   quality: 100,
   keepMetadata: false,
   transformations: [],
+  confirmedTransformations: [],
   enabledTracking: false,
   trackingParameters: [{
     key: 'UTM_source',
@@ -273,13 +275,14 @@ const reducer = (state: State, action: Action): State => {
           y: 0,
         },
         rotation: 0,
-        transformations: state.useCustomRendition ? state.transformations : [],
+        transformations: state.useCustomRendition ? state.confirmedTransformations : [],
         showCustomRendition: false,
         activeSetting: 'format',
       };
     case 'CONFIRM_USE_CUSTOM_RENDITION':
       return {
         ...state,
+        confirmedTransformations: state.transformations,
         cropSize: {
           ...state.cropSize,
           width: state.selectedFormat.width,
