@@ -31,6 +31,7 @@ export type GlobalConfigContextType = {
   allowTracking: boolean;
   allowProxy: boolean;
   allowFavorites: boolean;
+  allowPin: boolean;
   defaultGridView: string;
 };
 
@@ -55,5 +56,6 @@ export const GlobalConfigContext = createContext<GlobalConfigContextType>({
   allowTracking: true,
   allowProxy: false,
   allowFavorites: false,
+  allowPin: false,
   defaultGridView: '',
 });

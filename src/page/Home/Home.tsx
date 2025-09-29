@@ -212,6 +212,7 @@ const HomePage: FC<Props> = () => {
     allowedExtensions, // list of allowed extensions from runtime properties. e.g. ['.jpg', '.png', '.mp4']
     allowedFolders,
     allowFavorites,
+    allowPin,
     allowProxy,
     allowTracking,
     availableDocTypes,
@@ -876,6 +877,7 @@ const HomePage: FC<Props> = () => {
       <Container ref={containerRef}>
         <Browser
           allowedFolders={allowedFolders}
+          allowPin={allowPin}
           collectionPath={collectionPath}
           currentFolder={state.currentFolder}
           favoriteFolderId={userInfo?.favoriteFolderRecordID}

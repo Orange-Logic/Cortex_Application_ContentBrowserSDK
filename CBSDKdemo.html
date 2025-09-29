@@ -369,6 +369,12 @@ customStorage: {
             </p>
           </li>
           <li>
+            <b>allowPin</b> (default false)
+            <p>
+              A boolean to allow the user to pin the browser.
+            </p>
+          </li>
+          <li>
             <b>allowLogout</b> (default true)
             <p>
               A boolean to allow the user to logout from the content browser. When disabled, the user will not be able
@@ -455,8 +461,8 @@ customStorage: {
         publicApplicationName: "",
         pluginName: "Orange Logic Content Browser",
         showCollections: true,
-        lastLocationMode: true,
         allowTracking: true,
+        allowPin: true,
         useSession: '',
       };
       document.getElementById("content").innerHTML = JSON.stringify(config, function (key, value) {

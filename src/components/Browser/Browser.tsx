@@ -38,6 +38,7 @@ const defaultFavoriteFolder = {
 
 type Props = {
   allowedFolders?: string[];
+  allowPin?: boolean;
   collectionPath?: string;
   currentFolder: Folder;
   favoriteFolderId?: string;
@@ -56,6 +57,7 @@ type Props = {
 
 const Browser: FC<Props> = ({
   allowedFolders,
+  allowPin,
   collectionPath,
   currentFolder,
   favoriteFolderId,
@@ -420,6 +422,8 @@ const Browser: FC<Props> = ({
 
   
   const IconHeaderProps = isPersistent ? IconHeaderMapper.persistent : IconHeaderMapper.overlay;
+  const variant = forceOverlay || !isPersistent ? 'overlay' : 'persistent';
+  const noCloseButton = !forceOverlay && isPersistent;
 
   return (
     <Drawer
@@ -428,12 +432,12 @@ const Browser: FC<Props> = ({
       placement="start"
       contained
       open={open}
-      // variant={forceOverlay ? 'overlay' : isPersistent ? 'persistent' : 'overlay'}
-      // noCloseButton={forceOverlay ? false : isPersistent ? true : false}
+      variant={variant}
+      noCloseButton={noCloseButton}
     >
-      {/* {!forceOverlay ? (
+      {!forceOverlay && allowPin ? (
         <cx-icon-button slot="header-actions" {...IconHeaderProps} ></cx-icon-button>
-      ) : null} */}
+      ) : null}
       <cx-space direction="vertical" spacing="small" wrap="nowrap">
         <cx-space
           direction="vertical"

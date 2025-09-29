@@ -182,6 +182,11 @@ type OrangeDAMContentBrowser = {
     allowFavorites?: boolean;
 
     /**
+     * The flag to allow the user to pin the browser
+     */
+    allowPin?: boolean;
+
+    /**
      * The flag to allow the user to logout
      */
     allowLogout?: boolean;
@@ -302,6 +307,7 @@ const ContentBrowser: OrangeDAMContentBrowser = {
     allowedExtensions,
     allowedFolders,
     allowFavorites,
+    allowPin,
     allowLogout,
     allowProxy,
     allowTracking,
@@ -444,6 +450,7 @@ const ContentBrowser: OrangeDAMContentBrowser = {
             showFavoriteFolder: !!showFavoriteFolder,
             showVersions: !!showVersions,
             useSession,
+            allowPin: !!allowPin,
             allowLogout: allowLogout !== undefined ? !!allowLogout : true,
             allowTracking: allowTracking !== undefined ? !!allowTracking : true,
             allowProxy: allowProxy !== undefined ? !!allowProxy : true,
