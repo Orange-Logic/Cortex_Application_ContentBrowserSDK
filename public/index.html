@@ -12,8 +12,9 @@
       user's mobile device or desktop. See https://developers.google.com/web/fundamentals/web-app-manifest/
     -->
   <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
-  <!-- <link rel="stylesheet" href="http://192.168.1.198:8080/css/ol-light.css" />
-  <script type="module" src="http://192.168.1.198:8080/entry.latest.js"></script> -->
+  <script src="https://downloads.orangelogic.com/ContentBrowserSDK/__tag__/OrangeDAMContentBrowserSDK.min.js"></script>
+  <link rel="stylesheet" type="text/css"
+    href="https://downloads.orangelogic.com/ContentBrowserSDK/__tag__/OrangeDAMContentBrowserSDK.min.css">
 
   <!--
       Notice the use of %PUBLIC_URL% in the tags above.
@@ -58,11 +59,8 @@
       const settings = {
         onAssetSelected: function (assets) {
           return new Promise((resolve) => {
-            console.log('Asset selected:', assets);
-            setTimeout(() => {
-              console.log('Timeout completed, returning to Content Browser');
-              resolve();
-            }, 5000);
+            window.open(assets[0].imageUrl, '_blank');
+            resolve();
           });
         },
         onError: console.error,
@@ -86,6 +84,7 @@
         showCollections: true,
         allowTracking: true,
         allowFavorites: true,
+        allowPin: true,
         showVersions: true,
         loadExternalFonts: false,
         lastLocationMode: true,

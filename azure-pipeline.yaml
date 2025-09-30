@@ -100,6 +100,6 @@ stages:
                   - sourceFolder: '.'
                     targetFolder: 'ContentBrowserSDK/latest'
                     contents: CBSDKdemo.html
-                - sourceFolder: 'gab_extension'
+                - sourceFolder: 'build'
                   targetFolder: 'ContentBrowserSDK/v$(GitVersion.FullSemVer)'
-                  contents: GAB.html
+                  contents: index.html
