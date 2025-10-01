@@ -117,8 +117,8 @@ export const App: FC<Props> = ({
   }, [loadExternalFonts]);
 
   useEffect(() => {
-    if (onTokenChanged && accessToken) {
-      onTokenChanged(accessToken);
+    if (onTokenChanged) {
+      onTokenChanged(accessToken ?? '');
     }
   }, [accessToken, onTokenChanged]);
 
