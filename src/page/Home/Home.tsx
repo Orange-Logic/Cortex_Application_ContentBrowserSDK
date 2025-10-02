@@ -295,6 +295,7 @@ const HomePage: FC<Props> = () => {
   const containerResizeObserverRef = useRef<CxResizeObserver>(null);
   const loadedFromStorage = useRef(false);
   const facetsRef = useRef<Facet[]>([]);
+  const selectedFacetsRef = useRef<Record<string, string[]>>({});
   const appDispatch = useAppDispatch();
 
   const pageSizeRef = useRef(state.pageSize);
@@ -303,6 +304,7 @@ const HomePage: FC<Props> = () => {
   const resizeTimerRef = useRef<NodeJS.Timeout | null>(null);
   browserMountedRef.current = browserMounted;
   facetsRef.current = state.facets;
+  selectedFacetsRef.current = state.selectedFacets;
   viewRef.current = state.view;
   pageSizeRef.current = state.pageSize;
   const formatDialogTimeoutRef = useRef<number | null>(null);
@@ -788,10 +790,43 @@ const HomePage: FC<Props> = () => {
 
   useEffect(() => {
     if (onDataChange) {
+      // Create a map for efficient facet lookup and updates
+      const facetsMap = new Map(
+        facetsRef.current.map(facet => [
+          `${facet.facetDetails.facetFieldName}|${facet.facetDetails.displayName}`,
+          // Reset count to 0 for existing facets
+          {
+            ...facet,
+            values: facet.values.reduce((acc, value) => {
+              const isFacetSelected = selectedFacetsRef
+                .current[facet.facetDetails.facetFieldName]
+                ?.find(selectedValue => selectedValue === value.value);
+              if (isFacetSelected) {
+                acc.push({ ...value, count: 0 });
+              }
+
+              return acc;
+            }, [] as Facet['values']),
+          },
+        ]),
+      );
+
+      // Update with new facets data
+      const newFacets = data?.facets?.filter(facet => facet.values.length > 0) ?? [];
+      newFacets.forEach(facet => {
+        const currentFacetValue = facetsMap.get(`${facet.facetDetails.facetFieldName}|${facet.facetDetails.displayName}`);
+        const values = [
+          ...facet.values,
+          ...(currentFacetValue?.values.filter(currValue => !facet?.values.find(v => currValue.value === v.value && currValue.displayValue === v.displayValue)) ?? []),
+        ];
+
+        facetsMap.set(`${facet.facetDetails.facetFieldName}|${facet.facetDetails.displayName}`, { ...facet, values });
+      });
+
       onDataChange({
         currentCount: data?.items.length ?? 0,
         items: data?.items ?? [],
-        facets: data?.facets ?? [],
+        facets: Array.from(facetsMap.values()),
         totalCount: data?.totalCount ?? 0,
       });
     }
