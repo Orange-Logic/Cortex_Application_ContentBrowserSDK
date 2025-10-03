@@ -116,7 +116,9 @@ const AssetCard: FC<Props> = ({
       <cx-space spacing="small" align-items="center" wrap="nowrap" className="asset-card__info">
         {displayInfo.title && asset.name ? (
           <cx-line-clamp lines={1} className="asset-card__name">
-            {asset.name}
+            <cx-typography variant="body3">
+              {asset.name}
+            </cx-typography>
           </cx-line-clamp>
         ) : (
           <cx-typography variant="small" className="asset-card__placeholder">
