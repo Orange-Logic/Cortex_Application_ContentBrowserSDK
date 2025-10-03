@@ -77,7 +77,7 @@ const CropPreviewer = forwardRef<CropPreviewerHandle, Props>(({
           newHeight,
           containerRef.current?.clientWidth ?? window.innerWidth, FORMAT_DIALOG_PREVIEW_SIZE,
         );
-        setResizedImage(extension === 'gif' ? originalUrl : imageUrl);
+        setResizedImage(extension === '.gif' ? originalUrl : imageUrl);
         onLoadingChange(false);
       } else {
         setResizedImage(url);

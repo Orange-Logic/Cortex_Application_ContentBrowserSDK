@@ -578,7 +578,17 @@ const FormatDialog: FC<Props> = ({
       },
     });
 
-    const extension = appendAutoExtension ? autoExtension : selectedAsset.docType ?  extensionsForTransformation?.[selectedAsset.docType]?.[0]?.value : selectedAsset.extension;
+    let extension = selectedAsset.extension;
+    if (appendAutoExtension) {
+      extension = autoExtension;
+    } else if (selectedAsset.docType) {
+      if (extensionsForTransformation?.[selectedAsset.docType]?.map(item => item.value).includes(selectedAsset.extension)) {
+        extension = selectedAsset.extension;
+      } else {
+        extension = extensionsForTransformation?.[selectedAsset.docType]?.[0]?.value ?? '';
+      }
+    }
+
     if (filteredProxies && filteredProxies.length > 0) {
       dispatch({
         type: 'SET_SELECTED_PROXY',

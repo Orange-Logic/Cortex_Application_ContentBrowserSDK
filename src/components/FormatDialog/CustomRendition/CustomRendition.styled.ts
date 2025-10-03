@@ -51,6 +51,10 @@ export const Container = styled.div`
     }
   }
 
+  cx-details {
+    --details-background-color: var(--cx-color-neutral-0);
+  }
+
   cx-details:not(:last-child)::part(base) {
     border-bottom-width: 0;
   }
