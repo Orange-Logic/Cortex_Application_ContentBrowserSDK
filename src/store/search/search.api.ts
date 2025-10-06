@@ -95,8 +95,11 @@ export const searchApi = createApi({
         pageSize = FOLDER_PAGE_SIZE,
         self = false,
         includeDirectChild,
+        damViewSeeThru,
       }: GetFoldersRequest) => {
-        const params = [];
+        const params = [
+          ['DamViewSeeThru', damViewSeeThru ? 'true' : 'false'],
+        ];
 
         if (start || start >= 0) {
           params.push(['Start', start.toString()]);  

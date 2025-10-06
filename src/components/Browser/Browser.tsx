@@ -53,6 +53,7 @@ type Props = {
   isPersistent: boolean;
   onChangePersistent: (persistent: boolean) => void;
   forceOverlay: boolean;
+  damViewSeeThru: boolean;
 };
 
 const Browser: FC<Props> = ({
@@ -72,6 +73,7 @@ const Browser: FC<Props> = ({
   isPersistent,
   onChangePersistent,
   forceOverlay,
+  damViewSeeThru,
 }) => {
   const [searchText, setSearchText] = useState('');
   const [isDefined, setIsDefined] = useState(false);
@@ -159,6 +161,7 @@ const Browser: FC<Props> = ({
       useSession,
       self: true,
       includeDirectChild: false,
+      damViewSeeThru: damViewSeeThru,
     },
     {
       skip: !favoriteFolderId,
@@ -329,6 +332,7 @@ const Browser: FC<Props> = ({
             currentFolderID={currentFolder.id}
             icon="star"
             useSession={useSession}
+            damViewSeeThru={damViewSeeThru}
           />,
         );
       }
@@ -343,6 +347,7 @@ const Browser: FC<Props> = ({
             currentFolderID={currentFolder.id}
             searchText={searchText}
             useSession={useSession}
+            damViewSeeThru={damViewSeeThru}
           />
         )),
       ];
@@ -365,6 +370,7 @@ const Browser: FC<Props> = ({
     useSession,
     isMoreLoading,
     favoriteFolderData,
+    damViewSeeThru,
   ]);
 
   const renderCollections = useCallback(() => {

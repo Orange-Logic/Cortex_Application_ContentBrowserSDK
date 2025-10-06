@@ -926,6 +926,7 @@ const HomePage: FC<Props> = () => {
           isPersistent={isPersistent}
           onChangePersistent={setIsPersistent}
           forceOverlay={forceOverlay}
+          damViewSeeThru={state.isSeeThrough}
         />
         <Content>
           <Header

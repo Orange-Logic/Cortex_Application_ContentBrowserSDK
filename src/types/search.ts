@@ -120,6 +120,7 @@ export type GetFoldersRequest = {
   pageSize?: number;
   self?: boolean;
   includeDirectChild?: boolean;
+  damViewSeeThru?: boolean;
 };
 
 export enum MediaType {
