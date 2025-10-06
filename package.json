@@ -76,7 +76,7 @@
   "dependencies": {
     "@babel/core": "^7.16.0",
     "@craco/craco": "^7.1.0",
-    "@orangelogic-private/design-system": "1.0.364",
+    "@orangelogic-private/design-system": "1.0.368",
     "@pmmmwh/react-refresh-webpack-plugin": "^0.5.3",
     "@reduxjs/toolkit": "^1.9.5",
     "@svgr/webpack": "^8.1.0",
