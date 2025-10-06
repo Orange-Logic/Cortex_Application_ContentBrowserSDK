@@ -1380,7 +1380,7 @@ const FormatDialog: FC<Props> = ({
       let previewer =  null;
       let rendition = null;
 
-      if (state.selectedFormat.width && state.selectedFormat.height && selectedAsset?.docType !== MediaType.Video) {
+      if (state.selectedFormat.width && state.selectedFormat.height && selectedAsset?.docType === MediaType.Image) {
         previewer = (
           <CropPreviewer
             ref={previewerRef}
