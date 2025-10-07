@@ -1061,6 +1061,9 @@ const HomePage: FC<Props> = () => {
                 onAssetAction('favorite', selectedAsset.recordId);
               }
               await refetchIsFavorite();
+              if (onAssetAction) {
+                onAssetAction('afterFavorite', selectedAsset.recordId);
+              }
 
               if (state.currentFolder.id === userInfo?.favoriteFolderRecordID) {
                 if (state.start === 0) {
@@ -1157,6 +1160,9 @@ const HomePage: FC<Props> = () => {
                 onAssetAction('unfavorite', selectedAsset.recordId);
               }
               await refetchIsFavorite();
+              if (onAssetAction) {
+                onAssetAction('afterUnfavorite', selectedAsset.recordId);
+              }
 
               if (state.currentFolder.id === userInfo?.favoriteFolderRecordID) {
                 if (state.start === 0) {
