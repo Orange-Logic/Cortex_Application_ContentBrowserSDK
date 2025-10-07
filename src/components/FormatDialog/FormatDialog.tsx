@@ -16,6 +16,7 @@ import Previewer from './Previewer';
 import ProxyMenu from './ProxyMenu';
 import TrackingParameters from './TrackingParameters';
 import VersionHistory from './VersionHistory';
+import { popoverSupported } from '@/utils/browser';
 
 type Props = {
   allowCustomFormat: boolean; // whether to allow custom format
@@ -1876,7 +1877,7 @@ const FormatDialog: FC<Props> = ({
       ref={dialogRef}
       className="dialog"
       open={open}
-      use-overlay-scrollbar
+      use-overlay-scrollbar={popoverSupported || undefined}
       style={
         {
           '--max-height': `${maxHeight}px`,

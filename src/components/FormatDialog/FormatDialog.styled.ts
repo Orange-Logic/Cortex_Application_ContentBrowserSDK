@@ -19,6 +19,9 @@ export const Dialog = styled('cx-dialog')<CxDialogProps>`
   &::part(body) {
     background-color: var(--cx-color-neutral-100);
     padding: 0;
+    /*  Fix for Firefox/Safari: Container with both overflow and z-index will cut off fixed-positioning child
+    (in this case, cx-tooltip's popup) */
+    z-index: unset;
   }
 
   &::part(footer) {
