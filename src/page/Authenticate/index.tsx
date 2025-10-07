@@ -10,6 +10,16 @@ import {
 import { getData } from '@/utils/storage';
 import AuthenticatePage from './Authenticate';
 import ConnectingBackground from './ConnectingBackground';
+import styled from 'styled-components';
+import { CxTypographyProps } from '@orangelogic-private/design-system/react-types';
+
+const ResponsiveTypography = styled('cx-typography')<CxTypographyProps>`
+  @container connecting-background (min-width: 0px) {
+    &::part(base) {
+      font-size: clamp(1rem, 2cqw, 3rem);
+    }
+  }
+`;
 
 type Props = {
   onCancel: () => void;
@@ -24,9 +34,9 @@ const RestoreSession: FC<Props> = ({ onCancel }) => {
 
   return (
     <ConnectingBackground onCancel={onCancel}>
-      <cx-typography variant="h3">
+      <ResponsiveTypography variant="h4">
         Trying to restore your previous session
-      </cx-typography>
+      </ResponsiveTypography>
     </ConnectingBackground>
   );
 };
@@ -35,12 +45,12 @@ const RequestLogin: FC<Props> = ({ onCancel }) => {
   const siteUrl = useAppSelector(siteUrlSelector);
   return (
     <ConnectingBackground onCancel={onCancel}>
-      <cx-typography variant="h3">
+      <ResponsiveTypography variant="h4">
         Requesting login url from 
         <cx-typography variant="body1" style={{ overflowWrap:'break-word', lineBreak:'anywhere' }}>
           {siteUrl}
         </cx-typography>
-      </cx-typography>
+      </ResponsiveTypography>
     </ConnectingBackground>
   );
 };
@@ -78,9 +88,9 @@ const WaitForAuthorize: FC<Props> = ({ onCancel }) => {
         }
         onCancel={onCancel}
       >
-        <cx-typography variant="h3">
+        <ResponsiveTypography variant="h4">
           Please authorize the {pluginInfo.pluginName} plugin
-        </cx-typography>
+        </ResponsiveTypography>
         <cx-typography variant="body2">
           You will be automatically redirected to authorize {pluginInfo.pluginName} {pluginInfo.publicApplicationName ? `in ${pluginInfo.publicApplicationName}` : ''}
         </cx-typography>

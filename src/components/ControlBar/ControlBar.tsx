@@ -388,7 +388,7 @@ const ControlBar: FC<Props> = ({
         </cx-line-clamp>
         <cx-dropdown
           ref={viewDropdownRef}
-          auto-width-factor={0.6}
+          auto-width-factor={isMobile ? 1 : 0.6}
           stay-open-on-select
           placement="bottom-end"
           skidding={isMobile ? 40 : 0}
@@ -403,20 +403,31 @@ const ControlBar: FC<Props> = ({
               ></cx-icon-button>
             </cx-tooltip>
           </div>
-          <cx-menu>
-            <cx-menu-label>View</cx-menu-label>
-            <cx-menu-item class={selectedView ? 'selected' : ''}>
-              Grid ({selectedView?.label})
-              <cx-menu slot="submenu">
+          {isMobile ? (
+            <cx-menu variant="multiple">
+              <cx-menu active name="main">
+                <cx-menu-label>View</cx-menu-label>
+                <cx-menu-item menu="submenu" class={selectedView ? 'selected' : ''}>
+                  Grid ({selectedView?.label})
+                  <cx-icon slot="prefix" name="grid_view"></cx-icon>
+                </cx-menu-item>
+                <cx-divider></cx-divider>
+                <cx-menu-item value="see-thru" className="menu-item--switch">
+                  <cx-line-clamp lines={1}>See-thru</cx-line-clamp>
+                  <cx-switch
+                    checked={isSeeThrough}
+                    onClick={(e) => e.preventDefault()}
+                  ></cx-switch>
+                </cx-menu-item>
+              </cx-menu>
+              <cx-menu name="submenu" back="main">
                 {views.map((item) => (
                   <cx-menu-item
                     key={item.value}
                     value={item.value.toString()}
                     class={item.value === view ? 'selected' : ''}
                   >
-                    <cx-line-clamp lines={1}>
-                      {item.label}
-                    </cx-line-clamp>
+                    <cx-line-clamp lines={1}>{item.label}</cx-line-clamp>
                     {
                       <cx-icon
                         slot="prefix"
@@ -426,21 +437,45 @@ const ControlBar: FC<Props> = ({
                   </cx-menu-item>
                 ))}
               </cx-menu>
-              <cx-icon slot="prefix" name="grid_view"></cx-icon>
-            </cx-menu-item>
-            <cx-divider></cx-divider>
-            <cx-menu-item value="see-thru" className="menu-item--switch">
-              <cx-line-clamp lines={1}>See-thru</cx-line-clamp>
-              <cx-switch
-                checked={isSeeThrough}
-                onClick={(e) => e.preventDefault()}
-              ></cx-switch>
-            </cx-menu-item>
-          </cx-menu>
+            </cx-menu>
+          ) : (
+            <cx-menu>
+              <cx-menu-label>View</cx-menu-label>
+              <cx-menu-item class={selectedView ? 'selected' : ''}>
+                Grid ({selectedView?.label})
+                <cx-menu slot="submenu">
+                  {views.map((item) => (
+                    <cx-menu-item
+                      key={item.value}
+                      value={item.value.toString()}
+                      class={item.value === view ? 'selected' : ''}
+                    >
+                      <cx-line-clamp lines={1}>{item.label}</cx-line-clamp>
+                      {
+                        <cx-icon
+                          slot="prefix"
+                          name={view === item.value ? 'check' : ''}
+                        ></cx-icon>
+                      }
+                    </cx-menu-item>
+                  ))}
+                </cx-menu>
+                <cx-icon slot="prefix" name="grid_view"></cx-icon>
+              </cx-menu-item>
+              <cx-divider></cx-divider>
+              <cx-menu-item value="see-thru" className="menu-item--switch">
+                <cx-line-clamp lines={1}>See-thru</cx-line-clamp>
+                <cx-switch
+                  checked={isSeeThrough}
+                  onClick={(e) => e.preventDefault()}
+                ></cx-switch>
+              </cx-menu-item>
+            </cx-menu>
+          )}
         </cx-dropdown>
         <cx-dropdown
           ref={sortDropdownRef}
-          auto-width-factor={0.5}
+          auto-width-factor={isMobile ? 1 : 0.5}
           stay-open-on-select
         >
           <div slot="trigger">
