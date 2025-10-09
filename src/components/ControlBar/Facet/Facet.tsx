@@ -1,6 +1,6 @@
 import LoadMoreButton from '@/components/Browser/LoadMoreButton';
 import { CxTreeItem } from '@orangelogic-private/design-system';
-import { FC, useEffect, useMemo, useRef, useState } from 'react';
+import { FC, useMemo, useRef, useState } from 'react';
 
 const ITEMS_PER_PAGE = 20;
 

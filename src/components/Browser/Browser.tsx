@@ -148,9 +148,7 @@ const Browser: FC<Props> = ({
     useSession,
     start: pagination.start,
     pageSize: pagination.pageSize,
-    damViewSeeThru: damViewSeeThru,
-  }, {
-    skip: !open,
+    damViewSeeThru,
   });
 
   const { data: favoriteFolderData } = useGetFoldersQuery(
@@ -164,13 +162,13 @@ const Browser: FC<Props> = ({
       useSession,
       self: true,
       includeDirectChild: false,
-      damViewSeeThru: damViewSeeThru,
+      damViewSeeThru,
     },
     {
-      skip: !favoriteFolderId || !open,
+      skip: !favoriteFolderId,
     },
   );
-  
+
   const folders = useMemo(() => {
     return folderData?.items ?? undefined;
   }, [folderData]);
@@ -336,7 +334,6 @@ const Browser: FC<Props> = ({
             icon="star"
             useSession={useSession}
             damViewSeeThru={damViewSeeThru}
-            isBrowserOpen={open}
           />,
         );
       }
@@ -352,7 +349,6 @@ const Browser: FC<Props> = ({
             searchText={searchText}
             useSession={useSession}
             damViewSeeThru={damViewSeeThru}
-            isBrowserOpen={open}
           />
         )),
       ];
@@ -376,7 +372,6 @@ const Browser: FC<Props> = ({
     isMoreLoading,
     favoriteFolderData,
     damViewSeeThru,
-    open,
   ]);
 
   const renderCollections = useCallback(() => {

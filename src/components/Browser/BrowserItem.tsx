@@ -31,7 +31,6 @@ type Props = {
   searchText?: string;
   useSession?: string;
   damViewSeeThru: boolean;
-  isBrowserOpen: boolean;
 };
 
 export const BrowserItem: FC<Props> = ({
@@ -42,7 +41,6 @@ export const BrowserItem: FC<Props> = ({
   searchText,
   useSession,
   damViewSeeThru,
-  isBrowserOpen,
 }) => {
   const [isDefined, setIsDefined] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -59,7 +57,7 @@ export const BrowserItem: FC<Props> = ({
     isLoading,
   } = useGetFoldersQuery(
     { allowedFolders, folder, searchText: '', useSession, start: pagination.start, pageSize: pagination.pageSize, damViewSeeThru: damViewSeeThru },
-    { skip: !isExpanded || !isBrowserOpen },
+    { skip: !isExpanded },
   );
   const folders = useMemo(() => {
     return folderData?.items ?? undefined;
@@ -138,7 +136,6 @@ export const BrowserItem: FC<Props> = ({
             searchText={searchText}
             currentFolderID={currentFolderID}
             damViewSeeThru={damViewSeeThru}
-            isBrowserOpen={isBrowserOpen}
           />
         ))}
       </cx-tree-item>

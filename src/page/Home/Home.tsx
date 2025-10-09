@@ -44,8 +44,9 @@ import { skipToken } from '@reduxjs/toolkit/query';
 
 import { Container, Content } from './Home.styled';
 
-import type { CxResizeEvent, CxResizeObserver } from '@orangelogic-private/design-system';
 import { FORCE_OVERLAY_THRESHOLD } from '@/components/Browser/Browser.constants';
+import Loader from '@/components/Loader';
+import type { CxResizeEvent, CxResizeObserver } from '@orangelogic-private/design-system';
 
 type Props = {
   multiSelect?: boolean;
@@ -240,7 +241,7 @@ const HomePage: FC<Props> = () => {
   }, [selectedAssetData, selectedAssetId]); 
 
   const { data: userInfo, isFetching: isFetchingUserInfo, isLoading: isLoadingUserInfo, refetch: refetchUserInfo } = useGetUserInfoQuery({});
-  
+
   useEffect(() => {
     if (authenticated) {
       refetchUserInfo();
@@ -288,6 +289,7 @@ const HomePage: FC<Props> = () => {
   const [showFormatLoader, setShowFormatLoader] = useState<FormatLoaderState>(FormatLoaderState.Hide);
   const [itemsCount, setItemsCount] = useState(0);
   const [isPersistent, setIsPersistent] = useState(false);
+  const [isInitialLoadComplete, setIsInitialLoadComplete] = useState(false);
 
   const browserMountedRef = useRef(browserMounted);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -433,7 +435,7 @@ const HomePage: FC<Props> = () => {
         if (sortDirection === 'ascending' || sortDirection === 'descending') {
           dispatch({ type: 'SET_SORT_DIRECTION', payload: sortDirection });
         }
-        
+      
         if (view === null) {
           view = defaultGridView;
         }
@@ -448,7 +450,7 @@ const HomePage: FC<Props> = () => {
             dispatch({ type: 'SET_VIEW', payload: view as GridView });
           }
         }
-        
+      
         if (lastLocationMode) {
           if (newFacets) {
             const parsedFacets = JSON.parse(newFacets);
@@ -473,9 +475,10 @@ const HomePage: FC<Props> = () => {
           if (searchText) {
             dispatch({ type: 'SET_SEARCH_TEXT', payload: searchText });
           }
+
+          loadedFromStorage.current = true;
+          setIsInitialLoadComplete(true);
         }
-      
-        loadedFromStorage.current = true;
       });
     }
   }, [appDispatch, authenticated, lastLocationMode, defaultGridView]);
@@ -906,6 +909,10 @@ const HomePage: FC<Props> = () => {
   }, [availableExtensions, allowedExtensions]);
 
   const forceOverlay = state.containerSize.width < FORCE_OVERLAY_THRESHOLD;
+
+  if (!isInitialLoadComplete) {
+    return <Loader />;
+  }
 
   return (
     <cx-resize-observer ref={containerResizeObserverRef}>
