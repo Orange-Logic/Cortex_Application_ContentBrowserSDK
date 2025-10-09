@@ -47,16 +47,16 @@ const FacetTreeItemWithSubtypes: FC<{
     }
 
     const hasSelectedChildren = Object.keys(rest).some(subtype => collections.includes(`${itemKey}>>${subtype}`));
-
+    
     if (!originalSelected && !hasSelectedChildren) {
       treeItem.previouslySelected = false;
       treeItem.indeterminate = false;
       return false;
-    } else if (hasSelectedChildren) {
+    } else if (!originalSelected && hasSelectedChildren) {
       treeItem.indeterminate = true;
       return false;
     }
-    return true;
+    return originalSelected;
   }, [originalSelected, collections, rest, itemKey]);
 
   return (
@@ -65,7 +65,7 @@ const FacetTreeItemWithSubtypes: FC<{
       data-value={itemKey}
       data-type={type}
       readonly={loading}
-      selected={selected}
+      selected={selected || undefined}
       partial-sync-checkboxes={partialSyncCheckbox}
     >
       {mappedDisplayNames[itemKey]} {!!all && `(${all})`}

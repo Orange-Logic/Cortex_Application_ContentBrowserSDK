@@ -514,6 +514,15 @@ const HomePage: FC<Props> = () => {
     if (!resizeObserver) {
       return;
     }
+    if (containerRef.current) {
+      dispatch({
+        type: 'SET_CONTAINER_SIZE',
+        payload: {
+          width: containerRef.current.offsetWidth,
+          height: containerRef.current.offsetHeight,
+        },
+      });
+    }
     const onResize = (e: CxResizeEvent) => {
       const entries = e.detail.entries;
 
@@ -538,7 +547,7 @@ const HomePage: FC<Props> = () => {
     return () => {
       resizeObserver.removeEventListener('cx-resize', onResize);
     };
-  }, []);
+  }, [isInitialLoadComplete]);
 
   useEffect(() => {
     if (!selectedSortOrder && loadedFromStorage.current) {
