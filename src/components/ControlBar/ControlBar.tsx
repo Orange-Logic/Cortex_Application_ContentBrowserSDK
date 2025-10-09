@@ -404,7 +404,7 @@ const ControlBar: FC<Props> = ({
             </cx-tooltip>
           </div>
           {isMobile ? (
-            <cx-menu variant="multiple">
+            <cx-menu variant="multiple" key="multiple-menu">
               <cx-menu active name="main">
                 <cx-menu-label>View</cx-menu-label>
                 <cx-menu-item menu="submenu" class={selectedView ? 'selected' : ''}>
@@ -439,7 +439,7 @@ const ControlBar: FC<Props> = ({
               </cx-menu>
             </cx-menu>
           ) : (
-            <cx-menu>
+            <cx-menu key="default-menu">
               <cx-menu-label>View</cx-menu-label>
               <cx-menu-item class={selectedView ? 'selected' : ''}>
                 Grid ({selectedView?.label})

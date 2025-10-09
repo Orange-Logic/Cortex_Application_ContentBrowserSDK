@@ -30,7 +30,7 @@ const FacetTreeItemWithSubtypes: FC<{
   itemKey,
   type,
   loading,
-  selected,
+  selected: originalSelected,
   all,
   rest,
   mappedDisplayNames,
@@ -39,7 +39,7 @@ const FacetTreeItemWithSubtypes: FC<{
 }) => {
   const ref = useRef<CxTreeItem>(null);
 
-  useEffect(() => {
+  const selected = useMemo(() => {
     const treeItem = ref.current;
 
     if (!treeItem) {
@@ -48,13 +48,16 @@ const FacetTreeItemWithSubtypes: FC<{
 
     const hasSelectedChildren = Object.keys(rest).some(subtype => collections.includes(`${itemKey}>>${subtype}`));
 
-    if (!selected && !hasSelectedChildren) {
+    if (!originalSelected && !hasSelectedChildren) {
       treeItem.previouslySelected = false;
       treeItem.indeterminate = false;
+      return false;
     } else if (hasSelectedChildren) {
       treeItem.indeterminate = true;
+      return false;
     }
-  }, [selected, collections, rest, itemKey]);
+    return true;
+  }, [originalSelected, collections, rest, itemKey]);
 
   return (
     <cx-tree-item

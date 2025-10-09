@@ -562,7 +562,7 @@ const HomePage: FC<Props> = () => {
     storeData('searchText', state.searchText);
   }, [state.currentFolder, state.facets, state.isSeeThrough, state.sortDirection, state.sortOrder, state.searchText, state.view, state.selectedFacets]);
 
-  const isMobile = state.containerSize.width <= MOBILE_THRESHOLD;
+  const isMobile = state.containerSize.width > 0 && state.containerSize.width <= MOBILE_THRESHOLD;
 
   const onItemSelect = (item: Asset) => {
     appDispatch(setSelectedAssetId(item.recordId));
