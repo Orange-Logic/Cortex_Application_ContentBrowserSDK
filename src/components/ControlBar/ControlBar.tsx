@@ -262,7 +262,13 @@ const ControlBar: FC<Props> = ({
             <cx-spinner></cx-spinner>
           )}
         </cx-space>
-        <cx-space direction="horizontal" spacing="small">
+        <cx-space
+          direction="horizontal"
+          spacing="small"
+          style={{
+            maxWidth: '320px',
+          }}
+        >
           {Object.entries(selectedFacets).map(([key, values]) => {
             if (!values || values.length === 0) {
               return null;
