@@ -25,6 +25,7 @@ import { FOLDER_PAGE_SIZE } from '@/utils/constants';
 import LoadMoreButton from './LoadMoreButton';
 import { LeftPanelCloseIcon, LeftPanelOpenIcon } from './Browser.constants';
 import { constructIconDataUrl } from '@/utils/icon';
+import _uniqBy from 'lodash-es/uniqBy';
 
 const defaultFavoriteFolder = {
   id: '',
@@ -113,6 +114,10 @@ const Browser: FC<Props> = ({
       const value = (e.target as CxInput).value;
       if (searchText !== value && (value.length > 2 || value.length === 0)) {
         setSearchText(value);
+        setPagination((prev) => ({
+          ...prev,
+          start: 0,
+        }));
       }
     }, 500);
     searchInput.addEventListener('cx-input', onSearchInput);
@@ -340,7 +345,7 @@ const Browser: FC<Props> = ({
 
       return [
         ...result,
-        ...(folders ?? []).map((folder) => (
+        ...(_uniqBy(folders, folder => folder.id) ?? []).map((folder) => (
           <BrowserItem
             key={folder.id}
             allowedFolders={allowedFolders}
