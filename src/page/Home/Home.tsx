@@ -951,6 +951,7 @@ const HomePage: FC<Props> = () => {
             isFetching={isFetchingUserInfo}
             isLoading={isLoadingUserInfo}
             userInfo={userInfo}
+            showMenu={!isPersistent}
             onMenuClick={() =>
               dispatch({ type: 'SET_OPEN_BROWSER', payload: true })
             }

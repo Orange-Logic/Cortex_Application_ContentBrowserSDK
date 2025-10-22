@@ -14,6 +14,7 @@ type Props = {
   isLoading?: boolean;
   isFetching?: boolean;
   userInfo?: UserInfo;
+  showMenu?: boolean;
   onMenuClick: () => void;
   onLogout: () => void;
 };
@@ -25,6 +26,7 @@ const Header: FC<Props> = ({
   isLoading,
   isFetching,
   userInfo: data,
+  showMenu,
   onMenuClick,
   onLogout,
 }) => {
@@ -116,11 +118,13 @@ const Header: FC<Props> = ({
       <cx-space className="header" justify-content="space-between" align-items="center">
         <div className="header__title">
           <cx-space className="header" justify-content="space-between" align-items="center" spacing="x-small">
-            <cx-icon-button
-              name="menu"
-              label="Menu"
-              onClick={onMenuClick}
-            ></cx-icon-button>
+            {showMenu && (
+              <cx-icon-button
+                name="menu"
+                label="Menu"
+                onClick={onMenuClick}
+              ></cx-icon-button>
+            )}
             {title}
           </cx-space>
         </div>
