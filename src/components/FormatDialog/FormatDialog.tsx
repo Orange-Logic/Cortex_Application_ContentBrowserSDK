@@ -1158,6 +1158,7 @@ const FormatDialog: FC<Props> = ({
     dispatch({
       type: 'SET_SELECTED_FORMAT',
       payload: {
+        url: selectedAsset?.imageUrl,
         width,
         height,
       },
