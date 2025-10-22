@@ -67,6 +67,7 @@ type State = {
     height: number;
   },
   selectedProxy: string;
+  defaultSelectedProxy: string;
   selectedFormat: {
     url: string;
     originalUrl: string;
@@ -129,7 +130,7 @@ type State = {
 };
 
 type Action =
-  | { type: 'CANCEL_USE_CUSTOM_RENDITION'; payload: { width: number; height: number, url: string, originalUrl: string, extension: string, useCustomRendition: boolean } }
+  | { type: 'CANCEL_USE_CUSTOM_RENDITION'; payload: { width: number; height: number, url: string, originalUrl: string, extension: string, useCustomRendition: boolean, selectedProxy: string } }
   | { type: 'CONFIRM_USE_CUSTOM_RENDITION' }
   | { type: 'RESET_DATA' }
   | { type: 'SET_ACTIVE_SETTING'; payload: string }
@@ -161,6 +162,7 @@ const initialState: State = {
     height: 0,
   },
   selectedProxy: '',
+  defaultSelectedProxy: '',
   selectedFormat: {
     url: '',
     originalUrl: '',
@@ -279,6 +281,7 @@ const reducer = (state: State, action: Action): State => {
         transformations: state.useCustomRendition ? state.confirmedTransformations : [],
         showCustomRendition: false,
         activeSetting: 'format',
+        selectedProxy: action.payload.selectedProxy,
       };
     case 'CONFIRM_USE_CUSTOM_RENDITION':
       return {
@@ -301,6 +304,7 @@ const reducer = (state: State, action: Action): State => {
         defaultSelectedFormat: {
           ...state.selectedFormat,
         },
+        defaultSelectedProxy: state.selectedProxy,
       };
     case 'SET_DEFAULT_SIZE':
       return {
@@ -425,8 +429,6 @@ const reducer = (state: State, action: Action): State => {
     case 'SET_SHOW_CUSTOM_RENDITION':
       return {
         ...state,
-        // Remove selected proxy when custom rendition is selected
-        selectedProxy: '',
         showCustomRendition: action.payload,
       };
     case 'SET_SHOW_VERSION_HISTORY':
@@ -1695,6 +1697,7 @@ const FormatDialog: FC<Props> = ({
                       width: state.defaultSelectedFormat.width,
                       height: state.defaultSelectedFormat.height,
                       extension: state.defaultSelectedFormat.extension,
+                      selectedProxy: state.defaultSelectedProxy,
                       useCustomRendition: true,
                     },
                   });
@@ -1708,6 +1711,7 @@ const FormatDialog: FC<Props> = ({
                       height: parseInt(selectedAsset?.height ?? '0', 10),
                       extension: selectedAsset?.extension ?? '',
                       useCustomRendition: false,
+                      selectedProxy: '',
                     },
                   });
                 }
