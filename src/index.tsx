@@ -36,6 +36,13 @@ type OrangeDAMContentBrowser = {
      * @returns
      */
     onAssetSelected?: AppContextType['onAssetSelected'];
+
+    /**
+     * Callback when the app auth URL is copied
+     * @returns
+     */
+    onAppAuthUrlCopied?: AppContextType['onAppAuthUrlCopied'];
+
     /**
      * Callback when we have any error while using content browser
      */
@@ -296,6 +303,7 @@ const ContentBrowser: OrangeDAMContentBrowser = {
   open: async ({
     onAssetAction,
     onAssetSelected,
+    onAppAuthUrlCopied,
     onImageSelected,
     onError,
     onClose,
@@ -398,6 +406,12 @@ const ContentBrowser: OrangeDAMContentBrowser = {
       typeof onAssetSelected === 'function' && !!onAssetSelected
         ? onAssetSelected
         : ()=>{};
+    const appAuthUrlCopiedHandler =
+      typeof onAppAuthUrlCopied === 'function' && !!onAppAuthUrlCopied
+        ? onAppAuthUrlCopied
+        : async (url: string)=>{
+          await navigator.clipboard.writeText(url);
+        };
     const imageSelectedHandler =
       typeof onImageSelected === 'function' && !!onImageSelected
         ? onImageSelected
@@ -466,6 +480,7 @@ const ContentBrowser: OrangeDAMContentBrowser = {
             onError={errorHandler}
             onAssetAction={assetActionHandler}
             onAssetSelected={assetSelectedHandler}
+            onAppAuthUrlCopied={appAuthUrlCopiedHandler}
             onImageSelected={imageSelectedHandler}
             onClose={handleClose}
             onConnectClicked={onConnectClicked}

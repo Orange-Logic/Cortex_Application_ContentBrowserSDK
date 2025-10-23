@@ -1,4 +1,4 @@
-import { FC, useCallback, useContext, useEffect, useMemo } from 'react';
+import { FC, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 
 import { GlobalConfigContext } from '@/GlobalConfigContext';
 import { useAppDispatch, useAppSelector } from '@/store';
@@ -12,6 +12,8 @@ import AuthenticatePage from './Authenticate';
 import ConnectingBackground from './ConnectingBackground';
 import styled from 'styled-components';
 import { CxTypographyProps } from '@orangelogic-private/design-system/react-types';
+import type { CxCopyButton } from '@orangelogic-private/design-system';
+import { AppContext } from '@/AppContext';
 
 const ResponsiveTypography = styled('cx-typography')<CxTypographyProps>`
   @container connecting-background (min-width: 0px) {
@@ -58,6 +60,22 @@ const RequestLogin: FC<Props> = ({ onCancel }) => {
 const WaitForAuthorize: FC<Props> = ({ onCancel }) => {
   const appAuthUrl = useAppSelector(appAuthUrlSelector);
   const { pluginInfo } = useContext(GlobalConfigContext);
+  const { onAppAuthUrlCopied } = useContext(AppContext);
+  const copyButtonRef = useRef<CxCopyButton>(null);
+  const [isDefined, setIsDefined] = useState(false);
+
+  useEffect(() => {
+    customElements.whenDefined('cx-copy-button').then(() => {
+      setIsDefined(true);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!isDefined) return;
+    const copyButton = copyButtonRef.current;
+    if (!copyButton) return;
+    copyButton.writeToClipboard = onAppAuthUrlCopied;
+  }, [isDefined, onAppAuthUrlCopied]);
   
   return (
       <ConnectingBackground
@@ -81,7 +99,7 @@ const WaitForAuthorize: FC<Props> = ({ onCancel }) => {
                 >
                   {appAuthUrl}
                 </a>
-                <cx-copy-button size="small" from="OL-redirect-url[href]"/>
+                <cx-copy-button ref={copyButtonRef} size="small" from="OL-redirect-url[href]"/>
               </cx-space>
             </cx-typography>
           </cx-space>

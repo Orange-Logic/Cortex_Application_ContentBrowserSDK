@@ -133,6 +133,12 @@
             </p>
           </li>
           <li>
+            <b>onAppAuthUrlCopied</b>
+            <p>
+              An async function that will be called when the app auth URL is copied. The function will receive the app auth URL as a parameter. This is useful for customizing the copy behavior.
+            </p>
+          </li>
+          <li>
             <b>onImageSelected</b> (deprecated)
             <p>
               A function that will be called when an image is selected. This is deprecated, use onAssetSelected instead.
@@ -438,6 +444,9 @@ customStorage: {
         onAssetSelected: (assets) => {
           document.getElementById('output').value = JSON.stringify(assets, undefined, 2);
           window.open(assets[0].imageUrl, '_blank');
+        },
+        onAppAuthUrlCopied: async (url) => {
+          await navigator.clipboard.writeText(text);
         },
         onError: (errorMessage, error) => {
         },

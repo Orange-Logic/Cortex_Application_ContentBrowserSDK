@@ -63,6 +63,7 @@ type Props = {
   onError: AppContextType['onError'];
   onAssetAction: AppContextType['onAssetAction'];
   onAssetSelected: AppContextType['onAssetSelected'];
+  onAppAuthUrlCopied: AppContextType['onAppAuthUrlCopied'];
   onImageSelected: AppContextType['onImageSelected'];
   onConnectClicked?: (url: string) => void;
   onTokenChanged?: (token: string) => void;
@@ -89,6 +90,7 @@ export const App: FC<Props> = ({
   onError,
   onAssetAction,
   onAssetSelected,
+  onAppAuthUrlCopied,
   onImageSelected,
   onConnectClicked,
   onTokenChanged,
@@ -139,12 +141,22 @@ export const App: FC<Props> = ({
       extraFields,
       onAssetAction,
       onAssetSelected,
+      onAppAuthUrlCopied,
       onImageSelected,
       onError,
       onClose: handleClose,
       onConnectClicked,
     }),
-    [extraFields, handleClose, onAssetAction, onAssetSelected, onError, onImageSelected, onConnectClicked],
+    [
+      extraFields,
+      onAssetAction,
+      onAssetSelected,
+      onAppAuthUrlCopied,
+      onImageSelected,
+      onError,
+      handleClose,
+      onConnectClicked,
+    ],
   );
 
   return (
