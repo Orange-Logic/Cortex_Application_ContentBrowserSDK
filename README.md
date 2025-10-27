@@ -6,11 +6,62 @@ For example, let’s say your organization’s creative team stores images in Or
 # Getting Started
 
 ##	Installation process
-Install dependencies with 
+
+### Environment Setup
+1. Copy the environment template:
+
+   **Unix/macOS:**
+   ```bash
+   cp .env.example .env.local
+   ```
+
+   **Windows Command Prompt:**
+   ```cmd
+   copy .env.example .env.local
+   ```
+
+   **Windows PowerShell:**
+   ```powershell
+   Copy-Item .env.example .env.local
+   ```
+
+2. Edit `.env.local` with your values:
+   ```bash
+   # Required: Get your Azure DevOps Personal Access Token from:
+   # https://dev.azure.com/orangelogic → User Settings → Personal Access Tokens
+   # Required scopes: Packaging: Read
+   NPM_TOKEN=your_actual_token_here
+   ```
+
+3. Set the environment variable before running commands:
+
+   **Unix/macOS:**
+   ```bash
+   source .env.local
+   ```
+
+   **Windows (Simplest approach):**
+   ```cmd
+   REM Set the environment variable for this session
+   set NPM_TOKEN=your_actual_token_here
+   npm install
+   ```
+
+   **Alternative Windows approach:**
+
+   *PowerShell:*
+   ```powershell
+   $env:NPM_TOKEN = "your_actual_token_here"
+   npm install
+   ```
+   **Note:** `.env.local` is ignored by git (see `.gitignore`) so your tokens won't be committed.
+
+### Install Dependencies
+Install dependencies with
 ```
 npm install
-``` 
-or 
+```
+or
 ```
 yarn
 ```
