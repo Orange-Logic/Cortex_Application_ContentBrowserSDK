@@ -3,6 +3,34 @@ const path = require('path');
 const webpack = require('webpack');
 
 module.exports = {
+  jest: {
+    configure: {
+      roots: [
+        '<rootDir>/src'
+      ],
+      setupFiles: [
+        'react-app-polyfill/jsdom'
+      ],
+      testEnvironment: 'jsdom',
+      modulePaths: [],
+      moduleFileExtensions: [
+        'web.js',
+        'js',
+        'web.ts',
+        'ts',
+        'web.tsx',
+        'tsx',
+        'json',
+        'web.jsx',
+        'jsx',
+        'node'
+      ],
+      watchPlugins: [
+        'jest-watch-typeahead/filename',
+        'jest-watch-typeahead/testname'
+      ]
+    }
+  },
   webpack: {
     alias: {
       '@': path.resolve(__dirname, 'src'),

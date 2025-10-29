@@ -171,9 +171,22 @@ describe('Utils - storage', () => {
   });
 
   it('Should return null if the value is expired', () => {
-    storeData('testKey', 'testValue', 'LocalStorage', 100);
-    cy.wait(1000); // Wait for the value to expire
-    cy.wrap(getData('testKey')).should('equal', null);
+    // Store data normally
+    storeData('testKey', 'testValue', 'LocalStorage', 1000); // 1 second TTL
+
+    // Manually expire the data by setting an expired timestamp
+    const pastDate = new Date();
+    pastDate.setTime(pastDate.getTime() - 2000); // 2 seconds ago
+    localStorage.setItem('testKey_valid_until', pastDate.toUTCString());
+
+    // Should return null immediately since data is expired (specify LocalStorage to avoid fallback)
+    getData('testKey', 'LocalStorage').then((result) => {
+      expect(result).to.equal(null);
+
+      // Verify the expired data was cleaned up
+      expect(localStorage.getItem('testKey')).to.equal(null);
+      expect(localStorage.getItem('testKey_valid_until')).to.equal(null);
+    });
   });
 });
 
@@ -258,7 +271,7 @@ describe('Utils - function', () => {
     const promise = Promise.resolve('test');
     const notPromise = 'test';
 
-    expect(isPromise(promise)).toBe(true);
-    expect(isPromise(notPromise)).toBe(false);
+    expect(isPromise(promise)).to.equal(true);
+    expect(isPromise(notPromise)).to.equal(false);
   });
 });

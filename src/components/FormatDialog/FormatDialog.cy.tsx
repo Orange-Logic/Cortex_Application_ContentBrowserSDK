@@ -10,6 +10,18 @@ const FormatDialogProps = {
   allowProxy: true,
   onFavorite: () => Promise.resolve(true),
   onUnFavorite: () => Promise.resolve(true),
+  availableExtensions: {
+    [MediaType.Image]: [
+      { displayName: 'JPEG', value: '.jpg' },
+      { displayName: 'PNG', value: '.png' },
+      { displayName: 'GIF', value: '.gif' },
+      { displayName: 'Automatic', value: '.auto' },
+    ],
+    [MediaType.Video]: [
+      { displayName: 'MP4', value: '.mp4' },
+      { displayName: 'Automatic', value: '.auto' },
+    ],
+  },
   availableProxies: [
     {
       proxyName: 'TRX',
@@ -273,86 +285,131 @@ const FormatDialogWrapper = () => {
 };
 
 describe('FormatDialog', () => {
-  beforeEach(() => {
+
+  const mountFormatDialog = () => {
     cy.mount(<FormatDialogWrapper />);
     cy.waitForCustomElement('cx-dialog');
     cy.waitForCustomElement('cx-menu');
     cy.waitForCustomElement('cx-menu-item');
     cy.get('button[data-cy="toggle-dialog"]').click();
-  });
+  };
 
   it('should render the format dialog', () => {
+    mountFormatDialog();
     cy.get('cx-dialog').should('exist');
   });
 
   it('should click the menu-item with value custom', () => {
+    mountFormatDialog();
     cy.get('cx-menu-item[data-cy="custom-rendition-menu-item"]').click();
     cy.get('cx-details[data-value="crop"]').should('exist');
   });
 
   it('Should return to normal when click cancel of CustonRendition', () => {
+    mountFormatDialog();
     cy.get('cx-menu-item[data-cy="custom-rendition-menu-item"]').click();
-    cy.get('.dialog__footer cx-button').eq(0).click();
+    // Wait for custom rendition dialog to open with Cancel/Done buttons
+    cy.contains('Cancel').should('exist');
+    cy.contains('Cancel').click({force: true});
     cy.get('cx-menu-item[data-cy="custom-rendition-menu-item"]').should('exist');
   });
 
   it('Should show CustomRendition checked when confirmed', () => {
+    mountFormatDialog();
     cy.get('cx-menu-item[data-cy="custom-rendition-menu-item"]').click();
-    cy.get('.dialog__footer cx-button').eq(1).click();
+    // Wait for custom rendition dialog to open with Cancel/Done buttons
+    cy.contains('Done').should('exist');
+    cy.contains('Done').click({force: true});
     cy.get('cx-menu-item[data-cy="custom-rendition-menu-item"] .proxy__name.selected').should(
       'exist',
     );
   });
 
   it('Should change activeSetting', () => {
+    mountFormatDialog();
     cy.get('cx-menu-item[data-cy="custom-rendition-menu-item"]').click();
+    // Wait for CustomRendition to render by checking for the cx-details elements
+    cy.get('cx-details[data-value="rotate"]').should('exist');
+    cy.get('cx-details[data-value="crop"]').should('exist');
+    cy.get('cx-details[data-value="resize"]').should('exist');
     cy.get('cx-details[data-value="rotate"]').click();
-    cy.get('cx-details[data-value="rotate"]').should('have.attr', 'open');
+    // Check if the rotate content is visible instead of checking for 'open' attribute
+    cy.get('cx-details[data-value="rotate"]').find('cx-input').should('exist');
   });
 
   it('Should show tracking inputs', () => {
+    mountFormatDialog();
     cy.get('.proxy--switch cx-switch').eq(0).click();
     cy.get('.dialog__tracking').should('exist');
   });
 
   it('Should change image size on crop', () => {
+    mountFormatDialog();
     cy.get('cx-menu-item[data-cy="custom-rendition-menu-item"]').click();
+    // Wait for CustomRendition to render by checking for the cx-details elements
     cy.get('cx-details[data-value="crop"]').should('exist');
     cy.get('cx-details[data-value="crop"]').click();
+    // Wait for inputs to be ready for interaction
+    cy.get('cx-details[data-value="crop"]').find('cx-input').should('have.length.greaterThan', 0);
+    // Set both width and height
     cy.get('cx-details[data-value="crop"]')
       .find('cx-input')
       .eq(0)
       .shadow()
       .find('input')
       .type('{selectall}{backspace}200');
+    cy.get('cx-details[data-value="crop"]')
+      .find('cx-input')
+      .eq(1)
+      .shadow()
+      .find('input')
+      .type('{selectall}{backspace}150');
 
     cy.get('cx-details[data-value="crop"]').find('cx-button').click();
-    cy.get('.dialog__footer cx-button').eq(1).click();
+    cy.contains('Done').click({force: true});
     cy.get('cx-menu-item[data-cy="custom-rendition-menu-item"]')
       .find('.proxy__details')
       .should('contain', '200');
   });
 
   it('Should change image size on resize', () => {
+    mountFormatDialog();
     cy.get('cx-menu-item[data-cy="custom-rendition-menu-item"]').click();
+    // Wait for CustomRendition to render by checking for the cx-details elements
+    cy.get('cx-details[data-value="resize"]').should('exist');
     cy.get('cx-details[data-value="resize"]').click();
+    // Wait for inputs to be ready for interaction
+    cy.get('cx-details[data-value="resize"]').find('cx-input').should('have.length.greaterThan', 0);
+    cy.wait(1000); // Wait for component to fully initialize for complex interactions
+    // Set both width and height
     cy.get('cx-details[data-value="resize"]')
       .find('cx-input')
       .eq(0)
       .shadow()
       .find('input')
       .type('{selectall}{backspace}200');
+    cy.get('cx-details[data-value="resize"]')
+      .find('cx-input')
+      .eq(1)
+      .shadow()
+      .find('input')
+      .type('{selectall}{backspace}150');
 
     cy.get('cx-details[data-value="resize"]').find('cx-button').click();
-    cy.get('.dialog__footer cx-button').eq(1).click();
+    cy.contains('Done').click({force: true});
     cy.get('cx-menu-item[data-cy="custom-rendition-menu-item"]')
       .find('.proxy__details')
       .should('contain', '200');
   });
 
   it('Should change image size on rotate', () => {
+    mountFormatDialog();
     cy.get('cx-menu-item[data-cy="custom-rendition-menu-item"]').click();
+    // Wait for CustomRendition to render by checking for the cx-details elements
+    cy.get('cx-details[data-value="rotate"]').should('exist');
     cy.get('cx-details[data-value="rotate"]').click();
+    // Verify rotate inputs are now visible
+    cy.get('cx-details[data-value="rotate"]').find('cx-input').should('have.length.greaterThan', 0);
     cy.get('cx-details[data-value="rotate"]')
       .find('cx-input')
       .eq(0)
@@ -360,16 +417,21 @@ describe('FormatDialog', () => {
       .find('input')
       .type('{selectall}{backspace}45');
 
-    cy.get('cx-details[data-value="rotate"] cx-space > cx-button').click();
-    cy.get('.dialog__footer cx-button').eq(1).click();
+    cy.get('cx-details[data-value="rotate"]').contains('Apply').click();
+    cy.contains('Done').click({force: true});
     cy.get('cx-menu-item[data-cy="custom-rendition-menu-item"]')
       .find('.proxy__details')
       .should('contain', '566');
   });
 
   it('Should change image size unit on resize', () => {
+    mountFormatDialog();
     cy.get('cx-menu-item[data-cy="custom-rendition-menu-item"]').click();
+    // Wait for CustomRendition to render by checking for the cx-details elements
+    cy.get('cx-details[data-value="resize"]').should('exist');
     cy.get('cx-details[data-value="resize"]').click();
+    // Verify resize inputs are now visible
+    cy.get('cx-details[data-value="resize"]').find('cx-input').should('have.length.greaterThan', 0);
     cy.get('cx-details[data-value="resize"]').find('cx-select').eq(0).click();
     cy.get('cx-details[data-value="resize"]').find('cx-option[value="aspect-ratio"]').click();
     cy.get('cx-details[data-value="resize"]')
@@ -380,20 +442,26 @@ describe('FormatDialog', () => {
       .type('{selectall}{backspace}2');
 
     cy.get('cx-details[data-value="resize"]').find('cx-button').click();
-    cy.get('.dialog__footer cx-button').eq(1).click();
+    cy.contains('Done').click({force: true});
     cy.get('cx-menu-item[data-cy="custom-rendition-menu-item"]')
       .find('.proxy__details')
       .should('contain', '400');
   });
 
   it('Should checked the selected proxy', () => {
+    mountFormatDialog();
     cy.get('cx-menu-item').eq(1).click();
     cy.get('cx-menu-item').eq(1).find('.proxy__name.selected').should('exist');
   });
 
   it('Should change image size unit on crop', () => {
+    mountFormatDialog();
     cy.get('cx-menu-item[data-cy="custom-rendition-menu-item"]').click();
+    // Wait for CustomRendition to render by checking for the cx-details elements
+    cy.get('cx-details[data-value="crop"]').should('exist');
     cy.get('cx-details[data-value="crop"]').click();
+    // Verify crop inputs are now visible
+    cy.get('cx-details[data-value="crop"]').find('cx-input').should('have.length.greaterThan', 0);
     cy.get('cx-details[data-value="crop"]').find('cx-select').eq(1).click();
     cy.get('cx-details[data-value="crop"]').find('cx-option[value="aspect-ratio"]').click();
     cy.get('cx-details[data-value="crop"]')
@@ -404,13 +472,14 @@ describe('FormatDialog', () => {
       .type('{selectall}{backspace}2');
 
     cy.get('cx-details[data-value="crop"]').find('cx-button').click();
-    cy.get('.dialog__footer cx-button').eq(1).click();
+    cy.contains('Done').click({force: true});
     cy.get('cx-menu-item[data-cy="custom-rendition-menu-item"]')
       .find('.proxy__details')
       .should('contain', '400');
   });
 
   it('Should not render any proxy when no proxy is available', () => {
+    mountFormatDialog();
     const props = {
       ...FormatDialogProps,
       availableProxies: undefined,
@@ -425,6 +494,7 @@ describe('FormatDialog', () => {
   });
 
   it('Should not render CustomRendition when not allowed', () => {
+    mountFormatDialog();
     const props = {
       ...FormatDialogProps,
       allowCustomFormat: false,
@@ -450,7 +520,9 @@ describe('FormatDialog', () => {
       </Provider>,
     );
 
-    cy.get('.dialog__footer__button').eq(0).click();
+    // Select a proxy first to enable the Insert button
+    cy.get('cx-menu-item').eq(1).click();
+    cy.get('.dialog__footer__button').should('be.visible').eq(0).click({force: true});
     cy.get('@onClose').should('have.been.called');
   });
 

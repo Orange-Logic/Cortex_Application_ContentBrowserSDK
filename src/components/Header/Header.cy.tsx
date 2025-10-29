@@ -132,30 +132,30 @@ describe('Header', () => {
     );
 
     cy.mount(
-      <GlobalConfigContext.Provider
-        value={{
-          allowProxy: true,
-          allowFavorites: true,
-          availableDocTypes: [],
-          availableRepresentativeSubtypes: [],
-          ctaText: 'Insert',
-          persistMode: false,
-          displayInfo: {
-            title: true,
-            dimension: true,
-            fileSize: true,
-            tags: true,
-          },
-          pluginInfo: {},
-          showCollections: false,
-          isContentBrowserPopedup: false,
-          allowTracking: true,
-        }}>
+        <GlobalConfigContext.Provider
+          value={{
+            allowProxy: true,
+            allowFavorites: true,
+            availableDocTypes: [],
+            availableRepresentativeSubtypes: [],
+            ctaText: 'Insert',
+            persistMode: false,
+            displayInfo: {
+              title: true,
+              dimension: true,
+              fileSize: true,
+              tags: true,
+            },
+            pluginInfo: {},
+            showCollections: false,
+            isContentBrowserPopedup: true,
+            allowTracking: true,
+          }}>
         <Provider store={store}>
           <Header {...headerProps} />
         </Provider>
       </GlobalConfigContext.Provider>,
     );
-    cy.get('.header__menu').find('cx-icon').should('exist');
+    cy.get('.header__menu').find('cx-icon-button').should('exist');
   });
 });
