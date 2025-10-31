@@ -199,7 +199,9 @@ describe('Browser', () => {
 
   it('Should expand', () => {
     cy.mount(<BrowserWrapper></BrowserWrapper>);
-
+    // Wait for custom elements to be defined and rendered
+    cy.waitForCustomElement('cx-tree-item');
+    cy.get('cx-tree-item').eq(0).should('be.visible');
     cy.get('cx-tree-item').eq(0).shadow().find('[part="expand-button"]').click();
     cy.get('cx-tree-item').eq(0).find('cx-tree-item').should('have.length', 3);
   });
