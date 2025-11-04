@@ -5,7 +5,7 @@ import ControlBar from './ControlBar';
 import { useState } from 'react';
 
 const defaultFiltes = {
-  mediaTypes: ['Images'],
+  Types: ['Images'],
   visibilityClasses: ['Published'],
   statuses: ['Not started'],
   extensions: ['.jpg', '.png', '.gif'],
@@ -30,8 +30,8 @@ const ControlBarWrapper = () => {
       },
       'values': [
         {
-          'displayValue': 'images',
-          'value': 'images',
+          'displayValue': 'Images',
+          'value': 'Images',
           'count': 50,
         },
         {
@@ -41,7 +41,7 @@ const ControlBarWrapper = () => {
         },
         {
           'displayValue': 'videos',
-          'value': 'videos',
+          'value': 'Videos',
           'count': 5,
         },
         {
@@ -71,6 +71,80 @@ const ControlBarWrapper = () => {
         },
       ],
     },
+    {
+      'facetDetails': {
+        'displayName': 'Visibility Classes',
+        'facetFieldName': 'visibilityClasses',
+      },
+      'values': [
+        {
+          'displayValue': 'Published',
+          'value': 'Published',
+          'count': 100,
+        },
+        {
+          'displayValue': 'Draft',
+          'value': 'Draft',
+          'count': 20,
+        },
+      ],
+    },
+    {
+      'facetDetails': {
+        'displayName': 'Statuses',
+        'facetFieldName': 'statuses',
+      },
+      'values': [
+        {
+          'displayValue': 'Not started',
+          'value': 'Not started',
+          'count': 30,
+        },
+        {
+          'displayValue': 'In progress',
+          'value': 'In progress',
+          'count': 25,
+        },
+        {
+          'displayValue': 'completed',
+          'value': 'Completed',
+          'count': 45,
+        },
+        {
+          'displayValue': 'pending',
+          'value': 'Pending',
+          'count': 10,
+        },
+      ],
+    },
+    {
+      'facetDetails': {
+        'displayName': 'Extensions',
+        'facetFieldName': 'extensions',
+      },
+      'values': [
+        {
+          'displayValue': '.jpg',
+          'value': '.jpg',
+          'count': 40,
+        },
+        {
+          'displayValue': '.png',
+          'value': '.png',
+          'count': 30,
+        },
+        {
+          'displayValue': '.gif',
+          'value': '.gif',
+          'count': 10,
+        },
+        {
+          'displayValue': '.jpeg',
+          'value': '.jpeg',
+          'count': 15,
+        },
+      ],
+    },
   ]);
 
   const onSettingChange = (
@@ -95,7 +169,12 @@ const ControlBarWrapper = () => {
   return (
     <div>
       <ControlBar
-        availableFacets={[]}
+        availableFacets={[
+          { displayName: 'Types', facetFieldName: 'Types' },
+          { displayName: 'Visibility Classes', facetFieldName: 'visibilityClasses' },
+          { displayName: 'Statuses', facetFieldName: 'statuses' },
+          { displayName: 'Extensions', facetFieldName: 'extensions' },
+        ]}
         allowSorting={true}
         currentCount={10}
         loading={false}

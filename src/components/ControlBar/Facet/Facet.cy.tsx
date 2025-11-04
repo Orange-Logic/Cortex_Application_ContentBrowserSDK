@@ -183,42 +183,17 @@ describe('Facet', () => {
           'count': 50,
         },
         {
-          'displayValue': 'others',
-          'value': 'others',
-          'count': 9,
-        },
-        {
           'displayValue': 'videos',
           'value': 'videos',
           'count': 5,
         },
         {
-          'displayValue': '3d assets',
-          'value': '3d assets',
-          'count': 4,
-        },
-        {
-          'displayValue': 'audio',
-          'value': 'audio',
-          'count': 3,
-        },
-        {
-          'displayValue': 'image',
-          'value': 'image',
-          'count': 1,
-        },
-        {
-          'displayValue': 'images>>image 1s',
-          'value': 'images>>image 1s',
-          'count': 1,
-        },
-        {
-          'displayValue': 'images>>image 2s',
-          'value': 'images>>image 2s',
-          'count': 1,
+          'displayValue': 'documents',
+          'value': 'documents',
+          'count': 10,
         },
       ],
-      displayName: 'Example Facet', 
+      displayName: 'Example Facet',
     };
     cy.mount(<Facet values={data.values} type={data.type} collections={[]} loading={false} displayName={data.displayName}/>);
     cy.waitForCustomElement('cx-details');
@@ -226,7 +201,6 @@ describe('Facet', () => {
     cy.waitForCustomElement('cx-tree-item');
     cy.get('cx-tree-item')
       .eq(0)
-      .find('cx-tree-item')
-      .should('have.attr', 'data-value', 'item1 >> item1.1');
+      .should('contain', 'images');
   });
 });

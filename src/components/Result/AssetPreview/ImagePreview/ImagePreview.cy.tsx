@@ -9,7 +9,7 @@ describe('ImagePreview', () => {
   it('should call onLoad when the image loads', () => {
     const onLoadedSpy = cy.spy().as('onLoaded');
     cy.mount(<ImagePreview alt="test" originalUrl="https://example.com/image.jpg" url="https://example.com/image.jpg" loaded={true} onError={() => {}} onLoaded={onLoadedSpy} />);
-    cy.get('img').eq(0).trigger('load');
+    cy.get('img').eq(0).should('have.attr', 'src', 'https://example.com/image.jpg').trigger('load');
     cy.get('@onLoaded').should('have.been.calledOnce');
   });
     

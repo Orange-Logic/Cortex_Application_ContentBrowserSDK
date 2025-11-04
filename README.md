@@ -6,14 +6,53 @@ For example, let’s say your organization’s creative team stores images in Or
 # Getting Started
 
 ##	Installation process
-Install dependencies with 
-```
-npm install
-``` 
-or 
-```
-yarn
-```
+
+### Environment Setup
+1. Copy the environment template:
+
+   **Unix/macOS:**
+   ```bash
+   cp .env.example .env.local
+   ```
+
+   **Windows Command Prompt:**
+   ```cmd
+   copy .env.example .env.local
+   ```
+
+   **Windows PowerShell:**
+   ```powershell
+   Copy-Item .env.example .env.local
+   ```
+
+2. Edit `.env.local` with your values:
+   ```bash
+   # Required: Get your Azure DevOps Personal Access Token from:
+   # https://dev.azure.com/orangelogic → User Settings → Personal Access Tokens
+   # Required scopes: Packaging: Read
+   NPM_TOKEN=your_actual_token_here
+   ```
+
+3. Install dependencies (this will load the environment variables automatically):
+
+   **Unix/macOS:**
+   ```bash
+   source .env.local && yarn install
+   ```
+
+   **Windows (Simplest approach):**
+   ```cmd
+   REM Set the environment variable for this session and install
+   set NPM_TOKEN=your_actual_token_here && yarn install
+   ```
+
+   **Alternative Windows approach:**
+
+   *PowerShell:*
+   ```powershell
+   $env:NPM_TOKEN = "your_actual_token_here"; yarn install
+   ```
+   **Note:** `.env.local` is ignored by git (see `.gitignore`) so your tokens won't be committed.
 
 ##	Software dependencies
 NodeJS v18 or higher
