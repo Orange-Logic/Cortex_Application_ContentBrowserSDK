@@ -64,6 +64,26 @@ Cypress.Commands.add(
   },
 );
 
-Cypress.Commands.add('waitForCustomElement', (tagName) => {
-  cy.window().then((win) => win.customElements.whenDefined(tagName));
+Cypress.Commands.add('waitForCustomElement', (tagName, timeout = 5000) => {
+  cy.window().then((win) => {
+    return new Promise((resolve) => {
+      if (win.customElements.get(tagName)) {
+        // Element is already defined
+        resolve(true);
+      } else {
+        // Wait for it to be defined, but with a timeout
+        const timeoutId = setTimeout(() => {
+          resolve(false); // Element not defined within timeout
+        }, timeout);
+
+        win.customElements.whenDefined(tagName).then(() => {
+          clearTimeout(timeoutId);
+          resolve(true);
+        }).catch(() => {
+          clearTimeout(timeoutId);
+          resolve(false);
+        });
+      }
+    });
+  });
 });

@@ -6,10 +6,10 @@ module.exports = {
   jest: {
     configure: {
       roots: [
-        '<rootDir>/src'
+        '<rootDir>/src',
       ],
       setupFiles: [
-        'react-app-polyfill/jsdom'
+        'react-app-polyfill/jsdom',
       ],
       testEnvironment: 'jsdom',
       modulePaths: [],
@@ -23,13 +23,13 @@ module.exports = {
         'json',
         'web.jsx',
         'jsx',
-        'node'
+        'node',
       ],
       watchPlugins: [
         'jest-watch-typeahead/filename',
-        'jest-watch-typeahead/testname'
-      ]
-    }
+        'jest-watch-typeahead/testname',
+      ],
+    },
   },
   webpack: {
     alias: {

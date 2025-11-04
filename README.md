@@ -33,38 +33,26 @@ For example, let’s say your organization’s creative team stores images in Or
    NPM_TOKEN=your_actual_token_here
    ```
 
-3. Set the environment variable before running commands:
+3. Install dependencies (this will load the environment variables automatically):
 
    **Unix/macOS:**
    ```bash
-   source .env.local
+   source .env.local && yarn install
    ```
 
    **Windows (Simplest approach):**
    ```cmd
-   REM Set the environment variable for this session
-   set NPM_TOKEN=your_actual_token_here
-   npm install
+   REM Set the environment variable for this session and install
+   set NPM_TOKEN=your_actual_token_here && yarn install
    ```
 
    **Alternative Windows approach:**
 
    *PowerShell:*
    ```powershell
-   $env:NPM_TOKEN = "your_actual_token_here"
-   npm install
+   $env:NPM_TOKEN = "your_actual_token_here"; yarn install
    ```
    **Note:** `.env.local` is ignored by git (see `.gitignore`) so your tokens won't be committed.
-
-### Install Dependencies
-Install dependencies with
-```
-npm install
-```
-or
-```
-yarn
-```
 
 ##	Software dependencies
 NodeJS v18 or higher
