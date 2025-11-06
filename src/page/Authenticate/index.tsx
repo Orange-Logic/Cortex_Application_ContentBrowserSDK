@@ -30,10 +30,13 @@ type Props = {
 const RestoreSession: FC<Props> = ({ onCancel }) => {
   const dispatch = useAppDispatch();
   useEffect(() => {
-    getData(USE_SESSION).then((storedSession) => storedSession && dispatch(setUseSession(storedSession)));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
+    getData(USE_SESSION).then((storedSession) => {
+      if (storedSession) {
+        dispatch(setUseSession(storedSession));
+      }
+    });
+  });
+  
   return (
     <ConnectingBackground onCancel={onCancel}>
       <ResponsiveTypography variant="h4">

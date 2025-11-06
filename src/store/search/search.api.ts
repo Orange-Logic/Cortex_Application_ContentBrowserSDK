@@ -7,6 +7,7 @@ import {
   FIELD_RECORD_ID,
   FIELD_ORIGINAL_FILE_NAME,
   FIELD_UPDATED_FILE_NAME,
+  FIELD_RAW_DOC_SUBTYPE,
 } from '@/consts/data';
 import { Asset, Facet, Folder, GetContentRequest, GetContentResponse, GetFavoritesResponse, GetFoldersRequest } from '@/types/search';
 import { AppBaseQuery, GetValueByKeyCaseInsensitive } from '@/utils/api';
@@ -162,6 +163,7 @@ export const searchApi = createApi({
                   ).replace(/^Root\//i, ''),
                   parents: arg.folder ? [...arg.folder.parents, arg.folder] : [],
                   hasChildren: (GetValueByKeyCaseInsensitive(item.fields, FIELD_HAS_BROWSER_CHILDREN) ?? '0') === '1',
+                  isShared: GetValueByKeyCaseInsensitive(item.fields, FIELD_RAW_DOC_SUBTYPE) === 'DO_OR1ND000001913488',
                 };
               }) ?? []
           ),

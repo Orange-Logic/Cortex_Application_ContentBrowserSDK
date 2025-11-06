@@ -7,6 +7,7 @@ export type Folder = {
   fullPath: string;
   hasChildren: boolean;
   icon?: string;
+  isShared?: boolean;
 };
 
 export type Asset = {

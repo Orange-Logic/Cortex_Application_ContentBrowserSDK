@@ -102,17 +102,26 @@ export const BrowserItem: FC<Props> = ({
     };
   }, [isDefined]);
 
-  const iconName = useMemo(() => {
-    let resolvedIcon: string;
+  const resolvedIcon = useMemo(() => {
+    let resolvedIconName: string;
+    let resolvedVariant: 'filled' | 'outlined' = 'outlined';
     if (icon) {
-      resolvedIcon = icon!;
+      resolvedIconName = icon!;
     } else if (folder.docType === 'Album') {
-      resolvedIcon = 'share';
+      if (folder.isShared) {
+        resolvedIconName = 'share';
+      } else {
+        resolvedIconName = 'folder';
+      }
     } else {
-      resolvedIcon = 'folder';
+      resolvedIconName = 'folder';
+      resolvedVariant = 'filled';
     }
-    return resolvedIcon;
-  }, [folder.docType, icon]);
+    return {
+      name: resolvedIconName,
+      variant: resolvedVariant,
+    };
+  }, [folder.docType, folder.isShared, icon]);
 
   // Lazy load if folder has children
   // and (folders are not fetched yet or are fetching)
@@ -127,7 +136,7 @@ export const BrowserItem: FC<Props> = ({
         selected={isSelected}
         lazy={isLazy}
       >
-        <cx-icon name={iconName}></cx-icon>
+        <cx-icon name={resolvedIcon.name} variant={resolvedIcon.variant}></cx-icon>
         <cx-line-clamp lines={1}>{getHighlightedTitle(folder.title, searchText)}</cx-line-clamp>
         {folders?.map((item) => (
           <BrowserItem
