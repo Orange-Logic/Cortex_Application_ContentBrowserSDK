@@ -475,10 +475,10 @@ const HomePage: FC<Props> = () => {
           if (searchText) {
             dispatch({ type: 'SET_SEARCH_TEXT', payload: searchText });
           }
-
-          loadedFromStorage.current = true;
-          setIsInitialLoadComplete(true);
         }
+
+        loadedFromStorage.current = true;
+        setIsInitialLoadComplete(true);
       });
     }
   }, [appDispatch, authenticated, lastLocationMode, defaultGridView]);
@@ -925,7 +925,7 @@ const HomePage: FC<Props> = () => {
 
   return (
     <cx-resize-observer ref={containerResizeObserverRef}>
-      <Container ref={containerRef}>
+      <Container ref={containerRef} className="cbsdk__home">
         <Browser
           allowedFolders={allowedFolders}
           allowPin={allowPin}

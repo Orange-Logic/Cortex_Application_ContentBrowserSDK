@@ -2008,10 +2008,10 @@
   dependencies:
     "@octokit/openapi-types" "^24.2.0"
 
-"@orangelogic-private/design-system@1.0.396":
-  version "1.0.396"
-  resolved "https://pkgs.dev.azure.com/orangelogic/Development/_packaging/ol-npm-private/npm/registry/@orangelogic-private/design-system/-/design-system-1.0.396.tgz#cb2f7acadf85722d49cc7a149c4c0ef7ecd500f1"
-  integrity sha1-yy96yt+Fci1JzHoUnEwO9+zVAPE=
+"@orangelogic-private/design-system@1.0.405":
+  version "1.0.405"
+  resolved "https://pkgs.dev.azure.com/orangelogic/Development/_packaging/ol-npm-private/npm/registry/@orangelogic-private/design-system/-/design-system-1.0.405.tgz#10261ae1e5fe2d554fe71b73f98958c42658be55"
+  integrity sha1-ECYa4eX+LVVP5xtz+YlYxCZYvlU=
 
 "@pkgjs/parseargs@^0.11.0":
   version "0.11.0"

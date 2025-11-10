@@ -71,6 +71,11 @@ module.exports = {
         publicPath: '',
       };
 
+      // uncomment this, change type from "umd" to "module" and comment out filename to link with FOD
+      // webpackConfig.experiments = {
+      //   outputModule: true,
+      // };
+
       return webpackConfig;
     },
   },

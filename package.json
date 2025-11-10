@@ -76,7 +76,7 @@
   "dependencies": {
     "@babel/core": "^7.16.0",
     "@craco/craco": "^7.1.0",
-    "@orangelogic-private/design-system": "1.0.396",
+    "@orangelogic-private/design-system": "1.0.405",
     "@pmmmwh/react-refresh-webpack-plugin": "^0.5.3",
     "@reduxjs/toolkit": "^1.9.5",
     "@svgr/webpack": "^8.1.0",
@@ -174,9 +174,24 @@
       "react-app"
     ],
     "plugins": [
-      ["@babel/plugin-transform-class-properties", { "loose": true }],
-      ["@babel/plugin-transform-private-methods", { "loose": true }],
-      ["@babel/plugin-transform-private-property-in-object", { "loose": true }]
+      [
+        "@babel/plugin-transform-class-properties",
+        {
+          "loose": true
+        }
+      ],
+      [
+        "@babel/plugin-transform-private-methods",
+        {
+          "loose": true
+        }
+      ],
+      [
+        "@babel/plugin-transform-private-property-in-object",
+        {
+          "loose": true
+        }
+      ]
     ]
   },
   "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e",

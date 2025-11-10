@@ -75,6 +75,7 @@ const ControlBar: FC<Props> = ({
   const filterDropdownRef = useRef<CxDropdown>(null);
   const viewDropdownRef = useRef<CxDropdown>(null);
   const sortDropdownRef = useRef<CxDropdown>(null);
+  const selectedViewMenuItemRef = useRef<CxMenuItem>(null);
 
   useEffect(() => {
     Promise.all([
@@ -114,6 +115,15 @@ const ControlBar: FC<Props> = ({
       viewDropdown?.removeEventListener('cx-select', onViewSelect);
     };
   }, [isDefined, isSeeThrough, onSettingChange]);
+
+  useEffect(() => {
+    const selectedViewMenuItem = selectedViewMenuItemRef.current;
+    if (!isDefined || !selectedViewMenuItem) return;
+    const container = selectedViewMenuItem.closest('.cbsdk__home');
+    if (!container) return;
+    selectedViewMenuItem.flipBoundary = container;
+    selectedViewMenuItem.shiftBoundary = container;
+  }, [isDefined]);
 
   useEffect(() => {
     const onFilterRemove = (e: CxRemoveEvent) => {
@@ -447,7 +457,7 @@ const ControlBar: FC<Props> = ({
           ) : (
             <cx-menu key="default-menu">
               <cx-menu-label>View</cx-menu-label>
-              <cx-menu-item class={selectedView ? 'selected' : ''}>
+              <cx-menu-item ref={selectedViewMenuItemRef} class={selectedView ? 'selected' : ''}>
                 Grid ({selectedView?.label})
                 <cx-menu slot="submenu">
                   {views.map((item) => (
