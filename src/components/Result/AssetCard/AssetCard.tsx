@@ -4,7 +4,7 @@ import ArrayClamp from '@/components/ArrayClamp';
 import { ImageCardDisplayInfo } from '@/GlobalConfigContext';
 import { Asset, GridView, MediaType } from '@/types/search';
 import { isNullOrWhiteSpace } from '@/utils/string';
-import { CxCard } from '@/web-component';
+import type { CxCard } from '@orangelogic-private/design-system';
 
 import AssetPreview from '../AssetPreview';
 import { Card } from './AssetCard.styled';
@@ -12,7 +12,7 @@ import { Card } from './AssetCard.styled';
 type Props = {
   id: string;
   asset: Asset;
-  displayInfo: ImageCardDisplayInfo & { searchInDrive: boolean };
+  displayInfo: ImageCardDisplayInfo;
   isSelected: boolean;
   view: GridView;
   onItemSelect: (asset: Asset) => void;
@@ -113,16 +113,17 @@ const AssetCard: FC<Props> = ({
           <cx-checkbox checked></cx-checkbox>
         </div>
       )}
-      <cx-space>
-        {displayInfo.title && (
+      <cx-space spacing="small" align-items="center" wrap="nowrap" className="asset-card__info">
+        {displayInfo.title && asset.name ? (
           <cx-line-clamp lines={1} className="asset-card__name">
-            {asset.name}
+            <cx-typography variant="body3">
+              {asset.name}
+            </cx-typography>
           </cx-line-clamp>
-        )}
-        {displayInfo.searchInDrive && (
-          <cx-tooltip content="Open in drive">
-            <cx-icon-button name="folder" size="small" className="asset-card__button"></cx-icon-button>
-          </cx-tooltip>
+        ) : (
+          <cx-typography variant="small" className="asset-card__placeholder">
+            <span>empty</span>
+          </cx-typography>
         )}
       </cx-space>
       {displayInfo.tags && tags.length > 0 && (
@@ -148,11 +149,11 @@ const AssetCard: FC<Props> = ({
         </ArrayClamp>
       )}
       {(displayInfo.dimension || displayInfo.fileSize) && (
-        <cx-space spacing="small" align-items="center" wrap="nowrap" className="asset-card__secondary-info">
+        <cx-space spacing="small" align-items="center" wrap="nowrap" className="asset-card__info">
           {displayInfo.dimension && Boolean(Number(asset.width)) && Boolean(Number(asset.height)) && (
             <cx-line-clamp lines={1} className="asset-card__name">
               <cx-typography variant="small">
-                <span>{asset.width}</span>x<span>{asset.height}</span>
+                <span>{asset.width}</span> x <span>{asset.height}</span>
               </cx-typography>
             </cx-line-clamp>
           )}

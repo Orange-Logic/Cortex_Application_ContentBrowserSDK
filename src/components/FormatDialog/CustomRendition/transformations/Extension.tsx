@@ -1,4 +1,4 @@
-import { CxSelect, CxChangeEvent } from '@/web-component';
+import type { CxSelect, CxChangeEvent } from '@orangelogic-private/design-system';
 import { useState, useRef, useEffect, FC } from 'react';
 
 type Props = { 
@@ -41,7 +41,7 @@ const Extension: FC<Props> = ({
 
   return (
     <cx-space direction="vertical" spacing="small" className="extension">
-      <cx-typography variant="body2">Extension</cx-typography>
+      <cx-typography variant="body3">Extension</cx-typography>
       <cx-select value={isDefined ? extension : ''} ref={extensionSelectRef} hoist>
         {extensions.map((item) => (
           <cx-option key={item.value} value={item.value}>{item.displayName}</cx-option>

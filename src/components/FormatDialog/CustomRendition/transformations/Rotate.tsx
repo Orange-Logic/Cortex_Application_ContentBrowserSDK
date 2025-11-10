@@ -1,7 +1,7 @@
 import _debounce from 'lodash-es/debounce';
 import { FormEvent, useEffect, useState } from 'react';
 
-import { CxInput } from '@/web-component';
+import type { CxInput } from '@orangelogic-private/design-system';
 import { INPUT_DEBOUNCE_DELAY } from '../CustomRendition.constants';
 
 type Props = {
@@ -56,7 +56,7 @@ const Rotate = ({ open, rotation, onChange, onApply }: Props) => {
         <div className="details__summary__icon">
           <cx-icon name="rotate_90_degrees_cw"></cx-icon>
         </div>
-        <cx-typography variant="body2">Rotate</cx-typography>
+        <cx-typography variant="body3">Rotate</cx-typography>
       </cx-space>
       <cx-space spacing="small">
         <cx-button-group label="History">

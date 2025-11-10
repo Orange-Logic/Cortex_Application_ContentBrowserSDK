@@ -1,67 +1,67 @@
 import { FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { SortOrder } from '@/types/assets';
-import { Filter, GridView, SortDirection } from '@/types/search';
-import {
-  CxChangeEvent, CxDropdown, CxInput, CxRemoveEvent, CxSelectEvent, CxSelectionChangeEvent,
-} from '@/web-component';
+import { Facet as FacetType, GridView, SortDirection } from '@/types/search';
+import type {
+  CxChangeEvent,
+  CxDropdown,
+  CxInput,
+  CxMenuItem,
+  CxRemoveEvent,
+  CxSelectEvent,
+  CxSelectionChangeEvent,
+  CxTreeItem,
+} from '@orangelogic-private/design-system';
 
 import { sortDirections, views } from './ControlBar.constants';
 import { Container } from './ControlBar.styled';
 import Facet from './Facet';
 
-const TYPE = {
-  type: 'type',
-  visibilityClass: 'visibilityClass',
-  status: 'status',
-  extension: 'extension',
-};
-
 type Props = {
   allowSorting: boolean;
+  availableFacets: FacetType['facetDetails'][];
   currentCount: number;
   loading: boolean;
-  extensions: string[];
-  facets?: Record<string, Record<string, number>>;
+  facets?: FacetType[];
   isMobile: boolean;
   isSeeThrough: boolean;
-  mediaTypes: string[];
   searchValue: string;
+  selectedFacets: Record<string, string[]>;
   sortDirection?: 'ascending' | 'descending';
   sortOrder: string;
   sortOrders?: Record<string, SortOrder[]>;
-  statuses: string[];
   totalCount: number;
   view: GridView;
-  visibilityClasses: string[];
   onSearchChange: (value: string) => void;
   onSettingChange: (
     setting: string,
-    value: GridView | SortDirection | Filter | string | boolean | string[]
+    value:
+    | GridView
+    | SortDirection
+    | Record<string, string[]>
+    | string
+    | boolean
+    | string[]
   ) => void;
-  onChangeNewlySelectedFacet: (value: string) => void;
 };
 
 const ControlBar: FC<Props> = ({
   allowSorting,
+  availableFacets,
   currentCount,
   loading,
-  extensions,
   facets,
   isMobile,
   isSeeThrough,
-  mediaTypes,
   searchValue: searchText,
+  selectedFacets,
   sortDirection,
   sortOrder,
   sortOrders,
-  statuses,
   totalCount,
   view,
-  visibilityClasses,
   onSearchChange,
   onSettingChange,
-  onChangeNewlySelectedFacet,
 }) => {
   const [isDefined, setIsDefined] = useState(false);
   const [newlyChangedOption, setNewlyChangedOption] = useState<{
@@ -99,7 +99,7 @@ const ControlBar: FC<Props> = ({
   }, [isDefined, searchText, onSearchChange]);
 
   useEffect(() => {
-    const onViewSelect = (e: CxSelectEvent) => {
+    const onViewSelect = (e: CxSelectEvent<CxMenuItem>) => {
       const value = e.detail.item.value;
 
       if (value === 'see-thru') {
@@ -120,87 +120,57 @@ const ControlBar: FC<Props> = ({
       const target = e.target as HTMLElement;
       const type = target.dataset.type;
       const value = target.dataset.value;
-      onChangeNewlySelectedFacet('');
 
-      if (!value) {
+      if (!value || !type) {
         return;
       }
 
-      let newMediaTypes = mediaTypes;
-      let newVisibilityClasses = visibilityClasses;
-      let newStatuses = statuses;
-      let newExtensions = extensions;
+      const newFilter = { ...selectedFacets };
 
-      switch (type) {
-        case TYPE.type:
-          newMediaTypes = mediaTypes.filter((item) => item !== value);
-          break;
-        case TYPE.visibilityClass:
-          newVisibilityClasses = visibilityClasses.filter((item) => item !== value);
-          break;
-        case TYPE.status:
-          newStatuses = statuses.filter((item) => item !== value);
-          break;
-        case TYPE.extension:
-          newExtensions = extensions.filter((item) => item !== value);
-          break;
-        default:
-          break;
+      if (newFilter[type]) {
+        newFilter[type] = newFilter[type].filter((item) => item !== value);
       }
 
-      onSettingChange('filter', {
-        mediaTypes: newMediaTypes,
-        visibilityClasses: newVisibilityClasses,
-        statuses: newStatuses,
-        extensions: newExtensions,
-      });
+      onSettingChange('filter', newFilter);
     };
-    const onFilterSelectionChange = (e: CxSelectionChangeEvent) => {
+    const onFilterSelectionChange = (e: CxSelectionChangeEvent<CxTreeItem>) => {
       const facet = (e.target as HTMLElement).dataset.facet;
+
+      if (!facet) {
+        return;
+      }
+
       setNewlyChangedOption({
         type: 'filter',
         value: facet,
       });
-      onChangeNewlySelectedFacet(facet ?? '');
 
       const newSelection = e.detail.selection.reduce(
         (acc, item) => {
           const type = item.dataset.type;
           const value = item.dataset.value;
-          
-          if (!value) {
+
+          if (!value || !type) {
             return acc;
           }
 
-          switch (type) {
-            case TYPE.type:
-              acc.mediaTypes.push(value);
-              break;
-            case TYPE.visibilityClass:
-              acc.visibilityClasses.push(value);
-              break;
-            case TYPE.status:
-              acc.statuses.push(value);
-              break;
-            case TYPE.extension:
-              acc.extensions.push(value);
-              break;
-            default:
-              break;
+          if (!acc[type]) {
+            acc[type] = [];
           }
 
+          acc[type].push(value);
+
           return acc;
-        }, {
-          extensions: facet === TYPE.extension ? [] as string[] : extensions,
-          mediaTypes: facet === TYPE.type ? [] as string[] : mediaTypes,
-          visibilityClasses: facet === TYPE.visibilityClass ? [] as string[] : visibilityClasses,
-          statuses: facet === TYPE.status ? [] as string[] : statuses,
+        },
+        {
+          ...selectedFacets,
+          [facet]: [] as string[],
         },
       );
 
       onSettingChange('filter', newSelection);
     };
-    const onSortSelect = (e: CxSelectEvent) => {
+    const onSortSelect = (e: CxSelectEvent<CxMenuItem>) => {
       const type = e.detail.item.dataset.type;
       const value = e.detail.item.value;
 
@@ -224,25 +194,59 @@ const ControlBar: FC<Props> = ({
     };
     const filterDropdown = filterDropdownRef.current;
     const sortDropdown = sortDropdownRef.current;
-    filterDropdown?.addEventListener('cx-selection-change', onFilterSelectionChange);
+    filterDropdown?.addEventListener(
+      'cx-selection-change',
+      onFilterSelectionChange,
+    );
     filterDropdown?.addEventListener('cx-remove', onFilterRemove);
     sortDropdown?.addEventListener('cx-select', onSortSelect);
     return () => {
-      filterDropdown?.removeEventListener('cx-selection-change', onFilterSelectionChange);
+      filterDropdown?.removeEventListener(
+        'cx-selection-change',
+        onFilterSelectionChange,
+      );
       filterDropdown?.removeEventListener('cx-remove', onFilterRemove);
       sortDropdown?.removeEventListener('cx-select', onSortSelect);
     };
-  }, [isDefined, extensions, mediaTypes, statuses, visibilityClasses, onSettingChange, onChangeNewlySelectedFacet]);
+  }, [isDefined, selectedFacets, onSettingChange]);
 
-  const selectedView = useMemo(() => views.find((item) => item.value === view), [view]);
+  const selectedView = useMemo(
+    () => views.find((item) => item.value === view),
+    [view],
+  );
+
+  const mappedDisplayNames = useMemo(() => {
+    return facets?.reduce((acc, facet) => {
+      const displayNames = facet.values.reduce((displayNamesAcc, { value, displayValue }) => {
+        displayNamesAcc[value] = displayValue;
+
+        return displayNamesAcc;
+      }, {} as Record<string, string>);
+
+      return {
+        ...acc,
+        [facet.facetDetails.facetFieldName]: displayNames,
+      };
+    }, {} as Record<string, Record<string, string>>) ?? {};
+  }, [facets]);
+
+  const appliedFiltersCount = useMemo(() => {
+    return Object.entries(selectedFacets).reduce((acc, [key, values]) => {
+      if (!mappedDisplayNames[key]) {
+        return acc;
+      }
+      return acc + values.filter(value => mappedDisplayNames[key][value]).length;
+    }, 0);
+  }, [selectedFacets, mappedDisplayNames]);
 
   const renderAppliedFilters = useCallback(() => {
-    const appliedFilersCount = mediaTypes.length + visibilityClasses.length + statuses.length + extensions.length;
-
     return (
       <cx-details
+        data-cy="applied-filters"
         open
-        className={`filter-details ${appliedFilersCount === 0 ? 'filter-details--empty' : ''}`.trim()}
+        className={`filter-details ${
+          appliedFiltersCount === 0 ? 'filter-details--empty' : ''
+        }`.trim()}
       >
         <cx-space
           slot="summary"
@@ -250,61 +254,47 @@ const ControlBar: FC<Props> = ({
           spacing="x-small"
           wrap="nowrap"
         >
-          <span>Applied filters {appliedFilersCount > 0 ? ` (${appliedFilersCount})` : ''}</span>
-          {loading && newlyChangedOption.type === 'filter' && <cx-spinner></cx-spinner>}
+          <span>
+            Applied filters{' '}
+            {appliedFiltersCount > 0 ? ` (${appliedFiltersCount})` : ''}
+          </span>
+          {loading && newlyChangedOption.type === 'filter' && (
+            <cx-spinner></cx-spinner>
+          )}
         </cx-space>
-        <cx-space direction="horizontal" spacing="small">
-          {mediaTypes.map((item) => (
-            <cx-tag
-              key={item}
-              removable
-              data-value={item}
-              data-type={TYPE.type}
-              size='small'
-            >
-              {item.toLowerCase()}
-            </cx-tag>
-          ))}
-          {visibilityClasses.map((item) => (
-            <cx-tag
-              key={item}
-              removable
-              data-value={item}
-              data-type={TYPE.visibilityClass}
-              size='small'
-            >
-              {item.toLowerCase()}
-            </cx-tag>
-          ))}
-          {statuses.map((item) => (
-            <cx-tag
-              key={item}
-              removable
-              data-value={item}
-              data-type={TYPE.status}
-              size='small'
-            >
-              {item.toLowerCase()}
-            </cx-tag>
-          ))}
-          {extensions.map((item) => (
-            <cx-tag
-              key={item}
-              removable
-              data-value={item}
-              data-type={TYPE.extension}
-              size='small'
-            >
-              {item.toLowerCase()}
-            </cx-tag>
-          ))}
+        <cx-space
+          direction="horizontal"
+          spacing="small"
+          style={{
+            maxWidth: '320px',
+          }}
+        >
+          {Object.entries(selectedFacets).map(([key, values]) => {
+            if (!values || values.length === 0) {
+              return null;
+            }
+
+            return values.filter(value => mappedDisplayNames[key][value]).map((value) => {
+              return (
+                <cx-tag
+                  key={value}
+                  removable
+                  data-value={value}
+                  data-type={key}
+                  size="small"
+                >
+                  {mappedDisplayNames[key][value]}
+                  <cx-icon slot="suffix" name="close"></cx-icon>
+                </cx-tag>
+              );
+            });
+          })}
         </cx-space>
-        {appliedFilersCount > 0 && (
-          <cx-button 
+        {appliedFiltersCount > 0 && (
+          <cx-button
             variant="text"
-            className='clear-all-button'
+            className="clear-all-button"
             onClick={() => {
-              onChangeNewlySelectedFacet('');
               onSettingChange('filter', {
                 mediaTypes: [],
                 visibilityClasses: [],
@@ -319,16 +309,7 @@ const ControlBar: FC<Props> = ({
         )}
       </cx-details>
     );
-  }, [
-    extensions,
-    loading,
-    mediaTypes,
-    newlyChangedOption.type,
-    statuses,
-    visibilityClasses,
-    onChangeNewlySelectedFacet,
-    onSettingChange,
-  ]);
+  }, [appliedFiltersCount, loading, mappedDisplayNames, newlyChangedOption.type, onSettingChange, selectedFacets]);
 
   return (
     <Container>
@@ -360,39 +341,44 @@ const ControlBar: FC<Props> = ({
                 name="filter_alt"
                 label="Filter"
                 outline
-              ></cx-icon-button>
+                data-cy="filter-button"
+              >
+                {appliedFiltersCount > 0 && (
+                  <cx-badge slot="badge" pill size="small">
+                    {appliedFiltersCount}
+                  </cx-badge>
+                )}
+              </cx-icon-button>
             </cx-tooltip>
           </div>
           {renderAppliedFilters()}
-          <Facet
-            key={TYPE.type}
-            facet={facets?.type ?? {}}
-            displayName="Type"
-            type={TYPE.type}
-            collections={mediaTypes}
-          />
-          <Facet
-            key={TYPE.visibilityClass}
-            facet={facets?.visibilityClass ?? {}}
-            displayName="Visibility class"
-            type={TYPE.visibilityClass}
-            collections={visibilityClasses}
-          />
-          <Facet
-            key={TYPE.status}
-            facet={facets?.status ?? {}}
-            displayName="Status"
-            type={TYPE.status}
-            collections={statuses}
-          />
-          <Facet
-            key={TYPE.extension}
-            facet={facets?.extension ?? {}}
-            type={TYPE.extension}
-            displayName="Extension"
-            collections={extensions}
-            capitalize={false}
-          />
+          {availableFacets.length > 0 && (
+            <cx-space direction="vertical" className="filter-details">
+              {availableFacets.map((availableFacet) => {
+                const facet = facets?.find(
+                  (item) =>
+                    item.facetDetails.facetFieldName ===
+                    availableFacet.facetFieldName,
+                );
+
+                if (!facet) {
+                  return null;
+                }
+
+                return (
+                  <Facet
+                    key={facet.facetDetails.facetFieldName}
+                    values={facet.values}
+                    displayName={facet.facetDetails.displayName}
+                    type={facet.facetDetails.facetFieldName}
+                    collections={
+                      selectedFacets[facet.facetDetails.facetFieldName] || []
+                    }
+                  />
+                );
+              })}
+            </cx-space>
+          )}
         </cx-dropdown>
       </cx-space>
       <cx-space
@@ -408,7 +394,7 @@ const ControlBar: FC<Props> = ({
         </cx-line-clamp>
         <cx-dropdown
           ref={viewDropdownRef}
-          auto-width-factor={0.6}
+          auto-width-factor={isMobile ? 1 : 0.6}
           stay-open-on-select
           placement="bottom-end"
           skidding={isMobile ? 40 : 0}
@@ -419,21 +405,35 @@ const ControlBar: FC<Props> = ({
                 name="dashboard"
                 label="View"
                 outline
+                data-cy="view-button"
               ></cx-icon-button>
             </cx-tooltip>
           </div>
-          <cx-menu>
-            <cx-menu-label>View</cx-menu-label>
-            <cx-menu-item class={selectedView ? 'selected' : ''}>
-              Grid ({selectedView?.label})
-              <cx-menu slot="submenu">
+          {isMobile ? (
+            <cx-menu variant="multiple" key="multiple-menu">
+              <cx-menu active name="main">
+                <cx-menu-label>View</cx-menu-label>
+                <cx-menu-item menu="submenu" class={selectedView ? 'selected' : ''}>
+                  Grid ({selectedView?.label})
+                  <cx-icon slot="prefix" name="grid_view"></cx-icon>
+                </cx-menu-item>
+                <cx-divider></cx-divider>
+                <cx-menu-item value="see-thru" className="menu-item--switch">
+                  <cx-line-clamp lines={1}>See-thru</cx-line-clamp>
+                  <cx-switch
+                    checked={isSeeThrough}
+                    onClick={(e) => e.preventDefault()}
+                  ></cx-switch>
+                </cx-menu-item>
+              </cx-menu>
+              <cx-menu name="submenu" back="main">
                 {views.map((item) => (
                   <cx-menu-item
                     key={item.value}
                     value={item.value.toString()}
                     class={item.value === view ? 'selected' : ''}
                   >
-                    {item.label}
+                    <cx-line-clamp lines={1}>{item.label}</cx-line-clamp>
                     {
                       <cx-icon
                         slot="prefix"
@@ -443,60 +443,92 @@ const ControlBar: FC<Props> = ({
                   </cx-menu-item>
                 ))}
               </cx-menu>
-              <cx-icon slot="prefix" name="grid_view"></cx-icon>
-            </cx-menu-item>
-            <cx-divider></cx-divider>
-            <cx-menu-item value="see-thru" className="menu-item--switch">
-              <cx-line-clamp lines={1}>See-thru</cx-line-clamp>
-              <cx-switch
-                checked={isSeeThrough}
-                onClick={(e) => e.preventDefault()}
-              ></cx-switch>
-            </cx-menu-item>
-          </cx-menu>
+            </cx-menu>
+          ) : (
+            <cx-menu key="default-menu">
+              <cx-menu-label>View</cx-menu-label>
+              <cx-menu-item class={selectedView ? 'selected' : ''}>
+                Grid ({selectedView?.label})
+                <cx-menu slot="submenu">
+                  {views.map((item) => (
+                    <cx-menu-item
+                      key={item.value}
+                      value={item.value.toString()}
+                      class={item.value === view ? 'selected' : ''}
+                    >
+                      <cx-line-clamp lines={1}>{item.label}</cx-line-clamp>
+                      {
+                        <cx-icon
+                          slot="prefix"
+                          name={view === item.value ? 'check' : ''}
+                        ></cx-icon>
+                      }
+                    </cx-menu-item>
+                  ))}
+                </cx-menu>
+                <cx-icon slot="prefix" name="grid_view"></cx-icon>
+              </cx-menu-item>
+              <cx-divider></cx-divider>
+              <cx-menu-item value="see-thru" className="menu-item--switch">
+                <cx-line-clamp lines={1}>See-thru</cx-line-clamp>
+                <cx-switch
+                  checked={isSeeThrough}
+                  onClick={(e) => e.preventDefault()}
+                ></cx-switch>
+              </cx-menu-item>
+            </cx-menu>
+          )}
         </cx-dropdown>
         <cx-dropdown
           ref={sortDropdownRef}
-          auto-width-factor={0.5}
+          auto-width-factor={isMobile ? 1 : 0.5}
           stay-open-on-select
         >
           <div slot="trigger">
             <cx-tooltip content="Sort">
-              <cx-icon-button name="sort" label="Sort" outline></cx-icon-button>
+              <cx-icon-button
+                name="sort"
+                label="Sort"
+                outline
+                data-cy="sort-button"
+              ></cx-icon-button>
             </cx-tooltip>
           </div>
           <cx-menu>
-            {(sortOrders ? sortDirections
-              .map(
-                (item) => {
-                  const label = sortOrders[sortOrder]?.find(
-                    (sort) => sort.sortDirection.toLowerCase() === item.value.toLowerCase(),
-                  )?.sortDirectionDisplayName;
+            {(sortOrders
+              ? sortDirections.map((item) => {
+                const label = sortOrders[sortOrder]?.find(
+                  (sort) =>
+                    sort.sortDirection.toLowerCase() ===
+                      item.value.toLowerCase(),
+                )?.sortDirectionDisplayName;
 
-                  return {
-                    ...item,
-                    label: label ?? item.value,
-                  };
-                },
-              ) : sortDirections)
-              .map((item) => (
-                <cx-menu-item
-                  key={item.value}
-                  data-type="sort-direction"
-                  disabled={!allowSorting}
-                  value={item.value}
-                  class={allowSorting && sortDirection === item.value ? 'selected' : ''}
-                >
-                  {item.label.replace(/\b\w/g, (char) => char.toUpperCase())}
-                  {loading &&
-                  newlyChangedOption.type === 'sortDirection' &&
-                  newlyChangedOption.value === item.value ? (
-                    <cx-spinner slot="prefix"></cx-spinner>
-                    ) : (
-                    <item.icon></item.icon>
-                    )}
-                </cx-menu-item>
-              ))}
+                return {
+                  ...item,
+                  label: label ?? item.value,
+                };
+              })
+              : sortDirections
+            ).map((item) => (
+              <cx-menu-item
+                key={item.value}
+                data-type="sort-direction"
+                disabled={!allowSorting}
+                value={item.value}
+                class={
+                  allowSorting && sortDirection === item.value ? 'selected' : ''
+                }
+              >
+                {item.label.replace(/\b\w/g, (char) => char.toUpperCase())}
+                {loading &&
+                newlyChangedOption.type === 'sortDirection' &&
+                newlyChangedOption.value === item.value ? (
+                  <cx-spinner slot="prefix"></cx-spinner>
+                  ) : (
+                  <item.icon></item.icon>
+                  )}
+              </cx-menu-item>
+            ))}
             <cx-divider></cx-divider>
             {Object.keys(sortOrders ?? {}).map((item) => (
               <cx-menu-item

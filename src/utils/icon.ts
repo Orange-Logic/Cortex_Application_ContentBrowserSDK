@@ -20,3 +20,10 @@ export const getMediaIcon = (type?: MediaType) => {
       return 'file';
   }
 };
+  
+export const constructIconDataUrl = (svgString: string) => {
+  const encoded = encodeURIComponent(svgString)
+    .replace(/'/g, '%27')
+    .replace(/"/g, '%22');
+  return `data:image/svg+xml;charset=utf-8,${encoded}`;
+};

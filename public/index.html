@@ -12,6 +12,10 @@
       user's mobile device or desktop. See https://developers.google.com/web/fundamentals/web-app-manifest/
     -->
   <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+  <script src="https://downloads.orangelogic.com/ContentBrowserSDK/__tag__/OrangeDAMContentBrowserSDK.min.js"></script>
+  <link rel="stylesheet" type="text/css"
+    href="https://downloads.orangelogic.com/ContentBrowserSDK/__tag__/OrangeDAMContentBrowserSDK.min.css">
+
   <!--
       Notice the use of %PUBLIC_URL% in the tags above.
       It will be replaced with the URL of the `public` folder during the build.
@@ -54,11 +58,20 @@
     const debugCBSDK = () => {
       const settings = {
         onAssetSelected: function (assets) {
-          console.log(assets);
+          return new Promise((resolve) => {
+            window.open(assets[0].imageUrl, '_blank');
+            resolve();
+          });
+        },
+        onAppAuthUrlCopied: async (url) => {
+          console.log('custom copy handler', url);
+          await navigator.clipboard.writeText(url);
         },
         onError: console.error,
         // baseUrl: "local.orangelogic.com",
-        availableDocTypes: ['Images*', 'Videos*', 'Audio*', 'Others*'],
+        // allowedExtensions: ["jpg"],
+        // allowedFolders: ["Library/Trung_InDesign_02", "Personal Folders/V/Trung Vo personal Folder/Trung_upload_test", "Library/Trung_FileOnDemand/root_02/test_upload"],
+        availableDocTypes: ['DO_DOCUMENTS.Image_DbBO.*', 'DO_DOCUMENTS.Audio_DbBO.*', 'DO_DOCUMENTS.Multimedia_DbBO.*', 'DO_DOCUMENTS.Video_DbBO.*'],
         availableRepresentativeSubtypes: ['Other'],
         containerId: 'react-app-root',
         // displayInfo: {
@@ -66,8 +79,7 @@
         //   dimension: true,
         //   fileSize: false,
         //   tags: false,
-        // },
-        extraFields: ['coreField.OriginalFileName', 'document.CortexPath'],
+        extraFields: ['coreField.OriginalFileName', 'document.CortexPath', 'ScrubUrl'],
         persistMode: true,
         // lastLocationMode: true,
         // publicApplicationName: "",
@@ -75,7 +87,26 @@
         searchInDrive: false,
         showCollections: true,
         allowTracking: true,
+        allowFavorites: true,
+        allowPin: true,
+        showVersions: true,
+        loadExternalFonts: false,
+        lastLocationMode: true,
         onClose: () => { },
+        onTokenChanged: (token) => {
+          console.log('Token changed:', token);
+        },
+        customStorage: {
+          get: (key) => {
+            return localStorage.getItem("custom_storage_" + key);
+          },
+          set: (key, value) => {
+            return localStorage.setItem("custom_storage_" + key, value);
+          },
+          delete: (key) => {
+            return localStorage.removeItem("custom_storage_" + key);
+          }
+        }
       }
       settings.onClose = () => {
         console.log('Content Browser closed, reopening ...');

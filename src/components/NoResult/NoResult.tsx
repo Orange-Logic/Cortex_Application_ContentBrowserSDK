@@ -11,6 +11,7 @@ const NoResult: FC<Props> = ({
 }: Props) => {
   return (
     <div
+      data-testid="no-results"
       style={{
         alignItems: 'center',
         color: 'var(--cx-color-neutral)',

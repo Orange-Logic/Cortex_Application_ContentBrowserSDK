@@ -16,6 +16,7 @@ export const getAssetLinks = async (
     parameters,
     extension,
     useSession,
+    token,
   }: {
     assets: Asset[];
     extraFields?: string;
@@ -27,6 +28,7 @@ export const getAssetLinks = async (
     maxHeight?: number;
     extension?: string;
     useSession?: string;
+    token?: string;
   },
 ): Promise<GetAssetLinkResponse[]> => {
   let baseUrl = '/webapi/extensibility/integrations/contentBrowserSDK/GetAssetLink_4by?';
@@ -50,7 +52,10 @@ export const getAssetLinks = async (
     if (proxyPreference) {
       url += `&Proxy=${proxyPreference}`;
     }
-    const response  = await cortexFetch(url, { method: 'GET' });
+    const response  = await cortexFetch(url, { method: 'GET', headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    } });
     let responseData: GetAssetLinkResponse | CortexErrorResponse | null = null;
     responseData = await response.json();
 
@@ -158,6 +163,32 @@ export const getAssetLinks = async (
 
         imageUrl += '/';
       }
+
+      if (key === TransformationAction.Quality) {
+        const validTransformations = [{
+          key: 'q_level_',
+          value: value.quality,
+        }].filter(item => item.value !== undefined).map(item => ({ key: item.key, value: Math.round(Number(item.value)) }));
+  
+        validTransformations.forEach(({ key: vKey, value: vValue }, index) => {
+          imageUrl += `${vKey}${vValue}${index < validTransformations.length - 1 ? ',' : ''}`;
+        });
+
+        imageUrl += '/';
+      }
+
+      if (key === TransformationAction.KeepMetadata) {
+        const validTransformations = [{
+          key: 'fl_keep_metadata',
+          value: value.keepMetadata,
+        }].filter(item => item.value !== undefined).map(item => ({ key: item.key, value: item.value }));
+  
+        validTransformations.forEach(({ key: vKey }, index) => {
+          imageUrl += `${vKey}${index < validTransformations.length - 1 ? ',' : ''}`;
+        });
+
+        imageUrl += '/';
+      }
     });
 
     if (transformations && transformations.length > 0) {
@@ -220,4 +251,60 @@ export const getAssetLinks = async (
   }
 
   return result;
+};
+
+export const favoriteAsset = async (
+  {
+    recordId,
+    token,
+  }: {
+    recordId: string;
+    token?: string;
+  },
+): Promise<boolean> => {
+  const response = await cortexFetch(
+    '/webapi/extensibility/integrations/contentBrowserSDK/addtofavorites_2du',
+    {
+      method: 'POST',
+      body: JSON.stringify({ RecordId: recordId }),
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error('Failed to favorite asset');
+  }
+
+  return true;
+};
+
+export const unfavoriteAsset = async (
+  {
+    recordId,
+    token,
+  }: {
+    recordId: string;
+    token?: string;
+  },
+): Promise<boolean> => {
+  const response = await cortexFetch(
+    '/webapi/extensibility/integrations/contentBrowserSDK/removefromfavorites_2dv',
+    {
+      method: 'POST',
+      body: JSON.stringify({ RecordId: recordId }),
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error('Failed to remove asset from favorites');
+  }
+
+  return true;
 };

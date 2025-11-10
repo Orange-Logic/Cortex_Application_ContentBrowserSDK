@@ -1,20 +1,27 @@
-import { CxDialogProps, CxDrawerProps } from '@/react-web-component';
+import type { CxDialogProps, CxDrawerProps } from '@orangelogic-private/design-system/react-types';
 import styled from 'styled-components';
 
 export const Dialog = styled('cx-dialog')<CxDialogProps>`
   --body-spacing: var(--cx-spacing-small);
+  --divider-spacing: 0;
   --max-height: 100%;
-  --width: 90%;
+  --max-width: 520px;
+
+  &::part(header) {
+    align-items: center;
+  }
 
   &::part(panel) {
     max-height: calc(var(--max-height) - var(--cx-spacing-2x-large));
-    max-width: 520px;
+    max-width: var(--max-width);
   }
 
   &::part(body) {
     background-color: var(--cx-color-neutral-100);
-    border-bottom: var(--cx-panel-border-width) solid var(--cx-panel-border-color);
     padding: 0;
+    /*  Fix for Firefox/Safari: Container with both overflow and z-index will cut off fixed-positioning child
+    (in this case, cx-tooltip's popup) */
+    z-index: unset;
   }
 
   &::part(footer) {
@@ -65,6 +72,12 @@ export const Dialog = styled('cx-dialog')<CxDialogProps>`
 
   cx-line-clamp {
     word-break: break-all;
+  }
+
+  cx-select::part(combobox),
+  cx-option::part(base),
+  cx-input::part(base) {
+    font-size: var(--cx-font-size-small);
   }
 
   .asset-name {
@@ -75,9 +88,12 @@ export const Dialog = styled('cx-dialog')<CxDialogProps>`
 export const Drawer = styled('cx-drawer')<CxDrawerProps>`
   --size: 100%;
 
+  &::part(header) {
+    align-items: center;
+  }
+
   &::part(body) {
     background-color: var(--cx-color-neutral-100);
-    border-bottom: var(--cx-panel-border-width) solid var(--cx-panel-border-color);
     padding: 0;
   }
 
@@ -129,6 +145,12 @@ export const Drawer = styled('cx-drawer')<CxDrawerProps>`
 
   cx-line-clamp {
     word-break: break-all;
+  }
+
+  cx-select::part(combobox),
+  cx-option::part(base),
+  cx-input::part(base) {
+    font-size: var(--cx-font-size-small);
   }
 
   .asset-name {

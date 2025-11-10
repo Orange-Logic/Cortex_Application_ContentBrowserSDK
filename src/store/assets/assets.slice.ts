@@ -2,7 +2,10 @@ import { AssetsState, TrackingParameter, Transformation } from '@/types/assets';
 import { Asset, GetAssetLinkResponse } from '@/types/search';
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 
-import { getAssetLinks } from './assets.service';
+import { RootState } from '@/store';
+import { store } from '../';
+import { applyHeadersSelector } from '../auth/auth.slice';
+import { favoriteAsset, getAssetLinks, unfavoriteAsset } from './assets.service';
 
 export const SETTINGS_DEFAULT_PROXY = 'Always show asset format selector';
 
@@ -19,6 +22,14 @@ export const assetsSlice = createSlice({
   name: ASSETS_FEATURE_KEY,
   initialState,
   reducers: {
+    setSelectedAssetId: (state, action) => {
+      const { payload } = action;
+      if (payload) {
+        state.selectedAssetId = payload;
+      } else {
+        state.selectedAssetId = undefined;
+      }
+    },
     resetImportStatus: (state) => {
       state.errorMessage = undefined;
     },
@@ -40,7 +51,8 @@ export const assetsSlice = createSlice({
 });
 // #endregion
 
-export const { resetImportStatus } = assetsSlice.actions;
+export default assetsSlice.reducer;
+export const { setSelectedAssetId, resetImportStatus } = assetsSlice.actions;
 
 // #region Action
 export const importAssets = createAsyncThunk<
@@ -75,6 +87,16 @@ GetAssetLinkResponse[],
       useSession,
     },
   ) => {
+    let token = undefined;
+    const useHeaders = applyHeadersSelector(store.getState());
+
+    if (useHeaders && window.OrangeDAMContentBrowser?._onRequestToken) {
+      const result = await window.OrangeDAMContentBrowser?._onRequestToken();
+    
+      if (result) {
+        token = result.token;
+      }
+    }
 
     const images = await getAssetLinks({
       assets: [selectedAsset],
@@ -87,6 +109,7 @@ GetAssetLinkResponse[],
       maxHeight,
       extension,
       useSession,
+      token,
     });
 
     if (useRepresentative) {
@@ -99,6 +122,68 @@ GetAssetLinkResponse[],
     return images;
   },
 );
+
+export const addAssetToFavorite = createAsyncThunk<
+boolean,
+{
+  recordId: string;
+}
+>(
+  `${ASSETS_FEATURE_KEY}/favoriteAsset`,
+  async (
+    {
+      recordId,
+    },
+  ) => {
+    let token = undefined;
+    const useHeaders = applyHeadersSelector(store.getState());
+
+    if (useHeaders && window.OrangeDAMContentBrowser?._onRequestToken) {
+      const result = await window.OrangeDAMContentBrowser?._onRequestToken();
+    
+      if (result) {
+        token = result.token;
+      }
+    }
+
+    return await favoriteAsset({
+      recordId,
+      token,
+    });
+  },
+);
+
+export const removeAssetFromFavorite = createAsyncThunk<
+boolean,
+{
+  recordId: string;
+}
+>(
+  `${ASSETS_FEATURE_KEY}/unfavoriteAsset`,
+  async (
+    {
+      recordId,
+    },
+  ) => {
+    let token = undefined;
+    const useHeaders = applyHeadersSelector(store.getState());
+
+    if (useHeaders && window.OrangeDAMContentBrowser?._onRequestToken) {
+      const result = await window.OrangeDAMContentBrowser?._onRequestToken();
+    
+      if (result) {
+        token = result.token;
+      }
+    }
+
+    return await unfavoriteAsset({
+      recordId,
+      token,
+    });
+  },
+);
 // #endregion
 
-export default assetsSlice.reducer;
+
+export const selectedAssetIdSelector = (rootState: RootState) =>
+  rootState[ASSETS_FEATURE_KEY].selectedAssetId;

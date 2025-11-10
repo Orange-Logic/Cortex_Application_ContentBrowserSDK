@@ -63,6 +63,8 @@ const CropPreviewer = forwardRef<CropPreviewerHandle, Props>(({
   const [zoom, setZoom] = useState(1);
   const [resizedImage, setResizedImage] = useState<string>(image?.url ?? '');
   const containerRef = useRef<HTMLDivElement>(null);
+  const [containerDimensions, setContainerDimensions] = useState({ width: 0, height: 0 });
+
   useEffect(() => {
     const { url, originalUrl, extension } = image;
     const { width, height } = resizer;
@@ -75,7 +77,7 @@ const CropPreviewer = forwardRef<CropPreviewerHandle, Props>(({
           newHeight,
           containerRef.current?.clientWidth ?? window.innerWidth, FORMAT_DIALOG_PREVIEW_SIZE,
         );
-        setResizedImage(extension === 'gif' ? originalUrl : imageUrl);
+        setResizedImage(extension === '.gif' ? originalUrl : imageUrl);
         onLoadingChange(false);
       } else {
         setResizedImage(url);
@@ -84,6 +86,24 @@ const CropPreviewer = forwardRef<CropPreviewerHandle, Props>(({
     const debounceResize = _debounce(resize, 300, { leading: true });
     debounceResize();
   }, [image, loadable, onLoadingChange, resizer, selectedProxy]);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const { width, height } = entry.contentRect;
+        setContainerDimensions({ width, height });
+      }
+    });
+
+    resizeObserver.observe(container);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, []);
 
   const applyResize = useCallback(async () => {
     return resizedImage;
@@ -172,10 +192,11 @@ const CropPreviewer = forwardRef<CropPreviewerHandle, Props>(({
     }
     const imgAspect = resizer.width / resizer.height;
 
-    const containerAspect = container.clientHeight ?  (container.clientWidth) / (container.clientHeight) : 0;
+    const clientHeight = containerDimensions.height || FORMAT_DIALOG_PREVIEW_SIZE;
+    const containerAspect = containerDimensions.width / clientHeight;
 
     return imgAspect > containerAspect ? 'horizontal-cover' : 'vertical-cover';
-  }, [isLoading, resizer]);
+  }, [isLoading, resizer, containerDimensions]);
 
   return (
     <Container

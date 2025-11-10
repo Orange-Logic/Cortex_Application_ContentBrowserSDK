@@ -13,6 +13,8 @@ export type PluginInfo = {
 };
 
 export type GlobalConfigContextType = {
+  allowedExtensions?: string[];
+  allowedFolders?: string[];
   availableDocTypes?: string[];
   availableRepresentativeSubtypes?: string[];
   ctaText: string;
@@ -21,13 +23,20 @@ export type GlobalConfigContextType = {
   persistMode: boolean;
   pluginInfo: PluginInfo;
   isContentBrowserPopedup: boolean;
-  searchInDrive: boolean;
   showCollections?: boolean;
+  showFavoriteFolder?: boolean;
+  showVersions?: boolean;
   useSession?: string;
+  allowLogout?: boolean;
   allowTracking: boolean;
+  allowProxy: boolean;
+  allowFavorites: boolean;
+  allowPin: boolean;
+  defaultGridView: string;
 };
 
 export const GlobalConfigContext = createContext<GlobalConfigContextType>({
+  allowedExtensions: [],
   availableDocTypes: [],
   availableRepresentativeSubtypes: [],
   ctaText: 'Insert',
@@ -40,7 +49,13 @@ export const GlobalConfigContext = createContext<GlobalConfigContextType>({
   },
   pluginInfo: {},
   isContentBrowserPopedup: false,
-  searchInDrive: false,
   showCollections: false,
+  showFavoriteFolder: false,
+  showVersions: false,
+  allowLogout: true,
   allowTracking: true,
+  allowProxy: false,
+  allowFavorites: false,
+  allowPin: false,
+  defaultGridView: '',
 });

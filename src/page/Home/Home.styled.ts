@@ -4,7 +4,6 @@ export const Container = styled.div`
   background-color: var(--cx-color-neutral-0);
   box-sizing: border-box;
   display: flex;
-  flex-direction: column;
   width: 100%;
   height: 100%;
   overflow: hidden;
@@ -43,4 +42,11 @@ export const Container = styled.div`
       font-size: var(--cx-font-size-3x-large);
     }
   }
+`;
+
+export const Content = styled.div`
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 `;

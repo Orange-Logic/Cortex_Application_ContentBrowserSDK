@@ -6,6 +6,8 @@ export type Folder = {
   parents: Folder[];
   fullPath: string;
   hasChildren: boolean;
+  icon?: string;
+  isShared?: boolean;
 };
 
 export type Asset = {
@@ -23,6 +25,7 @@ export type Asset = {
   tags: string;
   width?: string;
   allowATSLink?: boolean;
+  recordId: string;
 };
 
 export type ContentItem = {
@@ -32,24 +35,53 @@ export type ContentItem = {
   recordID: string;
 };
 
+export type Facet = {
+  facetDetails: {
+    displayName: string;
+    facetFieldName: string;
+  };
+  values: {
+    count: number;
+    displayValue: string;
+    value: string;
+  }[];
+};
+
 export type GetContentResponse = {
   contentItems?: ContentItem[];
-  facets: Record<string, Record<string, number>>;
+  facets: Facet[];
   totalCount: number;
 };
 
 export type GetContentRequest = {
-  extensions: string[];
-  folderID: string;
-  isSeeThrough: boolean;
-  mediaTypes: string[];
-  start: number;
-  pageSize: number;
-  searchText: string;
+  folderID?: string;
+  isSeeThrough?: boolean;
+  limitedToDocTypes?: string[];
+  pageSize?: number;
+  searchText?: string;
+  selectedFacets?: Record<string, string[]>;
   sortOrder?: string;
-  statuses: string[];
-  visibilityClasses: string[];
+  start?: number;
   useSession?: string;
+};
+
+export type AssetLinkInfo = {
+  cdnName: string | null;
+  extension: string | null;
+  isCustomFormat: boolean | null;
+  permanentLink: string | null;
+  proxyLabel: string | null;
+  proxyName: string | null;
+  width: number | null;
+  height: number | null;
+};
+
+export type AssetTransformationInfo = {
+  extension: string | null;
+  isCustomFormat: boolean | null;
+  height: number | null;
+  width: number | null;
+  permanentLink: string | null;
 };
 
 export type GetAssetLinkResponse = {
@@ -60,6 +92,8 @@ export type GetAssetLinkResponse = {
   metadata?: {
     [key: string]: string;
   };
+  assetLinkInfo?: AssetLinkInfo | AssetTransformationInfo;
+  assetTransformationSource?: AssetLinkInfo;
 };
 
 export type GetTransformedAssetLinkResponse = {
@@ -72,6 +106,22 @@ export type GetTransformedAssetLinkResponse = {
   maxHeight: number,
   maxWidth: number,
   recordID: string,
+};
+
+export type GetFavoritesResponse = {
+  favoriteRecordIds: string[] | null;
+};
+
+export type GetFoldersRequest = {
+  allowedFolders?: string[];
+  folder?: Folder;
+  searchText: string;
+  useSession?: string;
+  start?: number;
+  pageSize?: number;
+  self?: boolean;
+  includeDirectChild?: boolean;
+  damViewSeeThru?: boolean;
 };
 
 export enum MediaType {

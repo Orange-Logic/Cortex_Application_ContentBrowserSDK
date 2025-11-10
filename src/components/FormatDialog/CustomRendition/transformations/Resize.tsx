@@ -2,7 +2,7 @@ import _debounce from 'lodash-es/debounce';
 import { FC, FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 
 import { Unit } from '@/types/assets';
-import { CxChangeEvent, CxInput, CxSelect } from '@/web-component';
+import type { CxChangeEvent, CxInput, CxSelect } from '@orangelogic-private/design-system';
 import { INPUT_DEBOUNCE_DELAY } from '../CustomRendition.constants';
 
 type Props = {
@@ -118,7 +118,7 @@ const Resize: FC<Props> = ({ open, width, height, lastAppliedSetting, maxWidth, 
         <div className="details__summary__icon">
           <cx-icon name="aspect_ratio"></cx-icon>
         </div>
-        <cx-typography variant="body2">Resize</cx-typography>
+        <cx-typography variant="body3">Resize</cx-typography>
       </cx-space>
       <cx-space direction="vertical" spacing="small">
         <cx-space spacing="small">

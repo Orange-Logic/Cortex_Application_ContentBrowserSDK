@@ -1,6 +1,9 @@
 import styled from 'styled-components';
 
 export const Container = styled.div`
+  container-type: inline-size;
+  container-name: custom-rendition;
+
   .details__summary__icon {
     width: var(--cx-font-size-3x-large);
     height: var(--cx-font-size-3x-large);
@@ -47,6 +50,21 @@ export const Container = styled.div`
 
     cx-select{
       flex: 1;
+      width: 100%;
+    }
+  }
+
+  cx-details {
+    --details-background-color: var(--cx-color-neutral-0);
+  }
+
+  @container custom-rendition (width < 480px) {
+    cx-details {
+      --header-padding: var(--cx-spacing-x-small);
+      --content-padding: 0 var(--cx-spacing-x-small) var(--cx-spacing-x-small) var(--cx-spacing-x-small);
+    }
+
+    .resize__unit-select {
       width: 100%;
     }
   }

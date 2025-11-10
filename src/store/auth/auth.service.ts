@@ -4,11 +4,11 @@ import { cortexFetch } from '@/utils/api';
 export const AUTH_MAX_RETRIES = 10;
 export const CANCEL_AUTH_MESSAGE = 'Authentication cancelled';
 
-export let authAbortController = new AbortController();
+export const authAbortController = { controller: new AbortController() };
 
 export const abortAuthService = () => {
-  authAbortController.abort(CANCEL_AUTH_MESSAGE);
-  authAbortController = new AbortController();
+  authAbortController.controller.abort(CANCEL_AUTH_MESSAGE);
+  authAbortController.controller = new AbortController();
 };
 
 export const requestAuthorizeService = async (
@@ -30,14 +30,14 @@ export const requestAuthorizeService = async (
 export const getAccessKeyService = async (
   requestID: string,
 ): Promise<GetAccessKeyRes> => {
-  authAbortController = new AbortController();
+  authAbortController.controller = new AbortController();
   let count = 0;
   let data: GetAccessKeyRes;
   while (count < AUTH_MAX_RETRIES) {
     const response = await cortexFetch(
       'webapi/extensibility/integrations/gab/authorization/getaccesskey_4bv_v1',
       {
-        signal: authAbortController.signal,
+        signal: authAbortController.controller.signal,
         method: 'POST',
         body: JSON.stringify({ RequestID: requestID }),
         headers: {

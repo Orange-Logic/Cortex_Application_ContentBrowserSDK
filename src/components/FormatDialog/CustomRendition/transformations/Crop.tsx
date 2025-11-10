@@ -3,7 +3,7 @@ import { FC, FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 
 import { Unit } from '@/types/assets';
 import { calculateAspectRatioFit } from '@/utils/image';
-import { CxChangeEvent, CxInput, CxSelect } from '@/web-component';
+import type { CxChangeEvent, CxInput, CxSelect } from '@orangelogic-private/design-system';
 
 import { cropModes, INPUT_DEBOUNCE_DELAY } from '../CustomRendition.constants';
 type Props = {
@@ -174,7 +174,7 @@ const Crop: FC<Props> = ({
         <div className="details__summary__icon">
           <cx-icon name="crop"></cx-icon>
         </div>
-        <cx-typography variant="body2">Crop</cx-typography>
+        <cx-typography variant="body3">Crop</cx-typography>
       </cx-space>
       <cx-space direction="vertical" spacing="small">
         <cx-select

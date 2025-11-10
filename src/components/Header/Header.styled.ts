@@ -1,14 +1,16 @@
 import styled from 'styled-components';
 
-import { CxSpaceProps } from '@/react-web-component';
+import type { CxSpaceProps } from '@orangelogic-private/design-system/react-types';
 
 export const Container = styled('cx-space')<CxSpaceProps & { bordered?: boolean }>`
   border-bottom: ${({ bordered }) => (bordered ? '1px solid var(--cx-color-neutral-300)' : 'none')};
   padding: var(--cx-spacing-medium);
 
-  cx-avatar {
+  .header__user-avatar {
     --size: var(--cx-font-size-3x-large);
+  }
 
+  .header__user-avatar--dropdown-trigger {
     cursor: pointer;
   }
 

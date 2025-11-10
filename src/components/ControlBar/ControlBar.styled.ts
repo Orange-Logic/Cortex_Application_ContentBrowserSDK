@@ -7,13 +7,17 @@ export const Container = styled.div`
   gap: var(--cx-spacing-small);
   width: 100%;
 
-  --menu-item-width: 278px;
-  --details-width: 354px;
+  --menu-item-width: min(278px, 100%);
+  --details-width: min(354px, 100%);
 
   cx-input {
     min-width: 160px;
     max-width: 300px;
     flex: 1;
+  }
+
+  cx-menu {
+    width: max-content;
   }
 
   cx-menu-item.selected::part(label),
@@ -26,7 +30,6 @@ export const Container = styled.div`
   cx-menu-item::part(base) {
     width: var(--menu-item-width);
     max-width: 100%;
-    padding: var(--cx-spacing-2x-small) var(--cx-spacing-small);
   }
 
   cx-menu-item::part(checked-icon) {
@@ -36,6 +39,11 @@ export const Container = styled.div`
   .filter-details {
     width: var(--details-width);
     max-width: 100%;
+
+    &::part(base) {
+      border: none;
+      border-bottom: solid 1px var(--cx-color-neutral-200);
+    }
 
     cx-space {
       flex-wrap: wrap;

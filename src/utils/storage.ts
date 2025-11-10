@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-use-before-define */
 
-import { ASSETS_FEATURE_STORAGE_KEY_IMPORT_PROXY } from '@/store/assets/assets.slice';
 import { StorageType } from '@/types/storage';
 
 const DATA_EXPIRE_TIME_POSTFIX = '_valid_until';
@@ -16,6 +15,51 @@ const isLocalStorageAvailable = () => {
     localStorage.setItem(mod, mod);
     localStorage.removeItem(mod);
     return true;
+  } catch (e) {
+    return false;
+  }
+};
+
+/**
+ * Check the session storage availability
+ * @returns True if available, false if not
+ */
+const isSessionStorageAvailable = () => {
+  const mod = 'test-storage';
+  try {
+    sessionStorage.setItem(mod, mod);
+    sessionStorage.removeItem(mod);
+    return true;
+  } catch (e) {
+    return false;
+  }
+};
+
+/**
+ * Check the cookies availability
+ * @returns True if available, false if not
+ */
+const isCookiesAvailable = () => {
+  try {
+    document.cookie = 'test-cookie=test';
+    const available = document.cookie.indexOf('test-cookie=test') !== -1;
+    document.cookie = 'test-cookie=; expires=Thu, 01 Jan 1970 00:00:01 GMT; path=/';
+    return available;
+  } catch (e) {
+    return false;
+  }
+};
+
+/**
+ * Check the custom storage availability
+ * @returns True if available, false if not
+ */
+const isCustomStorageAvailable = () => {
+  try {
+    return !!window.OrangeDAMContentBrowser._customStorage &&
+              typeof window.OrangeDAMContentBrowser._customStorage.get === 'function' && 
+              typeof window.OrangeDAMContentBrowser._customStorage.set === 'function' &&
+              typeof window.OrangeDAMContentBrowser._customStorage.delete === 'function';
   } catch (e) {
     return false;
   }
@@ -67,28 +111,62 @@ export const getData = async (
   storageType?: StorageType,
 ): Promise<string | null> => {
   // When type is not defined, we will try to get the data from every possible options
-  if (storageType == null) {
-    return (
-      (await getData(key, 'LocalStorage')) ??
-      (await getData(key, 'SessionStorage')) ??
-      (await getData(key, 'Cookies'))
-    );
+  if (!storageType) {
+    let hasAvailableStorage = false;
+    
+    // Try CustomStorage first if available
+    if (isCustomStorageAvailable()) {
+      hasAvailableStorage = true;
+      const result = await getData(key, 'CustomStorage');
+      if (result !== null) return result;
+    }
+
+    // Try LocalStorage if available
+    if (isLocalStorageAvailable()) {
+      hasAvailableStorage = true;
+      const result = await getData(key, 'LocalStorage');
+      if (result !== null) return result;
+    }
+
+    // Try SessionStorage if available
+    if (isSessionStorageAvailable()) {
+      hasAvailableStorage = true;
+      const result = await getData(key, 'SessionStorage');
+      if (result !== null) return result;
+    }
+
+    // Try Cookies if available
+    if (isCookiesAvailable()) {
+      hasAvailableStorage = true;
+      const result = await getData(key, 'Cookies');
+      if (result !== null) return result;
+    }
+    
+    if (!hasAvailableStorage) {
+      throw new Error('No storage is available');
+    }
+
+    return null;
   }
+
   switch (storageType) {
+    case 'CustomStorage':
+      return (!isCustomStorageAvailable() || (await isValueExpired(key, 'CustomStorage')))
+        ? null
+        : (window.OrangeDAMContentBrowser._customStorage?.get(key) ?? null);
     case 'SessionStorage':
-      return (await isValueExpired(key, 'SessionStorage'))
+      return (!isSessionStorageAvailable() || await isValueExpired(key, 'SessionStorage'))
         ? null
         : sessionStorage.getItem(key);
-    case 'Cookies': // If local storage is not available or user force to save to cookie
-      return getCookie(key);
+    case 'Cookies':
+      return !isCookiesAvailable()
+        ? null
+        : getCookie(key);
     case 'LocalStorage':
-    default: // By default, we will always store data to session storage
-      if (isLocalStorageAvailable()) {
-        return (await isValueExpired(key, 'LocalStorage'))
-          ? null
-          : localStorage.getItem(key);
-      }
-      return null;
+    default:
+      return (!isLocalStorageAvailable() || await isValueExpired(key, 'LocalStorage'))
+        ? null
+        : localStorage.getItem(key);
   }
 };
 
@@ -131,31 +209,60 @@ const isValueExpired = async (key: string, type?: StorageType) => {
 export const storeData = (
   key: string,
   value: string,
-  storageType: StorageType = 'LocalStorage',
-  ttl = 0,
-) => {
+  storageType?: StorageType,
+  ttl: number = 0,
+): void => {
   const dataExpireTimeKey = key + DATA_EXPIRE_TIME_POSTFIX;
   const expireDate = new Date();
   expireDate.setTime(expireDate.getTime() + (ttl || DEFAULT_EXPIRED_DURATION));
   const expireDateStr = expireDate.toUTCString();
 
+  if (!storageType) {
+    if (isCustomStorageAvailable()) {
+      storageType = 'CustomStorage';
+    } else if (isLocalStorageAvailable()) {
+      storageType = 'LocalStorage';
+    } else if (isSessionStorageAvailable()) {
+      storageType = 'SessionStorage';
+    } else if (isCookiesAvailable()) {
+      storageType = 'Cookies';
+    } else {
+      throw new Error('No storage is available');
+    }
+  }
+
   switch (storageType) {
+    case 'CustomStorage':
+      if (!isCustomStorageAvailable()) {
+        throw new Error('CustomStorage is not available');
+      }
+      const set = window.OrangeDAMContentBrowser._customStorage?.set;
+      if (ttl) {
+        set!(dataExpireTimeKey, expireDateStr);
+      }
+      return set!(key, value);
     case 'SessionStorage':
+      if (!isSessionStorageAvailable()) {
+        throw new Error('SessionStorage is not available');
+      }
       if (ttl) {
         sessionStorage.setItem(dataExpireTimeKey, expireDateStr);
       }
       return sessionStorage.setItem(key, value);
-    case 'Cookies': // If local storage is not available or user force to save to cookie
-      return createCookie(key, value, !ttl ? undefined : expireDateStr);
-    case 'LocalStorage': // By default, we will always store data to local storage
-    default:
-      if (isLocalStorageAvailable()) {
-        if (ttl) {
-          localStorage.setItem(dataExpireTimeKey, expireDateStr);
-        }
-        return localStorage.setItem(key, value);
+    case 'Cookies':
+      if (!isCookiesAvailable()) {
+        throw new Error('Cookies are not available');
       }
-      return null;
+      return createCookie(key, value, !ttl ? undefined : expireDateStr);
+    case 'LocalStorage':
+    default:
+      if (!isLocalStorageAvailable()) {
+        throw new Error('LocalStorage is not available');
+      }
+      if (ttl) {
+        localStorage.setItem(dataExpireTimeKey, expireDateStr);
+      }
+      return localStorage.setItem(key, value);
   }
 };
 
@@ -164,21 +271,33 @@ export const storeData = (
  * @param {string} key
  */
 export const deleteData = (key: string) => {
+  let hasAvailableStorage = false;
+  
   // Remove from session storage
-  sessionStorage.removeItem(key);
+  if (isSessionStorageAvailable()) {
+    sessionStorage.removeItem(key);
+    hasAvailableStorage = true;
+  }
+  
   // Remove from local storage
   if (isLocalStorageAvailable()) {
     localStorage.removeItem(key);
+    hasAvailableStorage = true;
   }
+  
   // Remove from cookies
-  document.cookie = key + '=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
-};
-
-/**
- * Get the storage key of import proxy for a doc type
- * @param {string}
- * @returns {string} The storage key
- */
-export const GetDocTypeProxyKey = (docType: string) => {
-  return ASSETS_FEATURE_STORAGE_KEY_IMPORT_PROXY + '_' + docType;
+  if (isCookiesAvailable()) {
+    document.cookie = key + '=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+    hasAvailableStorage = true;
+  }
+  
+  // Remove from custom storage
+  if (isCustomStorageAvailable()) {
+    window.OrangeDAMContentBrowser._customStorage?.delete(key);
+    hasAvailableStorage = true;
+  }
+  
+  if (!hasAvailableStorage) {
+    throw new Error('No storage is available');
+  }
 };

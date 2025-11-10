@@ -4,10 +4,10 @@ import {
 } from 'react';
 
 import { TrackingParameter, Transformation, TransformationAction, Unit } from '@/types/assets';
-import { Asset, MediaType, Proxy } from '@/types/search';
+import { Asset, AssetLinkInfo, AssetTransformationInfo, MediaType, Proxy } from '@/types/search';
 import { convertPixelsToAspectRatio } from '@/utils/number';
 import { rotateBox } from '@/utils/rotate';
-import { CxDialog, CxDrawer, CxSelectEvent } from '@/web-component';
+import type { CxDialog, CxDrawer, CxMenuItem, CxRequestCloseEvent, CxSelectEvent } from '@orangelogic-private/design-system';
 
 import CropPreviewer, { CropPreviewerHandle } from './CropPreviewer';
 import CustomRendition from './CustomRendition';
@@ -15,37 +15,49 @@ import { Dialog, Drawer } from './FormatDialog.styled';
 import Previewer from './Previewer';
 import ProxyMenu from './ProxyMenu';
 import TrackingParameters from './TrackingParameters';
+import VersionHistory from './VersionHistory';
+import { popoverSupported } from '@/utils/browser';
 
 type Props = {
-  allowTracking: boolean;
-  allowCustomFormat: boolean;
-  autoExtension: string;
-  availableExtensions?: Record<MediaType, { displayName: string; value: string }[]>;
-  availableProxies?: Proxy[];
+  allowCustomFormat: boolean; // whether to allow custom format
+  allowedExtensions?: string[]; // list of allowed extensions from runtime properties. e.g. ['jpg', 'png', 'mp4']
+  allowFavorites: boolean; // whether to allow favorites
+  allowProxy: boolean; // whether to allow proxies
+  allowTracking: boolean; // whether to allow tracking parameter injection to the retrieved url
+  appendAutoExtension?: boolean; // whether to append auto extension, due to the allowed extension list excluding .auto
+  autoExtension: string; // the actual extension of auto extension, retrieved from param, usually is '.auto'
+  availableExtensions?: Record<MediaType, { displayName: string; value: string }[]>; // filtered list of available extension for selection in the custom format dialog
+  availableProxies?: Proxy[]; // filtered list of available proxy, attuned by the allowed extension list
   ctaText?: string;
   extensions: string[];
+  isFavorite?: boolean;
   maxHeight?: number;
   open: boolean;
   previewUrl?: string;
-  searchInDrive: boolean;
   selectedAsset: Asset | null;
+  showVersions?: boolean;
   supportedRepresentativeSubtypes?: string[];
   variant?: 'dialog' | 'drawer';
+  boundary?: HTMLElement | null;
   onClose: () => void;
+  onFavorite: () => Promise<boolean>;
   onProxyConfirm: (value: {
     extension: string;
-    permanentLink?: string;
     parameters?: TrackingParameter[];
+    permanentLink?: string;
     useRepresentative?: boolean;
     value: string;
-  }) => void;
+    selectedProxyMetadata?: AssetLinkInfo;
+  }) => Promise<void>;
   onFormatConfirm: (value: {
-    value: Transformation[];
+    extension?: string;
     parameters?: TrackingParameter[];
     proxiesPreference?: string;
-    extension?: string;
-  }) => void;
-  onOpenInDriveConfirm: () => void;
+    value: Transformation[];
+    sourceProxyMetadata?: AssetLinkInfo;
+    transformedAssetMetadata?: AssetTransformationInfo;
+  }) => Promise<void>;
+  onUnFavorite: () => Promise<boolean>;
 };
 
 type State = {
@@ -55,6 +67,7 @@ type State = {
     height: number;
   },
   selectedProxy: string;
+  defaultSelectedProxy: string;
   selectedFormat: {
     url: string;
     originalUrl: string;
@@ -65,6 +78,16 @@ type State = {
     extension: string;
     rotation: number;
   };
+  defaultSelectedFormat: {
+    url: string;
+    originalUrl: string;
+    width: number;
+    height: number;
+    x: number;
+    y: number;
+    extension: string;
+    rotation: number;
+  },
   resizeSize: {
     width: number;
     height: number;
@@ -89,11 +112,17 @@ type State = {
     y: number;
     unit: Unit;
   }>;
+  isLoadingConfirm: boolean;
+  isLoadingFavorites: boolean;
   rotation: number;
+  quality: number;
+  keepMetadata: boolean;
   transformations: Transformation[];
+  confirmedTransformations: Transformation[];
   enabledTracking: boolean;
   trackingParameters: TrackingParameter[];
   showCustomRendition: boolean;
+  showVersionHistory: boolean;
   useCustomRendition: boolean;
   useRepresentative: boolean;
   activeSetting: string;
@@ -101,22 +130,27 @@ type State = {
 };
 
 type Action =
-  | { type: 'CANCEL_USE_CUSTOM_RENDITION'; payload: { width: number; height: number, url: string, originalUrl: string, extension: string } }
+  | { type: 'CANCEL_USE_CUSTOM_RENDITION'; payload: { width: number; height: number, url: string, originalUrl: string, extension: string, useCustomRendition: boolean, selectedProxy: string } }
   | { type: 'CONFIRM_USE_CUSTOM_RENDITION' }
   | { type: 'RESET_DATA' }
   | { type: 'SET_ACTIVE_SETTING'; payload: string }
   | { type: 'SET_CROP_SIZE'; payload: Partial<State['cropSize']> }
   | { type: 'SET_DEFAULT_SIZE'; payload: Partial<State['defaultSize']> }
   | { type: 'SET_ENABLED_TRACKING'; payload: boolean }
+  | { type: 'SET_KEEP_METADATA'; payload: boolean }
   | { type: 'SET_LAST_RESIZE_SIZE'; payload: Partial<State['lastResizeSize']> }
   | { type: 'SET_LAST_CROP_SIZE'; payload: Partial<State['lastCropSize']> }
   | { type: 'SET_LOADING'; payload: boolean }
+  | { type: 'SET_LOADING_CONFIRM'; payload: boolean }
+  | { type: 'SET_LOADING_FAVORITES'; payload: boolean }
   | { type: 'SET_PREVIEW_LOADABLE'; payload: boolean }
+  | { type: 'SET_QUALITY'; payload: number }
   | { type: 'SET_RESIZE_SIZE'; payload: Partial<State['resizeSize']> }
   | { type: 'SET_ROTATION'; payload: number }
   | { type: 'SET_SELECTED_FORMAT'; payload: Partial<State['selectedFormat']> }
   | { type: 'SET_SELECTED_PROXY'; payload: string | { proxy: string; useCustomRendition?: boolean } }
   | { type: 'SET_SHOW_CUSTOM_RENDITION'; payload: boolean }
+  | { type: 'SET_SHOW_VERSION_HISTORY'; payload: boolean }
   | { type: 'SET_TRACKING_PARAMETERS'; payload: TrackingParameter[] }
   | { type: 'SET_TRANSFORMATIONS'; payload: Transformation }
   | { type: 'SET_USE_REPRESENTATIVE'; payload: boolean };
@@ -128,7 +162,18 @@ const initialState: State = {
     height: 0,
   },
   selectedProxy: '',
+  defaultSelectedProxy: '',
   selectedFormat: {
+    url: '',
+    originalUrl: '',
+    width: 0,
+    height: 0,
+    x: 0,
+    y: 0,
+    extension: '',
+    rotation: 0,
+  },
+  defaultSelectedFormat: {
     url: '',
     originalUrl: '',
     width: 0,
@@ -184,8 +229,13 @@ const initialState: State = {
       unit: Unit.Pixel,
     },
   },
+  isLoadingConfirm: false,
+  isLoadingFavorites: false,
   rotation: 0,
+  quality: 100,
+  keepMetadata: false,
   transformations: [],
+  confirmedTransformations: [],
   enabledTracking: false,
   trackingParameters: [{
     key: 'UTM_source',
@@ -198,6 +248,7 @@ const initialState: State = {
     value: '',
   }],
   showCustomRendition: false,
+  showVersionHistory: false,
   useCustomRendition: false,
   useRepresentative: false,
   activeSetting: 'format',
@@ -227,14 +278,15 @@ const reducer = (state: State, action: Action): State => {
           y: 0,
         },
         rotation: 0,
-        transformations: [],
+        transformations: state.useCustomRendition ? state.confirmedTransformations : [],
         showCustomRendition: false,
-        useCustomRendition: false,
-        activeSetting: 'resize',
+        activeSetting: 'format',
+        selectedProxy: action.payload.selectedProxy,
       };
     case 'CONFIRM_USE_CUSTOM_RENDITION':
       return {
         ...state,
+        confirmedTransformations: state.transformations,
         cropSize: {
           ...state.cropSize,
           width: state.selectedFormat.width,
@@ -246,9 +298,13 @@ const reducer = (state: State, action: Action): State => {
           height: state.selectedFormat.height,
         },
         rotation: 0,
-        activeSetting: 'resize',
+        activeSetting: 'format',
         showCustomRendition: false,
         useCustomRendition: true,
+        defaultSelectedFormat: {
+          ...state.selectedFormat,
+        },
+        defaultSelectedProxy: state.selectedProxy,
       };
     case 'SET_DEFAULT_SIZE':
       return {
@@ -278,6 +334,11 @@ const reducer = (state: State, action: Action): State => {
         ...state,
         enabledTracking: action.payload,
       };
+    case 'SET_KEEP_METADATA':
+      return {
+        ...state,
+        keepMetadata: action.payload,
+      };
     case 'SET_LAST_CROP_SIZE':
       return {
         ...state,
@@ -299,10 +360,25 @@ const reducer = (state: State, action: Action): State => {
         ...state,
         isLoading: action.payload,
       };
+    case 'SET_LOADING_CONFIRM':
+      return {
+        ...state,
+        isLoadingConfirm: action.payload,
+      };
+    case 'SET_LOADING_FAVORITES':
+      return {
+        ...state,
+        isLoadingFavorites: action.payload,
+      };
     case 'SET_PREVIEW_LOADABLE':
       return {
         ...state,
         previewLoadable: action.payload,
+      };
+    case 'SET_QUALITY':
+      return {
+        ...state,
+        quality: action.payload,
       };
     case 'SET_RESIZE_SIZE':
       return {
@@ -326,6 +402,14 @@ const reducer = (state: State, action: Action): State => {
         },
       };
     case 'SET_SELECTED_PROXY':
+      if (!action.payload) {
+        return {
+          ...state,
+          selectedProxy: '',
+          useCustomRendition: false,
+          useRepresentative: false,
+        };
+      }
 
       if (typeof action.payload === 'string') {
         return {
@@ -335,6 +419,7 @@ const reducer = (state: State, action: Action): State => {
           useRepresentative: false,
         };
       }
+
       return {
         ...state,
         selectedProxy: action.payload.proxy,
@@ -344,10 +429,12 @@ const reducer = (state: State, action: Action): State => {
     case 'SET_SHOW_CUSTOM_RENDITION':
       return {
         ...state,
-        // Remove selected proxy when custom rendition is selected
-        selectedProxy: '',
         showCustomRendition: action.payload,
-        useCustomRendition: false,
+      };
+    case 'SET_SHOW_VERSION_HISTORY':
+      return {
+        ...state,
+        showVersionHistory: action.payload,
       };
     case 'SET_TRACKING_PARAMETERS':
       return {
@@ -371,31 +458,53 @@ const reducer = (state: State, action: Action): State => {
 };
 
 const FormatDialog: FC<Props> = ({
-  allowTracking,
   allowCustomFormat,
+  allowFavorites,
+  allowProxy,
+  allowTracking,
+  allowedExtensions,
+  appendAutoExtension,
   autoExtension,
-  availableExtensions,
+  availableExtensions: extensionsForTransformation,
   availableProxies,
-  ctaText,
+  ctaText = 'Insert',
   extensions,
+  isFavorite,
   maxHeight,
   open,
   previewUrl,
-  searchInDrive,
   selectedAsset,
+  showVersions,
   supportedRepresentativeSubtypes,
   variant = 'dialog',
+  boundary,
   onClose,
+  onFavorite,
   onProxyConfirm,
   onFormatConfirm,
-  onOpenInDriveConfirm,
+  onUnFavorite,
 }) => {
   const [state, dispatch] = useReducer(reducer, initialState);
   const [isDefined, setIsDefined] = useState(false);
   const dialogRef = useRef<CxDialog>(null);
   const drawerRef = useRef<CxDrawer>(null);
   const previewerRef = useRef<CropPreviewerHandle>(null);
-
+  const filteredProxies = useMemo(() => {
+    if (!allowedExtensions) return availableProxies;
+    if (!availableProxies) return [];
+    return availableProxies.filter((proxy) => {
+      if (!proxy.extension && selectedAsset) {
+        const TRXExtensionAllowed = allowedExtensions?.some(
+          (ext) => ext === selectedAsset.extension.replace(/^\./, ''),
+        );
+        if (TRXExtensionAllowed) {
+          return true;
+        }
+        return false;
+      }
+      return true;
+    });
+  }, [availableProxies, allowedExtensions, selectedAsset]);
   const setDefaultValues = useCallback(() => {
     if (!selectedAsset) {
       return;
@@ -472,10 +581,21 @@ const FormatDialog: FC<Props> = ({
       },
     });
 
-    if (availableProxies) {
+    let extension = selectedAsset.extension;
+    if (appendAutoExtension) {
+      extension = autoExtension;
+    } else if (selectedAsset.docType) {
+      if (extensionsForTransformation?.[selectedAsset.docType]?.map(item => item.value).includes(selectedAsset.extension)) {
+        extension = selectedAsset.extension;
+      } else {
+        extension = extensionsForTransformation?.[selectedAsset.docType]?.[0]?.value ?? '';
+      }
+    }
+
+    if (filteredProxies && filteredProxies.length > 0) {
       dispatch({
         type: 'SET_SELECTED_PROXY',
-        payload: availableProxies[0]?.id,
+        payload: filteredProxies[0]?.id,
       });
 
       dispatch({
@@ -484,9 +604,9 @@ const FormatDialog: FC<Props> = ({
           ...initialState.selectedFormat,
           url: selectedAsset.imageUrl,
           originalUrl: selectedAsset.originalUrl,
-          extension: autoExtension ?? selectedAsset.extension,
-          width: availableProxies[0].formatWidth,
-          height: availableProxies[0].formatHeight,
+          extension,
+          width: filteredProxies[0].formatWidth || state.defaultSize.width,
+          height: filteredProxies[0].formatHeight || state.defaultSize.height,
         },
       });
     } else {
@@ -496,13 +616,13 @@ const FormatDialog: FC<Props> = ({
           ...initialState.selectedFormat,
           url: selectedAsset.imageUrl,
           originalUrl: selectedAsset.originalUrl,
-          extension: autoExtension ?? selectedAsset.extension,
+          extension,
           width: state.defaultSize.width,
           height: state.defaultSize.height,
         },
       });
     }
-  }, [autoExtension, availableProxies, selectedAsset, state.defaultSize.height, state.defaultSize.width]);
+  }, [autoExtension, filteredProxies, selectedAsset, state.defaultSize.height, state.defaultSize.width, appendAutoExtension, extensionsForTransformation]);
 
   useEffect(() => {
     if (selectedAsset?.width && selectedAsset?.height) {
@@ -516,7 +636,6 @@ const FormatDialog: FC<Props> = ({
     }
   }, [selectedAsset?.width, selectedAsset?.height]);
   
-
   useEffect(() => {
     Promise.all([
       customElements.whenDefined('cx-dialog'),
@@ -528,10 +647,19 @@ const FormatDialog: FC<Props> = ({
   }, []);
 
   useEffect(() => {
-    const onRequestClose = () => {
-      dispatch({ type: 'SET_PREVIEW_LOADABLE', payload: false });
-      dispatch({ type: 'RESET_DATA' });
-      onClose();
+    const onRequestClose = (e: CxRequestCloseEvent) => {
+      if (state.isLoadingFavorites) {
+        e.preventDefault();
+        return;
+      }
+      if (state.showVersionHistory) {
+        e.preventDefault();
+        dispatch({ type: 'SET_SHOW_VERSION_HISTORY', payload: false });
+      } else {
+        dispatch({ type: 'SET_PREVIEW_LOADABLE', payload: false });
+        dispatch({ type: 'RESET_DATA' });
+        onClose();
+      }
     };
 
     const dialog = dialogRef.current;
@@ -544,7 +672,15 @@ const FormatDialog: FC<Props> = ({
       dialog?.removeEventListener('cx-request-close', onRequestClose);
       drawer?.removeEventListener('cx-request-close', onRequestClose);
     };
-  }, [isDefined, onClose]);
+  }, [boundary, isDefined, onClose, state.isLoadingFavorites, state.showVersionHistory]);
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+
+    if (dialog && boundary) {
+      dialog.boundary = boundary;
+    }
+  });
 
   useEffect(() => {
     const onAfterShow = () => {
@@ -564,7 +700,7 @@ const FormatDialog: FC<Props> = ({
   }, [isDefined, state.showCustomRendition, variant]);
 
   useEffect(() => {
-    const onProxySelect = (e: CxSelectEvent) => {
+    const onProxySelect = (e: CxSelectEvent<CxMenuItem>) => {
       const value = e.detail.item.value;
 
       if (value === 'custom') {
@@ -591,8 +727,8 @@ const FormatDialog: FC<Props> = ({
         return;
       }
 
-      if (value && availableProxies) {
-        if (!availableProxies.map(item => item.id).includes(value)) {
+      if (value && filteredProxies) {
+        if (!filteredProxies.map(item => item.id).includes(value)) {
           return;
         }
         dispatch({ type: 'SET_SELECTED_PROXY', payload: value });
@@ -615,7 +751,7 @@ const FormatDialog: FC<Props> = ({
     state.useCustomRendition,
     state.useRepresentative,
     setDefaultValues,
-    availableProxies,
+    filteredProxies,
     selectedAsset?.extension,
   ]);
 
@@ -998,6 +1134,10 @@ const FormatDialog: FC<Props> = ({
     });
   }, [state.selectedFormat]);
 
+  const handleVersionHistory = useCallback(() => {
+    dispatch({ type: 'SET_SHOW_VERSION_HISTORY', payload: true });
+  }, []);
+  
   const onFormatChange = useCallback((format: Proxy) => {
     let width = format.formatWidth;
     let height = format.formatHeight;
@@ -1018,6 +1158,7 @@ const FormatDialog: FC<Props> = ({
     dispatch({
       type: 'SET_SELECTED_FORMAT',
       payload: {
+        url: selectedAsset?.imageUrl,
         width,
         height,
       },
@@ -1086,29 +1227,164 @@ const FormatDialog: FC<Props> = ({
     });
   }, [selectedAsset]);
 
+  const onQualityChange = useCallback((quality: number) => {
+    dispatch({
+      type: 'SET_QUALITY',
+      payload: quality,
+    });
+
+    dispatch({
+      type: 'SET_TRANSFORMATIONS',
+      payload: {
+        key: TransformationAction.Quality,
+        value: {
+          quality,
+        },
+      },
+    });
+  }, []);
+
+  const onKeepMetadataChange = useCallback((keepMetadata: boolean) => {
+    dispatch({
+      type: 'SET_KEEP_METADATA',
+      payload: keepMetadata,
+    });
+
+    dispatch({
+      type: 'SET_TRANSFORMATIONS',
+      payload: {
+        key: TransformationAction.KeepMetadata,
+        value: {
+          keepMetadata,
+        },
+      },
+    });
+  }, []);
+
   useEffect(() => {
-    if (!availableProxies || availableProxies.length === 0) {
+    if (!filteredProxies || filteredProxies.length === 0) {
       dispatch({ type: 'SET_SELECTED_PROXY', payload: '' });
       return;
     }
-    dispatch({ type: 'SET_SELECTED_PROXY', payload: availableProxies[0].id });
-  }, [availableProxies, selectedAsset]);
-
+    dispatch({ type: 'SET_SELECTED_PROXY', payload: filteredProxies[0].id });
+  }, [filteredProxies, selectedAsset]);
   const renderContent = useCallback(() => {
     const disabledInsert =
-      state.isLoading || (!state.selectedProxy && !state.useCustomRendition && !state.useRepresentative);
-    const supportedATS = allowCustomFormat && extensions.includes(
+    state.isLoading || (!state.selectedProxy && !state.useCustomRendition && !state.useRepresentative);
+    const extensionListForDDL = (extensionsForTransformation && selectedAsset?.docType
+      ? _uniqBy([
+        ...extensionsForTransformation[selectedAsset.docType],
+        { displayName: 'Automatic', value: autoExtension },
+      ], 'value')
+      : [{ displayName: 'Automatic', value: autoExtension }]).filter(item => appendAutoExtension || item.value !== autoExtension);
+    const supportedATS = allowCustomFormat && extensionListForDDL.length > 0 && extensions.includes(
       selectedAsset ? selectedAsset.extension : '',
     );
-    const supportedProxies = availableProxies && Object.values(availableProxies).flat().length > 0;
+    const supportedProxies = filteredProxies && Object.values(filteredProxies).flat().length > 0;
+    const showCustomDimension = Boolean(state.selectedFormat.width && state.selectedFormat.height && state.useCustomRendition);
+    const renderHeader = () => {
+      if (state.showVersionHistory) {
+        return (
+          <cx-space slot="label" justify-content="space-between" align-items="center">
+            <cx-space direction="vertical" spacing="2x-small" style={{ flex: '1' }}>
+              <cx-typography variant="h4">Version history</cx-typography>
+              <cx-typography variant="body3" className='asset-name'>
+                <cx-line-clamp lines={1}>{selectedAsset?.name}</cx-line-clamp>
+              </cx-typography>
+            </cx-space>
+          </cx-space>
+        );
+      }
 
-    const showCustomDimension = state.selectedFormat.width && state.selectedFormat.height && state.useCustomRendition;
+      return (
+        <>
+          <cx-space
+            slot="label"
+            justify-content="space-between"
+            align-items="center"
+          >
+            <cx-space
+              direction="vertical"
+              spacing="2x-small"
+              style={{ flex: '1' }}
+            >
+              <cx-typography variant="h4">{allowProxy ? 'Custom format' : 'Preview'}</cx-typography>
+              <cx-typography variant="body3" className="asset-name">
+                <cx-line-clamp lines={1}>{selectedAsset?.name}</cx-line-clamp>
+              </cx-typography>
+            </cx-space>
+          </cx-space>
+          {allowFavorites && (
+            <cx-tooltip
+              slot="header-actions"
+              content={isFavorite ? 'Unfavorite' : 'Favorite'}
+              placement="bottom"
+            >
+              {state.isLoadingFavorites ? (
+                <cx-space
+                  align-items="center"
+                  justify-content="center"
+                  style={{
+                    width: '32px',
+                    height: '32px',
+                  }}
+                >
+                  <cx-spinner></cx-spinner>
+                </cx-space>
+              ) : (
+                <cx-icon-button
+                  name={isFavorite ? 'star' : 'star_outline'}
+                  style={{
+                    color: isFavorite
+                      ? 'var(--cx-color-warning)'
+                      : 'var(--cx-color-text)',
+                  }}
+                  onClick={async () => {
+                    if (state.isLoadingFavorites) {
+                      return;
+                    }
+
+                    dispatch({
+                      type: 'SET_LOADING_FAVORITES',
+                      payload: true,
+                    });
+
+                    if (!isFavorite) {
+                      await onFavorite();
+                    } else {
+                      await onUnFavorite();
+                    }
+
+                    dispatch({
+                      type: 'SET_LOADING_FAVORITES',
+                      payload: false,
+                    });
+                  }}
+                ></cx-icon-button>
+              )}
+            </cx-tooltip>
+          )}
+          {showVersions && (
+            <cx-tooltip
+              slot="header-actions"
+              content="Version history"
+              placement="bottom"
+            >
+              <cx-icon-button
+                name="history"
+                onClick={handleVersionHistory}
+              ></cx-icon-button>
+            </cx-tooltip>
+          )}
+        </>
+      );
+    };
 
     const renderBody = () => {
       let previewer =  null;
       let rendition = null;
 
-      if (state.selectedFormat.width && state.selectedFormat.height && selectedAsset?.docType !== MediaType.Video) {
+      if (state.selectedFormat.width && state.selectedFormat.height && selectedAsset?.docType === MediaType.Image) {
         previewer = (
           <CropPreviewer
             ref={previewerRef}
@@ -1160,23 +1436,22 @@ const FormatDialog: FC<Props> = ({
         );
       }
 
-      if (searchInDrive) {
+      if (state.showVersionHistory) {
+        return <VersionHistory
+          assetId={selectedAsset?.id}
+        />;
+      }
+
+      if (!allowProxy) {
         return previewer;
       }
 
-      if (state.showCustomRendition && availableProxies) {
+      if (state.showCustomRendition && filteredProxies) {
         rendition = (
           <CustomRendition
             activeSetting={state.activeSetting}
-            extensions={
-              availableExtensions && selectedAsset?.docType
-                ? _uniqBy([
-                  ...availableExtensions[selectedAsset.docType],
-                  { displayName: 'Automatic', value: autoExtension },
-                ], 'value')
-                : [{ displayName: 'Automatic', value: autoExtension }]
-            }
-            availableProxies={availableProxies}
+            extensions={extensionListForDDL}
+            availableProxies={filteredProxies}
             imageSize={{
               width: state.selectedFormat.width
                 ? state.selectedFormat.width
@@ -1191,14 +1466,18 @@ const FormatDialog: FC<Props> = ({
               unit: state.resizeSize.unit,
             }}
             crop={state.cropSize}
+            keepMetadata={state.keepMetadata}
             lastAppliedCrop={state.lastCropSize}
             lastAppliedResize={state.lastResizeSize}
             proxy={state.selectedProxy}
+            quality={state.quality}
             rotation={state.rotation}
             extension={state.selectedFormat.extension}
             onCropChange={onCropChange}
             onExtensionChange={onExtensionChange}
             onFormatChange={onFormatChange}
+            onKeepMetadataChange={onKeepMetadataChange}
+            onQualityChange={onQualityChange}
             onResizeChange={onResizeChange}
             onRotateChange={onRotateChange}
             onViewChange={onViewChange}
@@ -1215,7 +1494,7 @@ const FormatDialog: FC<Props> = ({
               >
                 {supportedProxies && (
                   <ProxyMenu
-                    items={availableProxies.map((proxy) => {
+                    items={filteredProxies?.map((proxy) => {
                       if (proxy.proxyName === 'TRX' && selectedAsset) {
                         return {
                           value: proxy.id,
@@ -1250,7 +1529,10 @@ const FormatDialog: FC<Props> = ({
                         >
                           Representative image
                         </cx-typography>
-                        <cx-icon slot="suffix" name={state.useRepresentative ? 'check' : ''}></cx-icon>
+                        <cx-icon
+                          slot="suffix"
+                          name={state.useRepresentative ? 'check' : ''}
+                        ></cx-icon>
                       </cx-menu-item>
                     )}
                   </ProxyMenu>
@@ -1263,8 +1545,12 @@ const FormatDialog: FC<Props> = ({
                       borderTopWidth: '0',
                     }}
                   >
-                    <cx-menu-item value="custom">
-                      <cx-icon slot="prefix" name="crop_rotate" className='icon--large'></cx-icon>
+                    <cx-menu-item value="custom" data-cy="custom-rendition-menu-item">
+                      <cx-icon
+                        slot="prefix"
+                        name="crop_rotate"
+                        className="icon--large"
+                      ></cx-icon>
                       <div>
                         <cx-typography
                           variant="body3"
@@ -1274,15 +1560,21 @@ const FormatDialog: FC<Props> = ({
                         >
                           Custom format
                         </cx-typography>
-                        {showCustomDimension && (
-                          <cx-typography variant="body3" className="proxy__details">
-                            {state.selectedFormat.width} x {state.selectedFormat.height}
+                        {showCustomDimension ? (
+                          <cx-typography
+                            variant="body3"
+                            className="proxy__details"
+                          >
+                            {state.selectedFormat.width} x{' '}
+                            {state.selectedFormat.height}
                             {state.selectedFormat.extension && (
                               <div className="proxy__extension-dot"></div>
                             )}
-                            {state.selectedFormat.extension?.replace(/^\./, '').toUpperCase()}
+                            {state.selectedFormat.extension
+                              ?.replace(/^\./, '')
+                              .toUpperCase()}
                           </cx-typography>
-                        )}
+                        ) : null}
                       </div>
                       <cx-icon
                         slot="suffix"
@@ -1304,11 +1596,7 @@ const FormatDialog: FC<Props> = ({
                       width: '100%',
                     }}
                   >
-                    <ProxyMenu
-                      style={{
-                        border: 'none',
-                      }}
-                    >
+                    <ProxyMenu>
                       <cx-menu-item value="tracking" className="proxy--switch">
                         <cx-typography variant="body3" className="proxy__name">
                           Tracking parameters
@@ -1353,7 +1641,7 @@ const FormatDialog: FC<Props> = ({
                   className="ic_warning_amber"
                 ></cx-icon>
                 <cx-typography variant="body3" className="proxy__name">
-                  You don&apos;t have permission to share this asset.
+                  There are no available options for this asset. This might be due to your permissions or the application&apos;s settings.
                 </cx-typography>
               </cx-space>
             )}
@@ -1365,35 +1653,70 @@ const FormatDialog: FC<Props> = ({
     };
 
     const renderFooter = () => {
-      if (searchInDrive) {
-        return (
+      if (state.showVersionHistory) {
+        return null;
+      }
+
+      let content = null;
+
+      if (!allowProxy) {
+        content = (
           <cx-button
             className="dialog__footer__button"
-            onClick={onOpenInDriveConfirm}
+            loading={state.isLoadingConfirm}
+            onClick={async () => {
+              if (!selectedAsset?.docType) {
+                return;
+              }
+
+              dispatch({ type: 'SET_LOADING_CONFIRM', payload: true });
+              await onProxyConfirm({
+                extension: selectedAsset.extension,
+                useRepresentative: true,
+                value: '',
+              });
+              dispatch({ type: 'SET_LOADING_CONFIRM', payload: false });
+            }}
             variant="primary"
           >
             <cx-icon slot="prefix" name="folder"></cx-icon>
-            {ctaText ?? 'Open in drive'}
+            {ctaText}
           </cx-button>
         );
-      }
-
-      if (state.showCustomRendition) {
-        return (
+      } else if (state.showCustomRendition) {
+        content = (
           <cx-space spacing="small" style={{ width: 'fit-content' }}>
             <cx-button
               variant="default"
               onClick={() => {
-                dispatch({
-                  type: 'CANCEL_USE_CUSTOM_RENDITION',
-                  payload: {
-                    url: selectedAsset?.imageUrl ?? '',
-                    originalUrl: selectedAsset?.originalUrl ?? '',
-                    width: parseInt(selectedAsset?.width ?? '0', 10),
-                    height: parseInt(selectedAsset?.height ?? '0', 10),
-                    extension: selectedAsset?.extension ?? '',
-                  },
-                });
+                if (state.useCustomRendition) {
+                  dispatch({
+                    type: 'CANCEL_USE_CUSTOM_RENDITION',
+                    payload: {
+                      url: state.defaultSelectedFormat.url,
+                      originalUrl: state.defaultSelectedFormat.originalUrl,
+                      width: state.defaultSelectedFormat.width,
+                      height: state.defaultSelectedFormat.height,
+                      extension: state.defaultSelectedFormat.extension,
+                      selectedProxy: state.defaultSelectedProxy,
+                      useCustomRendition: true,
+                    },
+                  });
+                } else {
+                  dispatch({
+                    type: 'CANCEL_USE_CUSTOM_RENDITION',
+                    payload: {
+                      url: selectedAsset?.imageUrl ?? '',
+                      originalUrl: selectedAsset?.originalUrl ?? '',
+                      width: parseInt(selectedAsset?.width ?? '0', 10),
+                      height: parseInt(selectedAsset?.height ?? '0', 10),
+                      extension: selectedAsset?.extension ?? '',
+                      useCustomRendition: false,
+                      selectedProxy: '',
+                    },
+                  });
+                }
+
               }}
             >
               Cancel
@@ -1408,46 +1731,79 @@ const FormatDialog: FC<Props> = ({
             </cx-button>
           </cx-space>
         );
-      }
-
-      return (
-        <cx-button
+      } else {
+        content = (
+          <cx-button
           className="dialog__footer__button"
           disabled={disabledInsert}
+          loading={state.isLoadingConfirm}
           variant="primary"
           style={{ flex: 1 }}
-          onClick={() => {
-            const selectedProxy = availableProxies?.find((proxy) => {
+          onClick={async () => {
+            const selectedProxy = filteredProxies?.find((proxy) => {
               return proxy.id === state.selectedProxy;
             });
-
             if (!state.useCustomRendition) {
               if (!selectedAsset?.docType) {
                 return;
               }
 
-              if (!selectedProxy) {
+              if (!selectedProxy && !state.useRepresentative) {
                 return;
               }
 
-              onProxyConfirm({
-                extension: selectedProxy.extension ?? selectedAsset.extension,
-                value: selectedProxy.proxyName,
-                permanentLink: selectedProxy.permanentLink ?? undefined,
+              dispatch({ type: 'SET_LOADING_CONFIRM', payload: true });
+              await onProxyConfirm({
+                extension: selectedProxy?.extension ?? selectedAsset.extension,
+                value: selectedProxy?.proxyName ?? '',
+                permanentLink: selectedProxy?.permanentLink ?? undefined,
                 parameters: state.enabledTracking
                   ? state.trackingParameters
                   : undefined,
                 useRepresentative: state.useRepresentative,
+                selectedProxyMetadata:{
+                  cdnName: selectedProxy?.cdnName ?? null,
+                  extension: selectedProxy?.proxyName === 'TRX' ? selectedAsset.extension : selectedProxy?.extension ?? null,
+                  isCustomFormat: false,
+                  width: selectedProxy?.proxyName === 'TRX' ? parseInt(selectedAsset.width ?? '0', 10) : selectedProxy?.formatWidth ?? null,
+                  height: selectedProxy?.proxyName === 'TRX' ? parseInt(selectedAsset.height ?? '0', 10) : selectedProxy?.formatHeight ?? null,
+                  permanentLink: selectedProxy?.permanentLink ?? null,
+                  proxyLabel: selectedProxy?.proxyLabel ?? null,
+                  proxyName: selectedProxy?.proxyName ?? null,
+                },
               });
+              dispatch({ type: 'SET_LOADING_CONFIRM', payload: false });
             } else {
-              onFormatConfirm({
+              if (!selectedAsset?.docType) {
+                return;
+              }
+              dispatch({ type: 'SET_LOADING_CONFIRM', payload: true });
+              await onFormatConfirm({
                 value: state.transformations,
                 parameters: state.enabledTracking
                   ? state.trackingParameters
                   : undefined,
                 proxiesPreference: selectedProxy?.proxyName,
                 extension: state.selectedFormat.extension,
+                sourceProxyMetadata: {
+                  cdnName: selectedProxy?.cdnName ?? null,
+                  extension: selectedProxy?.proxyName === 'TRX' ? selectedAsset.extension : selectedProxy?.extension ?? null,
+                  isCustomFormat: null,
+                  width: selectedProxy?.proxyName === 'TRX' ? parseInt(selectedAsset.width ?? '0', 10) : selectedProxy?.formatWidth ?? null,
+                  height: selectedProxy?.proxyName === 'TRX' ? parseInt(selectedAsset.height ?? '0', 10) : selectedProxy?.formatHeight ?? null,
+                  permanentLink: selectedProxy?.permanentLink ?? null,
+                  proxyLabel: selectedProxy?.proxyLabel ?? null,
+                  proxyName: selectedProxy?.proxyName ?? null,
+                },
+                transformedAssetMetadata: {
+                  extension: state.selectedFormat?.extension ?? null,
+                  isCustomFormat: true,
+                  height: state.selectedFormat?.height ?? null,
+                  width: state.selectedFormat?.width ?? null,
+                  permanentLink: null,
+                },
               });
+              dispatch({ type: 'SET_LOADING_CONFIRM', payload: false });
             }
             dispatch({ type: 'RESET_DATA' });
             onClose();
@@ -1455,47 +1811,55 @@ const FormatDialog: FC<Props> = ({
         >
           {ctaText ?? 'Insert'}
         </cx-button>
+        );
+      }
+
+      return (
+        <div slot="footer" className="dialog__footer">
+          {content}
+        </div>
       );
     };
 
     return (
       <>
-        <cx-space slot="label" direction="vertical" spacing="2x-small">
-          <cx-typography variant="h4">Formats</cx-typography>
-          <cx-typography variant="body3" className='asset-name'>
-            <cx-line-clamp lines={1}>{selectedAsset?.name}</cx-line-clamp>
-          </cx-typography>
-        </cx-space>
+        {renderHeader()}
         {renderBody()}
-        <div slot="footer" className="dialog__footer">
-          {renderFooter()}
-        </div>
+        {renderFooter()}
       </>
     );
   }, [
-    allowTracking,
     allowCustomFormat,
+    allowFavorites,
+    allowProxy,
+    allowTracking,
+    appendAutoExtension,
     autoExtension,
-    availableExtensions,
-    availableProxies,
+    extensionsForTransformation,
     ctaText,
     extensions,
+    filteredProxies,
+    handleVersionHistory,
+    isFavorite,
     previewUrl,
-    searchInDrive,
     selectedAsset,
+    showVersions,
+    state,
     supportedRepresentative,
     onClose,
     onCropChange,
     onExtensionChange,
+    onFavorite,
     onFormatChange,
     onFormatConfirm,
+    onKeepMetadataChange,
     onLoadingChange,
-    onOpenInDriveConfirm,
     onProxyConfirm,
+    onQualityChange,
     onResizeChange,
     onRotateChange,
+    onUnFavorite,
     onViewChange,
-    state,
   ]);
 
   if (variant === 'drawer') {
@@ -1518,10 +1882,11 @@ const FormatDialog: FC<Props> = ({
       ref={dialogRef}
       className="dialog"
       open={open}
-      strategy="absolute"
+      use-overlay-scrollbar={popoverSupported || undefined}
       style={
         {
           '--max-height': `${maxHeight}px`,
+          '--max-width': state.showVersionHistory ? '600px' : '520px',
         } as CSSProperties
       }
     >

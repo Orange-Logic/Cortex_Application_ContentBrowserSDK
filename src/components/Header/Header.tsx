@@ -1,44 +1,46 @@
-import { CSSProperties, FC, ReactNode, useContext, useEffect, useMemo } from 'react';
+import { CSSProperties, FC, ReactNode, useContext, useMemo } from 'react';
 
 import { AppContext } from '@/AppContext';
 import { GlobalConfigContext } from '@/GlobalConfigContext';
-import { useGetUserInfoQuery } from '@/store/user/user.api';
 import { Folder } from '@/types/search';
 
 import { Container } from './Header.styled';
+import { UserInfo } from '@/types/user';
 
 type Props = {
-  authenticated: boolean;
   bordered?: boolean;
   children?: ReactNode;
   currentFolder: Folder;
+  isLoading?: boolean;
+  isFetching?: boolean;
+  userInfo?: UserInfo;
+  showMenu?: boolean;
   onMenuClick: () => void;
   onLogout: () => void;
 };
 
 const Header: FC<Props> = ({
-  authenticated,
   bordered,
   children,
   currentFolder,
+  isLoading,
+  isFetching,
+  userInfo: data,
+  showMenu,
   onMenuClick,
   onLogout,
 }) => {
-  const { isContentBrowserPopedup, pluginInfo } = useContext(GlobalConfigContext);
+  const { isContentBrowserPopedup, pluginInfo, allowLogout } =
+    useContext(GlobalConfigContext);
   const { onClose } = useContext(AppContext);
-  const { data, isFetching, isLoading, refetch: refetchUserInfo } = useGetUserInfoQuery({});
-
-  useEffect(() => {
-    if (authenticated) {
-      refetchUserInfo();
-    }
-  }, [authenticated, refetchUserInfo]);
 
   const title = useMemo(() => {
     if (!currentFolder.fullPath) {
       return (
         <cx-line-clamp lines={1}>
-          <cx-typography variant="h4">{pluginInfo.publicApplicationName}</cx-typography>
+          <cx-typography variant="h4">
+            {pluginInfo.publicApplicationName}
+          </cx-typography>
         </cx-line-clamp>
       );
     }
@@ -48,54 +50,81 @@ const Header: FC<Props> = ({
         <cx-typography variant="h4">{currentFolder.title}</cx-typography>
       </cx-space>
     );
-  }, [currentFolder.fullPath, currentFolder.title, pluginInfo.publicApplicationName]);
+  }, [
+    currentFolder.fullPath,
+    currentFolder.title,
+    pluginInfo.publicApplicationName,
+  ]);
 
   const Dropdown = useMemo(() => {
-    return isLoading || isFetching ? (
-      <cx-skeleton></cx-skeleton>
-    ) : (
-      <cx-dropdown distance={4}>
-        <cx-avatar
-          slot="trigger"
-          label="User avatar"
-          image={data?.avatar}
-          loading="lazy"
-        ></cx-avatar>
-        <cx-menu>
-          <cx-menu-item className='header__user-info' readonly>
-            {data?.fullName}
-            <cx-avatar
-              slot="prefix"
-              label="User avatar"
-              image={data?.avatar}
-              loading="lazy"
-              style={
-                {
-                  '--size': 'var(--cx-font-size-x-large)',
-                } as CSSProperties
-              }
-            ></cx-avatar>
-          </cx-menu-item>
-          <cx-divider></cx-divider>
-          <cx-menu-item value="logout" onClick={onLogout}>
-            Logout
-            <cx-icon slot="prefix" name="logout"></cx-icon>
-          </cx-menu-item>
-        </cx-menu>
-      </cx-dropdown>
+    if (isLoading || isFetching) {
+      return <cx-skeleton></cx-skeleton>;
+    }
+
+    if (allowLogout) {
+      return (
+        <cx-dropdown distance={4}>
+          <cx-avatar
+            slot="trigger"
+            className="header__user-avatar header__user-avatar--dropdown-trigger"
+            label="User avatar"
+            image={data?.avatar}
+            loading="lazy"
+          ></cx-avatar>
+          <cx-menu>
+            <cx-menu-item className="header__user-info" readonly>
+              {data?.fullName}
+              <cx-avatar
+                slot="prefix"
+                label="User avatar"
+                image={data?.avatar}
+                loading="lazy"
+                style={
+                  {
+                    '--size': 'var(--cx-font-size-x-large)',
+                  } as CSSProperties
+                }
+              ></cx-avatar>
+            </cx-menu-item>
+            <cx-divider></cx-divider>
+            <cx-menu-item value="logout" onClick={onLogout}>
+              Logout
+              <cx-icon slot="prefix" name="logout"></cx-icon>
+            </cx-menu-item>
+          </cx-menu>
+        </cx-dropdown>
+      );
+    }
+
+    return (
+      <cx-avatar
+        className="header__user-avatar"
+        label="User avatar"
+        image={data?.avatar}
+        loading="lazy"
+      ></cx-avatar>
     );
-  }, [isLoading, isFetching, data?.avatar, data?.fullName, onLogout]);
+  }, [
+    isLoading,
+    isFetching,
+    allowLogout,
+    data?.avatar,
+    data?.fullName,
+    onLogout,
+  ]);
 
   return (
     <Container direction="vertical" spacing="small" bordered={bordered}>
       <cx-space className="header" justify-content="space-between" align-items="center">
         <div className="header__title">
           <cx-space className="header" justify-content="space-between" align-items="center" spacing="x-small">
-            <cx-icon-button
-              name="menu"
-              label="Menu"
-              onClick={onMenuClick}
-            ></cx-icon-button>
+            {showMenu && (
+              <cx-icon-button
+                name="menu"
+                label="Menu"
+                onClick={onMenuClick}
+              ></cx-icon-button>
+            )}
             {title}
           </cx-space>
         </div>
