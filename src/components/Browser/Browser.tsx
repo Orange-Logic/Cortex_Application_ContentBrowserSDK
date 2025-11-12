@@ -448,7 +448,9 @@ const Browser: FC<Props> = ({
       noCloseButton={noCloseButton}
     >
       {!forceOverlay && allowPin ? (
-        <cx-icon-button slot="header-actions" {...IconHeaderProps} ></cx-icon-button>
+        <cx-tooltip slot="header-actions" content={isPersistent ? 'Collapse menu' : 'Expand menu'}>
+          <cx-icon-button {...IconHeaderProps}></cx-icon-button>
+        </cx-tooltip>
       ) : null}
       <cx-space direction="vertical" spacing="small" wrap="nowrap">
         <cx-space
