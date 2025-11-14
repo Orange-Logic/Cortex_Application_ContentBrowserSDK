@@ -26,6 +26,7 @@ import LoadMoreButton from './LoadMoreButton';
 import { LeftPanelCloseIcon, LeftPanelOpenIcon } from './Browser.constants';
 import { constructIconDataUrl } from '@/utils/icon';
 import _uniqBy from 'lodash-es/uniqBy';
+import LineClamp from '../LineClamp';
 
 const defaultFavoriteFolder = {
   id: '',
@@ -395,7 +396,9 @@ const Browser: FC<Props> = ({
             className={`${isSelected ? 'selected' : ''}`}
           >
             <cx-icon slot="prefix" name="collections"></cx-icon>
-            {getHighlightedTitle(collection.title, searchText)}
+            <LineClamp lines={1}>
+              {getHighlightedTitle(collection.title, searchText)}
+            </LineClamp>
           </cx-menu-item>
         );
       });

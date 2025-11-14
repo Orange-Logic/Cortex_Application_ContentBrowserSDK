@@ -45,7 +45,13 @@ export const Drawer = styled('cx-drawer')<CxDrawerProps>`
     cx-tree-item {
       &::part(label) {
         font-size: var(--cx-font-size-small);
+        overflow-x: hidden;
       }
+    }
+
+    cx-line-clamp {
+      width: 100%;
+      overflow-x: hidden;
     }
 
     cx-skeleton {

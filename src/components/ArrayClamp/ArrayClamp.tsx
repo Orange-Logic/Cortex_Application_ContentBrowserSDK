@@ -10,6 +10,7 @@ import React, {
 
 import type CxResizeObserver from '@orangelogic-private/design-system/components/resize-observer';
 import { Container } from './ArrayClamp.styled';
+import LineClamp from '../LineClamp';
 
 type ArrayClampProps = {
   children: React.ReactNode;
@@ -33,11 +34,11 @@ const ArrayChildren: FC<ArrayChildrenProps> = ({
 }) => {
   const renderLastItem = (child: React.ReactNode, index: number) => {
     return (
-      <cx-line-clamp
+      <LineClamp
         class={`array-clamp__item ${isClamped(index) ? 'clamped' : ''}`}
       >
         {child}
-      </cx-line-clamp>
+      </LineClamp>
     );
   };
 
@@ -154,9 +155,9 @@ const ArrayClamp: FC<ArrayClampProps> = ({ children, className, separator = ', '
         </div>
         {totalClamped > 0 && (
           <cx-tag variant="neutral" size="small" pill class="array-clamp__indicator">
-            <cx-line-clamp tooltip={hiddenChildrenStr} lines={1}>
+            <LineClamp tooltip={hiddenChildrenStr} lines={1}>
               +{totalClamped}
-            </cx-line-clamp>
+            </LineClamp>
           </cx-tag>
         )}
       </cx-resize-observer>

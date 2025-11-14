@@ -8,6 +8,7 @@ import type { CxCard } from '@orangelogic-private/design-system';
 
 import AssetPreview from '../AssetPreview';
 import { Card } from './AssetCard.styled';
+import LineClamp from '@/components/LineClamp';
 
 type Props = {
   id: string;
@@ -115,11 +116,11 @@ const AssetCard: FC<Props> = ({
       )}
       <cx-space spacing="small" align-items="center" wrap="nowrap" className="asset-card__info">
         {displayInfo.title && asset.name ? (
-          <cx-line-clamp lines={1} className="asset-card__name">
+          <LineClamp lines={1} className="asset-card__name">
             <cx-typography variant="body3">
               {asset.name}
             </cx-typography>
-          </cx-line-clamp>
+          </LineClamp>
         ) : (
           <cx-typography variant="small" className="asset-card__placeholder">
             <span>empty</span>
@@ -143,7 +144,7 @@ const AssetCard: FC<Props> = ({
                 variant="neutral"
                 pill
               >
-                <cx-line-clamp lines={1}>{tag}</cx-line-clamp>
+                <LineClamp lines={1}>{tag}</LineClamp>
               </cx-tag>
             ))}
         </ArrayClamp>
@@ -151,18 +152,18 @@ const AssetCard: FC<Props> = ({
       {(displayInfo.dimension || displayInfo.fileSize) && (
         <cx-space spacing="small" align-items="center" wrap="nowrap" className="asset-card__info">
           {displayInfo.dimension && Boolean(Number(asset.width)) && Boolean(Number(asset.height)) && (
-            <cx-line-clamp lines={1} className="asset-card__name">
+            <LineClamp lines={1} className="asset-card__name">
               <cx-typography variant="small">
                 <span>{asset.width}</span> x <span>{asset.height}</span>
               </cx-typography>
-            </cx-line-clamp>
+            </LineClamp>
           )}
           {displayInfo.fileSize && (
-            <cx-line-clamp lines={1} className="asset-card__name asset-card__name--right">
+            <LineClamp lines={1} className="asset-card__name asset-card__name--right">
               <cx-typography variant="small">
                 {asset.size}
               </cx-typography>
-            </cx-line-clamp>
+            </LineClamp>
           )}
           {!(
             displayInfo.dimension && Boolean(Number(asset.width)) && Boolean(Number(asset.height)) || 

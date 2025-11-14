@@ -163,7 +163,7 @@ const Facet: FC<Props> = ({
         {loading && <cx-spinner></cx-spinner>}
       </cx-space>
       <cx-space direction="vertical">
-        <cx-tree selection="multiple" label-select-single data-facet={type}>
+        <cx-tree selection="multiple" label-select-single data-facet={type} no-indeterminate-previously-selected>
           {Object.entries(mappedSubtypes)
             .slice(0, page * ITEMS_PER_PAGE)
             .map(([key, value]) => {
