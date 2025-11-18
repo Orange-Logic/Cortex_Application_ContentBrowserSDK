@@ -18,6 +18,11 @@ export const userApi = createApi({
       transformResponse: (response: UserInfo): UserInfo => {
         const authState = store.getState()[AUTH_FEATURE_KEY];
         
+        const avatarHasProtocol = response.avatar?.includes('://');
+        if (avatarHasProtocol) {
+          return response;
+        }
+
         return {
           ...response,
           avatar: `${authState.siteUrl}/${response.avatar}`,
