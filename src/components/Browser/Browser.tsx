@@ -119,6 +119,10 @@ const Browser: FC<Props> = ({
           ...prev,
           start: 0,
         }));
+        setCollectionPagination((prev) => ({
+          ...prev,
+          start: 0,
+        }));
       }
     }, 500);
     searchInput.addEventListener('cx-input', onSearchInput);
