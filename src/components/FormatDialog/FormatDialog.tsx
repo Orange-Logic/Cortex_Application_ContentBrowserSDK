@@ -48,7 +48,7 @@ type Props = {
     useRepresentative?: boolean;
     value: string;
     selectedProxyMetadata?: AssetLinkInfo;
-  }) => Promise<void>;
+  }) => Promise<boolean>;
   onFormatConfirm: (value: {
     extension?: string;
     parameters?: TrackingParameter[];
@@ -56,7 +56,7 @@ type Props = {
     value: Transformation[];
     sourceProxyMetadata?: AssetLinkInfo;
     transformedAssetMetadata?: AssetTransformationInfo;
-  }) => Promise<void>;
+  }) => Promise<boolean>;
   onUnFavorite: () => Promise<boolean>;
 };
 
@@ -1740,6 +1740,8 @@ const FormatDialog: FC<Props> = ({
           variant="primary"
           style={{ flex: 1 }}
           onClick={async () => {
+            let successfullyInserted = false;
+
             const selectedProxy = filteredProxies?.find((proxy) => {
               return proxy.id === state.selectedProxy;
             });
@@ -1753,7 +1755,7 @@ const FormatDialog: FC<Props> = ({
               }
 
               dispatch({ type: 'SET_LOADING_CONFIRM', payload: true });
-              await onProxyConfirm({
+              successfullyInserted = await onProxyConfirm({
                 extension: selectedProxy?.extension ?? selectedAsset.extension,
                 value: selectedProxy?.proxyName ?? '',
                 permanentLink: selectedProxy?.permanentLink ?? undefined,
@@ -1778,7 +1780,7 @@ const FormatDialog: FC<Props> = ({
                 return;
               }
               dispatch({ type: 'SET_LOADING_CONFIRM', payload: true });
-              await onFormatConfirm({
+              successfullyInserted = await onFormatConfirm({
                 value: state.transformations,
                 parameters: state.enabledTracking
                   ? state.trackingParameters
@@ -1805,8 +1807,11 @@ const FormatDialog: FC<Props> = ({
               });
               dispatch({ type: 'SET_LOADING_CONFIRM', payload: false });
             }
-            dispatch({ type: 'RESET_DATA' });
-            onClose();
+
+            if (successfullyInserted) {
+              dispatch({ type: 'RESET_DATA' });
+              onClose();
+            }
           }}
         >
           {ctaText ?? 'Insert'}

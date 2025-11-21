@@ -785,14 +785,16 @@ const HomePage: FC<Props> = () => {
         await result;
       } catch (error) {
         console.error('Error in onAssetSelected:', error);
-        return;
+        return false;
       }
-    } 
+    }
 
     if (persistMode) {
-      return;
+      return true;
     }
     onClose?.();
+
+    return true;
   }, [extraFields, onAssetSelected, onClose, persistMode, selectedAsset]);
 
   const hasNextPage = useMemo(
@@ -1112,7 +1114,7 @@ const HomePage: FC<Props> = () => {
             selectedProxyMetadata,
           }) => {
             if (!selectedAsset) {
-              return;
+              return false;
             }
 
             const images = await appDispatch(
@@ -1128,13 +1130,16 @@ const HomePage: FC<Props> = () => {
               }),
             );
 
+            let successfullyInserted = false;
             if (importAssets.fulfilled.match(images)) {
-              await handleSelectedAsset(images.payload, selectedProxyMetadata);
+              successfullyInserted = await handleSelectedAsset(images.payload, selectedProxyMetadata);
             }
+
+            return successfullyInserted;
           }}
           onFormatConfirm={async ({ value, parameters, proxiesPreference, extension, sourceProxyMetadata, transformedAssetMetadata }) => {
             if (!selectedAsset) {
-              return;
+              return false;
             }
 
             const maxWidth = selectedAsset?.width
@@ -1157,9 +1162,13 @@ const HomePage: FC<Props> = () => {
               }),
             );
 
+            let successfullyInserted = false;
+
             if (importAssets.fulfilled.match(images)) {
-              await handleSelectedAsset(images.payload, sourceProxyMetadata, transformedAssetMetadata);
+              successfullyInserted = await handleSelectedAsset(images.payload, sourceProxyMetadata, transformedAssetMetadata);
             }
+
+            return successfullyInserted; 
           }}
           onUnFavorite={async () => {
             if (!selectedAsset) {
