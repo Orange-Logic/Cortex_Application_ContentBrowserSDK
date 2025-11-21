@@ -59,6 +59,7 @@
       const settings = {
         onAssetSelected: function (assets) {
           return new Promise((resolve) => {
+            // throw Error('Something is wrong');
             window.open(assets[0].imageUrl, '_blank');
             resolve();
           });
