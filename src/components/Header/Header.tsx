@@ -6,6 +6,7 @@ import { Folder } from '@/types/search';
 
 import { Container } from './Header.styled';
 import { UserInfo } from '@/types/user';
+import LineClamp from '../LineClamp';
 
 type Props = {
   bordered?: boolean;
@@ -73,7 +74,9 @@ const Header: FC<Props> = ({
           ></cx-avatar>
           <cx-menu>
             <cx-menu-item className="header__user-info" readonly>
-              {data?.fullName}
+              <LineClamp lines={1}>
+                {data?.fullName}
+              </LineClamp>
               <cx-avatar
                 slot="prefix"
                 label="User avatar"

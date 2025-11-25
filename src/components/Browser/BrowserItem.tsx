@@ -6,6 +6,7 @@ import { Folder } from '@/types/search';
 import type { CxCollapseEvent, CxTreeItem } from '@orangelogic-private/design-system';
 import { FOLDER_PAGE_SIZE } from '@/utils/constants';
 import LoadMoreButton from './LoadMoreButton';
+import LineClamp from '../LineClamp';
 
 const escapeRegExp = (str: string) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
@@ -137,7 +138,7 @@ export const BrowserItem: FC<Props> = ({
         lazy={isLazy}
       >
         <cx-icon name={resolvedIcon.name} variant={resolvedIcon.variant}></cx-icon>
-        <cx-line-clamp lines={1}>{getHighlightedTitle(folder.title, searchText)}</cx-line-clamp>
+        <LineClamp lines={1}>{getHighlightedTitle(folder.title, searchText)}</LineClamp>
         {folders?.map((item) => (
           <BrowserItem
             key={item.id}

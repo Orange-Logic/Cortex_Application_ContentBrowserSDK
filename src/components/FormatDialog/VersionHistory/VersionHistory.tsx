@@ -3,6 +3,7 @@ import { FC, useCallback, useRef, useState } from 'react';
 import { Container } from './VersionHistory.styled';
 import { skipToken } from '@reduxjs/toolkit/query';
 import { useGetVersionHistoryQuery } from '@/store/assets/assets.api';
+import LineClamp from '@/components/LineClamp';
 
 type Props = {
   assetId?: string;
@@ -84,9 +85,9 @@ const VersionHistory: FC<Props> = ({ assetId }) => {
               <cx-grid-item xs="2" sm="2">
                 <cx-space direction="horizontal" align-items="center" wrap="nowrap">
                   <div className="version__item__number">
-                    <cx-line-clamp lines={1}>
+                    <LineClamp lines={1}>
                       {version.versionNumberDisplay}
-                    </cx-line-clamp>
+                    </LineClamp>
                   </div>
                   {
                     version.scrubUrl ? (
@@ -104,12 +105,12 @@ const VersionHistory: FC<Props> = ({ assetId }) => {
               </cx-grid-item>
               <cx-grid-item xs="2" sm="3">
                 <cx-space direction="vertical" spacing="2x-small">
-                  <cx-line-clamp lines={1}>
+                  <LineClamp lines={1}>
                     <cx-typography variant="body3" className="version__item__name">{version.versionFileName}</cx-typography>
-                  </cx-line-clamp>
-                  <cx-line-clamp lines={1}>
+                  </LineClamp>
+                  <LineClamp lines={1}>
                     <cx-typography variant="body3">{version.createByEmail}</cx-typography>
-                  </cx-line-clamp>
+                  </LineClamp>
                   <cx-typography variant="body3">
                     {version.versionCreateDate.split(' ')[0]}
                     {index === 0 && (

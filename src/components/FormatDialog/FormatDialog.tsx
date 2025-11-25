@@ -17,6 +17,7 @@ import ProxyMenu from './ProxyMenu';
 import TrackingParameters from './TrackingParameters';
 import VersionHistory from './VersionHistory';
 import { popoverSupported } from '@/utils/browser';
+import LineClamp from '../LineClamp';
 
 type Props = {
   allowCustomFormat: boolean; // whether to allow custom format
@@ -1289,7 +1290,7 @@ const FormatDialog: FC<Props> = ({
             <cx-space direction="vertical" spacing="2x-small" style={{ flex: '1' }}>
               <cx-typography variant="h4">Version history</cx-typography>
               <cx-typography variant="body3" className='asset-name'>
-                <cx-line-clamp lines={1}>{selectedAsset?.name}</cx-line-clamp>
+                <LineClamp lines={1}>{selectedAsset?.name}</LineClamp>
               </cx-typography>
             </cx-space>
           </cx-space>
@@ -1310,7 +1311,7 @@ const FormatDialog: FC<Props> = ({
             >
               <cx-typography variant="h4">{allowProxy ? 'Custom format' : 'Preview'}</cx-typography>
               <cx-typography variant="body3" className="asset-name">
-                <cx-line-clamp lines={1}>{selectedAsset?.name}</cx-line-clamp>
+                <LineClamp lines={1}>{selectedAsset?.name}</LineClamp>
               </cx-typography>
             </cx-space>
           </cx-space>

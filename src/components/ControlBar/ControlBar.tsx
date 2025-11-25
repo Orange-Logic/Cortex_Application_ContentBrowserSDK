@@ -16,6 +16,7 @@ import type {
 import { sortDirections, views } from './ControlBar.constants';
 import { Container } from './ControlBar.styled';
 import Facet from './Facet';
+import LineClamp from '../LineClamp';
 
 type Props = {
   allowSorting: boolean;
@@ -397,11 +398,11 @@ const ControlBar: FC<Props> = ({
         wrap="nowrap"
         style={{ marginLeft: 'auto' }}
       >
-        <cx-line-clamp lines={1}>
+        <LineClamp lines={1}>
           <cx-typography variant="body3">
             {currentCount} of {totalCount}
           </cx-typography>
-        </cx-line-clamp>
+        </LineClamp>
         <cx-dropdown
           ref={viewDropdownRef}
           auto-width-factor={isMobile ? 1 : 0.6}
@@ -429,7 +430,7 @@ const ControlBar: FC<Props> = ({
                 </cx-menu-item>
                 <cx-divider></cx-divider>
                 <cx-menu-item value="see-thru" className="menu-item--switch">
-                  <cx-line-clamp lines={1}>See-thru</cx-line-clamp>
+                  <LineClamp lines={1}>See-thru</LineClamp>
                   <cx-switch
                     checked={isSeeThrough}
                     onClick={(e) => e.preventDefault()}
@@ -443,7 +444,7 @@ const ControlBar: FC<Props> = ({
                     value={item.value.toString()}
                     class={item.value === view ? 'selected' : ''}
                   >
-                    <cx-line-clamp lines={1}>{item.label}</cx-line-clamp>
+                    <LineClamp lines={1}>{item.label}</LineClamp>
                     {
                       <cx-icon
                         slot="prefix"
@@ -466,7 +467,7 @@ const ControlBar: FC<Props> = ({
                       value={item.value.toString()}
                       class={item.value === view ? 'selected' : ''}
                     >
-                      <cx-line-clamp lines={1}>{item.label}</cx-line-clamp>
+                      <LineClamp lines={1}>{item.label}</LineClamp>
                       {
                         <cx-icon
                           slot="prefix"
@@ -480,7 +481,7 @@ const ControlBar: FC<Props> = ({
               </cx-menu-item>
               <cx-divider></cx-divider>
               <cx-menu-item value="see-thru" className="menu-item--switch">
-                <cx-line-clamp lines={1}>See-thru</cx-line-clamp>
+                <LineClamp lines={1}>See-thru</LineClamp>
                 <cx-switch
                   checked={isSeeThrough}
                   onClick={(e) => e.preventDefault()}
