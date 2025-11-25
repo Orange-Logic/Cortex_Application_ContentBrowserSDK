@@ -66,7 +66,7 @@ const CropPreviewer = forwardRef<CropPreviewerHandle, Props>(({
   const [containerDimensions, setContainerDimensions] = useState({ width: 0, height: 0 });
 
   useEffect(() => {
-    const { url, originalUrl, extension } = image;
+    const { url } = image;
     const { width, height } = resizer;
     const resize = async () => {
       if (loadable) {
@@ -77,7 +77,7 @@ const CropPreviewer = forwardRef<CropPreviewerHandle, Props>(({
           newHeight,
           containerRef.current?.clientWidth ?? window.innerWidth, FORMAT_DIALOG_PREVIEW_SIZE,
         );
-        setResizedImage(extension === '.gif' ? originalUrl : imageUrl);
+        setResizedImage(imageUrl);
         onLoadingChange(false);
       } else {
         setResizedImage(url);
