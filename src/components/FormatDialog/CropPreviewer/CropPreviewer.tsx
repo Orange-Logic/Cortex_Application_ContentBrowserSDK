@@ -4,7 +4,7 @@ import Cropper, { Area, Point } from 'react-easy-crop';
 
 import { Unit } from '@/types/assets';
 import { FORMAT_DIALOG_PREVIEW_SIZE } from '@/utils/constants';
-import { calculateAspectRatioFit, cropImage, resizeImage, rotateImage } from '@/utils/image';
+import { calculateAspectRatioFit, getCroppedImageUrl, getRotatedImageUrl, resizeImage } from '@/utils/image';
 
 import { Container } from '../Previewer/Previewer.styled';
 
@@ -109,50 +109,24 @@ const CropPreviewer = forwardRef<CropPreviewerHandle, Props>(({
     return resizedImage;
   }, [resizedImage]);
 
-  const applyCrop = useCallback(async () => {
-    const { width, height, x, y, unit } = cropper;
-    const options = { x, y, width, height };
-    options.x = (x / 100) * image.width;
-    options.y = (y / 100) * image.height;
-    if (loadable) {
-      onLoadingChange(true);
-      if (unit === Unit.AspectRatio) {
-        const { width: newWidth, height: newHeight } = calculateAspectRatioFit(image.width, image.height, width, height);
-        options.width = newWidth / zoom;
-        options.height = newHeight  / zoom;
-      }
-      const result = await cropImage(
-        {
-          url: image.url,
-          width: image.width,
-          height: image.height,
-        },
-        options,
-      );
-      onLoadingChange(false);
-      return result;
-    } else {
-      return Promise.resolve(image.url);
-    }
-  }, [cropper, image.width, image.height, image.url, loadable, onLoadingChange, zoom]);
+  const applyCrop = useCallback(() => {
+    return getCroppedImageUrl({
+      cropper,
+      image,
+      loadable,
+      onLoadingChange,
+      zoom,
+    });
+  }, [cropper, image, loadable, onLoadingChange, zoom]);
 
-  const applyRotation = useCallback(async () => {
-    if (loadable) {
-      onLoadingChange(true);
-      const result = await rotateImage(
-        {
-          url: image.url,
-          width: image.width,
-          height: image.height,
-        },
-        rotation,
-      );
-      onLoadingChange(false);
-      return result;
-    } else {
-      return Promise.resolve(image.url);
-    }
-  }, [image.height, image.url, image.width, loadable, onLoadingChange, rotation]);
+  const applyRotation = useCallback(() => {
+    return getRotatedImageUrl({
+      image,
+      loadable,
+      onLoadingChange,
+      rotation,
+    });
+  }, [image, loadable, onLoadingChange, rotation]);
 
   useImperativeHandle(ref, () => ({
     applyResize,

@@ -34,11 +34,17 @@ export type Transformation = {
   value: {
     width?: number;
     height?: number;
+    originalWidth?: number;
+    originalHeight?: number;
     x?: number;
     y?: number;
     rotation?: number;
     keepMetadata?: boolean;
     quality?: number;
+    percentageWidth?: number;
+    percentageHeight?: number;
+    percentageX?: number;
+    percentageY?: number;
   };
 };
 
