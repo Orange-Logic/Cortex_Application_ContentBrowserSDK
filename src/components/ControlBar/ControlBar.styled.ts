@@ -10,6 +10,19 @@ export const Container = styled.div`
   --menu-item-width: min(278px, 100%);
   --details-width: min(354px, 100%);
 
+  cx-badge {
+    /** offset by medium-sized icon button's padding */
+    translate: calc(50% + var(--cx-spacing-2x-small)) calc(-50% - var(--cx-spacing-2x-small));
+  }
+
+  cx-badge::part(base) {
+    min-width: 0;
+    min-height: 0;
+    height: var(--cx-spacing-medium);
+    width: var(--cx-spacing-medium);
+    font-size: var(--cx-font-size-x-small);
+  }
+
   cx-input {
     min-width: 160px;
     max-width: 300px;
