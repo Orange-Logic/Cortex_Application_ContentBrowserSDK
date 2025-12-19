@@ -42,6 +42,11 @@ export const Card = styled('cx-card')<CxCardProps>`
       justify-content: space-between;
     }
 
+    &.asset-card--disabled {
+      cursor: default;
+      pointer-events: none;
+    }
+
     &.asset-card--small {
       max-width: ${ASSET_SIZE[GridView.Small].maxWidth}px;
     }

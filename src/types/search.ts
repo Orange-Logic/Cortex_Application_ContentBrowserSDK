@@ -26,6 +26,7 @@ export type Asset = {
   width?: string;
   allowATSLink?: boolean;
   recordId: string;
+  inColdStorage: boolean;
 };
 
 export type ContentItem = {

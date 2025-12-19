@@ -26,7 +26,17 @@ const AssetPreview: FC<Props> = ({
   
   const renderPreview = useCallback(() => {
     const isUrlFilled = typeof asset.imageUrl === 'string' && asset.imageUrl.length > 0;
-    
+
+    if (asset.inColdStorage) {
+      return (
+        <OtherPreview icon="mode_cool">
+          Asset in Cold Storage
+          <br></br>
+          <small>(no preview available)</small>
+        </OtherPreview>
+      );
+    }
+
     if (isError || !isUrlFilled) {
       return (
         <OtherPreview type={asset.docType}>
@@ -61,9 +71,9 @@ const AssetPreview: FC<Props> = ({
   }, [asset, isError, onLoaded, thumbnailOnly, imageLoaded]);
 
   return (
-    <Container slot={slot} className="asset-preview">
+    <Container slot={slot} className={`asset-preview ${asset.inColdStorage ? 'asset-preview--disabled' : ''}`}>
       {
-        !imageLoaded && (
+        !imageLoaded && !asset.inColdStorage && (
           <cx-skeleton
             slot="image"
             className="asset-preview__image-skeleton"

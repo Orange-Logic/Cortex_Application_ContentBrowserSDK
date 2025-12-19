@@ -8,6 +8,7 @@ import {
   FIELD_ORIGINAL_FILE_NAME,
   FIELD_UPDATED_FILE_NAME,
   FIELD_RAW_DOC_SUBTYPE,
+  FIELD_STORAGE_GROUP,
 } from '@/consts/data';
 import { Asset, Facet, Folder, GetContentRequest, GetContentResponse, GetFavoritesResponse, GetFoldersRequest } from '@/types/search';
 import { AppBaseQuery, GetValueByKeyCaseInsensitive } from '@/utils/api';
@@ -305,6 +306,7 @@ export const searchApi = createApi({
             FIELD_SUBTYPE,
             FIELD_TITLE_WITH_FALLBACK,
             FIELD_UPDATED_FILE_NAME,
+            FIELD_STORAGE_GROUP,
             ORIGINAL_VIEW_SIZE,
           ],
           seeThru: !!isSeeThrough,
@@ -356,6 +358,7 @@ export const searchApi = createApi({
               width: GetValueByKeyCaseInsensitive(item.fields, FIELD_MAX_WIDTH) ?? '0',
               allowATSLink: GetValueByKeyCaseInsensitive(item.fields, FIELD_ALLOW_ATS_LINK) === 'True',
               recordId: GetValueByKeyCaseInsensitive(item.fields, FIELD_RECORD_ID) ?? '',
+              inColdStorage: GetValueByKeyCaseInsensitive(item.fields, FIELD_STORAGE_GROUP) === 'Cold Storage',
             } as Asset;
           }) ?? [],
         totalCount: response.totalCount,

@@ -63,6 +63,7 @@ const AssetCard: FC<Props> = ({
   const assetClassNames = useMemo(() => {
     const classNames: Record<string, boolean> = {
       'asset-card': true,
+      'asset-card--disabled': asset.inColdStorage,
       selected: isSelected,
       'asset-card--small': view === GridView.Small,
       'asset-card--medium': view === GridView.Medium,
@@ -70,7 +71,7 @@ const AssetCard: FC<Props> = ({
     };
 
     return Object.keys(classNames).filter((key) => classNames[key]).join(' ');
-  }, [isSelected, view]);
+  }, [isSelected, view, asset.inColdStorage]);
 
 
   useEffect(() => {
@@ -99,6 +100,9 @@ const AssetCard: FC<Props> = ({
       ref={cardRef}
       className={assetClassNames}
       onClick={() => {
+        if (asset.inColdStorage) {
+          return;
+        }
         onItemSelect(asset);
       }}
     >

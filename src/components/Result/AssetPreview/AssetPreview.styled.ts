@@ -11,6 +11,11 @@ export const Container = styled.div`
     justify-content: center;
   }
 
+  &.asset-preview--disabled {
+    cursor: default;
+    pointer-events: none;
+  }
+
   &.asset-preview > div {
     height: 100%;
   }
