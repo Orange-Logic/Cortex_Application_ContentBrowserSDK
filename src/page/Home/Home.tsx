@@ -219,6 +219,7 @@ const HomePage: FC<Props> = () => {
     availableDocTypes,
     availableRepresentativeSubtypes,
     ctaText,
+    ctaTextTransform,
     lastLocationMode,
     persistMode,
     showCollections,
@@ -1041,6 +1042,7 @@ const HomePage: FC<Props> = () => {
           availableExtensions={filteredAllowedExtensions}
           availableProxies={isErrorAvailableProxies ? [] : isFetchingAvailableProxies ? undefined : filteredProxies}
           ctaText={ctaText}
+          ctaTextTransform={ctaTextTransform}
           extensions={supportedExtensions ?? []}
           isFavorite={!!isFavorite}
           maxHeight={state.containerSize.height}

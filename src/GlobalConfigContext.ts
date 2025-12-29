@@ -12,12 +12,15 @@ export type PluginInfo = {
   pluginName?: string,
 };
 
+export type CtaTextTransform = 'none' | 'uppercase' | 'lowercase' | 'capitalize';
+
 export type GlobalConfigContextType = {
   allowedExtensions?: string[];
   allowedFolders?: string[];
   availableDocTypes?: string[];
   availableRepresentativeSubtypes?: string[];
   ctaText: string;
+  ctaTextTransform?: CtaTextTransform;
   displayInfo: ImageCardDisplayInfo;
   lastLocationMode?: boolean;
   persistMode: boolean;

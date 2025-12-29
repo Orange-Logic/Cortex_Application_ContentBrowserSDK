@@ -302,6 +302,19 @@ customStorage: {
             </p>
           </li>
           <li>
+            <b>ctaTextTransform</b> (default "capitalize")
+            <p>
+              The text transform to apply to the CTA button text.
+            </p>
+            <p>Available values:</p>
+            <ul>
+              <li><code>none</code> - No text transformation</li>
+              <li><code>uppercase</code> - TRANSFORM TO UPPERCASE</li>
+              <li><code>lowercase</code> - transform to lowercase</li>
+              <li><code>capitalize</code> - Capitalize first letter (default)</li>
+            </ul>
+          </li>
+          <li>
             <b>availableDocTypes</b>
             <p>
             <p>An array of Orange Logic asset types used to filter the displayed assets. If not provided, all asset types will be shown.</p>
@@ -455,6 +468,7 @@ customStorage: {
         // container element to attach, leave blank to open popup 
         containerId: 'react-app-root',
         ctaText: 'Open in new tab',
+        ctaTextTransform: 'capitalize', // 'none', 'uppercase', 'lowercase', 'capitalize' (default: 'capitalize')
         // extra asset fields to get
         extraFields: ['coreField.OriginalFileName', 'document.CortexPath'],
         // default base url to pre-filled

@@ -3,6 +3,7 @@ import {
   CSSProperties, FC, useCallback, useEffect, useMemo, useReducer, useRef, useState,
 } from 'react';
 
+import { CtaTextTransform } from '@/GlobalConfigContext';
 import { TrackingParameter, Transformation, TransformationAction, Unit } from '@/types/assets';
 import { Asset, AssetLinkInfo, AssetTransformationInfo, MediaType, Proxy } from '@/types/search';
 import { convertPixelsToAspectRatio } from '@/utils/number';
@@ -31,6 +32,7 @@ type Props = {
   availableExtensions?: Record<MediaType, { displayName: string; value: string }[]>; // filtered list of available extension for selection in the custom format dialog
   availableProxies?: Proxy[]; // filtered list of available proxy, attuned by the allowed extension list
   ctaText?: string;
+  ctaTextTransform?: CtaTextTransform;
   extensions: string[];
   isFavorite?: boolean;
   maxHeight?: number;
@@ -485,6 +487,7 @@ const FormatDialog: FC<Props> = ({
   availableExtensions: extensionsForTransformation,
   availableProxies,
   ctaText = 'Insert',
+  ctaTextTransform = 'capitalize',
   extensions,
   isFavorite,
   maxHeight,
@@ -1770,7 +1773,7 @@ const FormatDialog: FC<Props> = ({
             variant="primary"
           >
             <cx-icon slot="prefix" name="folder"></cx-icon>
-            {ctaText}
+            <span style={{ textTransform: ctaTextTransform }}>{ctaText}</span>
           </cx-button>
         );
       } else if (state.showCustomRendition) {
@@ -1899,7 +1902,7 @@ const FormatDialog: FC<Props> = ({
             onClose();
           }}
         >
-          {ctaText ?? 'Insert'}
+          <span style={{ textTransform: ctaTextTransform }}>{ctaText}</span>
         </cx-button>
         );
       }
@@ -1927,6 +1930,7 @@ const FormatDialog: FC<Props> = ({
     autoExtension,
     extensionsForTransformation,
     ctaText,
+    ctaTextTransform,
     extensions,
     filteredProxies,
     handleVersionHistory,
