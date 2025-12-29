@@ -6,6 +6,7 @@ import { Provider } from 'react-redux';
 import { App } from '@/App';
 import { AppContextType } from '@/AppContext';
 import {
+  CtaTextTransform,
   GlobalConfigContext,
   ImageCardDisplayInfo,
 } from '@/GlobalConfigContext';
@@ -131,6 +132,12 @@ type OrangeDAMContentBrowser = {
      * default to "Insert"
      */
     ctaText?: string;
+    /**
+     * The text transform for the CTA text
+     * Available values: 'none' | 'uppercase' | 'lowercase' | 'capitalize'
+     * Default: 'capitalize'
+     */
+    ctaTextTransform?: CtaTextTransform;
     /**
      * The persist mode for the content browser which will prevent the browser from closing after selecting asset
      * default to false
@@ -292,6 +299,7 @@ const ContentBrowser: OrangeDAMContentBrowser = {
         publicApplicationName: "", // Public name of the DAM to display on the login screen
         pluginName: "OrangeDAM Content Browser", // Name of the plugin to display on the login screen
         ctaText: "Insert", // Text to display on the insert button
+        ctaTextTransform: "capitalize", // Text transform: 'none', 'uppercase', 'lowercase', 'capitalize' (default: 'capitalize')
         persistMode: true, // Whether the browser remains open after selecting an asset
         availableDocTypes: ['Images*', 'Videos*', 'Audio*', 'Others*'], // An array of available OrangeDAM asset types to filter the assets. The available doc types will be configured in OL Platform. If not provided, all doc types will be available. 
         availableRepresentativeSubtypes: ['Other'], // Array of supported subtypes for representative images
@@ -324,6 +332,7 @@ const ContentBrowser: OrangeDAMContentBrowser = {
     baseUrl,
     containerId,
     ctaText,
+    ctaTextTransform,
     displayInfo = {
       title: true,
       dimension: true,
@@ -451,6 +460,7 @@ const ContentBrowser: OrangeDAMContentBrowser = {
             availableDocTypes,
             availableRepresentativeSubtypes,
             ctaText: ctaText ?? 'Insert',
+            ctaTextTransform: ctaTextTransform ?? 'capitalize',
             displayInfo,
             lastLocationMode:
               lastLocationMode !== undefined ? !!lastLocationMode : true,
