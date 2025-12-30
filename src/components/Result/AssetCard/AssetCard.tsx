@@ -97,6 +97,7 @@ const AssetCard: FC<Props> = ({
 
   return (
     <Card
+      data-id={id}
       ref={cardRef}
       className={assetClassNames}
       onClick={() => {
