@@ -1187,7 +1187,6 @@ const FormatDialog: FC<Props> = ({
       type: 'SET_SELECTED_PROXY',
       payload: {
         proxy: format.id,
-        useCustomRendition: true,
       },
     });
 
@@ -1782,6 +1781,10 @@ const FormatDialog: FC<Props> = ({
             <cx-button
               variant="default"
               onClick={() => {
+                /**
+                 * User may have already edited and saved a custom format before (state.useCustomRendition is true).
+                 * In that case, reset states to the previous values (defaultSelectedFormat) instead of empty values.
+                 */
                 if (state.useCustomRendition) {
                   dispatch({
                     type: 'CANCEL_USE_CUSTOM_RENDITION',
@@ -1809,7 +1812,6 @@ const FormatDialog: FC<Props> = ({
                     },
                   });
                 }
-
               }}
             >
               Cancel
