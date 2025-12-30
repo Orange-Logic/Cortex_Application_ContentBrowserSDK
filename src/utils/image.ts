@@ -40,6 +40,13 @@ export const resizeImage = (
         canvas.height = height;
       }
 
+      /**
+       * take device-pixel-ratio into account
+       */
+      const devicePixelRatio = window.devicePixelRatio || 1;
+      canvas.width = canvas.width * devicePixelRatio;
+      canvas.height = canvas.height * devicePixelRatio;
+
       const ctx = canvas.getContext('2d');
       if (ctx) {
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
