@@ -47,6 +47,7 @@ import { Container, Content } from './Home.styled';
 import { FORCE_OVERLAY_THRESHOLD } from '@/components/Browser/Browser.constants';
 import Loader from '@/components/Loader';
 import type { CxResizeEvent, CxResizeObserver } from '@orangelogic-private/design-system';
+import { captureAnchor } from '@/utils/dom';
 
 type Props = {
   multiSelect?: boolean;
@@ -311,6 +312,11 @@ const HomePage: FC<Props> = () => {
   viewRef.current = state.view;
   pageSizeRef.current = state.pageSize;
   const formatDialogTimeoutRef = useRef<number | null>(null);
+  const assetScrollAnchorRef = useRef<{
+    id: string;
+    offset: number;
+  } | null>(null);
+  const assetScrollContainerRef = useRef<HTMLDivElement>(null);
 
   const mappedMediaTypes = useMemo(() => {
     if (state.selectedFacets.Types && state.selectedFacets.Types.length > 0) return state.selectedFacets.Types;
@@ -638,7 +644,6 @@ const HomePage: FC<Props> = () => {
           width: container.clientWidth,
           height: container.clientHeight,
         }, {
-          returnToFirstPage: true,
           force: true,
         });
       }
@@ -724,12 +729,20 @@ const HomePage: FC<Props> = () => {
       return;
     }
 
-    const newScrollTop = (e.target as HTMLElement).scrollTop;
+    assetScrollContainerRef.current = e.target as HTMLDivElement;
 
+    const newScrollTop = (e.target as HTMLElement).scrollTop;
+    
     if (newScrollTop === 0) {
       dispatch({ type: 'SET_HAS_SCROLLED', payload: false });
     } else {
       dispatch({ type: 'SET_HAS_SCROLLED', payload: true });
+    }
+    const anchor = captureAnchor(e.target as HTMLElement, {
+      itemSelector: 'cx-card',
+    });
+    if (anchor) {
+      assetScrollAnchorRef.current = anchor;
     }
   }, []);
 
@@ -1015,6 +1028,7 @@ const HomePage: FC<Props> = () => {
                       onItemSelect={onItemSelect}
                       onLoadMore={onLoadMore}
                       onScroll={onScroll}
+                      scrollAnchor={assetScrollAnchorRef.current}
                       key={
                         state.currentFolder.id +
                         state.searchText +

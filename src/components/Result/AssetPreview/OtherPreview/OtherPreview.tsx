@@ -6,12 +6,14 @@ import { getMediaIcon } from '@/utils/icon';
 import { Container } from './OtherPreview.styled';
 
 type Props = {
+  icon?: string;
   children?: ReactNode;
   type?: MediaType;
   style?: CSSProperties;
 };
 
 const OtherPreview: FC<Props> = ({
+  icon,
   children,
   style,
   type,
@@ -19,7 +21,7 @@ const OtherPreview: FC<Props> = ({
 
   return (
     <Container style={style}>
-      <cx-icon name={getMediaIcon(type)}></cx-icon>
+      <cx-icon name={icon ?? getMediaIcon(type)}></cx-icon>
       {children}
     </Container>
   );

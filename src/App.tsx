@@ -105,11 +105,11 @@ export const App: FC<Props> = ({
       WebFont.load({
         google: {
           families: [
-            'Fira Code',
-            'Fira Mono',
-            'Fira Sans',
-            'Fira Sans Condensed',
-            'Fira Sans Extra Condensed',
+            'Fira Code:400',
+            'Fira Mono:400',
+            'Fira Sans:300,400,600',
+            'Fira Sans Condensed:300,400,600',
+            'Fira Sans Extra Condensed:300,400,600',
           ],
         },
       });

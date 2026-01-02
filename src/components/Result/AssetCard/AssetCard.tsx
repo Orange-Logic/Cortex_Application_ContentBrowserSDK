@@ -63,6 +63,7 @@ const AssetCard: FC<Props> = ({
   const assetClassNames = useMemo(() => {
     const classNames: Record<string, boolean> = {
       'asset-card': true,
+      'asset-card--disabled': asset.inColdStorage,
       selected: isSelected,
       'asset-card--small': view === GridView.Small,
       'asset-card--medium': view === GridView.Medium,
@@ -70,7 +71,7 @@ const AssetCard: FC<Props> = ({
     };
 
     return Object.keys(classNames).filter((key) => classNames[key]).join(' ');
-  }, [isSelected, view]);
+  }, [isSelected, view, asset.inColdStorage]);
 
 
   useEffect(() => {
@@ -96,9 +97,13 @@ const AssetCard: FC<Props> = ({
 
   return (
     <Card
+      data-id={id}
       ref={cardRef}
       className={assetClassNames}
       onClick={() => {
+        if (asset.inColdStorage) {
+          return;
+        }
         onItemSelect(asset);
       }}
     >
@@ -117,7 +122,7 @@ const AssetCard: FC<Props> = ({
       <cx-space spacing="small" align-items="center" wrap="nowrap" className="asset-card__info">
         {displayInfo.title && asset.name ? (
           <LineClamp lines={1} className="asset-card__name">
-            <cx-typography variant="body3">
+            <cx-typography variant="h6">
               {asset.name}
             </cx-typography>
           </LineClamp>

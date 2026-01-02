@@ -56,6 +56,7 @@ const ViewPreview: FC<Props> = ({
       progressBar.value = 0;
       video.currentTime = 0;
       video.pause();
+      video.load();
     };
 
     const onMouseMove = (e: MouseEvent) => {

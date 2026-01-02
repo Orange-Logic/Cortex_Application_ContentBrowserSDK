@@ -26,6 +26,10 @@ type Props = {
   selectedAsset: Asset | null;
   view: GridView;
   width: number;
+  scrollAnchor: {
+    id: string;
+    offset: number;
+  } | null;
   onItemSelect: (selectedAsset: Asset) => void;
   // Callback function responsible for loading the next page of items.
   onLoadMore: () => void;
@@ -43,12 +47,15 @@ export const AssetCardWrapper = forwardRef<HTMLDivElement, Props>(({
   selectedAsset,
   view,
   width,
+  scrollAnchor,
   onItemSelect,
   onLoadMore,
   onScroll,
 }, ref) => {
   const { displayInfo } = useContext(GlobalConfigContext);
   const infiniteScrollRef = useRef<InfiniteScroll>(null);
+  const scrollAnchorRef = useRef(scrollAnchor);
+  scrollAnchorRef.current = scrollAnchor;
   const gutter = useMemo(() => {
     return parseInt(getComputedStyle(document.documentElement).getPropertyValue('--cx-spacing-medium') || '16', 10);
   }, []);
@@ -142,6 +149,30 @@ export const AssetCardWrapper = forwardRef<HTMLDivElement, Props>(({
     onLoadMore,
     onScroll,
   ]);
+
+  useEffect(() => {
+    const scrollableTarget = infiniteScrollRef.current?.getScrollableTarget();
+
+    if (!scrollableTarget) {
+      return;
+    }
+
+    if (scrollAnchorRef.current) {
+      const anchor = document.querySelector(
+        `[data-id="${CSS.escape(scrollAnchorRef.current.id)}"]`,
+      );
+      const containerTop = scrollableTarget.getBoundingClientRect().top;
+      if (anchor) {
+        const anchorTop = anchor.getBoundingClientRect().top;
+        const offset =
+          anchorTop - containerTop - scrollAnchorRef.current.offset;
+        scrollableTarget.scrollTo({
+          top: offset,
+          behavior: 'instant',
+        });
+      }
+    }
+  }, []);
 
   if (isConfigError && isFetched) {
     return (

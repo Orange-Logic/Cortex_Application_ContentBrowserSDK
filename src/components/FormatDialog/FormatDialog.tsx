@@ -19,6 +19,7 @@ import TrackingParameters from './TrackingParameters';
 import VersionHistory from './VersionHistory';
 import { popoverSupported } from '@/utils/browser';
 import LineClamp from '../LineClamp';
+import { getCroppedImageUrl, getRotatedImageUrl, transformImage } from '@/utils/image';
 
 type Props = {
   allowCustomFormat: boolean; // whether to allow custom format
@@ -151,7 +152,9 @@ type Action =
   | { type: 'SET_RESIZE_SIZE'; payload: Partial<State['resizeSize']> }
   | { type: 'SET_ROTATION'; payload: number }
   | { type: 'SET_SELECTED_FORMAT'; payload: Partial<State['selectedFormat']> }
+  | { type: 'SET_DEFAULT_SELECTED_FORMAT'; payload: Partial<State['selectedFormat']> }
   | { type: 'SET_SELECTED_PROXY'; payload: string | { proxy: string; useCustomRendition?: boolean } }
+  | { type: 'SET_DEFAULT_SELECTED_PROXY'; payload: string }
   | { type: 'SET_SHOW_CUSTOM_RENDITION'; payload: boolean }
   | { type: 'SET_SHOW_VERSION_HISTORY'; payload: boolean }
   | { type: 'SET_TRACKING_PARAMETERS'; payload: TrackingParameter[] }
@@ -404,6 +407,14 @@ const reducer = (state: State, action: Action): State => {
           ...action.payload,
         },
       };
+    case 'SET_DEFAULT_SELECTED_FORMAT':
+      return {
+        ...state,
+        defaultSelectedFormat: {
+          ...state.defaultSelectedFormat,
+          ...action.payload,
+        },
+      };
     case 'SET_SELECTED_PROXY':
       if (!action.payload) {
         return {
@@ -428,6 +439,11 @@ const reducer = (state: State, action: Action): State => {
         selectedProxy: action.payload.proxy,
         useCustomRendition: Boolean(action.payload.useCustomRendition),
         useRepresentative: false,
+      };
+    case 'SET_DEFAULT_SELECTED_PROXY':
+      return {
+        ...state,
+        defaultSelectedProxy: action.payload,
       };
     case 'SET_SHOW_CUSTOM_RENDITION':
       return {
@@ -601,17 +617,27 @@ const FormatDialog: FC<Props> = ({
         type: 'SET_SELECTED_PROXY',
         payload: filteredProxies[0]?.id,
       });
+      dispatch({
+        type: 'SET_DEFAULT_SELECTED_PROXY',
+        payload: filteredProxies[0]?.id,
+      });
+
+      const defaultSelectedFormat = {
+        ...initialState.selectedFormat,
+        url: selectedAsset.imageUrl,
+        originalUrl: selectedAsset.originalUrl,
+        extension,
+        width: filteredProxies[0].formatWidth || state.defaultSize.width,
+        height: filteredProxies[0].formatHeight || state.defaultSize.height,
+      };
 
       dispatch({
         type: 'SET_SELECTED_FORMAT',
-        payload: {
-          ...initialState.selectedFormat,
-          url: selectedAsset.imageUrl,
-          originalUrl: selectedAsset.originalUrl,
-          extension,
-          width: filteredProxies[0].formatWidth || state.defaultSize.width,
-          height: filteredProxies[0].formatHeight || state.defaultSize.height,
-        },
+        payload: defaultSelectedFormat,
+      });
+      dispatch({
+        type: 'SET_DEFAULT_SELECTED_FORMAT',
+        payload: defaultSelectedFormat,
       });
     } else {
       dispatch({
@@ -822,6 +848,8 @@ const FormatDialog: FC<Props> = ({
           value: {
             width: newFormatWidth,
             height: newFormatHeight,
+            originalWidth: currentWidth,
+            originalHeight: currentHeight,
           },
         },
       });
@@ -954,6 +982,10 @@ const FormatDialog: FC<Props> = ({
             height: Number(newHeight.toFixed(0)),
             x: newX,
             y: newY,
+            percentageWidth: state.cropSize.percentageWidth,
+            percentageHeight: state.cropSize.percentageHeight,
+            percentageX: state.cropSize.x,
+            percentageY: state.cropSize.y,
           },
         },
       });
@@ -1142,7 +1174,7 @@ const FormatDialog: FC<Props> = ({
     dispatch({ type: 'SET_SHOW_VERSION_HISTORY', payload: true });
   }, []);
   
-  const onFormatChange = useCallback((format: Proxy) => {
+  const onFormatChange = useCallback(async (format: Proxy) => {
     let width = format.formatWidth;
     let height = format.formatHeight;
 
@@ -1155,35 +1187,90 @@ const FormatDialog: FC<Props> = ({
       type: 'SET_SELECTED_PROXY',
       payload: {
         proxy: format.id,
-        useCustomRendition: true,
       },
+    });
+
+    const {
+      rotation,
+      croppedWidth,
+      croppedHeight,
+      percentageWidth,
+      percentageHeight,
+      percentageX,
+      percentageY,
+      effectiveWidth,
+      effectiveHeight,
+    } = transformImage({
+      width,
+      height,
+      transformations: state.transformations,
+    });
+
+    dispatch({
+      type: 'SET_CROP_SIZE',
+      payload: {
+        width: croppedWidth,
+        height: croppedHeight,
+        percentageWidth,
+        percentageHeight,
+        x: percentageX,
+        y: percentageY,
+        unit: Unit.Pixel,
+      },
+    });
+    const croppedImageUrl = await getCroppedImageUrl({
+      cropper: {
+        height: croppedHeight,
+        width: croppedWidth,
+        percentageHeight,
+        percentageWidth,
+        x: percentageX,
+        y: percentageY,
+        unit: Unit.Pixel,
+      },
+      image: {
+        url: selectedAsset?.imageUrl ?? '',
+        width,
+        height,
+      },
+      loadable: state.previewLoadable,
+      onLoadingChange: onLoadingChange,
+      zoom: 1,
+    });
+
+    // Use effective dimensions for final output (accounts for resize steps)
+    // If no resize steps occurred, effectiveWidth/Height will match croppedWidth/Height
+    const { width: newWidth, height: newHeight } = rotateBox(
+      effectiveWidth,
+      effectiveHeight,
+      rotation,
+    );
+
+    const imageUrl = await getRotatedImageUrl({
+      image: {
+        url: croppedImageUrl,
+        width: effectiveWidth,
+        height: effectiveHeight,
+      },
+      loadable: state.previewLoadable,
+      onLoadingChange: onLoadingChange,
+      rotation,
     });
 
     dispatch({
       type: 'SET_SELECTED_FORMAT',
       payload: {
-        url: selectedAsset?.imageUrl,
-        width,
-        height,
+        url: imageUrl,
+        width: newWidth,
+        height: newHeight,
       },
     });
+
     dispatch({
       type: 'SET_RESIZE_SIZE',
       payload: {
-        width,
-        height,
-        unit: Unit.Pixel,
-      },
-    });
-    dispatch({
-      type: 'SET_CROP_SIZE',
-      payload: {
-        width,
-        height,
-        percentageWidth: 100,
-        percentageHeight: 100,
-        x: 0,
-        y: 0,
+        width: newWidth,
+        height: newHeight,
         unit: Unit.Pixel,
       },
     });
@@ -1218,8 +1305,8 @@ const FormatDialog: FC<Props> = ({
       type: 'SET_LAST_RESIZE_SIZE',
       payload: {
         [Unit.Pixel]: {
-          width: width,
-          height: height,
+          width: newWidth,
+          height: newHeight,
           unit: Unit.Pixel,
         },
         [Unit.AspectRatio]: {
@@ -1229,7 +1316,7 @@ const FormatDialog: FC<Props> = ({
         },
       },
     });
-  }, [selectedAsset]);
+  }, [onLoadingChange, selectedAsset, state]);
 
   const onQualityChange = useCallback((quality: number) => {
     dispatch({
@@ -1271,6 +1358,7 @@ const FormatDialog: FC<Props> = ({
       return;
     }
     dispatch({ type: 'SET_SELECTED_PROXY', payload: filteredProxies[0].id });
+    dispatch({ type: 'SET_DEFAULT_SELECTED_PROXY', payload: filteredProxies[0].id });
   }, [filteredProxies, selectedAsset]);
   const renderContent = useCallback(() => {
     const disabledInsert =
@@ -1693,6 +1781,10 @@ const FormatDialog: FC<Props> = ({
             <cx-button
               variant="default"
               onClick={() => {
+                /**
+                 * User may have already edited and saved a custom format before (state.useCustomRendition is true).
+                 * In that case, reset states to the previous values (defaultSelectedFormat) instead of empty values.
+                 */
                 if (state.useCustomRendition) {
                   dispatch({
                     type: 'CANCEL_USE_CUSTOM_RENDITION',
@@ -1720,7 +1812,6 @@ const FormatDialog: FC<Props> = ({
                     },
                   });
                 }
-
               }}
             >
               Cancel
