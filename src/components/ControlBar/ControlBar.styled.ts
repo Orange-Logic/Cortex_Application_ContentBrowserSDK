@@ -1,0 +1,103 @@
+import styled from 'styled-components';
+
+export const Container = styled.div`
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--cx-spacing-small);
+  width: 100%;
+
+  --menu-item-width: min(278px, 100%);
+  --details-width: min(354px, 100%);
+
+  cx-badge {
+    /** offset by medium-sized icon button's padding */
+    translate: calc(50% + var(--cx-spacing-2x-small)) calc(-50% - var(--cx-spacing-2x-small));
+  }
+
+  cx-badge::part(base) {
+    min-width: 0;
+    min-height: 0;
+    height: var(--cx-spacing-medium);
+    width: var(--cx-spacing-medium);
+    font-size: var(--cx-font-size-x-small);
+  }
+
+  cx-input {
+    min-width: 160px;
+    max-width: 300px;
+    flex: 1;
+  }
+
+  cx-menu {
+    width: max-content;
+  }
+
+  cx-menu-item.selected::part(label),
+  cx-menu-item.selected::part(prefix),
+  cx-menu-item.selected::part(suffix) {
+    color: var(--cx-color-primary);
+    font-weight: var(--cx-font-weight-medium);
+  }
+
+  cx-menu-item::part(base) {
+    width: var(--menu-item-width);
+    max-width: 100%;
+  }
+
+  cx-menu-item::part(checked-icon) {
+    display: none;
+  }
+
+  .filter-details {
+    width: var(--details-width);
+    max-width: 100%;
+
+    &::part(base) {
+      border: none;
+      border-bottom: solid 1px var(--cx-color-neutral-200);
+    }
+
+    cx-space {
+      flex-wrap: wrap;
+    }
+
+    cx-tree {
+      width: 100%;
+    }
+
+    cx-tree-item {
+      &::part(item) {
+        padding: var(--cx-spacing-2x-small) 0;
+      }
+
+      &::part(item--selected) {
+        background-color: transparent;
+        color: var(--cx-color-neutral-700);
+      }
+    }
+  }
+
+  .filter-details--empty {
+    &::part(content) {
+      padding: 0;
+    }
+  }
+
+  .filter-details .clear-all-button {
+    margin-top: var(--cx-spacing-small);
+  }
+
+  .menu-item--switch {
+    &::part(label) {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+    }
+
+    &::part(submenu-icon) {
+      display: none;
+    }
+  }
+`;

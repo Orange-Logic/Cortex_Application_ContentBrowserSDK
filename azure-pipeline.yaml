@@ -1,0 +1,106 @@
+trigger:
+  tags:
+    include:
+      - '*.*.*'
+  branches:
+    include:
+      - 'master'
+
+resources:
+  repositories:
+    - repository: infra-templates
+      type: git
+      name: Infra_Pipelines-templates-dev
+      ref: refs/tags/1.0.15
+
+    - repository: gab-extension
+      type: git
+      name: GAB_Browser_Extension
+      ref: main
+
+variables:
+  - group: "Global Vars"
+
+parameters:
+  - name: promoteLatest
+    displayName: Enable promoting to latest
+    type: boolean
+    default: false
+
+stages:
+  - stage: Build
+    dependsOn: []
+    jobs:
+      - job: BuildPackage
+        displayName: 'Build GAB'
+        pool:
+          name: VN Linux
+        steps:
+          - checkout: self
+            clean: true
+            fetchDepth: 0
+            path: s
+
+          - checkout: gab-extension
+            clean: true
+            fetchDepth: 0
+            path: s/gab_extension
+
+          - template: azure-pipelines/common/dotnet/steps-dotnet-setup.yml@infra-templates
+            parameters:
+              dotnetSDKVersion: 9.x
+              useGlobalJson: false
+
+          - template: azure-pipelines/common/steps-printenv.yml@infra-templates
+
+          - template: azure-pipelines/common/steps-gitversion.yml@infra-templates
+
+          - template: azure-pipelines/common/npm/steps-node-setup.yml@infra-templates
+            parameters:
+              versionSpec: 18.x
+
+          - task: replacetokens@6
+            displayName: 'Replace tokens in HTML files'
+            inputs:
+              sources: |
+                **/CBSDKdemo.html
+                **/GAB.html
+              tokenPattern: 'custom'
+              tokenPrefix: '__'
+              tokenSuffix: '__'
+              additionalVariables: |
+                - tag: v$(GitVersion.FullSemVer)
+
+          - template: azure-pipelines/common/npm/steps-npm-package.yml@infra-templates
+            parameters:
+              npmEndpoint: 'OL NPM registry'
+              isCustomNpmEndpoint: true
+              version: '$(GitVersion.FullSemVer)'
+              skipBuild: false
+              skipPublish: true
+
+          - task: Npm@1
+            displayName: 'NPM publish'
+            inputs:
+              command: 'custom'
+              customCommand: 'run publish:library'
+
+          - template: azure-pipelines/common/steps-s3-publish.yml@infra-templates
+            parameters:
+              artifacts:
+                - sourceFolder: 'build'
+                  targetFolder: 'ContentBrowserSDK/v$(GitVersion.FullSemVer)'
+                  contents: OrangeDAMContentBrowserSDK.min.css
+                - sourceFolder: 'build'
+                  targetFolder: 'ContentBrowserSDK/v$(GitVersion.FullSemVer)'
+                  contents: OrangeDAMContentBrowserSDK.min.js
+                - sourceFolder: '.'
+                  targetFolder: 'ContentBrowserSDK/v$(GitVersion.FullSemVer)'
+                  contents: CBSDKdemo.html
+                - ${{ if eq(parameters.promoteLatest, true) }}:
+                  - sourceFolder: '.'
+                    targetFolder: 'ContentBrowserSDK/latest'
+                    contents: CBSDKdemo.html
+                - sourceFolder: 'build'
+                  targetFolder: 'ContentBrowserSDK/v$(GitVersion.FullSemVer)'
+                  contents: index.html

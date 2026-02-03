@@ -1,0 +1,11 @@
+/// <reference types="cypress" />
+
+import NoResult from './NoResult';
+
+describe('NoResult', () => {
+  it('renders NoResult component', () => {
+    cy.mount(<NoResult icon="file" message="No results found" />);
+    cy.get("cx-icon[name='file']").should('exist');
+    cy.get('[data-testid="no-results"]').should('contain', 'No results found');
+  });
+});

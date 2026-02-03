@@ -1,0 +1,96 @@
+# Introduction 
+Orange Logic’s OrangeDAM Content Browser SDK allows authenticated users to browse Orange Logic assets in external web applications. You can use this tool to develop custom integrations between your Orange Logic platform and other software your organization uses.
+
+For example, let’s say your organization’s creative team stores images in Orange Logic. However, the marketing team uses a Content Management System (CMS) to build webpages. You can add the OrangeDAM Content Browser SDK to your CMS so users can search, filter, and select assets directly from Orange Logic, and then use them in your CMS.
+
+# Getting Started
+
+##	Installation process
+
+### Environment Setup
+1. Copy the environment template:
+
+   **Unix/macOS:**
+   ```bash
+   cp .env.example .env.local
+   ```
+
+   **Windows Command Prompt:**
+   ```cmd
+   copy .env.example .env.local
+   ```
+
+   **Windows PowerShell:**
+   ```powershell
+   Copy-Item .env.example .env.local
+   ```
+
+2. Edit `.env.local` with your values:
+   ```bash
+   # Required: Get your Azure DevOps Personal Access Token from:
+   # https://dev.azure.com/orangelogic → User Settings → Personal Access Tokens
+   # Required scopes: Packaging: Read
+   NPM_TOKEN=your_actual_token_here
+   ```
+
+3. Install dependencies (this will load the environment variables automatically):
+
+   **Unix/macOS:**
+   ```bash
+   source .env.local && yarn install
+   ```
+
+   **Windows (Simplest approach):**
+   ```cmd
+   REM Set the environment variable for this session and install
+   set NPM_TOKEN=your_actual_token_here && yarn install
+   ```
+
+   **Alternative Windows approach:**
+
+   *PowerShell:*
+   ```powershell
+   $env:NPM_TOKEN = "your_actual_token_here"; yarn install
+   ```
+   **Note:** `.env.local` is ignored by git (see `.gitignore`) so your tokens won't be committed.
+
+##	Software dependencies
+NodeJS v18 or higher
+
+##	Latest releases
+Content Browser SDK v2.1.0
+
+# Build and Test
+- Run the project with 
+```
+yarn start
+```
+
+- Build with 
+```
+yarn build
+```
+- use the 2 files `build\static\js\ContentBrowserSDK.min.js` and `build\static\css\ContentBrowserSDK.min.css` in your other projects
+
+# More guide
+For detail guides on usage check out the [Orange Logic Developer Portal](https://developer.orangelogic.com/docs/generic-asset-browser)
+
+# Change Log
+* Apr 8, 2025 - v2.1.0
+  * Rename GAB to Content Browser SDK
+  * Revamp the Content Browser SDK's entire UI
+  * Add a new demo page with more explanations on the invoke function's properties
+  * Content Browser SDK now allows you to pick all asset file extensions
+  * Add on-the-fly image transformation functionality
+  * Add tracking link capabilities
+  * More control on the Content Browser's invoke parameters level and Orange DAM administrative level
+* Dec 20, 2024 - v1.2.2
+  * Change Orange DAM to OrangeDAM
+  * GAB in demo will not pre populate with "https://cortexdemo2.orangelogic.com/" any more
+* Nov 08, 2024 - v1.2.1
+  * Resolve CSS conflict with AEM (https://link.orangelogic.com/Tasks/28L9P3)
+* Jul 09, 2024 - v1.2.0
+  * Handle encrypted asset thumbnails (https://link.orangelogic.com/Tasks/4152M3)
+* May 29, 2024 - v1.1.0
+  * Add the ability to select a proxy in the GAB UI
+  * Handle authentication when reopening the GAB

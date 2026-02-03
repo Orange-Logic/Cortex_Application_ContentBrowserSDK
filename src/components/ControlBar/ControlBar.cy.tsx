@@ -1,0 +1,442 @@
+/// <reference types="cypress" />
+
+import { Facet, GridView, SortDirection } from '@/types/search';
+import ControlBar from './ControlBar';
+import { useState } from 'react';
+
+const defaultFiltes = {
+  Types: ['Images'],
+  visibilityClasses: ['Published'],
+  statuses: ['Not started'],
+  extensions: ['.jpg', '.png', '.gif'],
+};
+
+const ControlBarWrapper = () => {
+  const [searchText, setSearchText] = useState('');
+  const onSearchChange = (value: string) => {
+    setSearchText(value);
+  };
+
+  const [isSeeThrough, setIsSeeThrough] = useState(false);
+  const [view, setView] = useState(GridView.Medium);
+  const [appliedFilter, setAppliedFilter] = useState<Record<string, string[]>>(defaultFiltes);
+  const [sortOrder, setSortOrder] = useState('date created');
+  const [sortDirection, setSortDirection] = useState(SortDirection.Descending);
+  const [facets, setFacets] = useState<Facet[] | undefined>([
+    {
+      'facetDetails': {
+        'displayName': 'Types',
+        'facetFieldName': 'Types',
+      },
+      'values': [
+        {
+          'displayValue': 'Images',
+          'value': 'Images',
+          'count': 50,
+        },
+        {
+          'displayValue': 'others',
+          'value': 'others',
+          'count': 9,
+        },
+        {
+          'displayValue': 'videos',
+          'value': 'Videos',
+          'count': 5,
+        },
+        {
+          'displayValue': '3d assets',
+          'value': '3d assets',
+          'count': 4,
+        },
+        {
+          'displayValue': 'audio',
+          'value': 'audio',
+          'count': 3,
+        },
+        {
+          'displayValue': 'image',
+          'value': 'image',
+          'count': 1,
+        },
+        {
+          'displayValue': 'images>>image 1s',
+          'value': 'images>>image 1s',
+          'count': 1,
+        },
+        {
+          'displayValue': 'images>>image 2s',
+          'value': 'images>>image 2s',
+          'count': 1,
+        },
+      ],
+    },
+    {
+      'facetDetails': {
+        'displayName': 'Visibility Classes',
+        'facetFieldName': 'visibilityClasses',
+      },
+      'values': [
+        {
+          'displayValue': 'Published',
+          'value': 'Published',
+          'count': 100,
+        },
+        {
+          'displayValue': 'Draft',
+          'value': 'Draft',
+          'count': 20,
+        },
+      ],
+    },
+    {
+      'facetDetails': {
+        'displayName': 'Statuses',
+        'facetFieldName': 'statuses',
+      },
+      'values': [
+        {
+          'displayValue': 'Not started',
+          'value': 'Not started',
+          'count': 30,
+        },
+        {
+          'displayValue': 'In progress',
+          'value': 'In progress',
+          'count': 25,
+        },
+        {
+          'displayValue': 'completed',
+          'value': 'Completed',
+          'count': 45,
+        },
+        {
+          'displayValue': 'pending',
+          'value': 'Pending',
+          'count': 10,
+        },
+      ],
+    },
+    {
+      'facetDetails': {
+        'displayName': 'Extensions',
+        'facetFieldName': 'extensions',
+      },
+      'values': [
+        {
+          'displayValue': '.jpg',
+          'value': '.jpg',
+          'count': 40,
+        },
+        {
+          'displayValue': '.png',
+          'value': '.png',
+          'count': 30,
+        },
+        {
+          'displayValue': '.gif',
+          'value': '.gif',
+          'count': 10,
+        },
+        {
+          'displayValue': '.jpeg',
+          'value': '.jpeg',
+          'count': 15,
+        },
+      ],
+    },
+  ]);
+
+  const onSettingChange = (
+    setting: string,
+    value: GridView | SortDirection | Record<string, string[]> | string | boolean | string[],
+  ) => {
+    if (setting === 'view') {
+      setView(value as GridView);
+    } else if (setting === 'isSeeThrough') {
+      setIsSeeThrough(value as boolean);
+    } else if (setting === 'filter') {
+      setAppliedFilter(value as Record<string, string[]>);
+    } else if (setting === 'sortOrder') {
+      setSortOrder(value as string);
+    } else if (setting === 'sortDirection') {
+      setSortDirection(value as SortDirection);
+    }
+  };
+
+
+
+  return (
+    <div>
+      <ControlBar
+        availableFacets={[
+          { displayName: 'Types', facetFieldName: 'Types' },
+          { displayName: 'Visibility Classes', facetFieldName: 'visibilityClasses' },
+          { displayName: 'Statuses', facetFieldName: 'statuses' },
+          { displayName: 'Extensions', facetFieldName: 'extensions' },
+        ]}
+        allowSorting={true}
+        currentCount={10}
+        loading={false}
+        facets={facets}
+        isMobile={false}
+        isSeeThrough={isSeeThrough}
+        onSearchChange={onSearchChange}
+        onSettingChange={onSettingChange}
+        searchValue=""
+        selectedFacets={appliedFilter}
+        sortDirection={sortDirection}
+        sortOrder={sortOrder}
+        sortOrders={{
+          relevancy: [
+            {
+              name: 'Relevancy',
+              description:
+                'Uses an algorithm to determine a score for each asset related to the search terms, then sorts these assets from highest to lowest score',
+              id: 'OR4ND000000063444',
+              legacyValue: 'Sort1',
+              sortDirection: 'Mono',
+              sortDirectionGroupKey: '',
+              sortType: 'Manual',
+              sortDirectionDisplayName: '',
+            },
+          ],
+          'editor choice': [
+            {
+              name: 'Editor Choice',
+              description:
+                'Sorts assets based on the Editor’s Rating, from highest to lowest ranking',
+              id: 'OR4ND000000063457',
+              legacyValue: 'Sort2',
+              sortDirection: 'Mono',
+              sortDirectionGroupKey: '',
+              sortType: 'Manual',
+              sortDirectionDisplayName: '',
+            },
+          ],
+          'date created': [
+            {
+              name: 'Newest First',
+              description: "Sorts assets from latest to oldest, based on asset's created date",
+              id: 'OR4ND000000063460',
+              legacyValue: 'Sort3',
+              sortDirection: 'Descending',
+              sortDirectionGroupKey: 'Date Created',
+              sortType: 'Manual',
+              sortDirectionDisplayName: 'Newest First',
+            },
+            {
+              name: 'Oldest First',
+              description: "Sorts assets from oldest to latest, based on asset's created date",
+              id: 'OR4ND000000063464',
+              legacyValue: 'Sort4',
+              sortDirection: 'Ascending',
+              sortDirectionGroupKey: 'Date Created',
+              sortType: 'Manual',
+              sortDirectionDisplayName: 'Oldest First',
+            },
+          ],
+          filename: [
+            {
+              name: 'File name',
+              description:
+                'Displays assets based on the assets Original File Name, alphabetically from A to Z',
+              id: 'OR4ND000000063467',
+              legacyValue: 'Sort5',
+              sortDirection: 'Ascending',
+              sortDirectionGroupKey: 'Filename',
+              sortType: 'Manual',
+              sortDirectionDisplayName: 'A-Z',
+            },
+            {
+              name: 'File name DESC',
+              description:
+                'Displays assets based on the assets Original File Name, alphabetically from Z to A',
+              id: 'OR4ND000000077974',
+              legacyValue: 'Sort9',
+              sortDirection: 'Descending',
+              sortDirectionGroupKey: 'Filename',
+              sortType: 'Manual',
+              sortDirectionDisplayName: 'Z-A',
+            },
+          ],
+          'file size': [
+            {
+              name: 'File size',
+              description: "Sorts assets from smallest to largest, based on asset's file size",
+              id: 'X1YND000000005020',
+              legacyValue: 'Sort6',
+              sortDirection: 'Ascending',
+              sortDirectionGroupKey: 'File Size',
+              sortType: 'Manual',
+              sortDirectionDisplayName: 'Smallest first',
+            },
+            {
+              name: 'File size DESC',
+              description: "Sorts assets from largest to smallest, based on asset's file size",
+              id: 'X1YND000000005034',
+              legacyValue: 'Sort10',
+              sortDirection: 'Descending',
+              sortDirectionGroupKey: 'File Size',
+              sortType: 'Manual',
+              sortDirectionDisplayName: 'Largest first',
+            },
+          ],
+          'date last edited': [
+            {
+              name: 'Last changed',
+              description:
+                'Sorts assets based on the date in which assets were last edited (called Edit Date), from latest to oldest',
+              id: 'OR1ND000001895792',
+              legacyValue: 'Sort7',
+              sortDirection: 'Descending',
+              sortDirectionGroupKey: 'Date Last Edited',
+              sortType: 'Manual',
+              sortDirectionDisplayName: 'Newest First',
+            },
+            {
+              name: 'Last changed ASC',
+              description:
+                'Sorts assets based on the date in which assets were last edited (called Edit Date), from oldest to latest',
+              id: 'X07ND000000000971',
+              legacyValue: 'Sort8',
+              sortDirection: 'Ascending',
+              sortDirectionGroupKey: 'Date Last Edited',
+              sortType: 'Manual',
+              sortDirectionDisplayName: 'Oldest First',
+            },
+          ],
+          'most popular': [
+            {
+              name: 'Most Popular',
+              description:
+                'Sorts assets by how often assets have been downloaded, from the most downloaded asset to the least',
+              id: 'X0END000000013511',
+              legacyValue: 'Sort11',
+              sortDirection: 'Mono',
+              sortDirectionGroupKey: '',
+              sortType: 'Manual',
+              sortDirectionDisplayName: '',
+            },
+          ],
+        }}
+        totalCount={200}
+        view={view}
+      />
+      {searchText && <span data-cy="search-text">{searchText}</span>}
+      <span data-cy="isSeeThrough">{isSeeThrough ? 'See Through On' : 'See Through Off'}</span>
+      <span data-cy="view">{view}</span>
+      <button data-cy="reset-facet" onClick={() => {
+        setFacets(undefined);
+      }}>Reset facet</button>
+    </div>
+  );
+};
+
+describe('ControlBar', () => {
+  beforeEach(() => {
+    cy.mount(<ControlBarWrapper />);
+    cy.waitForCustomElement('cx-space');
+    cy.waitForCustomElement('cx-input');
+    cy.waitForCustomElement('cx-dropdown');
+    cy.waitForCustomElement('cx-tag');
+    cy.waitForCustomElement('cx-icon-button');
+  });
+
+  it('renders ControlBar component', () => {
+    cy.get('cx-space').should('exist');
+  });
+
+  it('calls onSearchChange when search input changes', () => {
+    cy.get('cx-input').shadow().find('input').type('test search');
+    cy.get('cx-input').shadow().find('input').blur(); // Trigger blur event to simulate losing focus
+    cy.get('[data-cy="search-text"]').should('contain', 'test search');
+  });
+
+  it('changes isSeeThrough state when checkbox is clicked', () => {
+    cy.get('cx-icon-button[data-cy="view-button"]').click();
+    cy.get('cx-switch').click();
+    cy.get('[data-cy="isSeeThrough"]').should('contain', 'See Through On');
+  });
+
+  it('removes filter when the close icon is clicked', () => {
+    cy.get('[data-cy="filter-button"]').click();
+    cy.get('[data-cy="applied-filters"]').should('exist');
+    cy.get('[data-cy="applied-filters"] cx-tag').eq(0).shadow().find('cx-icon-button[name="close"]').click();
+    cy.get('[data-cy="applied-filters"]').find('cx-tag').contains('image').should('not.exist');
+  });
+
+  it('removes Published filter when the close icon is clicked', () => {
+    cy.get('[data-cy="filter-button"]').click();
+    cy.get('[data-cy="applied-filters"] cx-tag').eq(1).shadow().find('cx-icon-button[name="close"]').click();
+    cy.get('[data-cy="applied-filters"]').find('cx-tag').contains('Published').should('not.exist');
+  });
+
+  it('removes Not started filter when the close icon is clicked', () => {
+    cy.get('[data-cy="filter-button"]').click();
+    cy.get('[data-cy="applied-filters"] cx-tag').eq(2).shadow().find('cx-icon-button[name="close"]').click();
+    cy.get('[data-cy="applied-filters"]').find('cx-tag').contains('Not started').should('not.exist');
+  });
+
+  it('removes JPG filter when the close icon is clicked', () => {
+    cy.get('[data-cy="filter-button"]').click();
+    cy.get('[data-cy="applied-filters"] cx-tag').eq(3).shadow().find('cx-icon-button[name="close"]').click();
+    cy.get('[data-cy="applied-filters"]').find('cx-tag').contains('.jpg').should('not.exist');
+  });
+
+  it('removes Images filter when unchecked', () => {
+    cy.get('[data-cy="filter-button"]').click();
+    cy.get('cx-tree-item[data-value="Images"]').click();
+    cy.get('[data-cy="applied-filters"]').find('cx-tag').contains('images').should('not.exist');
+  });
+
+  it('adds Videos filter when checked', () => {
+    cy.get('[data-cy="filter-button"]').click();
+    cy.get('cx-tree-item[data-value="Videos"]').click();
+    cy.get('[data-cy="applied-filters"]').find('cx-tag').contains('videos').should('exist');
+  });
+
+  it('adds Pending filter when checked', () => {
+    cy.get('[data-cy="filter-button"]').click();
+    cy.get('cx-tree-item[data-value="Pending"]').click();
+    cy.get('[data-cy="applied-filters"]').find('cx-tag').contains('pending').should('exist');
+  });
+
+  it('adds .jpeg filter when checked', () => {
+    cy.get('[data-cy="filter-button"]').click();
+    cy.get('cx-tree-item[data-value=".jpeg"]').click();
+    cy.get('[data-cy="applied-filters"]').find('cx-tag').contains('.jpeg').should('exist');
+  });
+
+  it('adds Completed filter when checked', () => {
+    cy.get('[data-cy="filter-button"]').click();
+    cy.get('cx-tree-item[data-value="Completed"]').click();
+    cy.get('[data-cy="applied-filters"]').find('cx-tag').contains('completed').should('exist');
+  });
+
+  it('selects sort order when sort order menu item is clicked', () => {
+    cy.get('[data-cy="sort-button"]').click();
+    cy.get('cx-menu-item[data-type="sort-order"]').eq(0).click();
+    cy.get('cx-menu-item[data-type="sort-order"]').eq(0).should('have.class', 'selected');
+  });
+
+  it('selects sort direction when sort direction menu item is clicked', () => {
+    cy.get('[data-cy="sort-button"]').click();
+    cy.get('cx-menu-item[data-type="sort-direction"]').eq(0).click();
+    cy.get('cx-menu-item[data-type="sort-direction"]').eq(0).should('have.class', 'selected');
+  });
+
+  it('applies --empty class when no filters are applied', () => {
+    cy.get('[data-cy="filter-button"]').click();
+    cy.get('cx-button.clear-all-button').click();
+    cy.get('cx-details').should('have.class', 'filter-details--empty');
+  });
+
+  it('does not show any facets when facets is empty', () => {
+    cy.get('[data-cy="filter-button"]').click();
+    cy.get('cx-button.clear-all-button').click();
+    cy.get('button[data-cy="reset-facet"]').click();
+    cy.get('[data-cy="filter-button"]').click();
+    cy.get('cx-tree-item').should('not.exist');
+  });
+});
