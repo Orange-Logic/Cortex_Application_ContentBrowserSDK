@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import ProxyMenu from './ProxyMenu';
-import type { CxSelectEvent } from '@orangelogic-private/design-system';
+import type { CxSelectEvent } from '@orangelogic/design-system';
 
 const ProxyWrapper = () => {
   const [selectedItem, setSelectedItem] = useState('png');

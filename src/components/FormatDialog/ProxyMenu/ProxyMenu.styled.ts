@@ -1,4 +1,4 @@
-import type { CxMenuProps } from '@orangelogic-private/design-system/react-types';
+import type { CxMenuProps } from '@orangelogic/design-system/react-types';
 import styled from 'styled-components';
 
 export const Container = styled('cx-menu')<CxMenuProps>`

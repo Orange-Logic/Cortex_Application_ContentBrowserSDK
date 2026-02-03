@@ -62,14 +62,12 @@ export const Container = styled.div`
     overflow: hidden;
   }
 
-  .version__item__preview--horizontal > img,
-  .version__item__preview--horizontal > video {
+  .version__item__preview--horizontal > img {
     width: 100%;
     height: auto;
   }
 
-  .version__item__preview--vertical > img,
-  .version__item__preview--vertical > video {
+  .version__item__preview--vertical > img {
     width: auto;
     height: 100%;
   }
@@ -80,6 +78,15 @@ export const Container = styled.div`
     max-height: 100%;
     object-fit: cover;
     border-radius: 6px;
+  }
+
+  .version__item__preview > cx-video::part(base) {
+    border-radius: 6px;
+  }
+
+  .version__item__preview > cx-video {
+    --video-font-size: 8px;
+    --video-background-color: var(--cx-color-neutral-1000);
   }
 
   .version__item__name::part(base) {

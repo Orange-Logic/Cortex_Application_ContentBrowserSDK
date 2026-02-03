@@ -4,6 +4,7 @@ import { Container } from './VersionHistory.styled';
 import { skipToken } from '@reduxjs/toolkit/query';
 import { useGetVersionHistoryQuery } from '@/store/assets/assets.api';
 import LineClamp from '@/components/LineClamp';
+import { CxVideo } from '@orangelogic/design-system';
 
 type Props = {
   assetId?: string;
@@ -41,7 +42,7 @@ const VersionVideo: FC<{
 }> = ({ src }) => {
   const [assetDirection, setAssetDirection] = useState<'vertical' | 'horizontal'>('horizontal');
 
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const videoRef = useRef<CxVideo>(null);
 
   const onLoadAsset = useCallback(() => {
     if (videoRef.current) {
@@ -52,13 +53,16 @@ const VersionVideo: FC<{
 
   return (
     <div className={`version__item__preview version__item__preview--${assetDirection}`}>
-      <video
+      <cx-video
         ref={videoRef}
         src={src}
         onLoadedMetadata={onLoadAsset}
-        controls
+        show-controls
+        disable-volume-panel
+        disable-picture-in-picture
+        disable-remote-playback
       >
-      </video>
+      </cx-video>
     </div>
   );
 };

@@ -1,6 +1,6 @@
 import styled from 'styled-components';
 
-import type { CxSpaceProps } from '@orangelogic-private/design-system/react-types';
+import type { CxSpaceProps } from '@orangelogic/design-system/react-types';
 
 export const Container = styled('cx-space')<CxSpaceProps & { bordered?: boolean }>`
   border-bottom: ${({ bordered }) => (bordered ? '1px solid var(--cx-color-neutral-300)' : 'none')};

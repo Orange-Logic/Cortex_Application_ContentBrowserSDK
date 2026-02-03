@@ -3,7 +3,7 @@ import { FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useGetFoldersQuery } from '@/store/search/search.api';
 import { Folder } from '@/types/search';
 
-import type { CxCollapseEvent, CxTreeItem } from '@orangelogic-private/design-system';
+import type { CxCollapseEvent, CxTreeItem } from '@orangelogic/design-system';
 import { FOLDER_PAGE_SIZE } from '@/utils/constants';
 import LoadMoreButton from './LoadMoreButton';
 import LineClamp from '../LineClamp';

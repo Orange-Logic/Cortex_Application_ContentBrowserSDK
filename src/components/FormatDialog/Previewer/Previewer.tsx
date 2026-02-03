@@ -64,19 +64,13 @@ const Previewer: FC<Props> = ({
 
     if (asset.docType === MediaType.Video && asset.videoUrl) {
       return (
-        <video
+        <cx-video
           src={asset.videoUrl}
-          controls
-          controlsList="nodownload noremoteplayback noplaybackrate"
-          disablePictureInPicture
-          disableRemotePlayback
-          style={{
-            maxWidth: '100%',
-            maxHeight: '100%',
-            objectFit: 'contain',
-            width: assetDirection === 'horizontal' ? '100%' : 'auto',
-            height: assetDirection === 'vertical' ? '100%' : 'auto',
-          }}
+          show-controls
+          disable-picture-in-picture
+          disable-remote-playback
+          height="100%"
+          width="100%"
           onLoadedMetadata={(e) => {
             setIsLoading(false);
             onLoadAsset({
@@ -89,7 +83,7 @@ const Previewer: FC<Props> = ({
             setIsLoadFailed(true);
           }}
         >
-        </video>
+        </cx-video>
       );
     }
 

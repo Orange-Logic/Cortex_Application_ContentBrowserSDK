@@ -1,4 +1,4 @@
-import type { CxDialogProps, CxDrawerProps } from '@orangelogic-private/design-system/react-types';
+import type { CxDialogProps, CxDrawerProps } from '@orangelogic/design-system/react-types';
 import styled from 'styled-components';
 
 export const Dialog = styled('cx-dialog')<CxDialogProps>`

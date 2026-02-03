@@ -16,7 +16,7 @@ import type {
   CxSelectionChangeEvent,
   CxTree,
   CxTreeItem,
-} from '@orangelogic-private/design-system';
+} from '@orangelogic/design-system';
 import { skipToken } from '@reduxjs/toolkit/query';
 
 import { Drawer } from './Browser.styled';

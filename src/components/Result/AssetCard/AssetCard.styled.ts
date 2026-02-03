@@ -1,7 +1,7 @@
 import styled from 'styled-components';
 
 import { ASSET_SIZE } from '@/consts/asset';
-import type { CxCardProps } from '@orangelogic-private/design-system/react-types';
+import type { CxCardProps } from '@orangelogic/design-system/react-types';
 import { GridView } from '@/types/search';
 
 export const Card = styled('cx-card')<CxCardProps>`
