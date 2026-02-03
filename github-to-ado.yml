@@ -1,0 +1,28 @@
+trigger:
+  branches:
+    include:
+      - main
+      - releases/*
+  tags:
+    include:
+      - '*'
+pool:
+  name: 'VN Linux'
+resources:
+  repositories:
+    - repository: infra-templates
+      type: git
+      name: Sync_template
+      ref: refs/heads/main
+variables:
+  - group: AZDO_Credentials
+lockBehavior: sequential
+stages:
+  - stage: Sync_Github_to_ADO
+    jobs:
+      - job: Sync
+        steps:
+          - template: github-to-ado.yaml@infra-templates
+            parameters:
+              GITHUB_REPO: "Orange-Logic/Cortex_Application_ContentBrowserSDK.git"
+              REPO_NAME: "Cortex_Application_ContentBrowserSDK"
