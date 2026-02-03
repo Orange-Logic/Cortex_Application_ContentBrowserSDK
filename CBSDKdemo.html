@@ -1,0 +1,511 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" />
+
+  <script src="https://downloads.orangelogic.com/ContentBrowserSDK/__tag__/OrangeDAMContentBrowserSDK.min.js"></script>
+  <link rel="stylesheet" type="text/css"
+    href="https://downloads.orangelogic.com/ContentBrowserSDK/__tag__/OrangeDAMContentBrowserSDK.min.css">
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      color: var(--cx-color-neutral);
+      font-family: 'Roboto', sans-serif;
+      padding: 1rem;
+    }
+
+    p {
+      margin: 0;
+    }
+
+    #app {
+      display: flex;
+      gap: 0.5em;
+      height: 800px;
+    }
+
+    #asset-browser-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #asset-browser-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    #react-app-root {
+      flex: 1;
+      border: 2px solid var(--cx-color-neutral);
+      border-radius: var(--cx-border-radius-small);
+    }
+
+    #more {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      min-width: 400px;
+      height: 100%;
+    }
+
+    .wrapper {
+      display: flex;
+      flex-direction: column;
+      flex-basis: 50%;
+    }
+
+    .wrapper button {
+      border: none;
+      cursor: pointer;
+      margin-top: var(--cx-spacing-small);
+      padding: var(--cx-spacing-x-small) var(--cx-spacing-medium);
+      letter-spacing: 0.05em;
+      width: 100%;
+    }
+
+    #config,
+    #output {
+      border: 2px solid var(--cx-color-neutral);
+      border-radius: var(--cx-border-radius-small);
+      padding: var(--cx-spacing-small);
+      position: relative;
+      flex: 1;
+    }
+
+    #content {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      overflow-y: auto;
+      white-space: pre;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="app">
+    <div id="asset-browser-container">
+      <div id="asset-browser-header">
+        <span>Orange Logic Content Browser SDK</span>
+        <div>
+          <input type="checkbox" id="mobile">
+          <label for="mobile">Mobile</label>
+        </div>
+      </div>
+      <div id="react-app-root"></div>
+    </div>
+    <div id="more">
+      <div class="wrapper">
+        <span>Config</span>
+        <div id="config">
+          <div id="content" contenteditable></div>
+        </div>
+        <button onclick="loadConfig()">Load config</button>
+      </div>
+      <div class="wrapper">
+        <span>Output</span>
+        <textarea id="output"></textarea>
+      </div>
+    </div>
+  </div>
+  <div>
+    <h3>Properties</h3>
+    <details>
+      <summary>Callbacks</summary>
+      <div style="display: grid; grid-template-columns: 1fr 1fr;">
+        <ul>
+          <li>
+            <b>onAssetSelected</b>
+            <p>
+              A function that will be called when an asset is selected. The function will receive an array of selected
+              assets.
+            </p>
+          </li>
+          <li>
+            <b>onAppAuthUrlCopied</b>
+            <p>
+              An async function that will be called when the app auth URL is copied. The function will receive the app auth URL as a parameter. This is useful for customizing the copy behavior.
+            </p>
+          </li>
+          <li>
+            <b>onImageSelected</b> (deprecated)
+            <p>
+              A function that will be called when an image is selected. This is deprecated, use onAssetSelected instead.
+            </p>
+          </li>
+          <li>
+            <b>onError</b>
+            <p>
+              A function that will be called when an error occurs. The function will receive an error message and the
+              error object.
+            </p>
+          </li>
+          <li>
+            <b>onClose</b>
+            <p>
+              A function that will be called when the content browser is closed.
+            </p>
+          </li>
+          <li>
+            <b>onRequestToken</b>
+            <p>
+              A function that will be called when a token is needed. Should return a Promise that resolves to an object
+              containing:
+            </p>
+            <ul>
+              <li><b>token</b> (required): The authentication token string</li>
+              <li><b>siteUrl</b> (optional): The site URL to use with the token</li>
+            </ul>
+            <p>
+              This function is called:
+            <ul>
+              <li>During initial authentication when the SDK is opened</li>
+              <li>When the current token expires (401 error)</li>
+              <li>Before making API calls that require authentication</li>
+            </ul>
+            </p>
+            <p>
+              <small>Note: When this callback is provided, the SDK uses Bearer token authentication headers instead of
+                query parameters.</small>
+            </p>
+          </li>
+        </ul>
+        <ul>
+          <li>
+            <b>onAssetAction</b>
+            <p>
+              A function that will be called when an action is performed on an asset.
+            </p>
+          </li>
+          <li>
+            <b>onConnectClicked</b>
+            <p>
+              A function that will be called when the Connect button is clicked.
+            </p>
+          </li>
+          <li>
+            <b>onSiteUrlChanged</b>
+            <p>
+              A function that will be called when the site URL is changed, useful for invalidating browser cache when
+              change sites.
+            </p>
+          </li>
+          <li>
+            <b>onTokenChanged</b>
+            <p>
+              A function that will be called whenever the authentication token is updated. Receives the new access token
+              as a parameter.
+              This is useful for keeping external integrations synchronized with the SDK's authentication state.
+            </p>
+            <p>
+              This callback is triggered when:
+            <ul>
+              <li>Initial authentication is successful</li>
+              <li>Token is refreshed after expiration</li>
+              <li>User logs in with new credentials</li>
+            </ul>
+            </p>
+          </li>
+          <li>
+            <b>customStorage</b>
+            <p>
+              An object that provides custom storage implementation for the SDK. This allows integrations to control how the SDK stores and retrieves persistent data.
+            </p>
+            <p>
+              The customStorage object must implement the following interface:
+            </p>
+            <ul>
+              <li><b>get(key: string): Promise&lt;string | null&gt;</b> - Retrieve data from storage by key</li>
+              <li><b>set(key: string, value: string, ttl?: number): void</b> - Store data with the given key, with optional TTL (time-to-live) in seconds</li>
+              <li><b>delete(key: string): void</b> - Remove data from storage by key</li>
+            </ul>
+            <p>
+              Example implementation:
+            </p>
+            <pre>
+customStorage: {
+  get: async (key) => localStorage.getItem(key),
+  set: (key, value) => localStorage.setItem(key, value),
+  delete: (key) => localStorage.removeItem(key)
+}
+            </pre>
+            <p>
+              <small>Note: If not provided or missing one of the action, the SDK will use its default storage mechanism.</small>
+            </p>
+          </li>
+        </ul>
+      </div>
+    </details>
+    <details>
+      <summary>Setup Configurations</summary>
+      <div style="display: grid; grid-template-columns: 1fr 1fr;">
+        <ul>
+          <li>
+            <b>publicApplicationName</b> (default blank)
+            <p>
+              The public name of the DAM to display in the login screen.
+            </p>
+          </li>
+          <li>
+            <b>pluginName</b> (default "Orange Logic Content Browser")
+            <p>
+              The name of the plugin to display in the login screen.
+            </p>
+          </li>
+          <li>
+            <b>containerId</b>
+            <p>
+              The id of the container element to attach the content browser. If not provided, the content browser will
+              open in a popup.
+            </p>
+          </li>
+          <li>
+            <b>baseUrl</b>
+            <p>
+              The default base URL to pre-fill in the content browser.
+            </p>
+          </li>
+          <li>
+            <b>displayInfo</b>
+            <p>
+              An object to configure the display of the asset information. The object has the following properties:
+            </p>
+            <ul>
+              <li>title (default true)</li>
+              <li>dimension (default true)</li>
+              <li>fileSize (default false)</li>
+              <li>tags (default false)</li>
+            </ul>
+          </li>
+          <li>
+            <b>extraFields</b>
+            <p>
+              An array of extra fields to get from the assets. The fields are in the format of "coreField.FieldName" or
+              "document.FieldName".
+            </p>
+          </li>
+          <li>
+            <b>ctaText</b> (default "Insert")
+            <p>
+              The text to display on the insert button.
+            </p>
+          </li>
+          <li>
+            <b>availableDocTypes</b>
+            <p>
+            <p>An array of Orange Logic asset types used to filter the displayed assets. If not provided, all asset types will be shown.</p>
+            <p>Currently, supported types include:</p>
+            <ul>
+              <li>DO_DOCUMENTS.Image_DbBO.*</li>
+              <li>DO_DOCUMENTS.Audio_DbBO.*</li>
+              <li>DO_DOCUMENTS.Multimedia_DbBO.*</li>
+              <li>DO_DOCUMENTS.Video_DbBO.*</li>
+            </ul>
+            </p>
+            <p>
+              <small>
+                Note: Asset type names are case-sensitive.
+              </small>
+            </p>
+          </li>
+          <li>
+            <b>availableRepresentativeSubtypes</b>
+            <p>
+            <p>An array of supported Orange Logic subtypes to allow inserting representative image. If not provided, all
+              subtypes will be supported.</p>
+            <span>E.g. Standard Image, Standard Video, Standard Audio, Other,...</span>
+            </p>
+            <p>
+              <small>
+                Note: The subtypes are case-sensitive.
+              </small>
+            </p>
+          </li>
+          <li>
+            <b>defaultGridView</b>
+            <p>
+              The default grid view when showing assets (default medium).
+              Available value: small, medium, large
+            </p>
+          </li>
+        </ul>
+        <ul>
+
+          <li>
+            <b>lastLocationMode</b> (default true)
+            <p>
+              A boolean to enable the last location mode. When enabled, the content browser opens the last selected
+              folder on load.
+            </p>
+          </li>
+          <li>
+            <b>persistMode</b> (default false)
+            <p>
+              A boolean to enable the persist mode. When enabled, the content browser will not close after selecting an
+              asset.
+            </p>
+          </li>
+          <li>
+            <b>allowTracking</b> (default true)
+            <p>
+              A boolean to enable tracking. When enabled, tracking parameters will be added to asset URLs.
+            </p>
+          </li>
+          <li>
+            <b>allowProxy</b> (default true)
+            <p>
+              A boolean to allow the user to select proxy images.
+            </p>
+          </li>
+          <li>
+            <b>allowFavorites</b> (default false)
+            <p>
+              A boolean to allow the user to select favorites.
+            </p>
+          </li>
+          <li>
+            <b>allowPin</b> (default false)
+            <p>
+              A boolean to allow the user to pin the browser.
+            </p>
+          </li>
+          <li>
+            <b>allowLogout</b> (default true)
+            <p>
+              A boolean to allow the user to logout from the content browser. When disabled, the user will not be able
+              to logout from the content browser.
+            </p>
+          </li>
+          <li>
+            <b>allowedFolders</b>
+            <p>
+              An array of allowed folder RecordIDs to be selected. If not provided, all folders will be allowed.
+            </p>
+          </li>
+          <li>
+            <b>allowedExtensions</b>
+            <p>
+            <p>An array of allowed file extensions to be selected. This will affect the list of available proxies and
+              list of output extension to be selected of the custom format. If none are specified, it will allow all
+              available file extensions. </p>
+            <p>Example list format: ['jpg', 'png', 'gif', 'mp4', 'webm']</p>
+            <small> Note: This will not affect or filter the search results.</small>
+            </p>
+          </li>
+          <li>
+            <b>showCollections</b> (default false)
+            <p>
+              A boolean to show collections in the content browser.
+            </p>
+          </li>
+          <li>
+            <b>showFavoriteFolder</b> (default false)
+            <p>
+              A boolean to show the favorite folder in the content browser.
+            </p>
+          </li>
+          <li>
+            <b>showVersions</b> (default false)
+            <p>
+              A boolean to show asset versions in the content browser.
+            </p>
+          </li>
+          <li>
+            <b>loadExternalFonts</b> (default true)
+            <p>
+              A boolean to toggle between loading external fonts from direct links and from internal CSS file.
+            </p>
+          </li>
+          <li>
+            <b>useSession</b>
+            <p>
+              The session id to use for the content browser. Try logging out and in whenever you change the session.
+            </p>
+          </li>
+        </ul>
+      </div>
+    </details>
+  </div>
+
+  <script>
+    function loadDefaultConfig() {
+      const config = {
+        onAssetSelected: (assets) => {
+          document.getElementById('output').value = JSON.stringify(assets, undefined, 2);
+          window.open(assets[0].imageUrl, '_blank');
+        },
+        onAppAuthUrlCopied: async (url) => {
+          await navigator.clipboard.writeText(url);
+        },
+        onError: (errorMessage, error) => {
+        },
+        availableDocTypes: ['DO_DOCUMENTS.Image_DbBO.*', 'DO_DOCUMENTS.Audio_DbBO.*', 'DO_DOCUMENTS.Multimedia_DbBO.*', 'DO_DOCUMENTS.Video_DbBO.*'],
+        availableRepresentativeSubtypes: ['Other'],
+        // container element to attach, leave blank to open popup 
+        containerId: 'react-app-root',
+        ctaText: 'Open in new tab',
+        // extra asset fields to get
+        extraFields: ['coreField.OriginalFileName', 'document.CortexPath'],
+        // default base url to pre-filled
+        baseUrl: 'https://qa-latest.orangelogic.com',
+        displayInfo: {
+          title: true,
+          dimension: true,
+          fileSize: false,
+          tags: false,
+        },
+        lastLocationMode: true,
+        persistMode: true,
+        publicApplicationName: "",
+        pluginName: "Orange Logic Content Browser",
+        showCollections: true,
+        allowTracking: true,
+        allowPin: true,
+        useSession: '',
+      };
+      document.getElementById("content").innerHTML = JSON.stringify(config, function (key, value) {
+        if (typeof value === "function") {
+          return value.toString().replace(/\n/g, "<br/>");
+        }
+        return value;
+      }, 4).replace(/\n/g, "<br/>");
+    }
+    function loadConfig() {
+      const value = document.getElementById("content").textContent;
+      const config = JSON.parse(value.replace(/<br>/g, ""), function (key, value) {
+        if (typeof value === "string" && (key === "onAssetSelected" || key === "onError" || key === "onAppAuthUrlCopied")) {
+          return new Function("return " + value)();
+        }
+        return value;
+      });
+      OrangeDAMContentBrowser.close();
+      OrangeDAMContentBrowser.open(config);
+    }
+    window.onload = function () {
+      loadDefaultConfig();
+
+      document.getElementById('mobile').addEventListener('change', function () {
+        const checked = this.checked;
+        const container = document.getElementById('react-app-root');
+        if (checked) {
+          container.style.maxWidth = '400px';
+        } else {
+          container.style.maxWidth = 'none';
+        }
+      });
+    };
+  </script>
+</body>
+
+</html>
