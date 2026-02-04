@@ -2008,10 +2008,10 @@
   dependencies:
     "@octokit/openapi-types" "^24.2.0"
 
-"@orangelogic/design-system@2.24.0":
-  version "2.24.0"
-  resolved "https://registry.yarnpkg.com/@orangelogic/design-system/-/design-system-2.24.0.tgz#110a0da8fc76da194b685bd95bfca9ce47cf0650"
-  integrity sha512-s0/FFpEM7Dyxf+oOFANFcz+0/dCOXGlvyWGAX3WmNklOxVl67lClZwyD6hkcvGOah6qi8OiHTAsV2CFH6aGJCQ==
+"@orangelogic/design-system@2.26.0":
+  version "2.26.0"
+  resolved "https://registry.yarnpkg.com/@orangelogic/design-system/-/design-system-2.26.0.tgz#b73b1219201f2ce0bfe3080383259463f43bf1d7"
+  integrity sha512-kY4cjKMaQIIFSSr6cKU/VSg9NEX8EXqkjhz8dBdzAdMpoJ27rSoaVdxG+ClhGCr2OBmMlVMycdg3LNcynvb7WQ==
 
 "@pkgjs/parseargs@^0.11.0":
   version "0.11.0"
