@@ -1,6 +1,6 @@
 import { FC, useCallback, useEffect, useRef, useState } from 'react';
 
-import type { CxProgressBar } from '@orangelogic-private/design-system';
+import type { CxProgressBar } from '@orangelogic/design-system';
 
 type Props = {
   url: string;

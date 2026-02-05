@@ -1,8 +1,8 @@
 import { forwardRef, useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
 
-import type { CxLineClamp } from '@orangelogic-private/design-system';
-import type { CxLineClampProps } from '@orangelogic-private/design-system/react-types';
+import type { CxLineClamp } from '@orangelogic/design-system';
+import type { CxLineClampProps } from '@orangelogic/design-system/react-types';
 import mergeRefs from '@/utils/mergeRefs';
 
 const StyledCxLineClamp = styled('cx-line-clamp')<CxLineClampProps>`

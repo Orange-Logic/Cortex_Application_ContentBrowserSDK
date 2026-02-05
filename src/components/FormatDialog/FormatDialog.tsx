@@ -8,7 +8,7 @@ import { TrackingParameter, Transformation, TransformationAction, Unit } from '@
 import { Asset, AssetLinkInfo, AssetTransformationInfo, MediaType, Proxy } from '@/types/search';
 import { convertPixelsToAspectRatio } from '@/utils/number';
 import { rotateBox } from '@/utils/rotate';
-import type { CxDialog, CxDrawer, CxMenuItem, CxRequestCloseEvent, CxSelectEvent } from '@orangelogic-private/design-system';
+import type { CxDialog, CxDrawer, CxMenuItem, CxRequestCloseEvent, CxSelectEvent } from '@orangelogic/design-system';
 
 import CropPreviewer, { CropPreviewerHandle } from './CropPreviewer';
 import CustomRendition from './CustomRendition';

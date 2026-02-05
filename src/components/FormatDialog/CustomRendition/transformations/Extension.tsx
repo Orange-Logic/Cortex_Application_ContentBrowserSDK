@@ -1,4 +1,4 @@
-import type { CxSelect, CxChangeEvent } from '@orangelogic-private/design-system';
+import type { CxSelect, CxChangeEvent } from '@orangelogic/design-system';
 import { useState, useRef, useEffect, FC } from 'react';
 
 type Props = { 

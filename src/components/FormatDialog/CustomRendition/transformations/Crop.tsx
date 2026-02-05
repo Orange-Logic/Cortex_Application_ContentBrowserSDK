@@ -3,7 +3,7 @@ import { FC, FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 
 import { Unit } from '@/types/assets';
 import { calculateAspectRatioFit } from '@/utils/image';
-import type { CxChangeEvent, CxInput, CxSelect } from '@orangelogic-private/design-system';
+import type { CxChangeEvent, CxInput, CxSelect } from '@orangelogic/design-system';
 
 import { cropModes, INPUT_DEBOUNCE_DELAY } from '../CustomRendition.constants';
 type Props = {
