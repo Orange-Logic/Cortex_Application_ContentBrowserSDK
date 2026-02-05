@@ -36,7 +36,7 @@ For example, let’s say your organization’s creative team stores images in Or
 NodeJS v18 or higher
 
 ##	Latest releases
-Content Browser SDK v2.1.0
+Content Browser SDK v2.2.0
 
 # Build and Test
 - Run the project with 
