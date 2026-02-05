@@ -11,7 +11,7 @@ import type {
   CxSelectEvent,
   CxSelectionChangeEvent,
   CxTreeItem,
-} from '@orangelogic-private/design-system';
+} from '@orangelogic/design-system';
 
 import { sortDirections, views } from './ControlBar.constants';
 import { Container } from './ControlBar.styled';

@@ -46,7 +46,7 @@ import { Container, Content } from './Home.styled';
 
 import { FORCE_OVERLAY_THRESHOLD } from '@/components/Browser/Browser.constants';
 import Loader from '@/components/Loader';
-import type { CxResizeEvent, CxResizeObserver } from '@orangelogic-private/design-system';
+import type { CxResizeEvent, CxResizeObserver } from '@orangelogic/design-system';
 import { captureAnchor } from '@/utils/dom';
 
 type Props = {

@@ -2,7 +2,7 @@ import _debounce from 'lodash-es/debounce';
 import { FC, FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 
 import { Unit } from '@/types/assets';
-import type { CxChangeEvent, CxInput, CxSelect } from '@orangelogic-private/design-system';
+import type { CxChangeEvent, CxInput, CxSelect } from '@orangelogic/design-system';
 import { INPUT_DEBOUNCE_DELAY } from '../CustomRendition.constants';
 
 type Props = {
