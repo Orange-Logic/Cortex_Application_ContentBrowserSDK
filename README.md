@@ -54,6 +54,27 @@ yarn build
 For detail guides on usage check out the [Orange Logic Developer Portal](https://developer.orangelogic.com/docs/generic-asset-browser)
 
 # Change Log
+* Dec 19, 2025 - v2.2.1
+  * Fix various bugs and issues from v2.2.0
+  * Various improment in UI/UX
+  * Assets in cold storage are now visually disabled and prevented from being selected, with a clear message displayed to users.
+  * Enhanced asset preview component to support custom icon display.
+  * Avatar URL handling updated to correctly detect and preserve fully-qualified (http/https) avatar links while continuing to prefix relative avatar paths with the site's base URL.
+  * Updated design system dependency to the latest version
+  * Enhanced view menu item alignment in the control bar for better positioning
+* Nov 10, 2025 - v2.2.0
+  * Better multimedia support (video/story/widget)
+  * Highlighted search terms
+  * Persistent/overlay sidebar
+  * Refined asset previews/cards
+  * Copy-to-clipboard for auth URL
+  * Token change/connect hooks
+  * Asset version history with previews
+  * Favorites (favorite/unfavorite)
+  * Load-more pagination
+  * Custom rendition controls (quality, preserve metadata)
+  * Asset selection
+  * Various improvements in search, filtering, and UI/UX
 * Apr 8, 2025 - v2.1.0
   * Rename GAB to Content Browser SDK
   * Revamp the Content Browser SDK's entire UI
