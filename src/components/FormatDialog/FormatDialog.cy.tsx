@@ -40,6 +40,7 @@ const FormatDialogProps = {
         'https://placehold.co/600x400',
       cdnName: null,
       id: '9e1186ab-4827-4104-b9af-20b5c3796eaf',
+      canAssumeFormatExists: true,
     },
     {
       proxyName: 'TR7',
@@ -53,6 +54,7 @@ const FormatDialogProps = {
         'https://placehold.co/191x192',
       cdnName: null,
       id: '5dc3f48f-6a4f-45c0-b1b6-dba7886bb5ca',
+      canAssumeFormatExists: true,
     },
     {
       proxyName: 'TR4',
@@ -66,6 +68,7 @@ const FormatDialogProps = {
         'https://placehold.co/350x352',
       cdnName: null,
       id: '7665fe6b-5e90-48d4-9768-175092913ec5',
+      canAssumeFormatExists: true,
     },
     {
       proxyName: 'TR1',
@@ -79,6 +82,7 @@ const FormatDialogProps = {
         'https://placehold.co/528x528',
       cdnName: null,
       id: '3f48f5d3-9368-4637-841c-948836f6d0c3',
+      canAssumeFormatExists: true,
     },
     {
       proxyName: 'TR1_COMP',
@@ -92,6 +96,7 @@ const FormatDialogProps = {
         'https://placehold.co/528x528',
       cdnName: null,
       id: '4d62d873-f5d8-4483-9c2b-52205dee5b8e',
+      canAssumeFormatExists: true,
     },
     {
       proxyName: 'CMS1',
@@ -105,6 +110,7 @@ const FormatDialogProps = {
         'https://placehold.co/528x528',
       cdnName: null,
       id: 'edd20178-fe97-427f-a26d-0991cfa200e7',
+      canAssumeFormatExists: true,
     },
     {
       proxyName: 'CMS2',
@@ -118,6 +124,7 @@ const FormatDialogProps = {
         'https://placehold.co/528x528',
       cdnName: null,
       id: '3844792f-6bc9-4c85-a90d-a3e58ee0a74c',
+      canAssumeFormatExists: true,
     },
     {
       proxyName: 'CMS3',
@@ -131,6 +138,7 @@ const FormatDialogProps = {
         'https://placehold.co/498x500',
       cdnName: null,
       id: '178bdc2c-40f0-4c57-a765-dfa7aae8ac22',
+      canAssumeFormatExists: true,
     },
     {
       proxyName: 'CMS4',
@@ -144,6 +152,7 @@ const FormatDialogProps = {
         'https://placehold.co/250x250',
       cdnName: null,
       id: 'cff4f571-6055-4bac-9f5e-c2d783afefed',
+      canAssumeFormatExists: true,
     },
     {
       proxyName: 'CMS5',
@@ -157,6 +166,7 @@ const FormatDialogProps = {
         'https://placehold.co/125x125',
       cdnName: null,
       id: 'e01e5777-3b21-451c-baf5-1e2ea761e621',
+      canAssumeFormatExists: true,
     },
     {
       proxyName: 'TRAdmin3',
@@ -170,6 +180,7 @@ const FormatDialogProps = {
         'https://placehold.co/528x530',
       cdnName: null,
       id: 'eda30284-c5a2-4f8e-962b-1df4e1ac521c',
+      canAssumeFormatExists: true,
     },
     {
       proxyName: 'TRAdmin6',
@@ -183,6 +194,7 @@ const FormatDialogProps = {
         'https://placehold.co/265x265',
       cdnName: null,
       id: 'e125288a-ff93-42af-81ba-59b1fe117880',
+      canAssumeFormatExists: true,
     },
     {
       proxyName: 'TRAdmin12',
@@ -196,6 +208,7 @@ const FormatDialogProps = {
         'https://placehold.co/120x120',
       cdnName: null,
       id: '41326fed-5ec6-4566-8f13-f6a4490eb274',
+      canAssumeFormatExists: true,
     },
     {
       proxyName: 'TRAdmin20',
@@ -209,6 +222,7 @@ const FormatDialogProps = {
         'https://placehold.co/40x40',
       cdnName: null,
       id: 'ce54e66a-5c78-49d6-98d0-a91262fbc505',
+      canAssumeFormatExists: true,
     },
     {
       proxyName: 'TEMP',
@@ -222,6 +236,7 @@ const FormatDialogProps = {
         'https://placehold.co/500x500',
       cdnName: null,
       id: '4e13ce05-5664-4a54-876f-f4400b64345a',
+      canAssumeFormatExists: true,
     },
   ],
   extensions: [

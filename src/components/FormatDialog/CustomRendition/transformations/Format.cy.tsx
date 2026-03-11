@@ -16,6 +16,7 @@ const formats: Proxy[] = [
     height: 100,
     permanentLink: null,
     width: 100,
+    canAssumeFormatExists: true,
   },
   {
     cdnName: 'default 2',
@@ -28,6 +29,7 @@ const formats: Proxy[] = [
     height: 100,
     permanentLink: null,
     width: 100,
+    canAssumeFormatExists: true,
   },
 ];
 

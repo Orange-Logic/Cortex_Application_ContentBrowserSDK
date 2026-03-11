@@ -136,7 +136,7 @@ const CustomRendition: FC<Props> = ({
   }, [crop, lastAppliedCrop]);
 
   const formats = useMemo(() => {
-    return availableProxies.filter(item => !item.cdnName);
+    return availableProxies.filter(item => !item.cdnName && item.canAssumeFormatExists !== false);
   }, [availableProxies]);
   
   return (

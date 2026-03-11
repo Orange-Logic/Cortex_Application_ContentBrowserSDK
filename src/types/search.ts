@@ -164,4 +164,5 @@ export type Proxy = {
   proxyLabel: string;
   proxyName: string;
   width: number;
+  canAssumeFormatExists: boolean;
 };
