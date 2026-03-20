@@ -70,6 +70,16 @@ stages:
               tokenSuffix: '__'
               additionalVariables: |
                 - tag: v$(GitVersion.FullSemVer)
+                
+          - task: DownloadSecureFile@1
+            name: npmrcFile
+            inputs:
+              secureFile: 'npmrc'   
+
+          - bash: |
+              echo "Renaming secure file to .npmrc"
+              cp $(npmrcFile.secureFilePath) $(Build.SourcesDirectory)/.npmrc
+            displayName: "Rename secure file to .npmrc"
 
           - template: azure-pipelines/common/npm/steps-npm-package.yml@infra-templates
             parameters:
