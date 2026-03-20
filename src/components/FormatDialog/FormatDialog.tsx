@@ -134,7 +134,7 @@ type State = {
 };
 
 type Action =
-  | { type: 'CANCEL_USE_CUSTOM_RENDITION'; payload: { width: number; height: number, url: string, originalUrl: string, extension: string, useCustomRendition: boolean, selectedProxy: string } }
+  | { type: 'CANCEL_USE_CUSTOM_RENDITION'; payload: { width: number; height: number, url: string, originalUrl: string, extension: string, useCustomRendition: boolean, selectedProxy: string, resetTransformations?: boolean } }
   | { type: 'CONFIRM_USE_CUSTOM_RENDITION' }
   | { type: 'RESET_DATA' }
   | { type: 'SET_ACTIVE_SETTING'; payload: string }
@@ -284,7 +284,8 @@ const reducer = (state: State, action: Action): State => {
           y: 0,
         },
         rotation: 0,
-        transformations: state.useCustomRendition ? state.confirmedTransformations : [],
+        transformations: state.useCustomRendition && !action.payload.resetTransformations ? state.confirmedTransformations : [],
+        confirmedTransformations: action.payload.resetTransformations ? [] : state.confirmedTransformations,
         showCustomRendition: false,
         activeSetting: 'format',
         selectedProxy: action.payload.selectedProxy,
@@ -761,6 +762,19 @@ const FormatDialog: FC<Props> = ({
         if (!filteredProxies.map(item => item.id).includes(value)) {
           return;
         }
+        dispatch({
+          type: 'CANCEL_USE_CUSTOM_RENDITION',
+          payload: {
+            url: selectedAsset?.imageUrl ?? '',
+            originalUrl: selectedAsset?.originalUrl ?? '',
+            width: parseInt(selectedAsset?.width ?? '0', 10),
+            height: parseInt(selectedAsset?.height ?? '0', 10),
+            extension: selectedAsset?.extension ?? '',
+            useCustomRendition: false,
+            resetTransformations: true,
+            selectedProxy: '',
+          },
+        });
         dispatch({ type: 'SET_SELECTED_PROXY', payload: value });
       }
     };
@@ -782,6 +796,10 @@ const FormatDialog: FC<Props> = ({
     state.useRepresentative,
     setDefaultValues,
     filteredProxies,
+    selectedAsset?.width,
+    selectedAsset?.height,
+    selectedAsset?.imageUrl,
+    selectedAsset?.originalUrl,
     selectedAsset?.extension,
   ]);
 
@@ -1483,9 +1501,11 @@ const FormatDialog: FC<Props> = ({
             loadable={state.previewLoadable}
             image={state.selectedFormat}
             selectedProxy={state.selectedProxy}
+            proxies={filteredProxies}
             resizer={state.resizeSize}
             cropper={state.cropSize}
             rotation={state.rotation}
+            isCustomRenditionEnabled={state.showCustomRendition || state.useCustomRendition}
             disabled={state.activeSetting !== 'crop' || !state.showCustomRendition}
             onCropComplete={(croppedArea) => {
               dispatch({

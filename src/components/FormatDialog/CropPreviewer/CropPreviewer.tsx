@@ -7,6 +7,7 @@ import { FORMAT_DIALOG_PREVIEW_SIZE } from '@/utils/constants';
 import { calculateAspectRatioFit, getCroppedImageUrl, getRotatedImageUrl, resizeImage } from '@/utils/image';
 
 import { Container } from '../Previewer/Previewer.styled';
+import { Proxy } from '@/types/search';
 
 type Props = {
   disabled: boolean;
@@ -22,6 +23,7 @@ type Props = {
     rotation: number;
   };
   selectedProxy: string;
+  proxies?: Proxy[];
   resizer: {
     width: number;
     height: number;
@@ -36,6 +38,7 @@ type Props = {
     unit: Unit;
   };
   rotation: number;
+  isCustomRenditionEnabled?: boolean;
   onCropComplete: (croppedArea: Area, croppedAreaPixels: Area) => void;
   onLoadingChange: (loading: boolean) => void;
 };
@@ -55,6 +58,8 @@ const CropPreviewer = forwardRef<CropPreviewerHandle, Props>(({
   cropper,
   rotation,
   selectedProxy,
+  proxies,
+  isCustomRenditionEnabled,
   onCropComplete,
   onLoadingChange,
 }, ref) => {
@@ -68,10 +73,21 @@ const CropPreviewer = forwardRef<CropPreviewerHandle, Props>(({
   useEffect(() => {
     const { url } = image;
     const { width, height } = resizer;
+    const proxy = proxies?.find((item) => item.id === selectedProxy);
+
     const resize = async () => {
       if (loadable) {
         onLoadingChange(true);
-        const { width: newWidth, height: newHeight } = calculateAspectRatioFit(image.width, image.height, width, height);
+        let newWidth;
+        let newHeight;
+
+        if (proxy && !isCustomRenditionEnabled) {
+          newWidth = proxy.formatWidth;
+          newHeight = proxy.formatHeight;
+        } else {
+          ({ width: newWidth, height: newHeight } = calculateAspectRatioFit(image.width, image.height, width, height));
+        }
+
         const { url: imageUrl } = await resizeImage(url,
           newWidth,
           newHeight,
@@ -85,7 +101,7 @@ const CropPreviewer = forwardRef<CropPreviewerHandle, Props>(({
     };
     const debounceResize = _debounce(resize, 300, { leading: true });
     debounceResize();
-  }, [image, loadable, onLoadingChange, resizer, selectedProxy]);
+  }, [image, loadable, onLoadingChange, resizer, selectedProxy, proxies, isCustomRenditionEnabled]);
 
   useEffect(() => {
     const container = containerRef.current;
