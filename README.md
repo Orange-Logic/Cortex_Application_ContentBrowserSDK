@@ -54,9 +54,11 @@ yarn build
 For detail guides on usage check out the [Orange Logic Developer Portal](https://developer.orangelogic.com/docs/generic-asset-browser)
 
 # Change Log
+* March 24, 2026 - v2.2.2
+  * Supports displaying asset thumbnails according to the selected format (https://link.orangelogic.com/Tasks/420YSB)
 * Dec 19, 2025 - v2.2.1
   * Fix various bugs and issues from v2.2.0
-  * Various improment in UI/UX
+  * Various improvements in UI/UX
   * Assets in cold storage are now visually disabled and prevented from being selected, with a clear message displayed to users.
   * Enhanced asset preview component to support custom icon display.
   * Avatar URL handling updated to correctly detect and preserve fully-qualified (http/https) avatar links while continuing to prefix relative avatar paths with the site's base URL.
