@@ -54,7 +54,7 @@ yarn build
 For detail guides on usage check out the [Orange Logic Developer Portal](https://developer.orangelogic.com/docs/generic-asset-browser)
 
 # Change Log
-* March 24, 2026 - v2.2.2
+* March 24, 2026 - v2.2.3
   * Supports displaying asset thumbnails according to the selected format (https://link.orangelogic.com/Tasks/420YSB)
 * Dec 19, 2025 - v2.2.1
   * Fix various bugs and issues from v2.2.0
