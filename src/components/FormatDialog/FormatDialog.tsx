@@ -1060,11 +1060,6 @@ const FormatDialog: FC<Props> = ({
   );
 
   const onRotateChange = useCallback(async (rotation: number, shouldApply: boolean) => {
-    dispatch({
-      type: 'SET_ROTATION',
-      payload: shouldApply ? 0 : rotation,
-    });
-
     if (shouldApply) {
       const { width: newWidth, height: newHeight } = rotateBox(
         state.selectedFormat.width,
@@ -1148,6 +1143,16 @@ const FormatDialog: FC<Props> = ({
             unit: Unit.AspectRatio,
           },
         },
+      });
+
+      dispatch({
+        type: 'SET_ROTATION',
+        payload: 0,
+      });
+    } else {
+      dispatch({
+        type: 'SET_ROTATION',
+        payload: rotation,
       });
     }
   }, [state.selectedFormat]);

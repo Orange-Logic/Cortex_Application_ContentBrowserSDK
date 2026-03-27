@@ -77,6 +77,7 @@ const CropPreviewer = forwardRef<CropPreviewerHandle, Props>(({
 
     const resize = async () => {
       if (loadable) {
+        setIsLoading(true);
         onLoadingChange(true);
         let newWidth;
         let newHeight;
@@ -95,6 +96,7 @@ const CropPreviewer = forwardRef<CropPreviewerHandle, Props>(({
         );
         setResizedImage(imageUrl);
         onLoadingChange(false);
+        setIsLoading(false);
       } else {
         setResizedImage(url);
       }
