@@ -11,7 +11,7 @@ import { getData } from '@/utils/storage';
 import AuthenticatePage from './Authenticate';
 import ConnectingBackground from './ConnectingBackground';
 import styled from 'styled-components';
-import { CxTypographyProps } from '@orangelogic/design-system/react-types';
+import type { CxTypographyProps } from '@orangelogic/design-system/react-types';
 import type { CxCopyButton } from '@orangelogic/design-system';
 import { AppContext } from '@/AppContext';
 

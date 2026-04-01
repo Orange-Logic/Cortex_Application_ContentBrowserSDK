@@ -8,6 +8,7 @@ import '@orangelogic/design-system/components/button-group';
 import '@orangelogic/design-system/components/card';
 import '@orangelogic/design-system/components/checkbox';
 import '@orangelogic/design-system/components/copy-button';
+import '@orangelogic/design-system/components/dam-view';
 import '@orangelogic/design-system/components/details';
 import '@orangelogic/design-system/components/dialog';
 import '@orangelogic/design-system/components/divider';
@@ -39,7 +40,7 @@ import '@orangelogic/design-system/components/typography';
 import '@orangelogic/design-system/css/ol-light.css';
 import '@orangelogic/design-system/react-types';
 
-import { FC, useCallback, useEffect, useMemo, useState } from 'react';
+import { FC, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import styled from 'styled-components';
 import WebFont from 'webfontloader';
 
@@ -47,7 +48,9 @@ import { AppContext, AppContextType } from '@/AppContext';
 import AssetsPicker from '@/view/AssetsPicker';
 
 import { useAppSelector } from './store';
-import { accessTokenSelector, siteUrlSelector } from './store/auth/auth.slice';
+import { accessTokenSelector, authenticatedSelector, siteUrlSelector } from './store/auth/auth.slice';
+import Authenticate from './page/Authenticate';
+import Loader from './components/Loader';
 
 type Props = {
   containerId?: string;
@@ -96,6 +99,7 @@ export const App: FC<Props> = ({
   onTokenChanged,
   onSiteUrlChanged,
 }) => {
+  const isAuthenticated = useAppSelector(authenticatedSelector);
   const accessToken = useAppSelector(accessTokenSelector);
   const siteUrl = useAppSelector(siteUrlSelector);
   const [open, setOpen] = useState(true);
@@ -161,13 +165,15 @@ export const App: FC<Props> = ({
 
   return (
     <AppContext.Provider value={contextValue}>
-      {containerId ? (
-        <AssetsPicker multiSelect={multiSelect} />
-      ) : (
-        <Container open={open}>
-          <AssetsPicker multiSelect={multiSelect} />
-        </Container>
-      )}
+      <Suspense fallback={<Loader />}>
+        {isAuthenticated ? (
+          containerId ? <AssetsPicker accessToken={accessToken} siteUrl={siteUrl} multiSelect={multiSelect} /> : (
+            <Container open={open}>
+              <AssetsPicker accessToken={accessToken} siteUrl={siteUrl} multiSelect={multiSelect} />
+            </Container>
+          )
+        ) : <Authenticate />}
+      </Suspense>
     </AppContext.Provider>
   );
 };
