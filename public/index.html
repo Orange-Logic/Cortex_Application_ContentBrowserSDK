@@ -81,18 +81,21 @@
         //   tags: false,
         extraFields: ['coreField.OriginalFileName', 'document.CortexPath', 'ScrubUrl'],
         persistMode: true,
-        // lastLocationMode: true,
         // publicApplicationName: "",
         // pluginName: "OrangeDAM Content Browser",
         searchInDrive: false,
         showCollections: true,
+        showFavoriteFolder: true,
         allowTracking: true,
         allowFavorites: true,
         allowPin: true,
         showVersions: true,
         loadExternalFonts: false,
         lastLocationMode: true,
-        onClose: () => { },
+        onClose: () => {
+          console.log('Content Browser closed, reopening ...');
+          window.OrangeDAMContentBrowser.open(settings);
+        },
         onTokenChanged: (token) => {
           console.log('Token changed:', token);
         },
@@ -107,10 +110,6 @@
             return localStorage.removeItem("custom_storage_" + key);
           }
         }
-      }
-      settings.onClose = () => {
-        console.log('Content Browser closed, reopening ...');
-        window.OrangeDAMContentBrowser.open(settings);
       }
       window.OrangeDAMContentBrowser.open(settings);
     }

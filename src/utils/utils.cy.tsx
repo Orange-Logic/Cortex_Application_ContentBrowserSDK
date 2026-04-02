@@ -1,34 +1,9 @@
 /// <reference types="cypress" />
 
-import { MediaType } from '@/types/search';
-
-import { hasElements, uniqueArray } from './array';
 import { getRequestUrl } from './getRequestUrl';
-import { getMediaIcon } from './icon';
-import { convertPixelsToAspectRatio } from './number';
-import { rotateBox } from './rotate';
 import { deleteData, getData, storeData } from './storage';
-import { generateRandomString, isNullOrWhiteSpace } from './string';
-import { calculateAspectRatioFit, cropImage, resizeImage, rotateImage } from './image';
+import { generateRandomString } from './string';
 import { isPromise } from './function';
-
-describe('Utils - array', () => {
-  it('returns true when array has elements', () => {
-    const arr = [1, 2, 3];
-
-    cy.wrap(hasElements(arr)).should('be.true');
-  });
-
-  it('returns a unique array', () => {
-    const arr1 = [1, 2, 3, 3, 4, 5, 5];
-
-    cy.wrap(uniqueArray(arr1, (element) => element.toString())).should(
-      'deep.equal',
-      [1, 2, 3, 4, 5],
-    );
-    cy.wrap(uniqueArray(arr1)).should('deep.equal', [1, 2, 3, 4, 5]);
-  });
-});
 
 describe('Utils - getRequestUrl', () => {
   it('returns a valid URL with token', () => {
@@ -48,78 +23,10 @@ describe('Utils - getRequestUrl', () => {
   });
 });
 
-describe('Utils - icon', () => {
-  it('returns the correct media icon', () => {
-    const types = Object.values(MediaType);
-    const icons = [...types, undefined].map((type) => getMediaIcon(type));
-    const expectedIcons = [
-      'audio_file',
-      'album',
-      'widgets',
-      'perm_media',
-      'article',
-      'video_file',
-      'photo',
-      'file',
-    ];
-    expect(icons.sort()).to.deep.equal(expectedIcons.sort());
-  });
-});
-
-describe('Utils - number', () => {
-  it('converts width height in pixel to aspect ratio', () => {
-    const width = 1920;
-    const height = 1080;
-    const expectedAspectRatio = '16:9';
-    const ratio = convertPixelsToAspectRatio(width, height);
-    const result = ratio.width + ':' + ratio.height;
-    expect(result).to.equal(expectedAspectRatio);
-  });
-});
-
-describe('Utils - Rotate', () => {
-  it('rotates image 30 deg', () => {
-    const width = 1920;
-    const height = 1080;
-    const result = rotateBox(width, height, 30);
-    const expectedWidth =
-      1920 * Math.cos((30 * Math.PI) / 180) + 1080 * Math.sin((30 * Math.PI) / 180);
-    const expectedHeight =
-      1920 * Math.sin((30 * Math.PI) / 180) + 1080 * Math.cos((30 * Math.PI) / 180);
-    expect(result.width).to.equal(Math.round(expectedWidth));
-    expect(result.height).to.equal(Math.round(expectedHeight));
-  });
-
-  it('rotates image 90 deg', () => {
-    const width = 1920;
-    const height = 1080;
-    const result = rotateBox(width, height, 90);
-    const expectedWidth = 1080;
-    const expectedHeight = 1920;
-    expect(result.width).to.equal(Math.round(expectedWidth));
-    expect(result.height).to.equal(Math.round(expectedHeight));
-  });
-
-  it('rotates image 180 deg', () => {
-    const width = 1920;
-    const height = 1080;
-    const result = rotateBox(width, height, 180);
-    expect(result.width).to.equal(width);
-    expect(result.height).to.equal(height);
-  });
-});
-
 describe('Utils - string', () => {
   it('generates string with 10 characters', () => {
     const result = generateRandomString(10);
     expect(result.length).to.equal(10);
-  });
-
-  it('identifies an empty string as null or white space', () => {
-    expect(isNullOrWhiteSpace('')).to.equal(true);
-    expect(isNullOrWhiteSpace(' ')).to.equal(true);
-    expect(isNullOrWhiteSpace(null)).to.equal(true);
-    expect(isNullOrWhiteSpace(undefined)).to.equal(true);
   });
 });
 
@@ -187,82 +94,6 @@ describe('Utils - storage', () => {
       expect(localStorage.getItem('testKey')).to.equal(null);
       expect(localStorage.getItem('testKey_valid_until')).to.equal(null);
     });
-  });
-});
-
-describe('Utils - image', () => {
-  const image =
-    'https://placehold.co/93x93';
-  const width = 100;
-  const height = 100;
-  it('resizes image to 100x100', () => {
-    cy.wrap(resizeImage(image, width, height, 200, 200)).then((data) => {
-      const result = data as {
-        url: string;
-        width: number;
-        height: number;
-      };
-
-      expect(result.width).to.equal(width);
-      expect(result.height).to.equal(height);
-      expect(result.url).to.include('data:image/jpeg;base64,');
-    });
-  });
-
-  it('resizes image to 80x80', () => {
-    cy.wrap(resizeImage(image, width, height, 80, 80)).then((data) => {
-      const result = data as {
-        url: string;
-        width: number;
-        height: number;
-      };
-
-      expect(result.width).to.equal(80);
-      expect(result.height).to.equal(80);
-      expect(result.url).to.include('data:image/jpeg;base64,');
-    });
-  });
-
-  it('crops image and returns a url', () => {
-    cy.wrap(
-      cropImage(
-        {
-          url: image,
-          width: 100,
-          height: 100,
-        },
-        { x: 0, y: 0, width: 50, height: 50 },
-      ),
-    ).then((data) => {
-      const result = data as string;
-      expect(result).to.include('data:image/jpeg;base64,');
-    });
-  });
-
-  it('rotates image and returns a url', () => {
-    cy.wrap(
-      rotateImage(
-        {
-          url: image,
-          width: 100,
-          height: 100,
-        },
-        90,
-      ),
-    ).then((data) => {
-      const result = data as string;
-      expect(result).to.include('data:image/jpeg;base64,');
-    });
-  });
-
-  it('calculates aspect ratio fit correctly', () => {
-    const result1 = calculateAspectRatioFit(1920, 1080, 800, 600);
-    expect(result1.width).to.equal(1440);
-    expect(result1.height).to.equal(1080);
-
-    const result2 = calculateAspectRatioFit(1920, 1080, 300, 100);
-    expect(result2.width).to.equal(1920);
-    expect(result2.height).to.equal(640);
   });
 });
 

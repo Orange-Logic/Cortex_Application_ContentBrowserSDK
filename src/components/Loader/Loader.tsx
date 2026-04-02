@@ -1,6 +1,6 @@
 import { CSSProperties, FC } from 'react';
 
-import { MESSAGE_NEW_LINE } from '@/consts/data';
+export const MESSAGE_NEW_LINE = '\n';
 
 type Props = {
   message?: string;

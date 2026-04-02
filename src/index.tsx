@@ -1,9 +1,11 @@
 import './styles.css';
 
+import { createRef } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Provider } from 'react-redux';
 
 import { App } from '@/App';
+import type { AssetsPickerHandle } from './view/AssetsPicker';
 import { AppContextType } from '@/AppContext';
 import {
   CtaTextTransform,
@@ -11,18 +13,14 @@ import {
   ImageCardDisplayInfo,
 } from '@/GlobalConfigContext';
 import { store } from '@/store';
-import { resetImportStatus, setSelectedAssetId } from '@/store/assets/assets.slice';
 import {
   initAuthInfoFromCache,
   setUseHeaders,
   setUserConfigSiteUrl,
 } from '@/store/auth/auth.slice';
+import { Folder, GetContentRequest, GetContentResponse, GetFoldersRequest } from './types/search';
 
-import { assetsApi } from './store/assets/assets.api';
-import { searchApi } from './store/search/search.api';
-import { userApi } from './store/user/user.api';
-import { Asset, Facet, Folder, GetContentRequest, GetFoldersRequest } from './types/search';
-import { ContentBrowserApiService } from './ApiService';
+const assetsPickerRef = createRef<AssetsPickerHandle>();
 
 type OrangeDAMContentBrowser = {
   help: () => void;
@@ -217,15 +215,11 @@ type OrangeDAMContentBrowser = {
     defaultGridView?: string;
   }) => Promise<void>;
   close: () => void;
-  fetchAssets: (params: GetContentRequest) => Promise<{
-    facets: Facet[];
-    items: Asset[];
-    totalCount: number;
-  } | undefined>;
+  fetchAssets: (params: GetContentRequest) => Promise<GetContentResponse | undefined> | undefined;
   fetchFolders: (params: GetFoldersRequest) => Promise<{
     items: Folder[];
     totalCount: number;
-  } | undefined>;
+  } | undefined> | undefined;
   previewAsset?: (assetId: string) => void;
   /**
    * Global function which mirrored the behavior of onAssetSelected
@@ -431,10 +425,6 @@ const ContentBrowser: OrangeDAMContentBrowser = {
         : undefined;
 
     const handleClose = () => {
-      store.dispatch(resetImportStatus());
-      store.dispatch(searchApi.util.resetApiState());
-      store.dispatch(assetsApi.util.resetApiState());
-      store.dispatch(userApi.util.resetApiState());
       root.unmount();
       // Reset these function when close the Content Browser
       window.OrangeDAMContentBrowser._onAssetSelected = undefined;
@@ -496,6 +486,7 @@ const ContentBrowser: OrangeDAMContentBrowser = {
             onConnectClicked={onConnectClicked}
             onTokenChanged={onTokenChangedHandler}
             onSiteUrlChanged={onSiteUrlChanged}
+            assetsPickerRef={assetsPickerRef}
           />
         </GlobalConfigContext.Provider>
       </Provider>,
@@ -505,13 +496,13 @@ const ContentBrowser: OrangeDAMContentBrowser = {
     window.OrangeDAMContentBrowser._onClose?.();
   },
   fetchAssets: (params: GetContentRequest) => {
-    return ContentBrowserApiService.fetchAssets(params);
+    return assetsPickerRef.current?.fetchAssets(params);
   },
   fetchFolders: (params: GetFoldersRequest) => {
-    return ContentBrowserApiService.fetchFolders(params);
+    return assetsPickerRef.current?.fetchFolders(params);
   },
   previewAsset: (recordId: string) => {
-    store.dispatch(setSelectedAssetId(recordId));
+    return assetsPickerRef.current?.selectAsset(recordId);
   },
 };
 

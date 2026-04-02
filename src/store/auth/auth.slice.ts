@@ -3,16 +3,12 @@ import {
   AUTH_FEATURE_ACCESS_KEY_KEY, AUTH_FEATURE_KEY, AUTH_FEATURE_SITE_URL_KEY, USE_SESSION,
 } from '@/consts/auth';
 import { RootState } from '@/store';
-import { resetImportStatus } from '@/store/assets/assets.slice';
 import { GetAccessKeyRes, GetAccessKeyResponseCode, OAuthRes } from '@/types/auth';
 import { getRequestUrl } from '@/utils/getRequestUrl';
 import { deleteData, getData, storeData } from '@/utils/storage';
 import { generateRandomString } from '@/utils/string';
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 
-import { assetsApi } from '../assets/assets.api';
-import { searchApi } from '../search/search.api';
-import { userApi } from '../user/user.api';
 import {
   abortAuthService, authAbortController, CANCEL_AUTH_MESSAGE, getAccessKeyService,
   getAccessTokenService, requestAuthorizeService,
@@ -224,12 +220,6 @@ async ({ siteUrl, callbackFn }, { rejectWithValue, dispatch, getState }) => {
       return rejectWithValue((getOAuthResult as GetAccessKeyRes).message);
     }
 
-    // Login successfully, reset other state
-    dispatch(resetImportStatus());
-    dispatch(searchApi.util.resetApiState());
-    dispatch(assetsApi.util.resetApiState());
-    dispatch(userApi.util.resetApiState());
-
     return getOAuthResult as OAuthRes;
   } catch (exception) {
     return rejectWithValue((exception as Error).message);
@@ -319,11 +309,6 @@ export const initAuthInfoFromCache = createAsyncThunk(
       if (!isSuccess) {
         return rejectWithValue('Unable to recover access key');
       }
-
-      dispatch(resetImportStatus());
-      dispatch(searchApi.util.resetApiState());
-      dispatch(assetsApi.util.resetApiState());
-      dispatch(userApi.util.resetApiState());
     } catch (exception) {
       return rejectWithValue((exception as Error).message);
     } finally {

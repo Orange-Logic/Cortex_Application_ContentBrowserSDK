@@ -13,12 +13,3 @@ export const generateRandomString = (length: number) => {
   }
   return retval;
 };
-
-/**
- * Check if the given string is null, or empty, or contains only whitespaces
- * @param text
- * @returns
- */
-export const isNullOrWhiteSpace = (text?: string | null) => {
-  return !text || text.trim() === '';
-};

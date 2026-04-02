@@ -40,12 +40,20 @@ import '@orangelogic/design-system/components/typography';
 import '@orangelogic/design-system/css/ol-light.css';
 import '@orangelogic/design-system/react-types';
 
-import { FC, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  FC,
+  Ref,
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import styled from 'styled-components';
 import WebFont from 'webfontloader';
 
 import { AppContext, AppContextType } from '@/AppContext';
-import AssetsPicker from '@/view/AssetsPicker';
+import AssetsPicker, { AssetsPickerHandle } from '@/view/AssetsPicker';
 
 import { useAppSelector } from './store';
 import { accessTokenSelector, authenticatedSelector, siteUrlSelector } from './store/auth/auth.slice';
@@ -71,6 +79,7 @@ type Props = {
   onConnectClicked?: (url: string) => void;
   onTokenChanged?: (token: string) => void;
   onSiteUrlChanged?: (siteUrl: string) => void;
+  assetsPickerRef?: Ref<AssetsPickerHandle>;
 };
 
 const Container = styled.div<{ open?: boolean }>`
@@ -98,6 +107,7 @@ export const App: FC<Props> = ({
   onConnectClicked,
   onTokenChanged,
   onSiteUrlChanged,
+  assetsPickerRef,
 }) => {
   const isAuthenticated = useAppSelector(authenticatedSelector);
   const accessToken = useAppSelector(accessTokenSelector);
@@ -167,9 +177,21 @@ export const App: FC<Props> = ({
     <AppContext.Provider value={contextValue}>
       <Suspense fallback={<Loader />}>
         {isAuthenticated ? (
-          containerId ? <AssetsPicker accessToken={accessToken} siteUrl={siteUrl} multiSelect={multiSelect} /> : (
+          containerId ? (
+            <AssetsPicker
+              ref={assetsPickerRef}
+              accessToken={accessToken}
+              siteUrl={siteUrl}
+              multiSelect={multiSelect}
+            />
+          ) : (
             <Container open={open}>
-              <AssetsPicker accessToken={accessToken} siteUrl={siteUrl} multiSelect={multiSelect} />
+              <AssetsPicker
+                ref={assetsPickerRef}
+                accessToken={accessToken}
+                siteUrl={siteUrl}
+                multiSelect={multiSelect}
+              />
             </Container>
           )
         ) : <Authenticate />}
