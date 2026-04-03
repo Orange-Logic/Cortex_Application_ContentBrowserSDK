@@ -25,3 +25,11 @@ export type OAuthRes = {
   accessToken?: string;
   siteUrl: string;
 };
+
+export type UserInfo = {
+  avatar?: string;
+  email?: string;
+  favoriteFolderRecordID?: string;
+  fullName?: string;
+  loginID?: string;
+};
