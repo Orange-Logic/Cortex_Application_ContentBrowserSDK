@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#000000" />
+    <meta name="description" content="OrangeDAM Content Browser SDK" />
+    <link rel="manifest" href="/manifest.json" />
+    <title>OrangeDAM Content Browser SDK</title>
+    <style>
+      body {
+        background-color: rgb(255, 255, 255);
+        margin: 0;
+      }
+      #react-app-root {
+        width: 100vw;
+        height: 100vh;
+      }
+    </style>
+  </head>
+  <body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div id="react-app-root"></div>
+    <script type="module" src="/src/index.tsx"></script>
+    <script>
+      const debugCBSDK = () => {
+        const settings = {
+          onAssetSelected: function (assets) {
+            return new Promise((resolve) => {
+              window.open(assets[0].imageUrl, '_blank');
+              resolve();
+            });
+          },
+          onAppAuthUrlCopied: async (url) => {
+            console.log('custom copy handler', url);
+            await navigator.clipboard.writeText(url);
+          },
+          onError: console.error,
+          // baseUrl: "local.orangelogic.com",
+          // allowedExtensions: ["jpg"],
+          // allowedFolders: ["Library/Trung_InDesign_02", "Personal Folders/V/Trung Vo personal Folder/Trung_upload_test", "Library/Trung_FileOnDemand/root_02/test_upload"],
+          availableDocTypes: ['DO_DOCUMENTS.Image_DbBO.*', 'DO_DOCUMENTS.Audio_DbBO.*', 'DO_DOCUMENTS.Multimedia_DbBO.*', 'DO_DOCUMENTS.Video_DbBO.*'],
+          availableRepresentativeSubtypes: ['Other'],
+          containerId: 'react-app-root',
+          // displayInfo: {
+          //   title: true,
+          //   dimension: true,
+          //   fileSize: false,
+          //   tags: false,
+          extraFields: ['coreField.OriginalFileName', 'document.CortexPath', 'ScrubUrl'],
+          persistMode: true,
+          // publicApplicationName: "",
+          // pluginName: "OrangeDAM Content Browser",
+          searchInDrive: false,
+          showCollections: true,
+          showFavoriteFolder: true,
+          allowTracking: true,
+          allowFavorites: true,
+          allowPin: true,
+          showVersions: true,
+          loadExternalFonts: false,
+          lastLocationMode: true,
+          onClose: () => {
+            console.log('Content Browser closed, reopening ...');
+            window.OrangeDAMContentBrowser.open(settings);
+          },
+          onTokenChanged: (token) => {
+            console.log('Token changed:', token);
+          },
+          customStorage: {
+            get: (key) => {
+              return localStorage.getItem("custom_storage_" + key);
+            },
+            set: (key, value) => {
+              return localStorage.setItem("custom_storage_" + key, value);
+            },
+            delete: (key) => {
+              return localStorage.removeItem("custom_storage_" + key);
+            }
+          }
+        }
+        window.OrangeDAMContentBrowser.open(settings);
+      }
+      document.addEventListener('DOMContentLoaded', debugCBSDK);
+    </script>
+  </body>
+</html>
