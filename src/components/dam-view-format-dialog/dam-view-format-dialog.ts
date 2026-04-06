@@ -8,9 +8,9 @@ import _uniqBy from 'lodash-es/uniqBy';
 
 import CortexElement from '@/base/element';
 import {
-    CxDamViewAssetTrackingParametersChangeEvent, CxRequestCloseEvent, CxSelectEvent
+  CxDamViewAssetTrackingParametersChangeEvent, CxRequestCloseEvent, CxSelectEvent,
 } from '@/events';
-import { GetAvailableExtensionsResponse } from '@/services/api/asset/asset.types';
+import { GetAvailableExtensionsResponse } from '@/api/asset/asset.types';
 import componentStyles from '@/styles/component.styles';
 import { Asset, AssetVersion, AvailableProxy, MediaType } from '@/types/asset';
 import { watch } from '@/utils/watch';
@@ -28,7 +28,7 @@ import { customElement, LocalizeController } from '@orangelogic/design-system/ut
 
 import CxDamViewAssetPreview from '../dam-view-asset-preview/dam-view-asset-preview';
 import CxDamViewAssetProxySelector, {
-    CUSTOM_FORMAT_VALUE, USE_REPRESENTATIVE_VALUE
+  CUSTOM_FORMAT_VALUE, USE_REPRESENTATIVE_VALUE,
 } from '../dam-view-asset-proxy-selector/dam-view-asset-proxy-selector';
 import CxDamViewAssetVersionHistory from '../dam-view-asset-version-history/dam-view-asset-version-history';
 import styles from './dam-view-format-dialog.styles';

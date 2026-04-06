@@ -5,13 +5,9 @@ import { ASSET_API_ENDPOINT } from '@/api/endpoints';
 
 import {
   CortexErrorResponse,
-  GetAllFormatCodesRawResponse,
-  GetAllFormatCodesResponse,
   GetAssetLinkRequest,
   GetAssetLinkResponse,
   GetAssetLinksRequest,
-  GetAssetsByFolderIDRequest,
-  GetAssetsByFolderIDResponse,
   GetAssetsByIDsRequest,
   GetAssetsByIDsResponse,
   GetAssetsRawResponse,
@@ -21,11 +17,6 @@ import {
   GetAvailableProxiesRawResponse,
   GetAvailableProxiesResponse,
   GetContentResponse,
-  GetCropZoneSuggestionRawResponse,
-  GetCropZoneSuggestionRequest,
-  GetCropZoneSuggestionResponse,
-  GetTransformAssetLinkRequest,
-  GetTransformAssetLinkResponse,
 } from './asset.types';
 export const DEFAULT_VIEW_SIZE = 'CoreField.LargeSizePreview';
 export const FIELD_ALLOW_ATS_LINK = 'AllowATSLink';

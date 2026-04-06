@@ -2,7 +2,7 @@ import './dam-view-asset-preview-video';
 
 import { elementUpdated, expect, fixture, html, oneEvent } from '@open-wc/testing';
 
-import { Orientation } from '@/types';
+import { Orientation } from '@/types/base';
 
 import type CxDamViewAssetPreviewVideo from './dam-view-asset-preview-video';
 

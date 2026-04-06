@@ -86,11 +86,11 @@ export default class CxDamViewControlSort extends CortexElement {
   private readonly sortDirections = [{
     icon: html`<cx-icon name="arrow_upward" slot="checked-icon"></cx-icon>`,
     label: this.localize.term('ascending'),
-    value: "ascending",
+    value: 'ascending',
   }, {
     icon: html`<cx-icon name="arrow_downward" slot="checked-icon"></cx-icon>`,
     label: this.localize.term('descending'),
-    value: "descending",
+    value: 'descending',
   }];
 
   get canSort() {

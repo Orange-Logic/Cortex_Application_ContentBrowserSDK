@@ -1,6 +1,5 @@
 import { LitElement, PropertyDeclaration, PropertyValues } from 'lit';
 import { property } from 'lit/decorators.js';
-import CxCortexElement from '@orangelogic/design-system/components/cortex-element';
 
 // Match event type name strings that are registered on GlobalEventHandlersEventMap...
 type EventTypeRequiresDetail<T> = T extends keyof GlobalEventHandlersEventMap
@@ -181,7 +180,7 @@ export default class CortexElement extends LitElement {
     );
   }
 
-  static dependencies: Record<string, typeof CortexElement | typeof CxCortexElement> = {};
+  static dependencies: Record<string, CustomElementConstructor> = {};
 
   static createProperty(
     name: PropertyKey,
@@ -212,9 +211,9 @@ export default class CortexElement extends LitElement {
   constructor() {
     super();
     Object.entries(
-      (this.constructor as typeof CortexElement | typeof CxCortexElement).dependencies,
+      (this.constructor as typeof CortexElement).dependencies,
     ).forEach(([name, component]) => {
-      (this.constructor as typeof CortexElement | typeof CxCortexElement).define(name, component as any);
+      (this.constructor as typeof CortexElement).define(name, component as any);
     });
 
     this.handleThemeChange = this.handleThemeChange.bind(this);
@@ -310,7 +309,7 @@ function rescueElementPrototype(element: HTMLElement) {
   /**
    * Return if everything looks as expected.
    */
-  if (element instanceof CortexElement || element instanceof CxCortexElement) {
+  if (element instanceof CortexElement) {
     return;
   }
 

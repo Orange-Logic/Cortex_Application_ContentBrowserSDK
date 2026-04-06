@@ -1,20 +1,4 @@
-import { Facet, SortOrder } from "@/types/dam-view";
-
-export type GetSearchableFieldListRequest = {
-  TableName: string;
-};
-
-export type GetSearchableFieldListRawResponse = {
-  listFields: Array<{ text: string; value: string }>;
-};
-
-export type GetSearchableFieldListResponse = {
-  data: Array<{
-    label: string;
-    value: string;
-  }>;
-  hasMore: boolean;
-};
+import { Facet, SortOrder } from '@/types/dam-view';
 
 export type GetSortOrdersResponse = Record<string, SortOrder[]>;
 

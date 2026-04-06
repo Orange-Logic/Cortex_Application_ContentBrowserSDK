@@ -4,6 +4,7 @@ import { ifDefined } from 'lit/directives/if-defined.js';
 import { when } from 'lit/directives/when.js';
 import _camelCase from 'lodash-es/camelCase';
 
+import { GetAssetLinkResponse } from '@/api/asset/asset.types';
 import CortexElement from '@/base/element';
 import CxDamViewBrowser from '@/components/dam-view-browser/dam-view-browser';
 import CxDamViewControlBar from '@/components/dam-view-control-bar/dam-view-control-bar';
@@ -15,20 +16,20 @@ import {
     CxDamViewControlSortOrderChangeEvent, CxDamViewControlViewChangeEvent,
     CxDamViewFormatDialogFavoriteChangeEvent, CxDamViewFormatDialogFormatConfirmEvent,
     CxDamViewFormatDialogProxyConfirmEvent, CxDamViewFormatDialogVersionHistoryOpenEvent,
-    CxDamViewGridClickEvent, CxDamViewGridResizeEvent, CxResizeEvent, CxSelectionChangeEvent
+    CxDamViewGridClickEvent, CxDamViewGridResizeEvent, CxResizeEvent, CxSelectionChangeEvent,
 } from '@/events';
-import { GetAssetLinkResponse } from '@/api/asset/asset.types';
 import componentStyles from '@/styles/component.styles';
 import { FetchAndMergeAssetsController } from '@/tools/fetch-and-merge-assets';
 import { ChangeOption, DamViewFormatDialogVariant, GridView, OptionType } from '@/types/dam-view';
 import { GetFolderRequest } from '@/types/folder';
+import { safeInteger } from '@/utils/number';
 import { watch } from '@/utils/watch';
 import CxIcon from '@orangelogic/design-system/components/icon';
 import CxIconButton from '@orangelogic/design-system/components/icon-button';
 import CxResizeObserver from '@orangelogic/design-system/components/resize-observer';
 import CxSpace from '@orangelogic/design-system/components/space';
 import CxTreeItem from '@orangelogic/design-system/components/tree-item';
-import { customElement, safeInteger } from '@orangelogic/design-system/utils';
+import { customElement, LocalizeController } from '@orangelogic/design-system/utils';
 
 import styles from './dam-view.styles';
 
@@ -55,6 +56,8 @@ export default class CxDamView extends CortexElement {
     'cx-space': CxSpace,
   };
 
+  private readonly localize = new LocalizeController(this);
+
   @query('cx-dam-view-format-dialog') formatDialog!: CxDamViewFormatDialog;
 
   @query('.dam-view__content') content!: HTMLDivElement;
@@ -78,10 +81,10 @@ export default class CxDamView extends CortexElement {
     type: Array,
   })
   availableDocTypes: string[] = [
-    "DO_DOCUMENTS.Image_DbBO.*",
-    "DO_DOCUMENTS.Audio_DbBO.*",
-    "DO_DOCUMENTS.Multimedia_DbBO.*",
-    "DO_DOCUMENTS.Video_DbBO.*",
+    'DO_DOCUMENTS.Image_DbBO.*',
+    'DO_DOCUMENTS.Audio_DbBO.*',
+    'DO_DOCUMENTS.Multimedia_DbBO.*',
+    'DO_DOCUMENTS.Video_DbBO.*',
   ];
 
   @property({
@@ -201,7 +204,20 @@ export default class CxDamView extends CortexElement {
   showTags: boolean = false;
   
   @property({ attribute: 'views', type: Array })
-  views = [];
+  views = [
+    {
+      label: this.localize.term('smallLabeled'),
+      value: 'small',
+    },
+    {
+      label: this.localize.term('mediumLabeled'),
+      value: 'medium',
+    },
+    {
+      label: this.localize.term('largeLabeled'),
+      value: 'large',
+    },
+  ];
 
   @property({ attribute: 'error-message', reflect: true, type: String })
   errorMessage: string = '';
@@ -632,7 +648,7 @@ export default class CxDamView extends CortexElement {
                 ${this.errorMessage}
               </cx-typography>
             `,
-            () => nothing
+            () => nothing,
           )}
         </cx-space>
       `;
@@ -647,7 +663,6 @@ export default class CxDamView extends CortexElement {
             favorite-folder-id=${ifDefined(userInfo?.favoriteFolderRecordID)}
             folder-id=${ifDefined(this.lastRequest.folderId || undefined)}
             folder-title=${ifDefined(this.folderTitle || undefined)}
-            token=${this.token}
             use-session=${this.useSession}
             ?can-favorite=${this.canFavorite}
             ?can-pin=${this.canPin}

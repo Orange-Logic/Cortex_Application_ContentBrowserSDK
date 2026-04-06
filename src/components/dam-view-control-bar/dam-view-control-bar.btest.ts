@@ -2,7 +2,7 @@ import './dam-view-control-bar';
 
 import { elementUpdated, expect, fixture, html, oneEvent } from '@open-wc/testing';
 
-import type CxInput from '@/atoms/input';
+import type CxInput from '@orangelogic/design-system/components/input';
 
 import type CxDamViewControlBar from './dam-view-control-bar';
 

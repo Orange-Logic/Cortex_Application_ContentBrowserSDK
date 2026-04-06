@@ -1,9 +1,8 @@
 {
-  "ignorePatterns": ["cypress/**/*.d.ts"],
+  "ignorePatterns": ["vite.config.ts"],
   "env": {
     "browser": true,
-    "es2021": true,
-    "jest/globals": true
+    "es2021": true
   },
   "extends": [
     "airbnb-typescript/base",
@@ -21,10 +20,11 @@
   },
   "plugins": [
     "@typescript-eslint",
-    "import",
-    "jest"
+    "import"
   ],
   "rules": {
+    "indent": "off",
+    "@typescript-eslint/indent": "off",
     "@typescript-eslint/ban-ts-comment": "off",
     "@typescript-eslint/no-explicit-any": "warn",
     "@typescript-eslint/return-await": "off",
@@ -47,17 +47,7 @@
         "ignoreStrings": true
       }
     ],
-    "import/extensions": [
-      "error",
-      "ignorePackages",
-      {
-        "": "never",
-        "js": "never",
-        "jsx": "never",
-        "ts": "never",
-        "tsx": "never"
-      }
-    ],
+    "import/extensions": "off",
     "import/no-extraneous-dependencies": [
       "error", {
         "devDependencies": false, 
@@ -79,5 +69,20 @@
         ]
       }
     }
-  }
+  },
+  "overrides": [
+    {
+      "files": ["web-test-runner.config.mjs"],
+      "parserOptions": {
+        "project": "./tsconfig.eslint.json"
+      }
+    },
+    {
+      "files": ["**/*.test.ts", "**/*.btest.ts"],
+      "rules": {
+        "no-unused-expressions": "off",
+        "@typescript-eslint/no-unused-expressions": "off"
+      }
+    }
+  ]
 }

@@ -1,6 +1,5 @@
-import { Asset, AssetVersion, AvailableProxy, MediaType, TrackingParameter } from "@/types/asset";
-import { Transformation } from "@/types/asset-link-format";
-import { Facet } from "@/types/dam-view";
+import { Asset, AssetVersion, AvailableProxy, MediaType, TrackingParameter } from '@/types/asset';
+import { Facet, Transformation } from '@/types/dam-view';
 
 export type CortexErrorResponse = {
   'Asset ID'?: string;
@@ -43,38 +42,6 @@ export type GetContentResponse = {
   totalCount: number;
 };
 
-export type GetAssetsByFolderIDRequest = {
-  extraFields?: string[];
-  folderId: string;
-  limit: number;
-  limitedDocTypes: string[];
-  searchTerm: string;
-  seeThrough: boolean;
-  selectedFacets: Record<string, string[]>;
-  sortOrder: string;
-  start: number;
-};
-
-export type GetAssetsByFolderIDResponse = {
-  facets: Facet[];
-  items: Array<Asset & Record<string, string>>;
-  totalCount: number;
-};
-
-export type GetTransformAssetLinkRequest = {
-  SourceAssetFormat?: string;
-  SourceAssetRecordID: string;
-  TargetExtension?: string;
-  Token?: string;
-  Transformations?: string;
-};
-
-export type GetTransformAssetLinkResponse = {
-  height: number;
-  relativePath: string;
-  width: number;
-};
-
 export type GetAssetsByIDsRequest = {
   extraFields?: string[];
   recordIds: string[];
@@ -84,7 +51,7 @@ export type GetAssetsByIDsRequest = {
 export type GetAssetsByIDsResponse = {
   facets: Facet[];
   items: Array<
-    Pick<Asset, 'recordId' | 'originalUrl' | 'name'> & Record<string, string>
+  Pick<Asset, 'recordId' | 'originalUrl' | 'name'> & Record<string, string>
   >;
   totalCount: number;
 };
@@ -99,27 +66,6 @@ export type GetAssetsResponse = {
   facets: Facet[];
   items: Array<Asset & Record<string, string | boolean>>;
   totalCount: number;
-};
-
-export type GetCropZoneSuggestionRequest = {
-  autoCropMode: string;
-  cropHeight?: number;
-  cropWidth?: number;
-  imageUrl: string;
-};
-
-export type GetCropZoneSuggestionRawResponse = {
-  cropHeight: number;
-  cropWidth: number;
-  cropX: number;
-  cropY: number;
-};
-
-export type GetCropZoneSuggestionResponse = {
-  height: number;
-  width: number;
-  x: number;
-  y: number;
 };
 
 export type GetAvailableProxiesRequest = {
@@ -149,14 +95,6 @@ export type FormatsByDocType = {
   Image: Record<string, string>;
   Multimedia: Record<string, string>;
   Video: Record<string, string>;
-};
-
-export type GetAllFormatCodesRawResponse = {
-  formatsByDocType: FormatsByDocType;
-};
-
-export type GetAllFormatCodesResponse = {
-  formatsByDocType: FormatsByDocType;
 };
 
 export type GetAssetVersionHistoryResponse = {

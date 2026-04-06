@@ -6,9 +6,6 @@ import {
   ContentBrowserParameters,
   GetAvailableFacetsResponse,
   GetContentBrowserParametersResponse,
-  GetSearchableFieldListRawResponse,
-  GetSearchableFieldListRequest,
-  GetSearchableFieldListResponse,
   GetSortOrdersResponse,
 } from './metadata.types';
 

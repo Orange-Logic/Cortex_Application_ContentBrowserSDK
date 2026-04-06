@@ -20,4 +20,5 @@ instance.interceptors.response.use(
 );
 const http = setupCache(instance);
 
+
 export default http;

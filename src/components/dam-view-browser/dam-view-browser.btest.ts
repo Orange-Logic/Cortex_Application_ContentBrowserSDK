@@ -3,9 +3,9 @@ import './dam-view-browser';
 import { elementUpdated, expect, fixture, html, oneEvent } from '@open-wc/testing';
 import { sendKeys } from '@web/test-runner-commands';
 
-import type CxIconButton from '@/atoms/icon-button';
-import type CxFolderSelect from '@/molecules/folder-select';
-import type { Folder, GetFolderRequest } from '@/types/folder-select';
+import type CxIconButton from '@orangelogic/design-system/components/icon-button';
+import type CxFolderSelect from '@orangelogic/design-system/components/folder-select';
+import type { Folder, GetFolderRequest } from '@/types/folder';
 
 import sinon from 'sinon';
 

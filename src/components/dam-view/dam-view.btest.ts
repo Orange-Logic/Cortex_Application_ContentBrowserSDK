@@ -9,17 +9,16 @@ import {
   waitUntil,
 } from '@open-wc/testing';
 
-import type { GetAssetLinkResponse } from '@/services/api/asset/asset.types';
+import type { GetAssetLinkResponse } from '@/api/asset/asset.types';
 import type { Asset, AssetVersion, GetAssetsRequest } from '@/types/asset';
 import { MediaType } from '@/types/asset';
-import { GridView, OptionType } from '@/types/dam-view';
-import { DamViewFormatDialogVariant } from '@/types/dam-view-format-dialog';
-import type { GetFolderRequest } from '@/types/folder-select';
+import { GridView, OptionType, DamViewFormatDialogVariant } from '@/types/dam-view';
+import type { GetFolderRequest } from '@/types/folder';
 
 import sinon from 'sinon';
 
-import type CxDamViewControlBar from './components/dam-view-control-bar/dam-view-control-bar';
-import type CxDamViewFormatDialog from './components/dam-view-format-dialog/dam-view-format-dialog';
+import type CxDamViewControlBar from '../dam-view-control-bar/dam-view-control-bar';
+import type CxDamViewFormatDialog from '../dam-view-format-dialog/dam-view-format-dialog';
 import type CxDamView from './dam-view';
 
 function makeAsset(overrides: Partial<Asset> = {}): Asset {
@@ -96,7 +95,7 @@ function createMockFetchController(
       parameters:
         options.parameters === undefined
           ? null
-          : (options.parameters as Record<string, unknown> | null),
+          : (options.parameters),
       request: host.lastRequest,
       sortOrders: {},
       totalCount,
@@ -300,7 +299,7 @@ describe('dam-view', () => {
   });
 
   it('renders unauthorized message with warning icon when not logged in', async () => {
-    const { el } = await fixtureWithMock(html`<cx-dam-view></cx-dam-view>`, {
+    const { el } = await fixtureWithMock(html`<cx-dam-view error-message="Unauthorized"></cx-dam-view>`, {
       isLoggedIn: false,
     });
 

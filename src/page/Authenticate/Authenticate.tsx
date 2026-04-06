@@ -8,7 +8,8 @@ import { authErrorSelector, oAuth, setUseSession, siteUrlSelector } from '@/stor
 import { checkCorrectSiteUrl } from '@/utils/api';
 import { LOGIN_GRAPHICS_TOP_COLOR_BASE64 } from '@/utils/constants';
 import { useDebounceState } from '@/utils/hooks';
-import type { CxChangeEvent, CxInput } from '@orangelogic/design-system';
+import type CxInput from '@orangelogic/design-system/components/input';
+import type { CxChangeEvent } from '@/events';
 
 const AuthenticatePage = () => {
   const { onClose, onConnectClicked } = useContext(AppContext);

@@ -1,15 +1,5 @@
 import '@orangelogic/design-system/assets/design-system.css';
 import '@orangelogic/design-system/assets/outlined.css';
-import '@orangelogic/design-system/components/alert';
-import '@orangelogic/design-system/components/button';
-import '@orangelogic/design-system/components/copy-button';
-import '@orangelogic/design-system/components/dam-view';
-import '@orangelogic/design-system/components/icon';
-import '@orangelogic/design-system/components/icon-button';
-import '@orangelogic/design-system/components/input';
-import '@orangelogic/design-system/components/space';
-import '@orangelogic/design-system/components/spinner';
-import '@orangelogic/design-system/components/typography';
 import '@orangelogic/design-system/css/ol-light.css';
 import '@orangelogic/design-system/react-types';
 
@@ -101,7 +91,6 @@ export const App: FC<Props> = ({
         },
       });
     } else {
-      // @ts-expect-error
       import('./fonts.css');
     }
   }, [loadExternalFonts]);

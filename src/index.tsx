@@ -1,5 +1,7 @@
 import './styles.css';
 
+export { default as CxDamView } from './components/dam-view/dam-view';
+
 import { createRef } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Provider } from 'react-redux';
@@ -506,6 +508,8 @@ const ContentBrowser: OrangeDAMContentBrowser = {
   },
 };
 
-window.OrangeDAMContentBrowser = ContentBrowser;
+// Public host integration uses globalThis so the bundle works as a classic <script>
+// (where `this` in the UMD wrapper is `window`) and matches nested `window` usage below.
+(globalThis as unknown as Window).OrangeDAMContentBrowser = ContentBrowser;
 
 export default ContentBrowser;

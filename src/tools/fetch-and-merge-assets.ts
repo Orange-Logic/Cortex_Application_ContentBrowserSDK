@@ -96,7 +96,7 @@ export class FetchAndMergeAssetsController implements ReactiveController {
 
   private readonly defaultSortOrderName: string;
 
-  private defaultSortDirection: string;
+  private readonly defaultSortDirection: string;
 
   private readonly defaultFolderId: string;
 
@@ -175,7 +175,7 @@ export class FetchAndMergeAssetsController implements ReactiveController {
         METADATA_API_ENDPOINT.GET_SORT_ORDERS,
         AUTH_API_ENDPOINT.GET_USER_INFO,
         FOLDER_API_ENDPOINT,
-      ].includes(config.url as any)) {
+      ].includes(config.url)) {
         return config;
       }
 

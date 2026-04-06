@@ -5,7 +5,7 @@ import { AppContext } from '@/AppContext';
 import { GlobalConfigContext } from '@/GlobalConfigContext';
 import { useAppDispatch, useAppSelector } from '@/store';
 import {
-    appAuthUrlSelector, authStateSelector, cancelAuth, setUseSession, siteUrlSelector, USE_SESSION
+    appAuthUrlSelector, authStateSelector, cancelAuth, setUseSession, siteUrlSelector, USE_SESSION,
 } from '@/store/auth/auth.slice';
 import { getData } from '@/utils/storage';
 

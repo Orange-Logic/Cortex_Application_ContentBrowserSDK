@@ -1,1 +1,0 @@
-export * from '@orangelogic/design-system/events';

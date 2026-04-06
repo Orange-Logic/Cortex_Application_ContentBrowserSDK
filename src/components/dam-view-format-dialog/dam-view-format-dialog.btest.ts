@@ -8,11 +8,10 @@ import {
   oneEvent,
 } from '@open-wc/testing';
 
-import type { GetAvailableExtensionsResponse } from '@/services/api/asset/asset.types';
+import type { GetAvailableExtensionsResponse } from '@/api/asset/asset.types';
 import type { Asset, AvailableProxy } from '@/types/asset';
 import { MediaType } from '@/types/asset';
-import { type Parameter, TransformationAction } from '@/types/asset-link-format';
-import { DamViewFormatDialogVariant } from '@/types/dam-view-format-dialog';
+import { type Parameter, TransformationAction, DamViewFormatDialogVariant } from '@/types/dam-view';
 
 import type CxDamViewAssetProxySelector from '../dam-view-asset-proxy-selector/dam-view-asset-proxy-selector';
 import {

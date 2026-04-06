@@ -1,4 +1,4 @@
-import http from '../api';
+import http from '@/api/api';
 import {
   ASSET_API_ENDPOINT,
   FOLDER_API_ENDPOINT,

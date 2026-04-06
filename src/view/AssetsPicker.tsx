@@ -1,25 +1,23 @@
-import {
-  forwardRef,
-  useCallback,
-  useContext,
-  useEffect,
-  useImperativeHandle,
-  useRef,
-  useState,
-} from 'react';
+import '@/components/dam-view/dam-view';
 
 import _isArray from 'lodash-es/isArray';
 import _pickBy from 'lodash-es/pickBy';
-import type { CxDamViewGridClickEvent, CxDamViewRequestChangeEvent, CxDamViewSelectedAssetEvent } from '@orangelogic/design-system';
+import {
+    forwardRef, useCallback, useContext, useEffect, useImperativeHandle, useRef, useState,
+} from 'react';
+
 import { AppContext } from '@/AppContext';
-import { Asset, Facet, Folder, GetAssetLinkResponse, GetContentRequest, GetFoldersRequest, GridView } from '@/types/search';
-import { GlobalConfigContext } from '@/GlobalConfigContext';
-import { getData, storeData, deleteData } from '@/utils/storage';
-import { isPromise } from '@/utils/function';
 import Loader from '@/components/Loader';
+import { GlobalConfigContext } from '@/GlobalConfigContext';
 import { useAppDispatch } from '@/store';
 import { logout } from '@/store/auth/auth.slice';
+import {
+    Asset, Facet, Folder, GetAssetLinkResponse, GetContentRequest, GetFoldersRequest, GridView,
+} from '@/types/search';
+import { isPromise } from '@/utils/function';
+import { deleteData, getData, storeData } from '@/utils/storage';
 
+import type { CxDamViewGridClickEvent, CxDamViewRequestChangeEvent, CxDamViewSelectedAssetEvent } from '@/events';
 type CxDamViewAssetsRequest = Omit<GetContentRequest, 'folderID'> & { folderId?: string };
 type CxDamViewFoldersRequest = {
   allowedFolders?: string[];
@@ -326,46 +324,49 @@ const AssetsPicker = forwardRef<AssetsPickerHandle, Props>(function AssetsPicker
   }
 
   return (
-    <cx-dam-view
-      // @ts-expect-error - cx-dam-view is not typed
-      ref={damViewRef}
-      allowed-extensions={allowedExtensions}
-      allowed-folders={allowedFolders}
-      application-name={pluginInfo.publicApplicationName}
-      available-doc-types={availableDocTypes}
-      available-representative-subtypes={availableRepresentativeSubtypes}
-      default-grid-view={defaultSettings.view}
-      default-sort-order-name={defaultSettings.sortOrder}
-      default-sort-direction={defaultSettings.sortDirection}
-      default-facets={defaultSettings.facets}
-      default-selected-facets={defaultSettings.selectedFacets}
-      default-is-see-through={defaultSettings.isSeeThrough}
-      default-search-text={defaultSettings.searchText}
-      default-folder-id={defaultSettings.lastLocation}
-      token={accessToken ?? ''}
-      base-url={siteUrl ?? ''}
-      extra-fields={extraFields}
-      can-pin={allowPin}
-      can-favorite={allowFavorites}
-      can-logout={allowLogout}
-      can-use-proxies={allowProxy}
-      can-track={allowTracking}
-      can-view-versions={showVersions}
-      cta-text={ctaText}
-      cta-text-transform={ctaTextTransform}
-      show-close-button={isContentBrowserPopedup}
-      show-collections={showCollections}
-      show-favorite-folder={showFavoriteFolder}
-      show-tags={displayInfo.tags}
-      show-dimensions={displayInfo.dimension}
-      show-size={displayInfo.fileSize}
-      show-title={displayInfo.title}
-      oncx-dam-view-selected-asset={onSelectedAsset}
-      oncx-dam-view-request-change={onFetchAndMergeAssetsSuccess}
-      oncx-dam-view-grid-click={onGridClick}
-      oncx-dam-view-header-close={onClose}
-      oncx-dam-view-header-logout={onLogout}
-    ></cx-dam-view>
+    <>
+      {/* @ts-expect-error - cx-dam-view is not typed */}
+      <cx-dam-view
+        ref={damViewRef}
+        allowed-extensions={allowedExtensions}
+        allowed-folders={allowedFolders}
+        application-name={pluginInfo.publicApplicationName}
+        available-doc-types={availableDocTypes}
+        available-representative-subtypes={availableRepresentativeSubtypes}
+        default-grid-view={defaultSettings.view}
+        default-sort-order-name={defaultSettings.sortOrder}
+        default-sort-direction={defaultSettings.sortDirection}
+        default-facets={defaultSettings.facets}
+        default-selected-facets={defaultSettings.selectedFacets}
+        default-is-see-through={defaultSettings.isSeeThrough}
+        default-search-text={defaultSettings.searchText}
+        default-folder-id={defaultSettings.lastLocation}
+        token={accessToken ?? ''}
+        base-url={siteUrl ?? ''}
+        extra-fields={extraFields}
+        error-message="Unauthorized"
+        can-pin={allowPin}
+        can-favorite={allowFavorites}
+        can-logout={allowLogout}
+        can-use-proxies={allowProxy}
+        can-track={allowTracking}
+        can-view-versions={showVersions}
+        cta-text={ctaText}
+        cta-text-transform={ctaTextTransform}
+        show-close-button={isContentBrowserPopedup}
+        show-collections={showCollections}
+        show-favorite-folder={showFavoriteFolder}
+        show-tags={displayInfo.tags}
+        show-dimensions={displayInfo.dimension}
+        show-size={displayInfo.fileSize}
+        show-title={displayInfo.title}
+        oncx-dam-view-selected-asset={onSelectedAsset}
+        oncx-dam-view-request-change={onFetchAndMergeAssetsSuccess}
+        oncx-dam-view-grid-click={onGridClick}
+        oncx-dam-view-header-close={onClose}
+        oncx-dam-view-header-logout={onLogout}
+      />
+    </>
   );
 });
 
