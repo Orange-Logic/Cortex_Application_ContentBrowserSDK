@@ -61,12 +61,15 @@ type Props = {
    */
   onClose?: () => void;
   onError: AppContextType['onError'];
+  getPinnedState?: AppContextType['getPinnedState'];
   onAssetAction: AppContextType['onAssetAction'];
   onAssetSelected: AppContextType['onAssetSelected'];
   onAppAuthUrlCopied: AppContextType['onAppAuthUrlCopied'];
   onImageSelected: AppContextType['onImageSelected'];
+  onPinAsset?: AppContextType['onPinAsset'];
   onConnectClicked?: (url: string) => void;
   onTokenChanged?: (token: string) => void;
+  onUnpinAsset?: AppContextType['onUnpinAsset'];
   onSiteUrlChanged?: (siteUrl: string) => void;
 };
 
@@ -88,12 +91,15 @@ export const App: FC<Props> = ({
   multiSelect,
   onClose,
   onError,
+  getPinnedState,
   onAssetAction,
   onAssetSelected,
   onAppAuthUrlCopied,
   onImageSelected,
+  onPinAsset,
   onConnectClicked,
   onTokenChanged,
+  onUnpinAsset,
   onSiteUrlChanged,
 }) => {
   const accessToken = useAppSelector(accessTokenSelector);
@@ -139,23 +145,29 @@ export const App: FC<Props> = ({
   const contextValue = useMemo(
     () => ({
       extraFields,
+      getPinnedState,
       onAssetAction,
       onAssetSelected,
       onAppAuthUrlCopied,
       onImageSelected,
+      onPinAsset,
       onError,
       onClose: handleClose,
       onConnectClicked,
+      onUnpinAsset,
     }),
     [
       extraFields,
+      getPinnedState,
       onAssetAction,
       onAssetSelected,
       onAppAuthUrlCopied,
       onImageSelected,
+      onPinAsset,
       onError,
       handleClose,
       onConnectClicked,
+      onUnpinAsset,
     ],
   );
 

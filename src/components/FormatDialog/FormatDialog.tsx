@@ -13,6 +13,7 @@ import type { CxDialog, CxDrawer, CxMenuItem, CxRequestCloseEvent, CxSelectEvent
 import CropPreviewer, { CropPreviewerHandle } from './CropPreviewer';
 import CustomRendition from './CustomRendition';
 import { Dialog, Drawer } from './FormatDialog.styled';
+import PinButton from './PinButton';
 import Previewer from './Previewer';
 import ProxyMenu from './ProxyMenu';
 import TrackingParameters from './TrackingParameters';
@@ -25,6 +26,7 @@ type Props = {
   allowCustomFormat: boolean; // whether to allow custom format
   allowedExtensions?: string[]; // list of allowed extensions from runtime properties. e.g. ['jpg', 'png', 'mp4']
   allowFavorites: boolean; // whether to allow favorites
+  allowFormatDialogPin?: boolean; // whether to allow pin/unpin in format dialog
   allowProxy: boolean; // whether to allow proxies
   allowTracking: boolean; // whether to allow tracking parameter injection to the retrieved url
   appendAutoExtension?: boolean; // whether to append auto extension, due to the allowed extension list excluding .auto
@@ -35,6 +37,7 @@ type Props = {
   ctaTextTransform?: CtaTextTransform;
   extensions: string[];
   isFavorite?: boolean;
+  isPinned?: boolean;
   maxHeight?: number;
   open: boolean;
   previewUrl?: string;
@@ -45,6 +48,7 @@ type Props = {
   boundary?: HTMLElement | null;
   onClose: () => void;
   onFavorite: () => Promise<boolean>;
+  onPin?: () => Promise<boolean>;
   onProxyConfirm: (value: {
     extension: string;
     parameters?: TrackingParameter[];
@@ -61,6 +65,7 @@ type Props = {
     sourceProxyMetadata?: AssetLinkInfo;
     transformedAssetMetadata?: AssetTransformationInfo;
   }) => Promise<void>;
+  onUnPin?: () => Promise<boolean>;
   onUnFavorite: () => Promise<boolean>;
 };
 
@@ -118,6 +123,7 @@ type State = {
   }>;
   isLoadingConfirm: boolean;
   isLoadingFavorites: boolean;
+  isLoadingPins: boolean;
   rotation: number;
   quality: number;
   keepMetadata: boolean;
@@ -147,6 +153,7 @@ type Action =
   | { type: 'SET_LOADING'; payload: boolean }
   | { type: 'SET_LOADING_CONFIRM'; payload: boolean }
   | { type: 'SET_LOADING_FAVORITES'; payload: boolean }
+  | { type: 'SET_LOADING_PINS'; payload: boolean }
   | { type: 'SET_PREVIEW_LOADABLE'; payload: boolean }
   | { type: 'SET_QUALITY'; payload: number }
   | { type: 'SET_RESIZE_SIZE'; payload: Partial<State['resizeSize']> }
@@ -237,6 +244,7 @@ const initialState: State = {
   },
   isLoadingConfirm: false,
   isLoadingFavorites: false,
+  isLoadingPins: false,
   rotation: 0,
   quality: 100,
   keepMetadata: false,
@@ -377,6 +385,11 @@ const reducer = (state: State, action: Action): State => {
         ...state,
         isLoadingFavorites: action.payload,
       };
+    case 'SET_LOADING_PINS':
+      return {
+        ...state,
+        isLoadingPins: action.payload,
+      };
     case 'SET_PREVIEW_LOADABLE':
       return {
         ...state,
@@ -480,6 +493,7 @@ const reducer = (state: State, action: Action): State => {
 const FormatDialog: FC<Props> = ({
   allowCustomFormat,
   allowFavorites,
+  allowFormatDialogPin = false,
   allowProxy,
   allowTracking,
   allowedExtensions,
@@ -491,6 +505,7 @@ const FormatDialog: FC<Props> = ({
   ctaTextTransform = 'capitalize',
   extensions,
   isFavorite,
+  isPinned = false,
   maxHeight,
   open,
   previewUrl,
@@ -501,8 +516,10 @@ const FormatDialog: FC<Props> = ({
   boundary,
   onClose,
   onFavorite,
+  onPin = async () => false,
   onProxyConfirm,
   onFormatConfirm,
+  onUnPin = async () => false,
   onUnFavorite,
 }) => {
   const [state, dispatch] = useReducer(reducer, initialState);
@@ -1375,6 +1392,28 @@ const FormatDialog: FC<Props> = ({
     });
   }, []);
 
+  const onPinClick = useCallback(async () => {
+    if (state.isLoadingPins) {
+      return;
+    }
+
+    dispatch({
+      type: 'SET_LOADING_PINS',
+      payload: true,
+    });
+
+    if (isPinned) {
+      await onUnPin();
+    } else {
+      await onPin();
+    }
+
+    dispatch({
+      type: 'SET_LOADING_PINS',
+      payload: false,
+    });
+  }, [isPinned, onPin, onUnPin, state.isLoadingPins]);
+
   useEffect(() => {
     if (!filteredProxies || filteredProxies.length === 0) {
       dispatch({ type: 'SET_SELECTED_PROXY', payload: '' });
@@ -1429,6 +1468,12 @@ const FormatDialog: FC<Props> = ({
               </cx-typography>
             </cx-space>
           </cx-space>
+          <PinButton
+            allowFormatDialogPin={allowFormatDialogPin}
+            isLoadingPins={state.isLoadingPins}
+            isPinned={isPinned}
+            onPinClick={onPinClick}
+          />
           {allowFavorites && (
             <cx-tooltip
               slot="header-actions"
@@ -1951,6 +1996,7 @@ const FormatDialog: FC<Props> = ({
   }, [
     allowCustomFormat,
     allowFavorites,
+    allowFormatDialogPin,
     allowProxy,
     allowTracking,
     appendAutoExtension,
@@ -1962,6 +2008,7 @@ const FormatDialog: FC<Props> = ({
     filteredProxies,
     handleVersionHistory,
     isFavorite,
+    isPinned,
     previewUrl,
     selectedAsset,
     showVersions,
@@ -1971,6 +2018,7 @@ const FormatDialog: FC<Props> = ({
     onCropChange,
     onExtensionChange,
     onFavorite,
+    onPinClick,
     onFormatChange,
     onFormatConfirm,
     onKeepMetadataChange,
