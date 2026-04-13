@@ -114,3 +114,17 @@ stages:
                 - sourceFolder: 'build'
                   targetFolder: 'ContentBrowserSDK/v$(GitVersion.FullSemVer)'
                   contents: index.html
+
+          - bash: |
+              mkdir -p $(Build.ArtifactStagingDirectory)
+              cp -r build/* $(Build.ArtifactStagingDirectory)/
+              cp CBSDKdemo.html $(Build.ArtifactStagingDirectory)/
+              ls -la $(Build.ArtifactStagingDirectory)/
+            displayName: 'Stage all build artifacts for download'
+
+          - task: PublishBuildArtifacts@1
+            displayName: 'Publish build artifacts'
+            inputs:
+              pathToPublish: '$(Build.ArtifactStagingDirectory)'
+              artifactName: 'ContentBrowserSDK-$(GitVersion.FullSemVer)'
+              publishLocation: 'Container'
