@@ -42,7 +42,6 @@ Content Browser SDK v2.1.0
 - Run the project with 
 ```
 yarn start
-
 ```
 
 - Build with 
