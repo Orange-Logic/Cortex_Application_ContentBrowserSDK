@@ -94,7 +94,7 @@ stages:
             inputs:
               command: 'custom'
               customCommand: 'run publish:library'
-              
+
           - bash: |
               mkdir -p $(Build.ArtifactStagingDirectory)
               cp -r build/* $(Build.ArtifactStagingDirectory)/
@@ -128,5 +128,3 @@ stages:
                 - sourceFolder: 'build'
                   targetFolder: 'ContentBrowserSDK/v$(GitVersion.FullSemVer)'
                   contents: index.html
-
-
