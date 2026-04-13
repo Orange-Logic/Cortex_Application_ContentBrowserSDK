@@ -14,10 +14,10 @@ variables:
   - group: "Global Vars"
 
 stages:
-  - stage: Auto Tag
+  - stage: Auto_Tag
     dependsOn: []
     jobs:
-      - job: Auto Tag
+      - job: Auto_Tag
         displayName: 'Auto Tag'
         pool:
           name: VN Linux
