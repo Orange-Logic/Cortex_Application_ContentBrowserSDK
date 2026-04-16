@@ -1,6 +1,6 @@
 import http from '@/api/api';
 import { METADATA_API_ENDPOINT } from '@/api/endpoints';
-import { Facet, SortOrder } from '@/types/dam-view';
+import { Facet, SortOrder } from '@/types/content-browser';
 
 import {
   ContentBrowserParameters,

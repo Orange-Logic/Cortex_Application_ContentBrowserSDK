@@ -106,7 +106,7 @@ export type GetFoldersRequest = {
   pageSize?: number;
   self?: boolean;
   includeDirectChild?: boolean;
-  damViewSeeThru?: boolean;
+  contentBrowserSeeThru?: boolean;
 };
 
 export enum MediaType {

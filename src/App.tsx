@@ -17,11 +17,11 @@ import WebFont from 'webfontloader';
 
 import { AppContext, AppContextType } from '@/AppContext';
 import AssetsPicker, { AssetsPickerHandle } from '@/view/AssetsPicker';
+import '@/components/content-browser-loader';
 
 import { useAppSelector } from './store';
 import { accessTokenSelector, authenticatedSelector, siteUrlSelector } from './store/auth/auth.slice';
 import Authenticate from './page/Authenticate';
-import Loader from './components/Loader';
 
 type Props = {
   containerId?: string;
@@ -135,28 +135,29 @@ export const App: FC<Props> = ({
     ],
   );
 
+  let content = <Authenticate />;
+
+  if (isAuthenticated) {
+    const assetsPicker = (
+      <AssetsPicker
+        ref={assetsPickerRef}
+        accessToken={accessToken}
+        siteUrl={siteUrl}
+        multiSelect={multiSelect}
+      />
+    );
+
+    content = containerId ? assetsPicker : <Container open={open}>{assetsPicker}</Container>;
+  }
+
   return (
     <AppContext.Provider value={contextValue}>
-      <Suspense fallback={<Loader />}>
-        {isAuthenticated ? (
-          containerId ? (
-            <AssetsPicker
-              ref={assetsPickerRef}
-              accessToken={accessToken}
-              siteUrl={siteUrl}
-              multiSelect={multiSelect}
-            />
-          ) : (
-            <Container open={open}>
-              <AssetsPicker
-                ref={assetsPickerRef}
-                accessToken={accessToken}
-                siteUrl={siteUrl}
-                multiSelect={multiSelect}
-              />
-            </Container>
-          )
-        ) : <Authenticate />}
+      <Suspense
+        fallback={
+          <cx-content-browser-loader></cx-content-browser-loader>
+        }
+      >
+        {content}
       </Suspense>
     </AppContext.Provider>
   );

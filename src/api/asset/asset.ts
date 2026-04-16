@@ -1,6 +1,6 @@
 import http from '@/api/api';
 import { Asset, GetAssetsRequest, MediaType } from '@/types/asset';
-import { TransformationAction } from '@/types/dam-view';
+import { TransformationAction } from '@/types/content-browser';
 import { ASSET_API_ENDPOINT } from '@/api/endpoints';
 
 import {

@@ -37,7 +37,7 @@ import {
 import { GetContentBrowserParametersResponse } from '@/api/metadata/metadata.types';
 import { Asset, GetAssetsRequest, MediaType } from '@/types/asset';
 import { UserInfo } from '@/types/auth';
-import { Facet, SortOrder } from '@/types/dam-view';
+import { Facet, SortOrder } from '@/types/content-browser';
 import { GetFolderRequest } from '@/types/folder';
 
 import type { ReactiveController } from 'lit';

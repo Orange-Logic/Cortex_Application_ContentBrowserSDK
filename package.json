@@ -12,10 +12,10 @@
       "require": "./build/OrangeDAMContentBrowserSDK.min.js",
       "default": "./build/index.mjs"
     },
-    "./dam-view": {
-      "types": "./build/dam-view.d.ts",
-      "import": "./build/dam-view.mjs",
-      "default": "./build/dam-view.mjs"
+    "./content-browser": {
+      "types": "./build/content-browser.d.ts",
+      "import": "./build/content-browser.mjs",
+      "default": "./build/content-browser.mjs"
     },
     "./package.json": "./package.json"
   },
@@ -46,7 +46,7 @@
   "scripts": {
     "start": "vite",
     "build": "npm run build:library && npm run build:types",
-    "build:library": "vite build && vite build -c vite.esm.config.ts && vite build -c vite.dam-view.esm.config.ts",
+    "build:library": "vite build && vite build -c vite.esm.config.ts && vite build -c vite.content-browser.esm.config.ts",
     "build:types": "node ./scripts/emit-types.mjs",
     "optimize": "vite optimize --force",
     "test-browser": "npm run optimize && web-test-runner",
@@ -92,7 +92,7 @@
   "dependencies": {
     "@lit-labs/virtualizer": "^2.1.1",
     "@open-wc/testing": "^4.0.0",
-    "@orangelogic/design-system": "2.0.0-41YQXP-beta-6",
+    "@orangelogic/design-system": "2.67.0",
     "@reduxjs/toolkit": "^2.11.2",
     "@types/node": "^20.4.8",
     "@types/react": "^19.0.8",

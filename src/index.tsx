@@ -1,6 +1,6 @@
 import './styles.css';
 
-export { default as CxDamView } from './components/dam-view/dam-view';
+export { default as CxContentBrowser } from './components/content-browser/content-browser';
 
 import { createRef } from 'react';
 import { createRoot } from 'react-dom/client';

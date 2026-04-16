@@ -1,4 +1,5 @@
-import '@/components/dam-view/dam-view';
+import '@/components/content-browser/content-browser';
+import '@/components/content-browser-loader';
 
 import _isArray from 'lodash-es/isArray';
 import _pickBy from 'lodash-es/pickBy';
@@ -7,7 +8,6 @@ import {
 } from 'react';
 
 import { AppContext } from '@/AppContext';
-import Loader from '@/components/Loader';
 import { GlobalConfigContext } from '@/GlobalConfigContext';
 import { useAppDispatch } from '@/store';
 import { logout } from '@/store/auth/auth.slice';
@@ -17,9 +17,9 @@ import {
 import { isPromise } from '@/utils/function';
 import { deleteData, getData, storeData } from '@/utils/storage';
 
-import type { CxDamViewGridClickEvent, CxDamViewRequestChangeEvent, CxDamViewSelectedAssetEvent } from '@/events';
-type CxDamViewAssetsRequest = Omit<GetContentRequest, 'folderID'> & { folderId?: string };
-type CxDamViewFoldersRequest = {
+import type { CxContentBrowserGridClickEvent, CxContentBrowserRequestChangeEvent, CxContentBrowserSelectedAssetEvent } from '@/events';
+type CxContentBrowserAssetsRequest = Omit<GetContentRequest, 'folderID'> & { folderId?: string };
+type CxContentBrowserFoldersRequest = {
   allowedFolders?: string[];
   baseUrl?: string;
   bearerToken?: string;
@@ -48,13 +48,13 @@ export type AssetsPickerHandle = {
   selectAsset: (recordId: string) => Promise<void>;
 };
 
-type CxDamViewElement = HTMLElement & {
-  fetchAssets: (params: CxDamViewAssetsRequest) => Promise<{
+type CxContentBrowserElement = HTMLElement & {
+  fetchAssets: (params: CxContentBrowserAssetsRequest) => Promise<{
     facets: Facet[];
     items: Array<Asset & Record<string, string | boolean>>;
     totalCount: number;
   }>;
-  fetchFolders: (params: CxDamViewFoldersRequest) => Promise<{
+  fetchFolders: (params: CxContentBrowserFoldersRequest) => Promise<{
     data: Folder[];
     hasMore: boolean;
     totalCount: number;
@@ -79,8 +79,48 @@ type DefaultSettings = {
   lastLocation: string;
 };
 
+function parseSelectedFacets(selectedFilter: string | null): Record<string, string[]> {
+  if (!selectedFilter) {
+    return {};
+  }
+
+  try {
+    return _pickBy(JSON.parse(selectedFilter), _isArray) ?? {};
+  } catch (_error) {
+    return {};
+  }
+}
+
+function parseStoredFacets(newFacets: string | null): Facet[] {
+  if (!newFacets) {
+    return [];
+  }
+
+  try {
+    const parsedFacets = JSON.parse(newFacets);
+
+    return _isArray(parsedFacets) ? parsedFacets as Facet[] : [];
+  } catch (_error) {
+    return [];
+  }
+}
+
+function parseLegacyLastLocation(lastLocation: string | null): string {
+  if (!lastLocation) {
+    return '';
+  }
+
+  try {
+    const parsedLastLocation = JSON.parse(lastLocation) as Folder;
+
+    return parsedLastLocation?.id ?? '';
+  } catch (_error) {
+    return '';
+  }
+}
+
 const AssetsPicker = forwardRef<AssetsPickerHandle, Props>(function AssetsPicker(
-  { accessToken, siteUrl },
+  { accessToken, siteUrl, multiSelect },
   ref,
 ) {
   const appDispatch = useAppDispatch();
@@ -108,7 +148,7 @@ const AssetsPicker = forwardRef<AssetsPickerHandle, Props>(function AssetsPicker
   } = useContext(GlobalConfigContext);
   const { extraFields, onAssetAction, onAssetSelected, onClose } = useContext(AppContext);
 
-  const damViewRef = useRef<CxDamViewElement | null>(null);
+  const contentBrowserRef = useRef<CxContentBrowserElement | null>(null);
 
   const [isInitialLoadComplete, setIsInitialLoadComplete] = useState(false);
   const [defaultSettings, setDefaultSettings] = useState<DefaultSettings>({
@@ -124,7 +164,7 @@ const AssetsPicker = forwardRef<AssetsPickerHandle, Props>(function AssetsPicker
   const loadedFromStorage = useRef(false);
 
   const fetchAssets = useCallback(async (params: GetContentRequest) => {
-    const el = damViewRef.current;
+    const el = contentBrowserRef.current;
     if (!el) {
       return undefined;
     }
@@ -141,7 +181,7 @@ const AssetsPicker = forwardRef<AssetsPickerHandle, Props>(function AssetsPicker
   }, []);
 
   const fetchFolders = useCallback(async (params: GetFoldersRequest) => {
-    const el = damViewRef.current;
+    const el = contentBrowserRef.current;
     if (!el) {
       return undefined;
     }
@@ -152,7 +192,7 @@ const AssetsPicker = forwardRef<AssetsPickerHandle, Props>(function AssetsPicker
         ...params,
         folderId: params.folder?.id ?? '',
         searchTerm: params.searchText,
-        seeThru: params.damViewSeeThru,
+        seeThru: params.contentBrowserSeeThru,
         limit: params.pageSize,
       }));
 
@@ -166,7 +206,7 @@ const AssetsPicker = forwardRef<AssetsPickerHandle, Props>(function AssetsPicker
   }, []);
 
   const selectAsset = useCallback(async (recordId: string) => {
-    const el = damViewRef.current;
+    const el = contentBrowserRef.current;
     if (!el) {
       return;
     }
@@ -178,7 +218,7 @@ const AssetsPicker = forwardRef<AssetsPickerHandle, Props>(function AssetsPicker
 
   useImperativeHandle(ref, () => ({ fetchAssets, fetchFolders, selectAsset }), [fetchAssets, fetchFolders, selectAsset]);
 
-  const onSelectedAsset = useCallback(async (event: CxDamViewSelectedAssetEvent) => {
+  const onSelectedAsset = useCallback(async (event: CxContentBrowserSelectedAssetEvent) => {
     const result = onAssetSelected(event.detail as GetAssetLinkResponse[]);
 
     if (isPromise(result)) {
@@ -195,7 +235,7 @@ const AssetsPicker = forwardRef<AssetsPickerHandle, Props>(function AssetsPicker
     onClose?.();
   }, [onAssetSelected, onClose, persistMode]);
 
-  const onFetchAndMergeAssetsSuccess = useCallback((event: CxDamViewRequestChangeEvent) => {
+  const onFetchAndMergeAssetsSuccess = useCallback((event: CxContentBrowserRequestChangeEvent) => {
     if (!loadedFromStorage.current) {
       return;
     }
@@ -239,7 +279,7 @@ const AssetsPicker = forwardRef<AssetsPickerHandle, Props>(function AssetsPicker
     }
   }, []);
 
-  const onGridClick = useCallback((event: CxDamViewGridClickEvent) => {
+  const onGridClick = useCallback((event: CxContentBrowserGridClickEvent) => {
     const { id } = event.detail;
 
     if (onAssetAction && id) {
@@ -267,48 +307,19 @@ const AssetsPicker = forwardRef<AssetsPickerHandle, Props>(function AssetsPicker
         sortOrder: sortOrder || '',
         sortDirection: ['ascending', 'descending'].includes(sortDirection as 'ascending' | 'descending') ? sortDirection as 'ascending' | 'descending' : undefined,
         view: view as GridView || defaultSettings.view,
-        selectedFacets: {},
+        selectedFacets: parseSelectedFacets(selectedFilter),
         isSeeThrough: selectedIsSeeThrough === 'true' || false,
         searchText: searchText || '',
       };
 
-      if (selectedFilter) {
-        try {
-          newDefaultSettings.selectedFacets = _pickBy(JSON.parse(selectedFilter), _isArray) ?? {};
-        } catch (error) {
-          newDefaultSettings.selectedFacets = {};
-        }
-      }
-
       if (lastLocationMode) {
-        if (newFacets) {
-          try {
-            const parsedFacets = JSON.parse(newFacets);
-            if (_isArray(parsedFacets)) {
-              newDefaultSettings.facets = parsedFacets;
-            } else {
-              newDefaultSettings.facets = [];
-            }
-          } catch (error) {
-            newDefaultSettings.facets = [];
-          }
-        }
+        newDefaultSettings.facets = parseStoredFacets(newFacets);
 
         if (lastLocationFolderId) {
           newDefaultSettings.lastLocation = lastLocationFolderId;
           deleteData('lastLocation');
         } else if (lastLocation) {
-          /**
-           * Deprecated: lastLocation is no longer used, this is for backward compatibility
-           */
-          try {
-            const parsedLastLocation = JSON.parse(lastLocation) as Folder;
-            if (parsedLastLocation) {
-              newDefaultSettings.lastLocation = parsedLastLocation.id;
-            }
-          } catch (error) {
-            newDefaultSettings.lastLocation = '';
-          }
+          newDefaultSettings.lastLocation = parseLegacyLastLocation(lastLocation);
         }
       }
 
@@ -320,53 +331,51 @@ const AssetsPicker = forwardRef<AssetsPickerHandle, Props>(function AssetsPicker
   }, [lastLocationMode, defaultGridView, defaultSettings.view]);
 
   if (!isInitialLoadComplete) {
-    return <Loader />;
+    return <cx-content-browser-loader></cx-content-browser-loader>;
   }
 
   return (
-    <>
-      {/* @ts-expect-error - cx-dam-view is not typed */}
-      <cx-dam-view
-        ref={damViewRef}
-        allowed-extensions={allowedExtensions}
-        allowed-folders={allowedFolders}
-        application-name={pluginInfo.publicApplicationName}
-        available-doc-types={availableDocTypes}
-        available-representative-subtypes={availableRepresentativeSubtypes}
-        default-grid-view={defaultSettings.view}
-        default-sort-order-name={defaultSettings.sortOrder}
-        default-sort-direction={defaultSettings.sortDirection}
-        default-facets={defaultSettings.facets}
-        default-selected-facets={defaultSettings.selectedFacets}
-        default-is-see-through={defaultSettings.isSeeThrough}
-        default-search-text={defaultSettings.searchText}
-        default-folder-id={defaultSettings.lastLocation}
-        token={accessToken ?? ''}
-        base-url={siteUrl ?? ''}
-        extra-fields={extraFields}
-        error-message="Unauthorized"
-        can-pin={allowPin}
-        can-favorite={allowFavorites}
-        can-logout={allowLogout}
-        can-use-proxies={allowProxy}
-        can-track={allowTracking}
-        can-view-versions={showVersions}
-        cta-text={ctaText}
-        cta-text-transform={ctaTextTransform}
-        show-close-button={isContentBrowserPopedup}
-        show-collections={showCollections}
-        show-favorite-folder={showFavoriteFolder}
-        show-tags={displayInfo.tags}
-        show-dimensions={displayInfo.dimension}
-        show-size={displayInfo.fileSize}
-        show-title={displayInfo.title}
-        oncx-dam-view-selected-asset={onSelectedAsset}
-        oncx-dam-view-request-change={onFetchAndMergeAssetsSuccess}
-        oncx-dam-view-grid-click={onGridClick}
-        oncx-dam-view-header-close={onClose}
-        oncx-dam-view-header-logout={onLogout}
-      />
-    </>
+    <cx-content-browser
+      ref={contentBrowserRef}
+      allowed-extensions={allowedExtensions}
+      allowed-folders={allowedFolders}
+      application-name={pluginInfo.publicApplicationName}
+      available-doc-types={availableDocTypes}
+      available-representative-subtypes={availableRepresentativeSubtypes}
+      default-grid-view={defaultSettings.view}
+      default-sort-order-name={defaultSettings.sortOrder}
+      default-sort-direction={defaultSettings.sortDirection}
+      default-facets={defaultSettings.facets}
+      default-selected-facets={defaultSettings.selectedFacets}
+      default-is-see-through={defaultSettings.isSeeThrough}
+      default-search-text={defaultSettings.searchText}
+      default-folder-id={defaultSettings.lastLocation}
+      token={accessToken ?? ''}
+      base-url={siteUrl ?? ''}
+      extra-fields={extraFields}
+      error-message="Unauthorized"
+      can-pin={allowPin}
+      can-favorite={allowFavorites}
+      can-logout={allowLogout}
+      can-use-proxies={allowProxy}
+      can-track={allowTracking}
+      can-view-versions={showVersions}
+      cta-text={ctaText}
+      cta-text-transform={ctaTextTransform}
+      show-close-button={isContentBrowserPopedup}
+      show-collections={showCollections}
+      show-favorite-folder={showFavoriteFolder}
+      show-tags={displayInfo.tags}
+      show-dimensions={displayInfo.dimension}
+      show-size={displayInfo.fileSize}
+      show-title={displayInfo.title}
+      multi-select={multiSelect ? 'true' : undefined}
+      oncx-content-browser-selected-asset={onSelectedAsset}
+      oncx-content-browser-request-change={onFetchAndMergeAssetsSuccess}
+      oncx-content-browser-grid-click={onGridClick}
+      oncx-content-browser-header-close={onClose}
+      oncx-content-browser-header-logout={onLogout}
+    />
   );
 });
 

@@ -1,4 +1,4 @@
-import { Facet, SortOrder } from '@/types/dam-view';
+import { Facet, SortOrder } from '@/types/content-browser';
 
 export type GetSortOrdersResponse = Record<string, SortOrder[]>;
 

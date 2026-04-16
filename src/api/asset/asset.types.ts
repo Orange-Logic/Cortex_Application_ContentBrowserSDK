@@ -1,5 +1,5 @@
 import { Asset, AssetVersion, AvailableProxy, MediaType, TrackingParameter } from '@/types/asset';
-import { Facet, Transformation } from '@/types/dam-view';
+import { Facet, Transformation } from '@/types/content-browser';
 
 export type CortexErrorResponse = {
   'Asset ID'?: string;
