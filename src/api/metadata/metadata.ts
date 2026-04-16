@@ -1,5 +1,5 @@
 import http from '@/api/api';
-import { METADATA_API_ENDPOINT } from '@/api/endpoints';
+import { MetadataApiEndpoint } from '@/api/endpoints';
 import { Facet, SortOrder } from '@/types/content-browser';
 
 import {
@@ -35,7 +35,7 @@ export async function apiGetSortOrders() {
             }, {} as Record<string, SortOrder[]>);
           },
       ],
-      url: METADATA_API_ENDPOINT.GET_SORT_ORDERS,
+      url: MetadataApiEndpoint.GET_SORT_ORDERS,
     });
 
     return response.data;
@@ -58,7 +58,7 @@ export async function apiGetAvailableFacets() {
               : [];
           },
       ],
-      url: METADATA_API_ENDPOINT.GET_AVAILABLE_FACETS,
+      url: MetadataApiEndpoint.GET_AVAILABLE_FACETS,
     });
 
     return response.data;
@@ -85,7 +85,7 @@ export async function apiGetContentBrowserParameters() {
           };
         },
       ],
-      url: METADATA_API_ENDPOINT.GET_CONTENT_BROWSER_PARAMETERS,
+      url: MetadataApiEndpoint.GET_CONTENT_BROWSER_PARAMETERS,
     });
 
     return response.data;

@@ -14,10 +14,10 @@ import { watch } from '@/utils/watch';
 import { grid } from '@lit-labs/virtualizer/layouts/grid.js';
 import CxProgressBar from '@orangelogic/design-system/components/progress-bar';
 import CxResizeObserver from '@orangelogic/design-system/components/resize-observer';
-import CxTypography from '@orangelogic/design-system/components/typography';
 import { customElement, LocalizeController } from '@orangelogic/design-system/utils';
 
 import CxContentBrowserAssetCard from '../content-browser-asset-card/content-browser-asset-card';
+import CxContentBrowserNoResult from '../content-browser-no-result/content-browser-no-result';
 import styles from './content-browser-grid.styles';
 
 import type { CxResizeEvent } from '@/events';
@@ -29,9 +29,9 @@ export default class CxContentBrowserGrid extends CortexElement {
 
   static readonly dependencies = {
     'cx-content-browser-asset-card': CxContentBrowserAssetCard,
+    'cx-content-browser-no-result': CxContentBrowserNoResult,
     'cx-progress-bar': CxProgressBar,
     'cx-resize-observer': CxResizeObserver,
-    'cx-typography': CxTypography,
   };
 
   private readonly localize = new LocalizeController(this);
@@ -232,12 +232,11 @@ export default class CxContentBrowserGrid extends CortexElement {
         <div class="content-browser-grid">
           ${when(this.empty,
             () => html`
-              <div class="content-browser-grid__empty">
-                <cx-icon name="search_off"></cx-icon>
-                <cx-typography>
-                  ${this.localize.term('noResults')}
-                </cx-typography>
-              </div>
+              <cx-content-browser-no-result
+                class="content-browser-grid__empty"
+                icon="search_off"
+                message=${this.localize.term('noResults')}
+              ></cx-content-browser-no-result>
             `,
             () => html`
               <lit-virtualizer

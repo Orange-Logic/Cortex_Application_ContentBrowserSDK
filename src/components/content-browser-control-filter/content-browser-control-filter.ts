@@ -38,7 +38,8 @@ import type { CSSResultGroup, TemplateResult } from 'lit';
 /**
  * @summary DAM view filter control for applying, viewing, and managing asset filters in the toolbar.
  *
- * @description Presents available filter facets to refine asset results in the Content Browser. Users can select, clear, or modify filters using dropdown panels. Adapted from ContentBrowserSDK Filter React component.
+ * @description Presents available filter facets to refine asset results in the Content Browser.
+ * Users can select, clear, or modify filters using dropdown panels. Adapted from ContentBrowserSDK Filter React component.
  *
  * @property {Facet[]} facets - Active facet objects providing metadata and available options.
  * @property {Array<Facet['facetDetails']>} availableFacets - Array of available facet details.

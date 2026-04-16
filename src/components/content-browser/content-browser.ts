@@ -11,6 +11,7 @@ import CxContentBrowserControlBar from '@/components/content-browser-control-bar
 import CxContentBrowserFormatDialog from '@/components/content-browser-format-dialog/content-browser-format-dialog';
 import CxContentBrowserGrid from '@/components/content-browser-grid/content-browser-grid';
 import CxContentBrowserHeader from '@/components/content-browser-header/content-browser-header';
+import CxContentBrowserNoResult from '@/components/content-browser-no-result/content-browser-no-result';
 import {
     CxContentBrowserControlBarSearchChangeEvent, CxContentBrowserControlFilterChangeEvent,
     CxContentBrowserControlSortOrderChangeEvent, CxContentBrowserControlViewChangeEvent,
@@ -50,6 +51,7 @@ export default class CxContentBrowser extends CortexElement {
     'cx-content-browser-format-dialog': CxContentBrowserFormatDialog,
     'cx-content-browser-grid': CxContentBrowserGrid,
     'cx-content-browser-header': CxContentBrowserHeader,
+    'cx-content-browser-no-result': CxContentBrowserNoResult,
     'cx-icon': CxIcon,
     'cx-icon-button': CxIconButton,
     'cx-resize-observer': CxResizeObserver,

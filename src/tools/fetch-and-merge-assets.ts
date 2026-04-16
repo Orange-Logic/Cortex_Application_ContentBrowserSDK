@@ -27,7 +27,7 @@ import {
 } from '@/api/asset';
 import { GetAssetLinksRequest, GetAssetsByIDsResponse, GetAvailableExtensionsResponse, GetAvailableProxiesResponse } from '@/api/asset/asset.types';
 import { apiGetUserInfo } from '@/api/auth';
-import { ASSET_API_ENDPOINT, AUTH_API_ENDPOINT, FOLDER_API_ENDPOINT, METADATA_API_ENDPOINT } from '@/api/endpoints';
+import { AssetApiEndpoint, AuthApiEndpoint, FOLDER_API_ENDPOINT, MetadataApiEndpoint } from '@/api/endpoints';
 import { apiGetFolders } from '@/api/folder';
 import {
   apiGetAvailableFacets,
@@ -161,19 +161,19 @@ export class FetchAndMergeAssetsController implements ReactiveController {
 
     http.interceptors.request.use((config) => {
       if (config.url && ![
-        ASSET_API_ENDPOINT.GET_AVAILABLE_EXTENSIONS,
-        ASSET_API_ENDPOINT.GET_ASSET_VERSION_HISTORY,
-        ASSET_API_ENDPOINT.GET_CONTENT_V1,
-        ASSET_API_ENDPOINT.ADD_ASSET_TO_FAVORITE,
-        ASSET_API_ENDPOINT.REMOVE_ASSET_FROM_FAVORITE,
-        ASSET_API_ENDPOINT.GET_FAVORITE_ASSETS,
-        ASSET_API_ENDPOINT.GET_CONTENT_V3,
-        ASSET_API_ENDPOINT.GET_AVAILABLE_PROXIES,
-        ASSET_API_ENDPOINT.GET_ASSET_LINK,
-        METADATA_API_ENDPOINT.GET_AVAILABLE_FACETS,
-        METADATA_API_ENDPOINT.GET_CONTENT_BROWSER_PARAMETERS,
-        METADATA_API_ENDPOINT.GET_SORT_ORDERS,
-        AUTH_API_ENDPOINT.GET_USER_INFO,
+        AssetApiEndpoint.GET_AVAILABLE_EXTENSIONS,
+        AssetApiEndpoint.GET_ASSET_VERSION_HISTORY,
+        AssetApiEndpoint.GET_CONTENT_V1,
+        AssetApiEndpoint.ADD_ASSET_TO_FAVORITE,
+        AssetApiEndpoint.REMOVE_ASSET_FROM_FAVORITE,
+        AssetApiEndpoint.GET_FAVORITE_ASSETS,
+        AssetApiEndpoint.GET_CONTENT_V3,
+        AssetApiEndpoint.GET_AVAILABLE_PROXIES,
+        AssetApiEndpoint.GET_ASSET_LINK,
+        MetadataApiEndpoint.GET_AVAILABLE_FACETS,
+        MetadataApiEndpoint.GET_CONTENT_BROWSER_PARAMETERS,
+        MetadataApiEndpoint.GET_SORT_ORDERS,
+        AuthApiEndpoint.GET_USER_INFO,
         FOLDER_API_ENDPOINT,
       ].includes(config.url)) {
         return config;
@@ -209,9 +209,9 @@ export class FetchAndMergeAssetsController implements ReactiveController {
 
   private _debounceTimeout: ReturnType<typeof setTimeout> | undefined;
 
-  private _debouncePromise: Promise<any> | null = null;
+  private _debouncePromise: Promise<unknown> | null = null;
 
-  private _debounceResolve: ((value: any) => void) | null = null;
+  private _debounceResolve: ((value: unknown) => void) | null = null;
 
   private mapAvailableExtensions(allowedExtensions: string[]) {
     // object of extensions that's available for selection in the custom format dialog.

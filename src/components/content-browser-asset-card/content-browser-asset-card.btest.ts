@@ -74,7 +74,7 @@ describe('content-browser-asset-card', () => {
     });
 
     it('parses tags property as comma-separated string when tags is not an array', async () => {
-      el.tags = 'a' as any;
+      el.tags = 'a' as unknown as string[];
       await elementUpdated(el);
       expect(el.getAttribute('tags')).to.equal('a');
     });

@@ -287,7 +287,7 @@ export default class CxContentBrowserAssetProxySelector extends CortexElement {
           >
             <cx-icon name="warning"></cx-icon>
             <cx-typography variant="body3" class="content-browser-asset-proxy-selector__menu-item__name">
-              ${this.localize.term('contentBrowserNoAvailableOptionsForThisAsset')}
+              ${this.localize.term('damViewNoAvailableOptionsForThisAsset')}
             </cx-typography>
           </cx-space>
         `,

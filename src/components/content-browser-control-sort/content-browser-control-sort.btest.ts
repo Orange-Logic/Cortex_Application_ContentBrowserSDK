@@ -180,6 +180,7 @@ describe('content-browser-control-sort', () => {
     it('shows a spinner on the matching direction item while loading that change', async () => {
       el.loading = true;
       el.newlyChangedOption = {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         type: OptionType.SORT_DIRECTION as any,
         value: 'ascending',
       };

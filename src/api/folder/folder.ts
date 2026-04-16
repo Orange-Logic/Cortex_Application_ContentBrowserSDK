@@ -1,6 +1,6 @@
 import http from '@/api/api';
 import {
-  ASSET_API_ENDPOINT,
+  AssetApiEndpoint,
   FOLDER_API_ENDPOINT,
 } from '@/api/endpoints';
 import { GetFolderRequest, GetFolderResponse } from '@/types/folder';
@@ -218,7 +218,7 @@ export async function apiGetCollections({
           };
         },
       ],
-      url: ASSET_API_ENDPOINT.GET_CONTENT_V1,
+      url: AssetApiEndpoint.GET_CONTENT_V1,
     });
 
     return response.data;

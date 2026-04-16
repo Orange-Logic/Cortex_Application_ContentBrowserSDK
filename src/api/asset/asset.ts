@@ -1,7 +1,7 @@
 import http from '@/api/api';
 import { Asset, GetAssetsRequest, MediaType } from '@/types/asset';
 import { TransformationAction } from '@/types/content-browser';
-import { ASSET_API_ENDPOINT } from '@/api/endpoints';
+import { AssetApiEndpoint } from '@/api/endpoints';
 
 import {
   CortexErrorResponse,
@@ -269,7 +269,7 @@ export async function apiGetAssetLinks({
             };
           },
         ],
-        url: ASSET_API_ENDPOINT.GET_ASSET_LINK,
+        url: AssetApiEndpoint.GET_ASSET_LINK,
       });
     }));
 
@@ -351,7 +351,7 @@ export async function apiGetAssetsByIDs({
           };
         },
       ],
-      url: ASSET_API_ENDPOINT.GET_CONTENT_V1,
+      url: AssetApiEndpoint.GET_CONTENT_V1,
     });
 
     return response.data;
@@ -448,7 +448,7 @@ export async function apiGetAssets({
           };
         },
       ],
-      url: ASSET_API_ENDPOINT.GET_CONTENT_V3,
+      url: AssetApiEndpoint.GET_CONTENT_V3,
     });
 
     return response.data;
@@ -504,7 +504,7 @@ export async function apiGetAvailableProxies({
           );
         },
       ],
-      url: ASSET_API_ENDPOINT.GET_AVAILABLE_PROXIES,
+      url: AssetApiEndpoint.GET_AVAILABLE_PROXIES,
     });
 
     return response.data;
@@ -528,7 +528,7 @@ export async function apiGetAvailableExtensions() {
           return rawResponse.extensions;
         },
       ],
-      url: ASSET_API_ENDPOINT.GET_AVAILABLE_EXTENSIONS,
+      url: AssetApiEndpoint.GET_AVAILABLE_EXTENSIONS,
     });
 
     return response.data;
@@ -565,7 +565,7 @@ export async function apiGetAssetFavoriteStatus({
           return rawResponse.favoriteRecordIds.includes(assetRecordId);
         },
       ],
-      url: ASSET_API_ENDPOINT.GET_FAVORITE_ASSETS,
+      url: AssetApiEndpoint.GET_FAVORITE_ASSETS,
     });
 
     return response.data;
@@ -612,7 +612,7 @@ export async function apiGetAssetVersionHistory({
           };
         },
       ],
-      url: ASSET_API_ENDPOINT.GET_ASSET_VERSION_HISTORY,
+      url: AssetApiEndpoint.GET_ASSET_VERSION_HISTORY,
     });
 
     return response.data;
@@ -651,7 +651,7 @@ export async function apiAddAssetToFavorite({
           return false;
         },
       ],
-      url: ASSET_API_ENDPOINT.ADD_ASSET_TO_FAVORITE,
+      url: AssetApiEndpoint.ADD_ASSET_TO_FAVORITE,
     });
 
     return response.data;
@@ -687,7 +687,7 @@ export async function apiRemoveAssetFromFavorite({
           return false;
         },
       ],
-      url: ASSET_API_ENDPOINT.REMOVE_ASSET_FROM_FAVORITE,
+      url: AssetApiEndpoint.REMOVE_ASSET_FROM_FAVORITE,
     });
 
     return response.data;

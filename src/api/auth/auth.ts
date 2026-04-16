@@ -1,7 +1,7 @@
 import http from '@/api/api';
 import { UserInfo } from '@/types/auth';
 
-import { AUTH_API_ENDPOINT } from '../endpoints';
+import { AuthApiEndpoint } from '../endpoints';
 
 export async function apiGetUserInfo() {
   try {
@@ -33,7 +33,7 @@ export async function apiGetUserInfo() {
           };
         },
       ],
-      url: AUTH_API_ENDPOINT.GET_USER_INFO,
+      url: AuthApiEndpoint.GET_USER_INFO,
     });
 
     return response.data;

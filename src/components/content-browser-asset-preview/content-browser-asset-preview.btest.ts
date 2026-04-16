@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/dot-notation */
 import { elementUpdated, expect, fixture, html, waitUntil } from '@open-wc/testing';
 
 import { MediaType } from '@/types/asset';
@@ -35,7 +36,7 @@ describe('content-browser-asset-preview', () => {
   });
 
   describe('when no imageUrl is set', () => {
-    for (const docType of Object.values(MediaType)) {
+    Object.values(MediaType).forEach((docType) => {
       it(`renders the thumbnail for ${docType}`, async () => {
         el.docType = docType;
         await elementUpdated(el);
@@ -50,7 +51,7 @@ describe('content-browser-asset-preview', () => {
         expect(text).to.exist;
         expect(text?.textContent?.trim()).to.equal(docType);
       });
-    }
+    });
   });
 
   describe('when imageUrl is set', () => {

@@ -27,7 +27,8 @@ import styles from './content-browser-control-view.styles';
 /**
  * @summary DAM view control toolbar for selecting asset view modes and toggling options.
  *
- * @description Provides a toolbar to switch between available asset view layouts (e.g., small, medium, large tile) and toggle "see through" view in the Content Browser. Adapted from ContentBrowserSDK Header React component.
+ * @description Provides a toolbar to switch between available asset view layouts (e.g., small, medium, large tile)
+ * and toggle "see through" view in the Content Browser. Adapted from ContentBrowserSDK Header React component.
  *
  * @property {string} view - The currently selected view identifier.
  * @property {Array<ControlOption>} views - Array of selectable view options.

@@ -22,7 +22,9 @@ import type { CSSResultGroup, TemplateResult } from 'lit';
 /**
  * @summary DAM view control bar for sorting, filtering, and changing asset view modes in the header toolbar.
  *
- * @description Combines sort, filter, and view controls into a single toolbar interface for the Content Browser. Allows users to change asset view layout, apply filters, and sort results using integrated dropdown and toolbar controls. Adapted from ContentBrowserSDK Header React component.
+ * @description Combines sort, filter, and view controls into a single toolbar interface for the Content Browser.
+ * Allows users to change asset view layout, apply filters, and sort results using integrated dropdown and toolbar controls.
+ * Adapted from ContentBrowserSDK Header React component.
  *
  * @property {number} currentCount - The number of items currently displayed.
  * @property {number} totalCount - The total number of items available.

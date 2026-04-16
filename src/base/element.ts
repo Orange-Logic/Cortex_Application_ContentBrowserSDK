@@ -88,10 +88,8 @@ type ValidEventTypeMap =
 
 export default class CortexElement extends LitElement {
   // Make localization attributes reactive
-  // eslint-disable-next-line lit/no-native-attributes
   @property() dir: string;
 
-  // eslint-disable-next-line lit/no-native-attributes
   @property() lang: string;
 
   @property() theme: 'light' | 'dark' = 'light';
@@ -213,6 +211,7 @@ export default class CortexElement extends LitElement {
     Object.entries(
       (this.constructor as typeof CortexElement).dependencies,
     ).forEach(([name, component]) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (this.constructor as typeof CortexElement).define(name, component as any);
     });
 
@@ -250,6 +249,7 @@ export default class CortexElement extends LitElement {
   }
 
   adoptedCallback() {
+    // eslint-disable-next-line @typescript-eslint/no-use-before-define
     rescueElementPrototype(this);
   }
 
@@ -278,6 +278,7 @@ export default class CortexElement extends LitElement {
       globalThis.removeEventListener('cx-theme-change', this.handleThemeChange);
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-use-before-define
     rescueElementPrototype(this);
   }
 

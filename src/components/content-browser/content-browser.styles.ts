@@ -36,12 +36,4 @@ export default css`
     width: 100%;
     height: 100%;
   }
-
-  .content-browser__message__icon {
-    font-size: var(--cx-font-size-4x-large);
-  }
-
-  .content-browser__message__text {
-    --font-size: var(--cx-font-size-2x-large);
-  }
 `;
