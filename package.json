@@ -49,7 +49,7 @@
     "build:library": "vite build && vite build -c vite.esm.config.ts && vite build -c vite.content-browser.esm.config.ts",
     "build:types": "node ./scripts/emit-types.mjs",
     "optimize": "vite optimize --force",
-    "test-browser": "npm run optimize && web-test-runner",
+    "test-browser": "web-test-runner",
     "format": "eslint --fix .",
     "lint": "tsc --noEmit && eslint src/**/*.ts{,x}",
     "publish:library": "./scripts/publishIfNeeded.mjs"
