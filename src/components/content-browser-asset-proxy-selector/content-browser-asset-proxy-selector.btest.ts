@@ -1,11 +1,10 @@
+import './content-browser-asset-proxy-selector';
 import { elementUpdated, expect, fixture, html } from '@open-wc/testing';
 
 import type CxContentBrowserAssetTrackingParameters from '../content-browser-asset-tracking-parameters/content-browser-asset-tracking-parameters';
 
-import CxContentBrowserAssetProxySelector, {
-  CUSTOM_FORMAT_VALUE,
-  USE_REPRESENTATIVE_VALUE,
-} from './content-browser-asset-proxy-selector';
+import type CxContentBrowserAssetProxySelector from './content-browser-asset-proxy-selector';
+import { CUSTOM_FORMAT_VALUE, USE_REPRESENTATIVE_VALUE } from './content-browser-asset-proxy-selector';
 
 /** Warning icon uses brand amber; axe contrast threshold is strict on white. */
 const accessibilityIgnoredRules = ['color-contrast'];

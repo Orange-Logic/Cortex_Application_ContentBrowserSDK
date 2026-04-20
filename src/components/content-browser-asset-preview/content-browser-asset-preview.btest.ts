@@ -1,12 +1,13 @@
 /* eslint-disable @typescript-eslint/dot-notation */
-import { elementUpdated, expect, fixture, html, waitUntil } from '@open-wc/testing';
+import './content-browser-asset-preview';
 
 import { MediaType } from '@/types/asset';
+import { elementUpdated, expect, fixture, html, waitUntil } from '@open-wc/testing';
 
-import type CxContentBrowserAssetPreview from './content-browser-asset-preview';
-import { getMediaIcon } from './content-browser-asset-preview';
 import CxContentBrowserAssetPreviewVideo from './content-browser-asset-preview-video/content-browser-asset-preview-video';
 
+import { getMediaIcon } from './content-browser-asset-preview';
+import type CxContentBrowserAssetPreview from './content-browser-asset-preview';
 describe('content-browser-asset-preview', () => {
   let el: CxContentBrowserAssetPreview;
 
