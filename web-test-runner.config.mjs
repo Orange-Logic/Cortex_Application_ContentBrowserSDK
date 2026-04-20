@@ -81,6 +81,7 @@ export const getWebTestRunnerConfig = ({
             'react-dom/client',
             'react/jsx-runtime',
             'react/jsx-dev-runtime',
+            '@open-wc/testing',
             '@web/test-runner-commands',
             'sinon',
           ],
