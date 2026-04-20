@@ -95,12 +95,12 @@ stages:
             workingDirectory: $(Build.SourcesDirectory)
 
           - bash: |
-              yarn test-browser
+              npm run test-browser
             displayName: 'Run browser tests'
             workingDirectory: $(Build.SourcesDirectory)
 
           - bash: |
-              yarn build
+              npm run build
             displayName: 'Build library'
             workingDirectory: $(Build.SourcesDirectory)
 
