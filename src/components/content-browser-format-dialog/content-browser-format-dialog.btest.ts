@@ -616,11 +616,15 @@ describe('content-browser-format-dialog', () => {
     ];
     await elementUpdated(el);
 
+    el.confirmedFormat = { extension: '.webm', height: 480, width: 640 };
+    await elementUpdated(el);
+
     dispatchProxySelect(el, 'p-b');
     await elementUpdated(el);
 
     expect(el.selectedProxy).to.equal('p-b');
     expect(el.confirmedTransformations.length).to.equal(0);
+    expect(el.confirmedFormat).to.be.null;
   });
 
   it('maps TRX proxy selector items from asset dimensions and extension', async () => {
@@ -732,6 +736,60 @@ describe('content-browser-format-dialog', () => {
 
     footerButtons = el.shadowRoot!.querySelectorAll('.content-browser-format__footer cx-button');
     expect(footerButtons.length).to.equal(1);
+  });
+
+  it('cancel without prior confirm resets selectedProxy to empty', async () => {
+    el = await fixture<CxContentBrowserFormatDialog>(
+      html`<cx-content-browser-format-dialog
+        can-use-proxies
+        can-custom-format
+        .availableExtensions=${videoMp4Extensions()}
+      ></cx-content-browser-format-dialog>`,
+    );
+    el.open({
+      asset: makeAsset({ extension: '.mp4' }),
+      isFavorite: false,
+      proxies: [makeProxy()],
+    });
+    await elementUpdated(el);
+
+    dispatchProxySelect(el, CUSTOM_FORMAT_VALUE);
+    await elementUpdated(el);
+
+    const footerButtons = el.shadowRoot!.querySelectorAll('.content-browser-format__footer cx-button');
+    (footerButtons[0] as HTMLElement).click();
+    await elementUpdated(el);
+
+    expect(el.selectedProxy).to.equal('');
+  });
+
+  it('cancel after confirm preserves selectedProxy as custom format', async () => {
+    el = await fixture<CxContentBrowserFormatDialog>(
+      html`<cx-content-browser-format-dialog
+        can-use-proxies
+        can-custom-format
+        .availableExtensions=${videoMp4Extensions()}
+      ></cx-content-browser-format-dialog>`,
+    );
+    el.open({
+      asset: makeAsset({ extension: '.mp4' }),
+      isFavorite: false,
+      proxies: [makeProxy()],
+    });
+    await elementUpdated(el);
+
+    el.confirmedFormat = { extension: '.webm', height: 480, width: 640 };
+    el.confirmedTransformations = [{ key: TransformationAction.Resize, value: { width: 100 } }];
+
+    dispatchProxySelect(el, CUSTOM_FORMAT_VALUE);
+    await elementUpdated(el);
+
+    const footerButtons = el.shadowRoot!.querySelectorAll('.content-browser-format__footer cx-button');
+    (footerButtons[0] as HTMLElement).click();
+    await elementUpdated(el);
+
+    expect(el.selectedProxy).to.equal(CUSTOM_FORMAT_VALUE);
+    expect(el.confirmedFormat).to.deep.equal({ extension: '.webm', height: 480, width: 640 });
   });
 
   it('emits cx-content-browser-format-dialog-format-confirm after custom format done and insert', async () => {
@@ -904,12 +962,10 @@ describe('content-browser-format-dialog', () => {
       });
     });
 
-    it('maps assetLinkFormat fields, non-TRX sourceProxyMetadata, and omits parameters when tracking is off', async () => {
+    it('maps confirmed format fields, non-TRX sourceProxyMetadata, and omits parameters when tracking is off', async () => {
       const transformations = [{ key: TransformationAction.Resize, value: { width: 100 } }];
-      setAssetLinkFormatStub(el, {
-        selectedFormat: { extension: '.webm', height: 480, width: 640 },
-        transformations,
-      });
+      el.confirmedFormat = { extension: '.webm', height: 480, width: 640 };
+      el.confirmedTransformations = transformations;
       el.enabledTracking = false;
       await elementUpdated(el);
       const asset = makeAsset();

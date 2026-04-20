@@ -39,6 +39,9 @@ export default class CxContentBrowserGrid extends CortexElement {
   @query('.content-browser-grid')
   private readonly containerEl: HTMLDivElement;
 
+  @query('lit-virtualizer')
+  private readonly virtualizerEl: HTMLElement;
+
   @property({ attribute: 'assets', reflect: false, type: Array })
   assets: Asset[] = [];
 
@@ -146,18 +149,19 @@ export default class CxContentBrowserGrid extends CortexElement {
       };
     }
 
+    // Use virtualizer's clientWidth to account for vertical scrollbar taking space
+    const effectiveWidth = this.virtualizerEl?.clientWidth || width;
+
     const breakPoint = ASSET_SIZE[this.view]?.minWidth || ASSET_SIZE[GridView.Large].minWidth;
-    const columnCount = Math.max(1, Math.floor((width + this.#gutter) / (breakPoint + this.#gutter)));
+    const columnCount = Math.max(1, Math.floor((effectiveWidth + this.#gutter) / (breakPoint + this.#gutter)));
 
     let rowCount = 0;
 
     if (height) {
       rowCount = Math.ceil(height / (breakPoint + this.#gutter));
     }
-    /**
-     * Optimize this
-     */
-    this.columnWidth = Math.floor((width - this.#gutter * (columnCount + 1)) / columnCount);
+
+    this.columnWidth = Math.floor((effectiveWidth - this.#gutter * (columnCount + 1)) / columnCount);
 
     return {
       columnCount,

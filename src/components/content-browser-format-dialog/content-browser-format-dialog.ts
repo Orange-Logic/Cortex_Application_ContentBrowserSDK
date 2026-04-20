@@ -170,6 +170,9 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
   confirmedTransformations: Transformation[] = [];
 
   @state()
+  confirmedFormat: { width?: number | null; height?: number | null; extension?: string | null } | null = null;
+
+  @state()
   loadingConfirm = false;
 
   @state()
@@ -245,7 +248,7 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
   mapFormatConfirmPayload(asset: Asset, selectedProxy?: AvailableProxy) {
     return {
       asset,
-      extension: this.assetLinkFormat?.selectedFormat?.extension ?? '',
+      extension: this.confirmedFormat?.extension ?? '',
       parameters: this.enabledTracking ? this.trackingParameters : undefined,
       proxiesPreference: selectedProxy?.proxyName,
       sourceProxyMetadata: {
@@ -258,13 +261,13 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
         proxyName: selectedProxy?.proxyName ?? null,
         width: selectedProxy?.proxyName === 'TRX' ? Number.parseInt(asset.width ?? '0', 10) : selectedProxy?.formatWidth ?? null,
       },
-      transformations: this.assetLinkFormat?.transformations ?? [],
+      transformations: this.confirmedTransformations,
       transformedAssetMetadata: {
-        extension: this.assetLinkFormat?.selectedFormat?.extension ?? null,
-        height: this.assetLinkFormat?.selectedFormat?.height ?? null,
+        extension: this.confirmedFormat?.extension ?? null,
+        height: this.confirmedFormat?.height ?? null,
         isCustomFormat: true,
         permanentLink: null,
-        width: this.assetLinkFormat?.selectedFormat?.width ?? null,
+        width: this.confirmedFormat?.width ?? null,
       },
     };
   }
@@ -297,15 +300,16 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
     /**
      * If no transformations have been confirmed, we need to reset the selected proxy to an empty string.
      */
-    if (this.confirmedTransformations.length === 0) {
+    if (!this.confirmedFormat && this.confirmedTransformations.length === 0) {
       this.selectedProxy = '';
     }
   }
 
   private handleDoneCustomFormat() {
+    this.confirmedTransformations = this.assetLinkFormat.transformations;
+    this.confirmedFormat = this.assetLinkFormat.selectedFormat ?? null;
     this.assetLinkFormat.setActiveSetting('');
     this.showCustomFormat = false;
-    this.confirmedTransformations = this.assetLinkFormat.transformations;
   }
 
   private handleFavorite() {
@@ -397,6 +401,7 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
         return;
       }
       this.selectedProxy = value;
+      this.confirmedFormat = null;
 
       if (this.confirmedTransformations.length > 0) {
         this.confirmedTransformations = [];
@@ -552,10 +557,10 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
     if (this.canUseProxies) {
       proxySelector = html`
         <cx-content-browser-asset-proxy-selector
-          selected=${ifDefined(this.selectedProxy || undefined)}
-          custom-width=${ifDefined(this.assetLinkFormat?.selectedFormat?.width?.toString() || undefined)}
-          custom-height=${ifDefined(this.assetLinkFormat?.selectedFormat?.height?.toString() || undefined)}
-          custom-extension=${ifDefined(this.assetLinkFormat?.selectedFormat?.extension || undefined)}
+          selected=${this.selectedProxy || this.proxies[0]?.id}
+          custom-width=${ifDefined(this.confirmedFormat?.width?.toString() || undefined)}
+          custom-height=${ifDefined(this.confirmedFormat?.height?.toString() || undefined)}
+          custom-extension=${ifDefined(this.confirmedFormat?.extension || undefined)}
           .items=${guard([this.filteredProxies],
             () => {
               return this.filteredProxies.map((proxy) => {
@@ -609,6 +614,7 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
           this.asset,
           this.proxies,
           this.confirmedTransformations,
+          this.selectedProxy,
           this.showCustomFormat,
         ],
         () => {
@@ -622,6 +628,7 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
             <cx-asset-link-format
               for-cropper="cropper"
               hide-header
+              selected-proxy=${ifDefined(this.selectedProxy === CUSTOM_FORMAT_VALUE ? undefined : this.selectedProxy)}
               use-custom-extension
               .asset=${this.asset}
               .baseUrl=${this.baseUrl}
@@ -741,6 +748,7 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
 
   private handleClose() {
     this.asset = undefined;
+    this.confirmedFormat = null;
     this.confirmedTransformations = [];
     this.dialog.hide();
     this.enabledTracking = false;
