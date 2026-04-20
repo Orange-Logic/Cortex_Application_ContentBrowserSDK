@@ -24,7 +24,7 @@ import CxSpace from '@orangelogic/design-system/components/space';
 import CxSpinner from '@orangelogic/design-system/components/spinner';
 import CxTooltip from '@orangelogic/design-system/components/tooltip';
 import CxTypography from '@orangelogic/design-system/components/typography';
-import { customElement, LocalizeController } from '@orangelogic/design-system/utils';
+import { customElement, LocalizeController, safeString } from '@orangelogic/design-system/utils';
 
 import CxContentBrowserAssetPreview from '../content-browser-asset-preview/content-browser-asset-preview';
 import CxContentBrowserAssetProxySelector, {
@@ -170,7 +170,7 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
   confirmedTransformations: Transformation[] = [];
 
   @state()
-  confirmedFormat: { width?: number | null; height?: number | null; extension?: string | null } | null = null;
+  confirmedFormat: { width?: number | null; height?: number | null; extension?: string | null } | undefined = undefined;
 
   @state()
   loadingConfirm = false;
@@ -307,7 +307,7 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
 
   private handleDoneCustomFormat() {
     this.confirmedTransformations = this.assetLinkFormat.transformations;
-    this.confirmedFormat = this.assetLinkFormat.selectedFormat ?? null;
+    this.confirmedFormat = this.assetLinkFormat.selectedFormat;
     this.assetLinkFormat.setActiveSetting('');
     this.showCustomFormat = false;
   }
@@ -410,7 +410,7 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
         return;
       }
       this.selectedProxy = value;
-      this.confirmedFormat = null;
+      this.confirmedFormat = undefined;
 
       if (this.confirmedTransformations.length > 0) {
         this.confirmedTransformations = [];
@@ -603,7 +603,7 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
           .trackingParameters=${this.trackingParameters}
           ?can-custom-format=${this.canCustomFormat}
           ?can-use-representative=${guard([this.supportedRepresentativeSubtypes, this.asset],
-            () => this.supportedRepresentativeSubtypes?.includes(this.asset!.docSubType ?? '') && !!this.asset!.imageUrl,
+            () => this.supportedRepresentativeSubtypes?.includes(safeString(this.asset?.docSubType)) && !!this.asset?.imageUrl,
           )}
           ?can-use-ats=${guard([this.availableExtensions, this.asset, this.canCustomFormat],
             () => this.canUseATS,
@@ -758,7 +758,7 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
 
   private handleClose() {
     this.asset = undefined;
-    this.confirmedFormat = null;
+    this.confirmedFormat = undefined;
     this.confirmedTransformations = [];
     this.dialog.hide();
     this.enabledTracking = false;

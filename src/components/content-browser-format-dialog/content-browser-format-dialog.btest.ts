@@ -230,7 +230,7 @@ describe('content-browser-format-dialog', () => {
     expect(el.shadowRoot!.querySelector('cx-content-browser-asset-preview')).to.be.null;
     expect(el.trackingParameters).to.deep.equal(DEFAULT_TRACKING_PARAMETERS_SNAPSHOT);
     expect(el.enabledTracking).to.be.false;
-    expect(el.confirmedFormat).to.be.null;
+    expect(el.confirmedFormat).to.be.undefined;
   });
 
   it('emits cx-content-browser-format-dialog-favorite-change when the star is clicked', async () => {
@@ -509,6 +509,21 @@ describe('content-browser-format-dialog', () => {
     });
   });
 
+  it('emits proxy-confirm and sets loadingConfirm when can-use-proxies is absent', async () => {
+    el = await fixture<CxContentBrowserFormatDialog>(
+      html`<cx-content-browser-format-dialog></cx-content-browser-format-dialog>`,
+    );
+    el.open({ asset: makeAsset(), isFavorite: false, proxies: [] });
+    await elementUpdated(el);
+
+    const p = oneEvent(el, 'cx-content-browser-format-dialog-proxy-confirm');
+    invokeHandleProxyConfirm(el);
+    const ev = await p;
+
+    expect(ev.detail.asset.id).to.equal('asset-1');
+    expect(el.loadingConfirm).to.be.true;
+  });
+
   it('emits cx-content-browser-format-dialog-proxy-confirm when insert is clicked with a selected proxy', async () => {
     el = await fixture<CxContentBrowserFormatDialog>(
       html`<cx-content-browser-format-dialog can-use-proxies></cx-content-browser-format-dialog>`,
@@ -627,7 +642,7 @@ describe('content-browser-format-dialog', () => {
 
     expect(el.selectedProxy).to.equal('p-b');
     expect(el.confirmedTransformations.length).to.equal(0);
-    expect(el.confirmedFormat).to.be.null;
+    expect(el.confirmedFormat).to.be.undefined;
   });
 
   it('maps TRX proxy selector items from asset dimensions and extension', async () => {

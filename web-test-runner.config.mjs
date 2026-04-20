@@ -122,4 +122,6 @@ export const getWebTestRunnerConfig = ({
   };
 };
 
-export default getWebTestRunnerConfig({});
+export default getWebTestRunnerConfig({
+  excludeCoverage: ['**/src/**/base/**', '**/src/**/utils/**'],
+});

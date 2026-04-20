@@ -3,7 +3,7 @@
  * @param length
  * @returns Empty string if length is negative
  */
-export const generateRandomString = (length: number) => {
+export function generateRandomString(length: number): string {
   let retval = '';
   const characters =
     'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdefghijklmnopqrstuvwxyz';
@@ -12,7 +12,7 @@ export const generateRandomString = (length: number) => {
     retval += characters.charAt(Math.floor(Math.random() * charactersLength));
   }
   return retval;
-};
+}
 
 export function svgToDataUrl(svg: string): string {
   return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
