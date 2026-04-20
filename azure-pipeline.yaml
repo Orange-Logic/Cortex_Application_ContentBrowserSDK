@@ -28,53 +28,8 @@ parameters:
     default: false
 
 stages:
-  - stage: Test
-    dependsOn: []
-    jobs:
-      - job: TestBrowser
-        displayName: 'Run Browser Tests'
-        pool:
-          name: VN Linux
-        steps:
-          - checkout: self
-            clean: true
-            fetchDepth: 0
-            path: s
-
-          - template: azure-pipelines/common/npm/steps-node-setup.yml@infra-templates
-            parameters:
-              versionSpec: 18.x
-
-          - task: DownloadSecureFile@1
-            name: npmrcFile
-            inputs:
-              secureFile: 'npmrc'
-
-          - bash: |
-              cp $(npmrcFile.secureFilePath) $(Build.SourcesDirectory)/.npmrc
-            displayName: 'Setup .npmrc'
-
-          - bash: |
-              npm ci
-            displayName: 'NPM install'
-            workingDirectory: $(Build.SourcesDirectory)
-
-          - bash: |
-              npx playwright install --with-deps chromium
-            displayName: 'Install Playwright Chromium'
-            workingDirectory: $(Build.SourcesDirectory)
-
-          - bash: |
-              npm run test-browser
-            displayName: 'Run browser tests'
-            workingDirectory: $(Build.SourcesDirectory)
-          - bash: |
-              rm -f "$(Build.SourcesDirectory)/.npmrc"
-            displayName: 'Cleanup .npmrc'
-            condition: always()
-
   - stage: Build
-    dependsOn: [Test]
+    dependsOn: []
     jobs:
       - job: BuildPackage
         displayName: 'Build GAB'
@@ -115,11 +70,11 @@ stages:
               tokenSuffix: '__'
               additionalVariables: |
                 - tag: v$(GitVersion.FullSemVer)
-                
+
           - task: DownloadSecureFile@1
             name: npmrcFile
             inputs:
-              secureFile: 'npmrc'   
+              secureFile: 'npmrc'
 
           - bash: |
               echo "Renaming secure file to .npmrc"
@@ -131,8 +86,23 @@ stages:
               npmEndpoint: 'OL NPM registry'
               isCustomNpmEndpoint: true
               version: '$(GitVersion.FullSemVer)'
-              skipBuild: false
+              skipBuild: true
               skipPublish: true
+
+          - bash: |
+              npx playwright install --with-deps chromium
+            displayName: 'Install Playwright Chromium'
+            workingDirectory: $(Build.SourcesDirectory)
+
+          - bash: |
+              yarn test-browser
+            displayName: 'Run browser tests'
+            workingDirectory: $(Build.SourcesDirectory)
+
+          - bash: |
+              yarn build
+            displayName: 'Build library'
+            workingDirectory: $(Build.SourcesDirectory)
 
           - task: Npm@1
             displayName: 'NPM publish'
