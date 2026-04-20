@@ -39,10 +39,10 @@ export default class CxContentBrowserAssetVersionHistory extends CortexElement {
   private readonly localize = new LocalizeController(this);
 
   @property({ reflect: false, type: Array })
-  private readonly versions: AssetVersion[] = [];
+  versions: AssetVersion[] = [];
 
   @property({ reflect: true, type: Boolean })
-  private readonly loading: boolean = false;
+  loading: boolean = false;
 
   render() {
     return html`

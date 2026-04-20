@@ -90,7 +90,7 @@ stages:
               skipPublish: true
 
           - bash: |
-              npx playwright install --with-deps chromium
+              npx playwright install chromium
             displayName: 'Install Playwright Chromium'
             workingDirectory: $(Build.SourcesDirectory)
 

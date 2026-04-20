@@ -76,7 +76,8 @@ export default class CxContentBrowserAssetCard extends CortexElement {
 
   @property({
     converter: {
-      fromAttribute: (value: string) => value.split(','),
+      fromAttribute: (value: string | null) =>
+        value ? value.split(',').map((tag) => tag.trim()).filter(Boolean) : [],
       toAttribute: (value: string[]) => {
         if (!Array.isArray(value)) {
           return value;
