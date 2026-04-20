@@ -420,6 +420,8 @@ describe('content-browser-grid', () => {
 
     const ro = el.shadowRoot!.querySelector('cx-resize-observer')!;
     const container = getContainer(el);
+    const virtualizer = el.shadowRoot!.querySelector('lit-virtualizer')!;
+    Object.defineProperty(virtualizer, 'clientWidth', { configurable: true, get: () => 0 });
 
     let p = oneEvent(el, 'cx-content-browser-grid-resize');
     ro.dispatchEvent(
@@ -451,6 +453,8 @@ describe('content-browser-grid', () => {
 
     const ro = el.shadowRoot!.querySelector('cx-resize-observer')!;
     const container = getContainer(el);
+    const virtualizer = el.shadowRoot!.querySelector('lit-virtualizer')!;
+    Object.defineProperty(virtualizer, 'clientWidth', { configurable: true, get: () => 0 });
     const contentRect = {
       bottom: 400,
       height: 400,

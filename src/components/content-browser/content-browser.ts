@@ -547,10 +547,6 @@ export default class CxContentBrowser extends CortexElement {
   }) {
     const { asset, images, selectedProxyMetadata, transformedAssetMetadata } = data;
 
-    if (!images.length) {
-      return;
-    }
-
     const payload: Array<Record<string, unknown>> = [...images];
 
     /**
