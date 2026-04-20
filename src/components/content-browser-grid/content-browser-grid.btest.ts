@@ -89,7 +89,7 @@ describe('content-browser-grid', () => {
   let el: ContentBrowserGrid;
 
   beforeEach(async () => {
-    el = await fixture<ContentBrowserGrid>(html`<content-browser-grid></content-browser-grid>`);
+    el = await fixture<ContentBrowserGrid>(html`<cx-content-browser-grid><</cx-content-browser-grid>`);
     await elementUpdated(el);
   });
 
@@ -109,14 +109,14 @@ describe('content-browser-grid', () => {
   });
 
   it('reflects loading on the host attribute', async () => {
-    el = await fixture<ContentBrowserGrid>(html`<content-browser-grid ?loading=${true}></content-browser-grid>`);
+    el = await fixture<ContentBrowserGrid>(html`<cx-content-browser-grid ?loading=${true}><</cx-content-browser-grid>`);
     await elementUpdated(el);
     expect(el.hasAttribute('loading')).to.be.true;
   });
 
   it('shows empty state when empty is true', async () => {
     el = await fixture<ContentBrowserGrid>(html`
-      <content-browser-grid ?empty=${true}></content-browser-grid>
+      <cx-content-browser-grid ?empty=${true}><</cx-content-browser-grid>
     `);
     await elementUpdated(el);
     const empty = el.shadowRoot!.querySelector('.content-browser-grid__empty');
@@ -127,7 +127,7 @@ describe('content-browser-grid', () => {
 
   it('renders lit-virtualizer when not empty', async () => {
     el = await fixture<ContentBrowserGrid>(html`
-      <content-browser-grid .assets=${[]}></content-browser-grid>
+      <cx-content-browser-grid .assets=${[]}><</cx-content-browser-grid>
     `);
     await elementUpdated(el);
     expect(el.shadowRoot!.querySelector('lit-virtualizer')).to.exist;
@@ -136,7 +136,7 @@ describe('content-browser-grid', () => {
 
   it('renders asset cards for items after the virtualizer lays out', async () => {
     el = await fixture<ContentBrowserGrid>(html`
-      <content-browser-grid .assets=${[makeAsset({ id: 'a1', name: 'One' }), makeAsset({ docType: MediaType.Video, id: 'a2', name: 'Two' })]}></content-browser-grid>
+      <cx-content-browser-grid .assets=${[makeAsset({ id: 'a1', name: 'One' }), makeAsset({ docType: MediaType.Video, id: 'a2', name: 'Two' })]}><</cx-content-browser-grid>
     `);
     await elementUpdated(el);
     await waitUntil(
@@ -152,10 +152,10 @@ describe('content-browser-grid', () => {
 
   it('sets selected only on the asset card whose id matches selected-asset-id', async () => {
     el = await fixture<ContentBrowserGrid>(html`
-      <content-browser-grid
+      <cx-content-browser-grid
         .assets=${[makeAsset({ id: 'a1', name: 'One' }), makeAsset({ id: 'a2', name: 'Two' })]}
         selected-asset-id="a2"
-      ></content-browser-grid>
+      ><</cx-content-browser-grid>
     `);
     await elementUpdated(el);
     await waitUntil(
@@ -173,7 +173,7 @@ describe('content-browser-grid', () => {
 
   it('emits cx-content-browser-grid-click when a card receives a click targeted at the card', async () => {
     el = await fixture<ContentBrowserGrid>(html`
-      <content-browser-grid .assets=${[makeAsset({ id: 'click-me' })]}></content-browser-grid>
+      <cx-content-browser-grid .assets=${[makeAsset({ id: 'click-me' })]}><</cx-content-browser-grid>
     `);
     await elementUpdated(el);
     await waitUntil(
@@ -193,7 +193,7 @@ describe('content-browser-grid', () => {
   describe('virtualizer scroll end', () => {
     it('emits cx-content-browser-grid-scroll-end when scrolled to the bottom and hasMore is true', async () => {
       el = await fixture<ContentBrowserGrid>(html`
-        <content-browser-grid .assets=${[makeAsset()]}></content-browser-grid>
+        <cx-content-browser-grid .assets=${[makeAsset()]}><</cx-content-browser-grid>
       `);
       await elementUpdated(el);
       el.hasMore = true;
@@ -212,7 +212,7 @@ describe('content-browser-grid', () => {
 
     it('does not emit cx-content-browser-grid-scroll-end when hasMore is false', async () => {
       el = await fixture<ContentBrowserGrid>(html`
-        <content-browser-grid .assets=${[makeAsset()]}></content-browser-grid>
+        <cx-content-browser-grid .assets=${[makeAsset()]}><</cx-content-browser-grid>
       `);
       await elementUpdated(el);
       el.hasMore = false;
@@ -235,7 +235,7 @@ describe('content-browser-grid', () => {
 
     it('does not emit cx-content-browser-grid-scroll-end when not near the bottom', async () => {
       el = await fixture<ContentBrowserGrid>(html`
-        <content-browser-grid .assets=${[makeAsset()]}></content-browser-grid>
+        <cx-content-browser-grid .assets=${[makeAsset()]}><</cx-content-browser-grid>
       `);
       await elementUpdated(el);
       el.hasMore = true;
@@ -527,7 +527,7 @@ describe('content-browser-grid', () => {
 
   it('reflects view on the host attribute', async () => {
     el = await fixture<ContentBrowserGrid>(html`
-      <content-browser-grid view=${GridView.Small}></content-browser-grid>
+      <cx-content-browser-grid view=${GridView.Small}><</cx-content-browser-grid>
     `);
     await elementUpdated(el);
     expect(el.getAttribute('view')).to.equal(GridView.Small);
@@ -535,7 +535,7 @@ describe('content-browser-grid', () => {
 
   it('is accessible in empty state', async () => {
     el = await fixture<ContentBrowserGrid>(html`
-      <content-browser-grid ?empty=${true}></content-browser-grid>
+      <cx-content-browser-grid ?empty=${true}><</cx-content-browser-grid>
     `);
     await elementUpdated(el);
     await expect(el).to.be.accessible();

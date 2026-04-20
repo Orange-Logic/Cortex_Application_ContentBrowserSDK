@@ -12,7 +12,7 @@ describe('content-browser-asset-preview', () => {
   let el: CxContentBrowserAssetPreview;
 
   beforeEach(async () => {
-    el = await fixture(html`<content-browser-asset-preview></content-browser-asset-preview>`);
+    el = await fixture(html`<cx-content-browser-asset-preview  content-browser-asset-preview></cx-content-browser-asset-preview>`);
   });
 
   describe('initial state', () => {

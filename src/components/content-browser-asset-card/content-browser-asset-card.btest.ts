@@ -22,7 +22,7 @@ describe('content-browser-asset-card', () => {
   let el: ContentBrowserAssetCard;
 
   beforeEach(async () => {
-    el = await fixture(html`<content-browser-asset-card></content-browser-asset-card>`);
+    el = await fixture(html`<cx-content-browser-asset-card></cx-content-browser-asset-card>`);
   });
 
   describe('initial state', () => {
@@ -62,7 +62,7 @@ describe('content-browser-asset-card', () => {
     });
 
     it('parses tags attribute as comma-separated string', async () => {
-      el = await fixture(html`<content-browser-asset-card tags="a,b,c"></content-browser-asset-card>`);
+      el = await fixture(html`<cx-content-browser-asset-card tags="a,b,c"></cx-content-browser-asset-card>`);
       await elementUpdated(el);
       expect(el.tags).to.deep.equal(['a', 'b', 'c']);
     });

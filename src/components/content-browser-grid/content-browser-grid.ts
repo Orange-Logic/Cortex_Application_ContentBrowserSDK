@@ -23,7 +23,7 @@ import styles from './content-browser-grid.styles';
 import type { CxResizeEvent } from '@/events';
 import type { CSSResultGroup } from 'lit';
 
-@customElement('content-browser-grid')
+@customElement('cx-content-browser-grid')
 export default class CxContentBrowserGrid extends CortexElement {
   static readonly styles: CSSResultGroup = [componentStyles, styles];
 
