@@ -37,7 +37,7 @@ export function getMediaIcon(type?: MediaType | '') {
   }
 }
 
-@customElement('content-browser-asset-preview')
+@customElement('cx-content-browser-asset-preview')
 export default class CxContentBrowserAssetPreview extends CortexElement {
   static readonly styles: CSSResultGroup = [componentStyles, styles];
 

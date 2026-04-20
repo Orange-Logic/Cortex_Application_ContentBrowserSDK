@@ -20,7 +20,7 @@ import { customElement } from '@orangelogic/design-system/utils';
 import CxContentBrowserAssetPreview from '../content-browser-asset-preview/content-browser-asset-preview';
 import styles from './content-browser-asset-card.styles';
 
-@customElement('content-browser-asset-card')
+@customElement('cx-content-browser-asset-card')
 export default class CxContentBrowserAssetCard extends CortexElement {
   static readonly styles: CSSResultGroup = [componentStyles, styles];
   
@@ -244,6 +244,6 @@ export default class CxContentBrowserAssetCard extends CortexElement {
 
 declare global {
   interface HTMLElementTagNameMap {
-    'content-browser-asset-card': CxContentBrowserAssetCard;
+    'cx-content-browser-asset-card': CxContentBrowserAssetCard;
   }
 }

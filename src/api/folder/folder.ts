@@ -125,6 +125,7 @@ export async function apiGetFolders({
     return {
       data: [],
       hasMore: false,
+      totalCount: 0,
     };
   }
 }

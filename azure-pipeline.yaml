@@ -54,20 +54,24 @@ stages:
               cp $(npmrcFile.secureFilePath) $(Build.SourcesDirectory)/.npmrc
             displayName: 'Setup .npmrc'
 
-          - task: Npm@1
+          - bash: |
+              npm ci
             displayName: 'NPM install'
-            inputs:
-              command: 'install'
+            workingDirectory: $(Build.SourcesDirectory)
 
           - bash: |
               npx playwright install --with-deps chromium
             displayName: 'Install Playwright Chromium'
+            workingDirectory: $(Build.SourcesDirectory)
 
-          - task: Npm@1
+          - bash: |
+              npm run test-browser
             displayName: 'Run browser tests'
-            inputs:
-              command: 'custom'
-              customCommand: 'run test-browser'
+            workingDirectory: $(Build.SourcesDirectory)
+          - bash: |
+              rm -f "$(Build.SourcesDirectory)/.npmrc"
+            displayName: 'Cleanup .npmrc'
+            condition: always()
 
   - stage: Build
     dependsOn: [Test]

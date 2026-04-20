@@ -332,6 +332,15 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
       return;
     }
 
+    if (!this.canUseProxies) {
+      this.loadingConfirm = true;
+      this.emit('cx-content-browser-format-dialog-proxy-confirm', {
+        detail: this.mapProxyConfirmPayload(this.asset),
+      });
+
+      return;
+    }
+
     const selectedProxy = this.filteredProxies?.find((proxy) => {
       return proxy.id === this.selectedProxy;
     });
@@ -451,6 +460,7 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
               () => this.localize.term('customFormat'),
               () => this.localize.term('preview'),
             )}
+          </cx-typography>
           <cx-typography variant="body3" class="content-browser-format__asset-name">
             <cx-line-clamp lines="1">${this.asset?.name}</cx-line-clamp>
           </cx-typography>
@@ -665,7 +675,7 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
           class="content-browser-format__footer__button"
           variant="primary"
           ?loading=${this.loadingProxies}
-
+          @click=${this.handleProxyConfirm}
         >
           <cx-icon slot="prefix" name="folder"></cx-icon>
           <span

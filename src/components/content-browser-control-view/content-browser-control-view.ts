@@ -154,6 +154,7 @@ export default class CxContentBrowserControlView extends CortexElement {
                     key=${item.value}
                     value=${item.value.toString()}
                     type="checkbox"
+                    ?checked=${item.value === this.selectedView?.value}
                   >
                     <cx-line-clamp lines="1">${item.label}</cx-line-clamp>
                   </cx-menu-item>`

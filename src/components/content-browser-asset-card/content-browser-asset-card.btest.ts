@@ -67,7 +67,7 @@ describe('content-browser-asset-card', () => {
       expect(el.tags).to.deep.equal(['a', 'b', 'c']);
     });
 
-    it('parses tags property as space-separated string', async () => {
+    it('serializes tags property as comma-separated string', async () => {
       el.tags = ['a', 'b', 'c'];
       await elementUpdated(el);
       expect(el.getAttribute('tags')).to.equal('a,b,c');

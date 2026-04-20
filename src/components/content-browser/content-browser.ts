@@ -546,6 +546,11 @@ export default class CxContentBrowser extends CortexElement {
     transformedAssetMetadata?: AssetTransformationInfo;
   }) {
     const { asset, images, selectedProxyMetadata, transformedAssetMetadata } = data;
+
+    if (!images.length) {
+      return;
+    }
+
     const payload: Array<Record<string, unknown>> = [...images];
 
     /**
@@ -694,10 +699,10 @@ export default class CxContentBrowser extends CortexElement {
           ></cx-content-browser-header>
           <cx-content-browser-control-bar
             .availableFacets=${availableFacets}
-            .selected-facets=${request?.selectedFacets ?? {}}
+            .selectedFacets=${request?.selectedFacets ?? {}}
             .facets=${facets}
             .newlyChangedOption=${this.newlyChangedOption}
-            .sort-orders=${sortOrders}
+            .sortOrders=${sortOrders}
             .views=${this.views}
             ?is-mobile=${this.isMobile}
             ?is-see-through=${request?.isSeeThrough}

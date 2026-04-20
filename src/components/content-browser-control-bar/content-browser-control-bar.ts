@@ -98,11 +98,11 @@ export default class CxContentBrowserControlBar extends CortexElement {
   @property({ attribute: false, reflect: false, type: Object })
   newlyChangedOption: ChangeOption | undefined;
 
+  @property({ attribute: 'search-text', reflect: false, type: String })
+  searchText = '';
+
   @property({ attribute: 'is-mobile', reflect: false, type: Boolean })
   isMobile = false;
-
-  @state()
-  private searchText = '';
 
   private handleSearchChange(event: CxChangeEvent) {
     this.searchText = (event.target as CxInput).value;

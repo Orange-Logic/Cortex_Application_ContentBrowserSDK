@@ -382,6 +382,38 @@ describe('content-browser-grid', () => {
     expect(ev.detail.rowCount).to.equal(0);
   });
 
+  it('uses virtualizerEl clientWidth as effectiveWidth to account for scrollbar', async () => {
+    await new Promise((r) => setTimeout(r, 300));
+
+    const ro = el.shadowRoot!.querySelector('cx-resize-observer')!;
+    const container = getContainer(el);
+    const virtualizer = el.shadowRoot!.querySelector('lit-virtualizer')!;
+
+    // Mock virtualizer clientWidth to 400px (simulating scrollbar on 600px container)
+    Object.defineProperty(virtualizer, 'clientWidth', {
+      configurable: true,
+      get: () => 400,
+    });
+
+    const p = oneEvent(el, 'cx-content-browser-grid-resize');
+    ro.dispatchEvent(
+      new CustomEvent('cx-resize', {
+        bubbles: true,
+        composed: true,
+        detail: { entries: [resizeObserverEntry(container, 600, 400)] },
+      }),
+    );
+    const ev = await p;
+
+    // effectiveWidth = 400 (from clientWidth) → 2 columns for Medium view, not 3 from container width=600
+    expect(ev.detail.columnCount).to.equal(2);
+
+    Object.defineProperty(virtualizer, 'clientWidth', {
+      configurable: true,
+      get: () => 0,
+    });
+  });
+
   it('recalculates column count and emits resize when view changes (handleViewChange)', async () => {
     await new Promise((r) => setTimeout(r, 300));
 

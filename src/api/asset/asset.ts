@@ -50,7 +50,10 @@ export function resolveAssetExtraFilters(
     return {};
   }
 
-  return Object.entries(selectedFacets).reduce<Record<string, string[]>>(
+  return Object.entries(selectedFacets).reduce<{
+    SubtypeCriteria?: string[];
+    FacetFilters?: Record<string, string[]>;
+  }>(
     (acc, [key, values]) => {
       if (!values || values.length === 0) {
         return acc;

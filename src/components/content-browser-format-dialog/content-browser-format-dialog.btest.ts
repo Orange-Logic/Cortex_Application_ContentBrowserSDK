@@ -153,6 +153,7 @@ function setAssetLinkFormatStub(
 
   const mock = {
     selectedFormat: stub.selectedFormat ?? {},
+    setActiveSetting: () => {},
     transformations: stub.transformations ?? [],
   };
 
@@ -222,12 +223,14 @@ describe('content-browser-format-dialog', () => {
     expect(el.shadowRoot!.querySelector('cx-content-browser-asset-preview')).to.exist;
     el.trackingParameters = [{ key: 'custom', value: 'edited' }];
     el.enabledTracking = true;
+    el.confirmedFormat = { extension: '.webm', height: 480, width: 640 };
     await elementUpdated(el);
     el.hide();
     await elementUpdated(el);
     expect(el.shadowRoot!.querySelector('cx-content-browser-asset-preview')).to.be.null;
     expect(el.trackingParameters).to.deep.equal(DEFAULT_TRACKING_PARAMETERS_SNAPSHOT);
     expect(el.enabledTracking).to.be.false;
+    expect(el.confirmedFormat).to.be.null;
   });
 
   it('emits cx-content-browser-format-dialog-favorite-change when the star is clicked', async () => {
@@ -790,6 +793,61 @@ describe('content-browser-format-dialog', () => {
 
     expect(el.selectedProxy).to.equal(CUSTOM_FORMAT_VALUE);
     expect(el.confirmedFormat).to.deep.equal({ extension: '.webm', height: 480, width: 640 });
+  });
+
+  it('Done saves confirmedFormat and confirmedTransformations from assetLinkFormat', async () => {
+    el = await fixture<CxContentBrowserFormatDialog>(
+      html`<cx-content-browser-format-dialog
+        can-use-proxies
+        can-custom-format
+        .availableExtensions=${videoMp4Extensions()}
+      ></cx-content-browser-format-dialog>`,
+    );
+    const transformations = [{ key: TransformationAction.Resize, value: { width: 640 } }];
+    el.open({
+      asset: makeAsset({ extension: '.mp4' }),
+      isFavorite: false,
+      proxies: [makeProxy()],
+    });
+    await elementUpdated(el);
+
+    setAssetLinkFormatStub(el, {
+      selectedFormat: { extension: '.webm', height: 480, width: 640 },
+      transformations,
+    });
+
+    dispatchProxySelect(el, CUSTOM_FORMAT_VALUE);
+    await elementUpdated(el);
+
+    const footerButtons = el.shadowRoot!.querySelectorAll('.content-browser-format__footer cx-button');
+    (footerButtons[1] as HTMLElement).click();
+    await elementUpdated(el);
+
+    expect(el.confirmedFormat).to.deep.equal({ extension: '.webm', height: 480, width: 640 });
+    expect(el.confirmedTransformations).to.deep.equal(transformations);
+    expect(el.showCustomFormat).to.be.false;
+    expect(el.selectedProxy).to.equal(CUSTOM_FORMAT_VALUE);
+  });
+
+  it('proxy selector reflects confirmedFormat as custom-width, custom-height, custom-extension', async () => {
+    el = await fixture<CxContentBrowserFormatDialog>(
+      html`<cx-content-browser-format-dialog can-use-proxies></cx-content-browser-format-dialog>`,
+    );
+    el.open({
+      asset: makeAsset(),
+      isFavorite: false,
+      proxies: [makeProxy()],
+    });
+    await elementUpdated(el);
+
+    el.confirmedFormat = { extension: '.webm', height: 480, width: 640 };
+    el.selectedProxy = CUSTOM_FORMAT_VALUE;
+    await elementUpdated(el);
+
+    const selector = getProxySelector(el);
+    expect(selector.getAttribute('custom-extension')).to.equal('.webm');
+    expect(selector.getAttribute('custom-height')).to.equal('480');
+    expect(selector.getAttribute('custom-width')).to.equal('640');
   });
 
   it('emits cx-content-browser-format-dialog-format-confirm after custom format done and insert', async () => {

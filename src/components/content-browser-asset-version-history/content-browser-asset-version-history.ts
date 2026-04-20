@@ -33,7 +33,7 @@ export default class CxContentBrowserAssetVersionHistory extends CortexElement {
     'cx-space': CxSpace,
     'cx-spinner': CxSpinner,
     'cx-typography': CxTypography,
-    'content-browser-asset-preview': CxContentBrowserAssetPreview,
+    'cx-content-browser-asset-preview': CxContentBrowserAssetPreview,
   };
 
   private readonly localize = new LocalizeController(this);
