@@ -75,6 +75,15 @@ export const getWebTestRunnerConfig = ({
         optimizeDeps: {
           exclude: ['.vite'],
           force: true,
+          include: [
+            'react',
+            'react-dom',
+            'react-dom/client',
+            'react/jsx-runtime',
+            'react/jsx-dev-runtime',
+            '@web/test-runner-commands',
+            'sinon',
+          ],
         },
         plugins: [tsconfigPaths(), react()],
         root: __dirname,
