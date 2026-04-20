@@ -95,7 +95,7 @@ stages:
             workingDirectory: $(Build.SourcesDirectory)
 
           - bash: |
-              npm run test-browser
+              NODE_OPTIONS=--dns-result-order=ipv4first npm run test-browser
             displayName: 'Run browser tests'
             workingDirectory: $(Build.SourcesDirectory)
 

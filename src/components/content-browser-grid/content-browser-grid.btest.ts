@@ -116,12 +116,13 @@ describe('content-browser-grid', () => {
 
   it('shows empty state when empty is true', async () => {
     el = await fixture<ContentBrowserGrid>(html`
-      <cx-content-browser-grid ?empty=${true}><</cx-content-browser-grid>
+      <cx-content-browser-grid ?empty=${true}></cx-content-browser-grid>
     `);
     await elementUpdated(el);
-    const empty = el.shadowRoot!.querySelector('.content-browser-grid__empty');
-    expect(empty).to.exist;
-    expect(empty!.textContent?.includes('No results')).to.be.true;
+    const noResult = el.shadowRoot!.querySelector('cx-content-browser-no-result');
+    expect(noResult).to.exist;
+    expect(noResult!.getAttribute('icon')).to.equal('search_off');
+    expect(noResult!.hasAttribute('message')).to.be.true;
     expect(el.shadowRoot!.querySelector('lit-virtualizer')).to.be.null;
   });
 
