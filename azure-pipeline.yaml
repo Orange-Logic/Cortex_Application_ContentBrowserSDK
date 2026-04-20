@@ -28,8 +28,49 @@ parameters:
     default: false
 
 stages:
-  - stage: Build
+  - stage: Test
     dependsOn: []
+    jobs:
+      - job: TestBrowser
+        displayName: 'Run Browser Tests'
+        pool:
+          name: VN Linux
+        steps:
+          - checkout: self
+            clean: true
+            fetchDepth: 0
+            path: s
+
+          - template: azure-pipelines/common/npm/steps-node-setup.yml@infra-templates
+            parameters:
+              versionSpec: 18.x
+
+          - task: DownloadSecureFile@1
+            name: npmrcFile
+            inputs:
+              secureFile: 'npmrc'
+
+          - bash: |
+              cp $(npmrcFile.secureFilePath) $(Build.SourcesDirectory)/.npmrc
+            displayName: 'Setup .npmrc'
+
+          - task: Npm@1
+            displayName: 'NPM install'
+            inputs:
+              command: 'install'
+
+          - bash: |
+              npx playwright install --with-deps chromium
+            displayName: 'Install Playwright Chromium'
+
+          - task: Npm@1
+            displayName: 'Run browser tests'
+            inputs:
+              command: 'custom'
+              customCommand: 'run test-browser'
+
+  - stage: Build
+    dependsOn: [Test]
     jobs:
       - job: BuildPackage
         displayName: 'Build GAB'
