@@ -84,7 +84,7 @@ const Rotate = ({ open, rotation, onChange, onApply }: Props) => {
             flex: 'none',
           }}
           onInput={handleRotationChange}
-          step='1'
+          step={1}
         ></cx-input>
         <cx-button
           variant="primary"

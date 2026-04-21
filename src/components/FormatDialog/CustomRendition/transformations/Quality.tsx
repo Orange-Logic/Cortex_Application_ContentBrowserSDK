@@ -65,7 +65,7 @@ const Quality = ({ open, quality, onChange }: Props) => {
             value={isDefined ? value.toString() : ''}
             min="1"
             max="100"
-            step="1"
+            step={1}
             onInput={handleQualityChange}
           >
           </cx-input>

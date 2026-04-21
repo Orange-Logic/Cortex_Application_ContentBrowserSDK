@@ -2004,6 +2004,7 @@ const FormatDialog: FC<Props> = ({
       className="dialog"
       open={open}
       use-overlay-scrollbar={popoverSupported || undefined}
+      overlay-scrollbar-auto-hide="never"
       style={
         {
           '--max-height': `${maxHeight}px`,

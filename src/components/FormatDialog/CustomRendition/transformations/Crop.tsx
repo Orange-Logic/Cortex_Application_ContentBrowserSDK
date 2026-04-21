@@ -195,7 +195,7 @@ const Crop: FC<Props> = ({
               ref={widthInputRef}
               placeholder="Width"
               type="number"
-              step="1"
+              step={1}
               value={isDefined ? width.toString() : ''}
               onInput={handleWidthChange}
               required
@@ -218,7 +218,7 @@ const Crop: FC<Props> = ({
               ref={heightInputRef}
               placeholder="Height"
               type="number"
-              step="1"
+              step={1}
               value={isDefined ? height.toString() : ''}
               onInput={handleHeightChange}
               required

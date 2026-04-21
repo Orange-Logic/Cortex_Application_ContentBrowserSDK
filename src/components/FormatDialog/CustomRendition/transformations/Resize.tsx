@@ -127,7 +127,7 @@ const Resize: FC<Props> = ({ open, width, height, lastAppliedSetting, maxWidth, 
               ref={widthInputRef}
               placeholder="Width"
               type="number"
-              step="1"
+              step={1}
               value={isDefined ? width.toString() : ''}
               onInput={handleWidthChange}
               required
@@ -145,7 +145,7 @@ const Resize: FC<Props> = ({ open, width, height, lastAppliedSetting, maxWidth, 
               ref={heightInputRef}
               placeholder="Height"
               type="number"
-              step="1"
+              step={1}
               value={isDefined ? height.toString() : ''}
               onInput={handleHeightChange}
               required
