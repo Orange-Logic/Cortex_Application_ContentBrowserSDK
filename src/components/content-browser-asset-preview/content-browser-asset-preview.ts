@@ -56,8 +56,8 @@ export default class CxContentBrowserAssetPreview extends CortexElement {
   @property({ attribute: 'original-url', reflect: true, type: String })
   originalUrl: string = '';
 
-  @property({ attribute: 'scrub-url', reflect: true, type: String })
-  scrubUrl: string = '';
+  @property({ attribute: 'preview-url', reflect: true, type: String })
+  previewUrl: string = '';
 
   @property({ attribute: 'alt', reflect: true, type: String })
   alt: string = '';
@@ -73,6 +73,9 @@ export default class CxContentBrowserAssetPreview extends CortexElement {
 
   @property({ attribute: 'thumbnail-only', reflect: true, type: Boolean })
   thumbnailOnly: boolean = false;
+
+  @property({ attribute: 'controls', reflect: true, type: Boolean })
+  controls: boolean = false;
 
   @state()
   isError: boolean = false;
@@ -134,9 +137,10 @@ export default class CxContentBrowserAssetPreview extends CortexElement {
     if (this.docType === MediaType.Video) {
       return html`
         <cx-content-browser-asset-preview-video
-          src=${this.scrubUrl}
+          src=${this.previewUrl}
           thumbnail-src=${this.imageUrl}
           ?loaded=${this.loaded}
+          ?controls=${this.controls}
           ?thumbnail-only=${this.thumbnailOnly}
           @cx-loaded=${this.handleLoaded}
           @cx-error=${this.handleError}

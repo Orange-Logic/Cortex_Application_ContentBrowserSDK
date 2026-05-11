@@ -20,7 +20,15 @@ import {
   setUseHeaders,
   setUserConfigSiteUrl,
 } from '@/store/auth/auth.slice';
+import { refreshAccessToken } from '@/utils/api';
 import { Folder, GetContentRequest, GetContentResponse, GetFoldersRequest } from './types/search';
+
+/**
+ * Listen for 401 events from the design system's shared axios instance.
+ * The design system dispatches `cx-unauthorized` whenever any of its requests get a 401;
+ * this lets the SDK kick off the same token-refresh flow it uses for its own fetches.
+ */
+globalThis.addEventListener('cx-unauthorized', refreshAccessToken);
 
 const assetsPickerRef = createRef<AssetsPickerHandle>();
 

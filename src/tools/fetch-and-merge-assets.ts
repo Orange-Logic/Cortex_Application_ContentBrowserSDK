@@ -19,6 +19,7 @@ import {
   FIELD_KEYWORDS,
   FIELD_MAX_HEIGHT,
   FIELD_MAX_WIDTH,
+  FIELD_ORIGINAL_FILE_NAME,
   FIELD_RECORD_ID,
   FIELD_SCRUB_URL,
   FIELD_SUBTYPE,
@@ -351,18 +352,18 @@ export class FetchAndMergeAssetsController implements ReactiveController {
       apiGetAssetsByIDs({
         extraFields: [
           DEFAULT_VIEW_SIZE,
+          FIELD_DOC_TYPE,
           FIELD_EXTENSION,
           FIELD_FILE_SIZE,
           FIELD_IDENTIFIER,
           FIELD_KEYWORDS,
           FIELD_MAX_HEIGHT,
           FIELD_MAX_WIDTH,
+          FIELD_ORIGINAL_FILE_NAME,
           FIELD_RECORD_ID,
           FIELD_SUBTYPE,
           FIELD_TITLE_WITH_FALLBACK,
-          FIELD_DOC_TYPE,
           ORIGINAL_VIEW_SIZE,
-          FIELD_SCRUB_URL,
         ],
         recordIds: [id],
       }),
@@ -377,7 +378,7 @@ export class FetchAndMergeAssetsController implements ReactiveController {
       promises.push(Promise.resolve(false));
     }
 
-    const [assets, proxies, isFavorite = false] = await Promise.all(promises);
+    const [assets, proxyData, isFavorite = false] = await Promise.all(promises);
 
     const item = assets?.items[0];
 
@@ -402,8 +403,9 @@ export class FetchAndMergeAssetsController implements ReactiveController {
         identifier: item[FIELD_IDENTIFIER] ?? '',
         imageUrl: item[DEFAULT_VIEW_SIZE] ?? '',
         inColdStorage: Boolean(item.inColdStorage),
-        name: item[FIELD_TITLE_WITH_FALLBACK] ?? '',
+        name: item[FIELD_ORIGINAL_FILE_NAME] ?? '',
         originalUrl: item[ORIGINAL_VIEW_SIZE] ?? '',
+        previewUrl: proxyData?.previewUrl ?? '',
         recordId: item[FIELD_RECORD_ID] ?? '',
         scrubUrl: item[FIELD_SCRUB_URL] ?? '',
         size: item[FIELD_FILE_SIZE] ?? '0 MB',
@@ -411,7 +413,7 @@ export class FetchAndMergeAssetsController implements ReactiveController {
         width: item[FIELD_MAX_WIDTH] ?? '0',
       },
       isFavorite,
-      proxies: (proxies ?? []).filter((proxy) => {
+      proxies: (proxyData?.proxies ?? []).filter((proxy) => {
         if (!allowedExtensions || allowedExtensions.length === 0) {
           return true;
         }

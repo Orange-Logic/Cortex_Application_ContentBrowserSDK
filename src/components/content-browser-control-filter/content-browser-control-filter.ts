@@ -228,7 +228,7 @@ export default class CxContentBrowserControlFilter extends CortexElement {
           ${repeat(Object.entries(this.selectedFacets),
             ([key, values]) => [key, values],
             ([key, values]) => {
-              return values.filter((value) => this.mappedDisplayNames[key][value]).map((value) => {
+              return values.filter((value) => this.mappedDisplayNames[key]?.[value]).map((value) => {
                 return html`
                   <cx-tag
                     key=${value}

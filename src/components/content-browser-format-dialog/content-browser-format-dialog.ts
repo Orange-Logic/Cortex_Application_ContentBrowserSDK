@@ -140,7 +140,7 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
   baseUrl: string = '';
 
   @state()
-  asset: Asset | undefined = undefined;
+  asset: Asset & { previewUrl: string } | undefined = undefined;
 
   @state()
   isFavorite: boolean = false;
@@ -219,7 +219,7 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
     isFavorite,
     proxies,
   }: {
-    asset: Asset;
+    asset: Asset & { previewUrl: string };
     isFavorite: boolean;
     proxies: AvailableProxy[];
   }) {
@@ -546,10 +546,11 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
         <cx-content-browser-asset-preview
           image-url=${this.asset.imageUrl}
           original-url=${this.asset.originalUrl}
-          scrub-url=${this.asset.scrubUrl}
+          preview-url=${this.asset.previewUrl}
           alt=${this.asset.name}
           doc-type=${this.asset.docType}
           extension=${this.asset.extension}
+          controls
           ?in-cold-storage=${this.asset.inColdStorage}
         ></cx-content-browser-asset-preview>
       `;
@@ -628,8 +629,12 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
           this.showCustomFormat,
         ],
         () => {
+          if (this.asset?.docType !== MediaType.Image) {
+            return nothing;
+          }
+
           const extensions =
-            this.availableExtensions?.[this.asset!.docType]?.map((item) => ({
+            this.availableExtensions?.[this.asset.docType]?.map((item) => ({
               displayName: item.displayName,
               value: item.value,
             })) ?? [];

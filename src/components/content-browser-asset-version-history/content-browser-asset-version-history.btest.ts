@@ -129,7 +129,7 @@ describe('content-browser-asset-version-history', () => {
       await elementUpdated(el);
       const preview = el.shadowRoot!.querySelector('cx-content-browser-asset-preview');
       expect(preview).to.have.attribute('doc-type', MediaType.Video);
-      expect(preview).to.have.attribute('scrub-url', v.scrubUrl);
+      expect(preview).to.have.attribute('preview-url', v.scrubUrl);
     });
   });
 });

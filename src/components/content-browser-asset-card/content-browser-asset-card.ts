@@ -118,7 +118,7 @@ export default class CxContentBrowserAssetCard extends CortexElement {
           slot="image"
           image-url=${this.imageUrl}
           original-url=${this.originalUrl}
-          scrub-url=${this.scrubUrl}
+          preview-url=${this.scrubUrl}
           alt=${this.assetName}
           doc-type=${this.docType}
           extension=${this.extension}

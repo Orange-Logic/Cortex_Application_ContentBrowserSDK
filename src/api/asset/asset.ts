@@ -488,11 +488,15 @@ export async function apiGetAvailableProxies({
           rawResponse: GetAvailableProxiesRawResponse,
         ): GetAvailableProxiesResponse => {
           if (!rawResponse || typeof rawResponse !== 'object') {
-            return [];
+            return {
+              previewUrl: '',
+              proxies: [],
+            };
           }
 
-          return (
-            rawResponse.proxies?.map((proxy) => ({
+          return {
+            previewUrl: rawResponse.previewUrl ?? '',
+            proxies: rawResponse.proxies?.map((proxy) => ({
               cdnName: proxy.cdnName,
               extension: proxy.extension,
               formatHeight: proxy.formatHeight,
@@ -503,8 +507,8 @@ export async function apiGetAvailableProxies({
               proxyLabel: proxy.proxyLabel,
               proxyName: proxy.proxyName,
               width: proxy.width,
-            })) ?? []
-          );
+            })) ?? [],
+          };
         },
       ],
       url: AssetApiEndpoint.GET_AVAILABLE_PROXIES,
@@ -512,7 +516,10 @@ export async function apiGetAvailableProxies({
 
     return response.data;
   } catch (error) {
-    return [];
+    return {
+      previewUrl: '',
+      proxies: [],
+    };
   }
 }
 

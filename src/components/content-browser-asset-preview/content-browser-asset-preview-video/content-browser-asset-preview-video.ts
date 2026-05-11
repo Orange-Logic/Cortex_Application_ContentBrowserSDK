@@ -41,6 +41,9 @@ export default class CxContentBrowserAssetPreviewVideo extends CortexElement {
   @property({ attribute: 'thumbnail-src', reflect: true, type: String })
   thumbnailSrc: string = '';
 
+  @property({ reflect: true, type: Boolean })
+  controls: boolean = false;
+
   @property({ attribute: 'loaded', reflect: true, type: Boolean })
   loaded: boolean = false;
 
@@ -117,6 +120,7 @@ export default class CxContentBrowserAssetPreviewVideo extends CortexElement {
             <video
               src=${this.src}
               poster=${this.thumbnailSrc}
+              ?controls=${this.controls}
               @loadedmetadata=${this.handleLoaded}
               @error=${this.handleError}
             >
@@ -136,7 +140,7 @@ export default class CxContentBrowserAssetPreviewVideo extends CortexElement {
           <cx-icon name="play_arrow" variant="filled"></cx-icon>
         </div>
       </div>
-      ${when(Boolean(this.src) && !this.thumbnailOnly,
+      ${when(Boolean(this.src) && !this.thumbnailOnly && !this.controls,
         () => html`
           <cx-progress-bar
             class="content-browser-asset-preview__progress-bar"

@@ -75,6 +75,7 @@ export type GetAvailableProxiesRequest = {
 };
 
 export type GetAvailableProxiesRawResponse = {
+  previewUrl: string;
   proxies: Array<{
     cdnName: string | null;
     extension: string | null;
@@ -88,7 +89,10 @@ export type GetAvailableProxiesRawResponse = {
   }>;
 };
 
-export type GetAvailableProxiesResponse = AvailableProxy[];
+export type GetAvailableProxiesResponse = {
+  previewUrl: string;
+  proxies: AvailableProxy[];
+};
 
 export type FormatsByDocType = {
   Audio: Record<string, string>;

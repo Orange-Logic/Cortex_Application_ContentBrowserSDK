@@ -66,7 +66,7 @@ export default class CxContentBrowserAssetVersionHistory extends CortexElement {
                           </div>
                           <cx-content-browser-asset-preview
                             image-url=${item.versionFileUrl}
-                            scrub-url=${item.scrubUrl}
+                            preview-url=${item.scrubUrl}
                             alt=${item.versionFileName}
                             doc-type=${when(item.scrubUrl,
                               () => MediaType.Video,

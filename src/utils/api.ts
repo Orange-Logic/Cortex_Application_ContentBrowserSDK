@@ -23,6 +23,45 @@ type CortexFetchOptions = RequestInit & {
 
 const mutex = new Mutex();
 
+/**
+ * Refresh the access token using the stored access key. De-duplicates concurrent calls via a shared mutex.
+ * Returns the new access token on success, or null if refresh failed (in which case the user is also logged out).
+ */
+export const refreshAccessToken = async (): Promise<string | null> => {
+  await mutex.waitForUnlock();
+
+  // Another caller already refreshed while we were waiting — re-read latest state.
+  if (mutex.isLocked()) {
+    await mutex.waitForUnlock();
+    return store.getState()[AUTH_FEATURE_KEY].accessToken ?? null;
+  }
+
+  const release = await mutex.acquire();
+  try {
+    const authState = store.getState()[AUTH_FEATURE_KEY];
+
+    if (!authState.accessKey || !authState.siteUrl) {
+      store.dispatch(logout());
+      return null;
+    }
+
+    try {
+      const tokenResp = await getAccessTokenService(authState.accessKey);
+      if (tokenResp.accessToken) {
+        store.dispatch(setAccessToken(tokenResp.accessToken));
+        return tokenResp.accessToken;
+      }
+      store.dispatch(logout());
+      return null;
+    } catch {
+      store.dispatch(logout());
+      return null;
+    }
+  } finally {
+    release();
+  }
+};
+
 /*
  * Check if the available status of the site url
  * If site is not available then we will return an error message, else null
@@ -74,43 +113,12 @@ export const cortexFetch = async (resource: string, options?: CortexFetchOptions
   const response = await fetchWithTimeout(resource, options);
 
   if (retryWhenUnauthorize && !response.ok && response.status === 401) {
-    await mutex.waitForUnlock();
-
-    if (!mutex.isLocked()) {
-      const release = await mutex.acquire();
-      try {
-        if (!authState.accessKey || !authState.siteUrl) {
-          store.dispatch(logout());
-          return response;
-        } else {
-          let needsLoggingOut = false;
-          try {
-            const tokenResp = await getAccessTokenService(authState.accessKey);
-
-            if (tokenResp.accessToken) {
-              store.dispatch(setAccessToken(tokenResp.accessToken));
-              resource = getRequestUrl(authState.siteUrl, resource, authState.accessToken);
-              return await fetchWithTimeout(resource, options);
-            } else {
-              needsLoggingOut = true;
-              return response;
-            }
-          } catch (e) {
-            needsLoggingOut = true;
-            return response;
-          } finally {
-            if (needsLoggingOut) {
-              store.dispatch(logout());
-            }
-          }
-        }
-      } finally {
-        release();
-      }
-    } else {
-      await mutex.waitForUnlock();
-      return await fetchWithTimeout(resource, options);
+    const newToken = await refreshAccessToken();
+    if (!newToken || !authState.siteUrl) {
+      return response;
     }
+    resource = getRequestUrl(authState.siteUrl, resource, newToken);
+    return await fetchWithTimeout(resource, options);
   }
 
   return response;

@@ -277,6 +277,16 @@ export default class CxContentBrowser extends CortexElement {
         break;
     }
 
+    this.lastRequest = {
+      ...this.lastRequest,
+      folderId: this.defaultFolderId,
+      isSeeThrough: this.defaultIsSeeThrough,
+      searchText: this.defaultSearchText,
+      selectedFacets: this.defaultSelectedFacets,
+      sortDirection: this.defaultSortDirection,
+      sortOrderName: this.defaultSortOrderName,
+    };
+
     this.updateComplete.then(() => {
       this.fetchAndMergeAssetsController = new FetchAndMergeAssetsController(this, {
         availableDocTypes: this.availableDocTypes,
