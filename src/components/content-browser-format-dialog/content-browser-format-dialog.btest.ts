@@ -53,7 +53,7 @@ function videoMp4Extensions(): GetAvailableExtensionsResponse {
   };
 }
 
-function makeAsset(overrides: Partial<Asset> = {}): Asset {
+function makeAsset(overrides: Partial<Asset> = {}): Asset & { previewUrl: string } {
   return {
     docSubType: '',
     docType: MediaType.Video,
@@ -62,6 +62,7 @@ function makeAsset(overrides: Partial<Asset> = {}): Asset {
     identifier: 'id-1',
     imageUrl: 'https://placehold.co/120x80',
     name: 'Clip',
+    previewUrl: 'https://example.com/scrub.mp4',
     originalUrl: 'https://example.com/v.mp4',
     recordId: 'rec-1',
     size: '2 MB',
@@ -743,6 +744,7 @@ describe('content-browser-format-dialog', () => {
     });
     await elementUpdated(el);
 
+    setAssetLinkFormatStub(el, {});
     dispatchProxySelect(el, CUSTOM_FORMAT_VALUE);
     await elementUpdated(el);
 
@@ -771,6 +773,7 @@ describe('content-browser-format-dialog', () => {
     });
     await elementUpdated(el);
 
+    setAssetLinkFormatStub(el, {});
     dispatchProxySelect(el, CUSTOM_FORMAT_VALUE);
     await elementUpdated(el);
 
@@ -799,6 +802,7 @@ describe('content-browser-format-dialog', () => {
     el.confirmedFormat = { extension: '.webm', height: 480, width: 640 };
     el.confirmedTransformations = [{ key: TransformationAction.Resize, value: { width: 100 } }];
 
+    setAssetLinkFormatStub(el, {});
     dispatchProxySelect(el, CUSTOM_FORMAT_VALUE);
     await elementUpdated(el);
 
@@ -880,6 +884,10 @@ describe('content-browser-format-dialog', () => {
     });
     await elementUpdated(el);
 
+    setAssetLinkFormatStub(el, {
+      selectedFormat: { extension: '.webm', height: 480, width: 640 },
+      transformations: [],
+    });
     dispatchProxySelect(el, CUSTOM_FORMAT_VALUE);
     await elementUpdated(el);
 

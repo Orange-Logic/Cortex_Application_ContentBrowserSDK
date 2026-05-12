@@ -93,7 +93,7 @@ describe('content-browser-asset-card', () => {
     it('forwards media props to the preview', () => {
       const preview = getPreview(el);
       expect(preview).to.have.attribute('image-url', THUMB);
-      expect(preview).to.have.attribute('scrub-url', 'https://example.com/scrub.mp4');
+      expect(preview).to.have.attribute('preview-url', 'https://example.com/scrub.mp4');
       expect(preview).to.have.attribute('alt', 'Clip');
       expect(preview).to.have.attribute('doc-type', MediaType.Video);
       expect(preview).to.have.attribute('extension', '.mp4');

@@ -741,21 +741,21 @@ describe('content-browser', () => {
 
   it('handleViewChange refetches when isSeeThrough changes', async () => {
     const { el, mock } = await fixtureWithMock(html`<cx-content-browser></cx-content-browser>`);
-    expect(el.lastRequest?.isSeeThrough).to.be.true;
+    expect(el.lastRequest?.isSeeThrough).to.be.false;
 
     getControlBar(el)!.dispatchEvent(
       new CustomEvent('cx-content-browser-control-view-change', {
         bubbles: true,
         composed: true,
-        detail: { isSeeThrough: false, view: GridView.Medium },
+        detail: { isSeeThrough: true, view: GridView.Medium },
       }),
     );
 
     await waitUntil(() => mock.fetchAndMergeAssets.calledOnce);
     const req = mock.fetchAndMergeAssets.firstCall.args[0];
-    expect(req.isSeeThrough).to.be.false;
+    expect(req.isSeeThrough).to.be.true;
     expect(req.start).to.equal(0);
-    expect(el.lastRequest?.isSeeThrough).to.be.false;
+    expect(el.lastRequest?.isSeeThrough).to.be.true;
   });
 
   describe('runFirstUpdated: defaultPageSize from default-grid-view (no view-change event)', () => {

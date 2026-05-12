@@ -24,7 +24,7 @@ describe('content-browser-asset-preview', () => {
       expect(el.shadowRoot).to.exist;
       expect(el.imageUrl).to.be.empty;
       expect(el.originalUrl).to.be.empty;
-      expect(el.scrubUrl).to.be.empty;
+      expect(el.previewUrl).to.be.empty;
       expect(el.alt).to.be.empty;
       expect(el.docType).to.be.empty;
       expect(el.extension).to.be.empty;
