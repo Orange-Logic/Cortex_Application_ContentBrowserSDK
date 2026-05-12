@@ -320,17 +320,21 @@ export default class CxContentBrowser extends CortexElement {
   private async openFormatDialog(id: string) {
     this.selectedAssetId = id;
 
-    const asset = await this.fetchAndMergeAssetsController.fetchAssetByID(id, {
-      canFavorite: this.canFavorite,
-    });
+    try {
+      const asset = await this.fetchAndMergeAssetsController.fetchAssetByID(id, {
+        canFavorite: this.canFavorite,
+      });
 
-    if (!asset) {
+      if (!asset) {
+        this.selectedAssetId = undefined;
+
+        return;
+      }
+
+      this.formatDialog.open(asset);
+    } catch {
       this.selectedAssetId = undefined;
-
-      return;
     }
-
-    this.formatDialog.open(asset);
   }
 
   @watch('lastRequest', { waitUntilFirstUpdate: true })
@@ -341,6 +345,11 @@ export default class CxContentBrowser extends CortexElement {
         view: this.view,
       },
     });
+  }
+
+  @watch(['token', 'useSession'], { waitUntilFirstUpdate: true })
+  handleAuthChange() {
+    this.fetchAndMergeAssetsController?.updateAuth(this.token, this.useSession);
   }
 
   private async handleSortOrderChange(event: CxContentBrowserControlSortOrderChangeEvent) {

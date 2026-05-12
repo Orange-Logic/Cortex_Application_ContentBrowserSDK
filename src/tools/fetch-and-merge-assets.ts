@@ -89,6 +89,16 @@ export class FetchAndMergeAssetsController implements ReactiveController {
 
   private isLoggedIn = true;
 
+  private token: string;
+
+  private useSession: string;
+
+  private pendingTokenRefresh: Promise<string | null> | null = null;
+
+  private resolvePendingTokenRefresh: ((token: string | null) => void) | null = null;
+
+  private readonly tokenRefreshTimeoutMs = 15000;
+
   private readonly availableDocTypes: string[];
 
   private readonly defaultSearchText: string;
@@ -158,6 +168,10 @@ export class FetchAndMergeAssetsController implements ReactiveController {
 
     this.defaultSortDirection = defaultSortDirection;
 
+    this.token = token;
+
+    this.useSession = useSession;
+
     http.defaults.baseURL = baseUrl;
 
     http.interceptors.request.use((config) => {
@@ -186,26 +200,115 @@ export class FetchAndMergeAssetsController implements ReactiveController {
 
       config.params = {
         ...config.params,
-        Token: token || undefined,
-        UseSession: useSession || undefined,
+        Token: this.token || undefined,
+        UseSession: this.useSession || undefined,
       };
 
       return config;
     });
 
-    http.interceptors.response.use((response) => {
-      /**
-       * Check for 401 status code
-       */
-      if (response.status === 401) {
-        this.isLoggedIn = false;
-        this.host.requestUpdate();
-      }
+    http.interceptors.response.use(
+      (response) => {
+        if (response.status >= 200 && response.status < 300 && !this.isLoggedIn) {
+          this.isLoggedIn = true;
+          this.host.requestUpdate();
+        }
 
-      return response;
-    });
+        return response;
+      },
+      async (error) => {
+        const originalConfig = error?.config as (typeof error.config & { _retry?: boolean }) | undefined;
+
+        if (error?.response?.status === 401 && originalConfig && !originalConfig._retry) {
+          originalConfig._retry = true;
+
+          const newToken = await this.waitForNewToken();
+
+          if (!newToken) {
+            this.isLoggedIn = false;
+            this.host.requestUpdate();
+            return Promise.reject(error);
+          }
+
+          return http.request(originalConfig);
+        }
+
+        return Promise.reject(error);
+      },
+    );
 
     this.host.addController?.(this);
+  }
+
+  private waitForNewToken(): Promise<string | null> {
+    if (!this.pendingTokenRefresh) {
+      this.pendingTokenRefresh = new Promise((resolve) => {
+        this.resolvePendingTokenRefresh = resolve;
+      });
+
+      globalThis.dispatchEvent(new CustomEvent('cx-unauthorized'));
+
+      setTimeout(() => {
+        if (this.resolvePendingTokenRefresh) {
+          this.resolvePendingTokenRefresh(null);
+          this.pendingTokenRefresh = null;
+          this.resolvePendingTokenRefresh = null;
+        }
+      }, this.tokenRefreshTimeoutMs);
+    }
+
+    return this.pendingTokenRefresh;
+  }
+
+  updateAuth(token: string, useSession: string) {
+    const tokenChanged = this.token !== token;
+    const wasLoggedOut = !this.isLoggedIn;
+
+    this.token = token;
+    this.useSession = useSession;
+
+    if (tokenChanged && this.resolvePendingTokenRefresh) {
+      this.resolvePendingTokenRefresh(token || null);
+      this.pendingTokenRefresh = null;
+      this.resolvePendingTokenRefresh = null;
+    }
+
+    if (tokenChanged && wasLoggedOut && token) {
+      this.isLoggedIn = true;
+      this.fetchInitialData();
+
+      if (this.lastRequest) {
+        this.fetchAndMergeAssets(this.lastRequest);
+      }
+
+      this.host.requestUpdate();
+    }
+  }
+
+  private fetchInitialData() {
+    apiGetUserInfo().then((userInfo) => {
+      this.userInfo = userInfo;
+
+      this.host.requestUpdate();
+    });
+
+    apiGetAvailableFacets().then((availableFacets) => {
+      this.availableFacets = availableFacets;
+
+      this.host.requestUpdate();
+    });
+
+    apiGetContentBrowserParameters().then((parameters) => {
+      this.parameters = parameters;
+
+      this.host.requestUpdate();
+    });
+
+    apiGetAvailableExtensions().then((availableExtensions) => {
+      this.availableExtensions = availableExtensions;
+
+      this.host.requestUpdate();
+    });
   }
 
   private _debounceTimeout: ReturnType<typeof setTimeout> | undefined;
@@ -510,29 +613,7 @@ export class FetchAndMergeAssetsController implements ReactiveController {
   }
 
   hostConnected() {
-    apiGetUserInfo().then((userInfo) => {
-      this.userInfo = userInfo;
-
-      this.host.requestUpdate();
-    });
-
-    apiGetAvailableFacets().then((availableFacets) => {
-      this.availableFacets = availableFacets;
-
-      this.host.requestUpdate();
-    });
-
-    apiGetContentBrowserParameters().then((parameters) => {
-      this.parameters = parameters;
-
-      this.host.requestUpdate();
-    });
-
-    apiGetAvailableExtensions().then((availableExtensions) => {
-      this.availableExtensions = availableExtensions;
-
-      this.host.requestUpdate();
-    });
+    this.fetchInitialData();
   }
 
   hostDisconnected() {
