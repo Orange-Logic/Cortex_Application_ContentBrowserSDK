@@ -405,7 +405,7 @@ export async function apiGetAssets({
         SeeThru: isSeeThrough || undefined,
         SelectedFacets: selectedFacets,
         Start: start,
-        Text: searchText,
+        Text: searchText || undefined,
         UseSession: useSession || undefined,
         ...resolveAssetExtraFilters(selectedFacets),
       },

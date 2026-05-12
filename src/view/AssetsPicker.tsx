@@ -157,7 +157,7 @@ const AssetsPicker = forwardRef<AssetsPickerHandle, Props>(function AssetsPicker
     view: Object.values(GridView).includes(defaultGridView as GridView) ? defaultGridView as GridView : GridView.Medium,
     facets: [],
     selectedFacets: {},
-    isSeeThrough: false,
+    isSeeThrough: true,
     searchText: '',
     lastLocation: '',
   });
@@ -308,7 +308,7 @@ const AssetsPicker = forwardRef<AssetsPickerHandle, Props>(function AssetsPicker
         sortDirection: ['ascending', 'descending'].includes(sortDirection as 'ascending' | 'descending') ? sortDirection as 'ascending' | 'descending' : undefined,
         view: view as GridView || defaultSettings.view,
         selectedFacets: parseSelectedFacets(selectedFilter),
-        isSeeThrough: selectedIsSeeThrough === 'true' || false,
+        isSeeThrough: selectedIsSeeThrough === null ? true : selectedIsSeeThrough === 'true',
         searchText: searchText || '',
       };
 

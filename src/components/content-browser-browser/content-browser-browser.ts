@@ -264,7 +264,7 @@ export default class CxContentBrowserBrowser extends CortexElement {
       ></slot>
       <cx-drawer
         class="content-browser-browser"
-        label="browser"
+        label="Browser"
         placement="start"
         contained
         variant=${this.variant}
@@ -294,6 +294,7 @@ export default class CxContentBrowserBrowser extends CortexElement {
                 name="folders"
                 extra-folder-id=${ifDefined(this.showFavoriteFolder && this.favoriteFolderId ? this.favoriteFolderId : undefined)}
                 extra-folder-title=${this.localize.term('myFavorites')}
+                extra-folder-icon="star"
                 min-query-length=${this.minQueryLength}
                 value=${ifDefined(this.folderId || undefined)}
                 selected-label=${ifDefined(this.folderTitle || undefined)}
