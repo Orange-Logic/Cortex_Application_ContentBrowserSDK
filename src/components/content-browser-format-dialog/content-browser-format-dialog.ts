@@ -797,6 +797,7 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
         () => html`
           <cx-dialog
             class="content-browser-format-dialog"
+            overlay-scrollbar-auto-hide="never"
             .boundary=${this.boundary}
             @cx-request-close=${this.handleRequestClose}
           >
