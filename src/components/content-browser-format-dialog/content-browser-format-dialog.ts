@@ -68,8 +68,6 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
 
   private readonly localize = new LocalizeController(this);
 
-  @query('cx-dialog,cx-drawer') dialog!: CxDialog | CxDrawer;
-
   @query('cx-asset-link-format') assetLinkFormat!: CxAssetLinkFormat;
 
   @property({ reflect: false, type: Object })
@@ -141,6 +139,9 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
 
   @state()
   asset: Asset & { previewUrl: string } | undefined = undefined;
+
+  @state()
+  private isOpen: boolean = false;
 
   @state()
   isFavorite: boolean = false;
@@ -226,12 +227,10 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
     this.asset = asset;
     this.isFavorite = isFavorite;
     this.proxies = proxies;
-
-    this.dialog.show();
+    this.isOpen = true;
   }
 
   hide() {
-    this.dialog.hide();
     this.handleClose();
   }
 
@@ -765,7 +764,7 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
     this.asset = undefined;
     this.confirmedFormat = undefined;
     this.confirmedTransformations = [];
-    this.dialog.hide();
+    this.isOpen = false;
     this.enabledTracking = false;
     this.filteredProxies = [];
     this.isFavorite = false;
@@ -788,6 +787,7 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
           <cx-drawer
             class="content-browser-format-drawer"
             placement="bottom"
+            ?open=${this.isOpen}
             .boundary=${this.boundary}
             @cx-request-close=${this.handleRequestClose}
           >
@@ -798,6 +798,7 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
           <cx-dialog
             class="content-browser-format-dialog"
             overlay-scrollbar-auto-hide="never"
+            ?open=${this.isOpen}
             .boundary=${this.boundary}
             @cx-request-close=${this.handleRequestClose}
           >
