@@ -703,7 +703,7 @@ const FormatDialog: FC<Props> = ({
       dialog?.removeEventListener('cx-request-close', onRequestClose);
       drawer?.removeEventListener('cx-request-close', onRequestClose);
     };
-  }, [boundary, isDefined, onClose, state.isLoadingFavorites, state.showVersionHistory]);
+  }, [boundary, isDefined, onClose, state.isLoadingFavorites, state.showVersionHistory, variant]);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -801,6 +801,7 @@ const FormatDialog: FC<Props> = ({
     selectedAsset?.imageUrl,
     selectedAsset?.originalUrl,
     selectedAsset?.extension,
+    variant,
   ]);
 
   useEffect(() => {
