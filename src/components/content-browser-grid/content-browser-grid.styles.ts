@@ -4,6 +4,7 @@ export default css`
   :host {
     display: block;
     flex: 1;
+    min-height: 0;
   }
 
   .content-browser-grid {
