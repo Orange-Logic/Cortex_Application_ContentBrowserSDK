@@ -133,7 +133,7 @@ export default class CxContentBrowserControlView extends CortexElement {
                     () => html` (${this.selectedView?.label})`,
                     () => nothing,
                   )}
-                  <cx-icon slot="checked-icon" name="grid_view"></cx-icon>
+                  <cx-icon slot="prefix" name="grid_view"></cx-icon>
                 </cx-menu-item>
                 <cx-divider></cx-divider>
                 <cx-menu-item value="see-thru" class="menu-item--switch">
@@ -165,10 +165,7 @@ export default class CxContentBrowserControlView extends CortexElement {
           () => html`
             <cx-menu key="default-menu">
               <cx-menu-label>${this.localize.term('view')}</cx-menu-label>
-              <cx-menu-item
-                type="checkbox"
-                always-show-checked-icon
-              >
+              <cx-menu-item type="checkbox">
                 ${this.localize.term('grid')}
                 ${when(this.selectedView,
                   () => html` (${this.selectedView?.label})`,
@@ -188,7 +185,7 @@ export default class CxContentBrowserControlView extends CortexElement {
                       </cx-menu-item>`
                     ))}
                 </cx-menu>
-                <cx-icon slot="checked-icon" name="grid_view"></cx-icon>
+                <cx-icon slot="prefix" name="grid_view"></cx-icon>
               </cx-menu-item>
               <cx-divider></cx-divider>
               <cx-menu-item value="see-thru" class="menu-item--switch">

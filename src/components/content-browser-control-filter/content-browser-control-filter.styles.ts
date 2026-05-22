@@ -10,6 +10,7 @@ export default css`
   .filter-details {
     --content-padding: 0 var(--cx-spacing-medium);
 
+    min-width: 100%;
     width: var(--details-width);
   }
 
@@ -17,6 +18,7 @@ export default css`
     --content-padding: var(--cx-spacing-x-small);
   }
 
+  .filter-details::part(base),
   .content-browser-control-filter-facet::part(base) {
     border-top-width: 0px;
     border-right-width: 0px;

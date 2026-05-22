@@ -41,6 +41,7 @@ export default css`
   .browser__collections {
     --content-padding: 0 var(--cx-spacing-small) var(--cx-spacing-small);
 
+    max-height: 50%;
     width: 100%;
   }
 `;
