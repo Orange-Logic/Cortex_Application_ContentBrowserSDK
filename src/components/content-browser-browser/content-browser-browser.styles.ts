@@ -34,14 +34,15 @@ export default css`
     color: var(--cx-color-neutral);
     width: 100%;
     flex: 1;
-    overflow-y: auto;
     padding: var(--cx-spacing-small);
+    min-height: 0;
   }
 
   .browser__collections {
     --content-padding: 0 var(--cx-spacing-small) var(--cx-spacing-small);
 
     max-height: 50%;
+    min-height: 0;
     width: 100%;
   }
 `;
