@@ -121,7 +121,6 @@ export default class CxContentBrowserControlBar extends CortexElement {
         align-items="center"
         justify-content="space-between"
         spacing="x-small"
-        wrap="nowrap"
       >
         <cx-space class="control-bar__left" direction="horizontal" spacing="x-small" wrap="nowrap" align-items="center">
           <cx-input
@@ -146,7 +145,7 @@ export default class CxContentBrowserControlBar extends CortexElement {
             ?loading=${this.loading}
           ></cx-content-browser-control-filter>
         </cx-space>
-        <cx-space direction="horizontal" spacing="x-small" wrap="nowrap" align-items="center">
+        <cx-space class="control-bar__right" direction="horizontal" spacing="x-small" wrap="nowrap" align-items="center">
           <cx-line-clamp lines="1">
             <cx-typography variant="body3">${this.localize.term('itemOfTotal', this.currentCount, this.totalCount)}</cx-typography>
           </cx-line-clamp>

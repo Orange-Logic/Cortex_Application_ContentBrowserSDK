@@ -42,4 +42,9 @@ export default css`
     right: 2px;
     z-index: 1;
   }
+
+  .content-browser-asset-card--disabled {
+    cursor: default;
+    pointer-events: none;
+  }
 `;

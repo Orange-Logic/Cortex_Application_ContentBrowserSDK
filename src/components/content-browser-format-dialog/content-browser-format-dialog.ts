@@ -244,6 +244,10 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
     this.loadingFavorites = false;
   }
 
+  setLoadingConfirm(loadingConfirm: boolean) {
+    this.loadingConfirm = loadingConfirm;
+  }
+
   mapFormatConfirmPayload(asset: Asset, selectedProxy?: AvailableProxy) {
     return {
       asset,

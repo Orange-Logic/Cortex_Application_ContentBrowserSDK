@@ -71,6 +71,12 @@ export default css`
     height: 350px;
   }
 
+  .content-browser-format-dialog cx-content-browser-asset-preview,
+  .content-browser-format-drawer cx-content-browser-asset-preview {
+    height: 350px;
+    min-height: 350px;
+  }
+
   .content-browser-format__footer__button {
     width: 100%;
   }

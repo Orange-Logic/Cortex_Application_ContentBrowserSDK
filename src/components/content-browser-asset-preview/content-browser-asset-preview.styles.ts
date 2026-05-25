@@ -2,10 +2,17 @@ import { css } from 'lit';
 
 export default css`
   :host {
+    display: block;
     position: relative;
     width: 100%;
     height: 100%;
     overflow: hidden;
+  }
+
+  cx-content-browser-asset-preview-video {
+    display: block;
+    width: 100%;
+    height: 100%;
   }
 
   :host([in-cold-storage]) {
@@ -19,6 +26,7 @@ export default css`
     display: flex;
     align-items: center;
     justify-content: center;
+    background-color: var(--cx-color-neutral-100);
   }
 
   .content-browser-asset-preview__thumbnail {
@@ -57,6 +65,14 @@ export default css`
     align-items: center;
     justify-content: center;
     object-fit: contain;
+  }
+
+  .content-browser-asset-preview__representative cx-video {
+    --video-background-color: transparent;
+
+    display: block;
+    width: 100%;
+    height: 100%;
   }
 
   .content-browser-asset-preview__representative--animated {
@@ -126,10 +142,6 @@ export default css`
     width: 40px;
     height: 40px;
     pointer-events: none;
-  }
-
-  .content-browser-asset-preview__video-icon[hidden] {
-    display: none !important;
   }
 
   .content-browser-asset-preview__progress-bar {

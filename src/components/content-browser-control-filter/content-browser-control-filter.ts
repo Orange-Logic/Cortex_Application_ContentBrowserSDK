@@ -271,6 +271,7 @@ export default class CxContentBrowserControlFilter extends CortexElement {
         skidding=${this.isMobile ? 40 : 0}
         @cx-remove=${this.handleRemove}
         @cx-selection-change=${this.handleSelectionChange}
+        hoist
       >
         <div slot="trigger">
           <cx-tooltip content=${this.localize.term('filter')}>

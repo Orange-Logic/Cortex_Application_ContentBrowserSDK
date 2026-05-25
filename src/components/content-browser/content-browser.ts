@@ -522,36 +522,56 @@ export default class CxContentBrowser extends CortexElement {
   }
 
   private async handleProxyConfirm(event: CxContentBrowserFormatDialogProxyConfirmEvent) {
-    const data = await this.fetchAndMergeAssetsController.getAssetLink({
-      ...event.detail,
-      assets: [event.detail.asset],
-      extraFields: this.extraFields,
-    });
+    try {
+      const response = await this.fetchAndMergeAssetsController.getAssetLink({
+        ...event.detail,
+        assets: [event.detail.asset],
+        extraFields: this.extraFields,
+      });
 
-    this.formatDialog.hide();
+      if (response.isError || !response.data[0]?.imageUrl) {
+        this.formatDialog.setLoadingConfirm(false);
 
-    this.handleSelectedAsset({
-      asset: event.detail.asset,
-      images: data,
-      selectedProxyMetadata: event.detail.selectedProxyMetadata,
-    });
+        return;
+      }
+
+      this.handleSelectedAsset({
+        asset: event.detail.asset,
+        images: response.data,
+        selectedProxyMetadata: event.detail.selectedProxyMetadata,
+      });
+
+      this.formatDialog.hide();
+    } catch {
+      this.formatDialog.setLoadingConfirm(false);
+    }
   }
 
   private async handleFormatConfirm(event: CxContentBrowserFormatDialogFormatConfirmEvent) {
-    const data = await this.fetchAndMergeAssetsController.getAssetLink({
-      ...event.detail,
-      assets: [event.detail.asset],
-      extraFields: this.extraFields,
-    });
+    try {
+      const response = await this.fetchAndMergeAssetsController.getAssetLink({
+        ...event.detail,
+        assets: [event.detail.asset],
+        extraFields: this.extraFields,
+      });
 
-    this.formatDialog.hide();
+      if (response.isError || !response.data[0]?.imageUrl) {
+        this.formatDialog.setLoadingConfirm(false);
 
-    this.handleSelectedAsset({
-      asset: event.detail.asset,
-      images: data,
-      selectedProxyMetadata: event.detail.sourceProxyMetadata,
-      transformedAssetMetadata: event.detail.transformedAssetMetadata,
-    });
+        return;
+      }
+
+      this.handleSelectedAsset({
+        asset: event.detail.asset,
+        images: response.data,
+        selectedProxyMetadata: event.detail.sourceProxyMetadata,
+        transformedAssetMetadata: event.detail.transformedAssetMetadata,
+      });
+
+      this.formatDialog.hide();
+    } catch {
+      this.formatDialog.setLoadingConfirm(false);
+    }
   }
 
   private async handleFormatDialogClose() {

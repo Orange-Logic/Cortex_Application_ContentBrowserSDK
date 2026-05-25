@@ -149,6 +149,7 @@ export default class CxContentBrowserControlSort extends CortexElement {
         distance="4"
         skidding=${this.isMobile ? 40 : 0}
         @cx-select=${this.handleSortSelect}
+        hoist
       >
         <div slot="trigger">
           <cx-tooltip content=${this.localize.term('sort')}>

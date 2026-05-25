@@ -9,7 +9,7 @@ import {
   waitUntil,
 } from '@open-wc/testing';
 
-import type { GetAssetLinkResponse } from '@/api/asset/asset.types';
+import type { GetAssetLinksResponse } from '@/api/asset/asset.types';
 import type { Asset, AssetVersion, GetAssetsRequest } from '@/types/asset';
 import { MediaType } from '@/types/asset';
 import { GridView, OptionType, ContentBrowserFormatDialogVariant } from '@/types/content-browser';
@@ -63,7 +63,7 @@ function createMockFetchController(
   host: CxContentBrowser,
   options: {
     fetchAssetByIDResult?: OpenFormatPayload | undefined;
-    getAssetLinkResult?: GetAssetLinkResponse[];
+    getAssetLinkResult?: GetAssetLinksResponse;
     isLoggedIn?: boolean;
     items?: Asset[];
     parameters?: Record<string, unknown> | null;
@@ -84,7 +84,10 @@ function createMockFetchController(
     fetchFolders: sinon.stub().resolves({ data: [], hasMore: false, totalCount: 0 }),
     getAssetLink: sinon
       .stub()
-      .resolves(options.getAssetLinkResult ?? [{ imageUrl: 'https://cdn.example/selected.jpg' }]),
+      .resolves(options.getAssetLinkResult ?? {
+        data: [{ imageUrl: 'https://cdn.example/selected.jpg' }],
+        isError: false,
+      }),
     getData: () => ({
       availableExtensions: null,
       availableFacets: [],
@@ -517,7 +520,10 @@ describe('content-browser', () => {
   it('handleFormatConfirm calls getAssetLink, hides the dialog, and emits selected asset with transformation metadata', async () => {
     const asset = makeAsset();
     const { el, mock } = await fixtureWithMock(html`<cx-content-browser></cx-content-browser>`, {
-      getAssetLinkResult: [{ imageUrl: 'https://cdn.example/custom.webp' }],
+      getAssetLinkResult: {
+        data: [{ imageUrl: 'https://cdn.example/custom.webp' }],
+        isError: false,
+      },
       items: [asset],
       totalCount: 1,
     });
@@ -585,12 +591,59 @@ describe('content-browser', () => {
     expect(ev.detail[0].assetTransformationSource).to.deep.equal(sourceProxyMetadata);
   });
 
+  it('keeps the format dialog open when format confirm link generation fails', async () => {
+    const asset = makeAsset();
+    const { el, mock } = await fixtureWithMock(html`<cx-content-browser></cx-content-browser>`, {
+      getAssetLinkResult: {
+        data: [],
+        isError: true,
+      },
+      items: [asset],
+      totalCount: 1,
+    });
+
+    const dialog = getFormatDialog(el);
+    const hideSpy = sinon.spy(dialog, 'hide');
+    const selectedSpy = sinon.spy();
+    el.addEventListener('cx-content-browser-selected-asset', selectedSpy);
+    dialog.loadingConfirm = true;
+
+    dialog.dispatchEvent(
+      new CustomEvent('cx-content-browser-format-dialog-format-confirm', {
+        bubbles: true,
+        composed: true,
+        detail: {
+          asset,
+          extension: '.webp',
+          sourceProxyMetadata: null,
+          transformations: [],
+          transformedAssetMetadata: {
+            extension: '.webp',
+            height: 600,
+            isCustomFormat: true,
+            permanentLink: null,
+            width: 800,
+          },
+        },
+      }),
+    );
+
+    await waitUntil(() => mock.getAssetLink.calledOnce);
+    await waitUntil(() => dialog.loadingConfirm === false);
+
+    expect(hideSpy).not.to.have.been.called;
+    expect(selectedSpy).not.to.have.been.called;
+  });
+
   it('merges ScrubUrl into selected payload when extra-fields requests it', async () => {
     const asset = makeAsset({ scrubUrl: 'https://scrub.example/s.vtt' });
     const { el } = await fixtureWithMock(
       html`<cx-content-browser extra-fields="ScrubUrl"></cx-content-browser>`,
       {
-        getAssetLinkResult: [{ imageUrl: 'https://out.example/img.jpg' }],
+        getAssetLinkResult: {
+          data: [{ imageUrl: 'https://out.example/img.jpg' }],
+          isError: false,
+        },
         items: [asset],
         totalCount: 1,
       },

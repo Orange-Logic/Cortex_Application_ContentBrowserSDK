@@ -109,6 +109,7 @@ export default class CxContentBrowserControlView extends CortexElement {
         distance="4"
         skidding=${this.isMobile ? 40 : 0}
         @cx-select=${this.handleViewSelect}
+        hoist
       >
         <div slot="trigger">
           <cx-tooltip content=${this.localize.term('view')}>

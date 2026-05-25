@@ -1,6 +1,7 @@
 import CxIcon from '@orangelogic/design-system/components/icon';
 import CxProgressBar from '@orangelogic/design-system/components/progress-bar';
 import CxTypography from '@orangelogic/design-system/components/typography';
+import CxVideo from '@orangelogic/design-system/components/video';
 import CortexElement from '@/base/element';
 import { Orientation } from '@/types/base';
 import { customElement, LocalizeController } from '@orangelogic/design-system/utils';
@@ -16,6 +17,7 @@ export default class CxContentBrowserAssetPreviewVideo extends CortexElement {
     'cx-icon': CxIcon,
     'cx-progress-bar': CxProgressBar,
     'cx-typography': CxTypography,
+    'cx-video': CxVideo,
   };
 
   private readonly localize = new LocalizeController(this);
@@ -23,8 +25,8 @@ export default class CxContentBrowserAssetPreviewVideo extends CortexElement {
   @query('.content-browser-asset-preview__representative-overlay')
   contentOverlay: HTMLDivElement;
 
-  @query('video')
-  videoElement?: HTMLVideoElement;
+  @query('cx-video')
+  videoElement?: CxVideo;
 
   @query('img')
   imageElement?: HTMLImageElement;
@@ -88,7 +90,7 @@ export default class CxContentBrowserAssetPreviewVideo extends CortexElement {
     this.progress = 0;
 
     if (this.videoElement) {
-      this.videoElement.currentTime = 0;
+      this.videoElement.seek(0);
       this.videoElement.pause();
     }
   }
@@ -99,10 +101,15 @@ export default class CxContentBrowserAssetPreviewVideo extends CortexElement {
   }
 
   private updateVideoProgress(event: MouseEvent) {
-    if (this.videoElement?.duration && event.currentTarget === this.contentOverlay) {
-      this.progress = (event.offsetX / this.contentOverlay.offsetWidth) * 100;
-      this.videoElement.currentTime =
-        (event.offsetX / this.contentOverlay.offsetWidth) * this.videoElement.duration;
+    const width = this.contentOverlay.offsetWidth;
+    if (
+      this.videoElement?.duration &&
+      width > 0 &&
+      event.currentTarget === this.contentOverlay
+    ) {
+      const ratio = Math.min(1, Math.max(0, event.offsetX / width));
+      this.progress = ratio * 100;
+      this.videoElement.seek(ratio * this.videoElement.duration);
     }
   }
 
@@ -117,15 +124,17 @@ export default class CxContentBrowserAssetPreviewVideo extends CortexElement {
         ${when(
           this.src && !this.thumbnailOnly,
           () => html`
-            <video
+            <cx-video
               src=${this.src}
               poster=${this.thumbnailSrc}
-              ?controls=${this.controls}
-              @loadedmetadata=${this.handleLoaded}
-              @error=${this.handleError}
-            >
-              <track default kind="captions" srcLang="en" />
-            </video>
+              disable-picture-in-picture
+              disable-remote-playback
+              height="100%"
+              width="100%"
+              ?show-controls=${this.controls}
+              @cx-loaded-metadata=${this.handleLoaded}
+              @cx-error=${this.handleError}
+            ></cx-video>
           `,
           () => html`
             <img
@@ -136,9 +145,14 @@ export default class CxContentBrowserAssetPreviewVideo extends CortexElement {
             />
           `,
         )}
-        <div class="content-browser-asset-preview__video-icon" ?hidden=${!this.loaded}>
-          <cx-icon name="play_arrow" variant="filled"></cx-icon>
-        </div>
+        ${when(
+          !this.controls,
+          () => html`
+            <div class="content-browser-asset-preview__video-icon">
+              <cx-icon name="play_arrow" variant="filled"></cx-icon>
+            </div>
+          `,
+        )}
       </div>
       ${when(Boolean(this.src) && !this.thumbnailOnly && !this.controls,
         () => html`

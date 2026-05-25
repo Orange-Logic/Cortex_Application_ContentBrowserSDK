@@ -18,9 +18,12 @@ export type ContentItem = {
 
 export type GetAssetLinkRequest = {
   ExtraFields?: string;
+  GenerateAssetUrl?: boolean;
+  Parameters?: TrackingParameter[];
   Proxy?: string;
   RecordId: string;
   Token?: string;
+  UseSession?: string;
 };
 
 export type GetAssetLinkResponse = {
@@ -34,6 +37,11 @@ export type GetAssetLinkResponse = {
   metadata?: {
     [key: string]: string | number | boolean | null;
   };
+};
+
+export type GetAssetLinksResponse = {
+  data: GetAssetLinkResponse[];
+  isError: boolean;
 };
 
 export type GetContentResponse = {

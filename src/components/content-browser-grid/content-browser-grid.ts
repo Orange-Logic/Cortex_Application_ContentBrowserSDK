@@ -18,6 +18,7 @@ import { customElement, LocalizeController } from '@orangelogic/design-system/ut
 
 import CxContentBrowserAssetCard from '../content-browser-asset-card/content-browser-asset-card';
 import CxContentBrowserNoResult from '../content-browser-no-result/content-browser-no-result';
+import ScrollAnchorController from './scroll-anchor-controller';
 import styles from './content-browser-grid.styles';
 
 import type { CxResizeEvent } from '@/events';
@@ -84,6 +85,12 @@ export default class CxContentBrowserGrid extends CortexElement {
 
   #lastWidth = 0;
 
+  private readonly scrollAnchorController = new ScrollAnchorController(this, {
+    getContainer: () => this.virtualizerEl,
+    getItemIndexById: (id) => this.assets.findIndex((asset) => asset.id === id),
+    itemSelector: 'cx-content-browser-asset-card',
+  });
+
   constructor() {
     super();
 
@@ -93,15 +100,18 @@ export default class CxContentBrowserGrid extends CortexElement {
 
   @watch('view', { waitUntilFirstUpdate: true })
   async handleViewChange() {
+    this.scrollAnchorController.capture();
+
     await this.updateComplete;
 
-    this.debouncedCalculatePageSize(this.#lastWidth, this.#lastHeight, true);
+    this.calculatePageSize(this.#lastWidth, this.#lastHeight, true);
   }
 
   @watch('assets')
   handleAssetsChange() {
     this.assetMap.clear();
     this.assets.forEach((item) => this.assetMap.set(item.id, item));
+    this.scrollAnchorController.scheduleRestore();
   }
 
   private handleResize(event: CxResizeEvent) {
@@ -115,6 +125,7 @@ export default class CxContentBrowserGrid extends CortexElement {
 
     const { height, width } = entries[0].contentRect;
 
+    this.scrollAnchorController.capture();
     this.debouncedCalculatePageSize(width, height);
   }
 
@@ -132,6 +143,10 @@ export default class CxContentBrowserGrid extends CortexElement {
     this.#lastWidth = width;
 
     const { columnCount, rowCount } = this.calculateColumnCount(width, height);
+    this.scrollAnchorController.setLayoutMetrics({
+      columnCount,
+      itemHeight: Math.max(this.columnWidth, 150) + this.#gutter,
+    });
 
     this.emit('cx-content-browser-grid-resize', {
       detail: {
@@ -139,6 +154,8 @@ export default class CxContentBrowserGrid extends CortexElement {
         rowCount,
       },
     });
+
+    this.scrollAnchorController.scheduleRestore();
   }
 
   private calculateColumnCount(width: number, height?: number) {
@@ -173,18 +190,25 @@ export default class CxContentBrowserGrid extends CortexElement {
     const target = event.target as CxContentBrowserAssetCard;
     const assetId = target.assetId;
 
-    if (assetId) {
-      this.emit('cx-content-browser-grid-click', {
-        detail: {
-          id: assetId,
-        },
-      });
+    if (!assetId) {
+      return;
     }
+
+    if (this.assetMap.get(assetId)?.inColdStorage) {
+      return;
+    }
+
+    this.emit('cx-content-browser-grid-click', {
+      detail: {
+        id: assetId,
+      },
+    });
   }
 
   private renderItem(asset: Asset) {
     return html`
       <cx-content-browser-asset-card
+        data-id=${asset.id}
         asset-id=${asset.id}
         asset-name=${asset.name}
         asset-size=${asset.size}
@@ -200,6 +224,7 @@ export default class CxContentBrowserGrid extends CortexElement {
         ?show-size=${this.showSize}
         ?show-dimensions=${this.showDimensions}
         ?show-tags=${this.showTags}
+        ?in-cold-storage=${asset.inColdStorage}
         @click=${this.handleClick}
       ></cx-content-browser-asset-card>
     `;
@@ -207,6 +232,8 @@ export default class CxContentBrowserGrid extends CortexElement {
 
   private handleScroll(event: Event) {
     const container = event.target as HTMLDivElement;
+
+    this.scrollAnchorController.capture(container);
 
     if (container.scrollTop + container.clientHeight >= container.scrollHeight - 10) {
       this.debouncedHandleScrollEnd();

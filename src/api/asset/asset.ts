@@ -8,6 +8,7 @@ import {
   GetAssetLinkRequest,
   GetAssetLinkResponse,
   GetAssetLinksRequest,
+  GetAssetLinksResponse,
   GetAssetsByIDsRequest,
   GetAssetsByIDsResponse,
   GetAssetsRawResponse,
@@ -82,6 +83,33 @@ function isCortexErrorResponse(response: GetAssetLinkResponse | CortexErrorRespo
   return response && typeof response === 'object' && 'ErrorCode' in response;
 }
 
+function createId() {
+  const cryptoApi = globalThis.crypto;
+
+  if (cryptoApi?.randomUUID) {
+    return cryptoApi.randomUUID();
+  }
+
+  if (cryptoApi?.getRandomValues) {
+    const bytes = cryptoApi.getRandomValues(new Uint8Array(16));
+
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+
+    const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0'));
+
+    return [
+      hex.slice(0, 4).join(''),
+      hex.slice(4, 6).join(''),
+      hex.slice(6, 8).join(''),
+      hex.slice(8, 10).join(''),
+      hex.slice(10).join(''),
+    ].join('-');
+  }
+
+  return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
 export async function apiGetAssetLinks({
   assets,
   extension,
@@ -90,9 +118,11 @@ export async function apiGetAssetLinks({
   permanentLink,
   proxyPreference,
   transformations,
-}: GetAssetLinksRequest) {
+  useSession,
+}: GetAssetLinksRequest): Promise<GetAssetLinksResponse> {
   const getAssetLinkErrors: { [key: string]: Asset[] } = {};
   const isOnlyOneAssetSelected = assets.length === 1;
+  let hasError = false;
 
   try {
     const responses = await Promise.all(assets.map((asset) => {
@@ -107,6 +137,7 @@ export async function apiGetAssetLinks({
           Parameters: parameters,
           Proxy: proxyPreference,
           RecordId: asset.recordId,
+          UseSession: useSession || undefined,
         },
         paramsSerializer: {
           indexes: null,
@@ -117,6 +148,7 @@ export async function apiGetAssetLinks({
             : []),
           (rawResponse: GetAssetLinkResponse | CortexErrorResponse): GetAssetLinkResponse => {
             if (isCortexErrorResponse(rawResponse)) {
+              hasError = true;
               // We will give more details error message if only one asset was imported
               if (isOnlyOneAssetSelected) {
                 if (getAssetLinkErrors[rawResponse.ErrorCode]) {
@@ -131,7 +163,10 @@ export async function apiGetAssetLinks({
               } as GetAssetLinkResponse;
             }
 
-            let imageUrl = permanentLink || rawResponse.imageUrl;
+            const sourceUrl = permanentLink || rawResponse.imageUrl;
+            const [sourcePath, sourceQuery] = sourceUrl.split('?', 2);
+            const mergedParams = new URLSearchParams(sourceQuery ?? '');
+            let imageUrl = sourcePath;
 
             if (transformations && transformations.length > 0) {
               imageUrl += '/t/';
@@ -251,19 +286,22 @@ export async function apiGetAssetLinks({
             }
 
             if (!permanentLink) {
-              imageUrl += `${extension ?? asset.extension}`;
+              const assetExtension = extension ?? asset.extension;
+              const normalizedExtension = assetExtension.startsWith('.') ? assetExtension : `.${assetExtension}`;
+              imageUrl = imageUrl.replace(/\.[^./]+$/, '') + normalizedExtension;
             }
 
-            const queryParams: string[] = [];
+            parameters?.forEach(({ key, value }) => {
+              mergedParams.set(key.trim(), value.trim());
+            });
 
-            if (parameters && parameters.length > 0) {
-              parameters.forEach(({ key, value }) => {
-                queryParams.push(`${encodeURIComponent(key.trim())}=${encodeURIComponent(value.trim())}`);
-              });
+            if (useSession && !mergedParams.has('UseSession')) {
+              mergedParams.set('UseSession', useSession);
             }
 
-            if (queryParams.length > 0) {
-              imageUrl += `?${queryParams.join('&')}`;
+            const finalQuery = mergedParams.toString();
+            if (finalQuery) {
+              imageUrl += `?${finalQuery}`;
             }
 
             return {
@@ -276,9 +314,15 @@ export async function apiGetAssetLinks({
       });
     }));
 
-    return responses.map((response) => response.data);
-  } catch (error) {
-    return [];
+    return {
+      data: responses.map((response) => response.data),
+      isError: hasError,
+    };
+  } catch {
+    return {
+      data: [],
+      isError: true,
+    };
   }
 }
 
@@ -502,7 +546,7 @@ export async function apiGetAvailableProxies({
               formatHeight: proxy.formatHeight,
               formatWidth: proxy.formatWidth,
               height: proxy.height,
-              id: crypto.randomUUID(),
+              id: createId(),
               permanentLink: proxy.permanentLink,
               proxyLabel: proxy.proxyLabel,
               proxyName: proxy.proxyName,

@@ -559,7 +559,10 @@ export class FetchAndMergeAssetsController implements ReactiveController {
   }
 
   async getAssetLink(payload: GetAssetLinksRequest) {
-    return apiGetAssetLinks(payload);
+    return apiGetAssetLinks({
+      ...payload,
+      useSession: payload.useSession ?? this.useSession,
+    });
   }
 
   getData(options?: FetchAndMergeAssetsControllerDataOptions) {

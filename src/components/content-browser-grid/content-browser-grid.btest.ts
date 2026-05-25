@@ -8,6 +8,7 @@ import {
   oneEvent,
   waitUntil,
 } from '@open-wc/testing';
+import sinon from 'sinon';
 
 import type { Asset } from '@/types/asset';
 import { MediaType } from '@/types/asset';
@@ -88,6 +89,10 @@ function invokeHandleScroll(el: ContentBrowserGrid, target: HTMLDivElement) {
 describe('content-browser-grid', () => {
   let el: ContentBrowserGrid;
 
+  afterEach(() => {
+    sinon.restore();
+  });
+
   beforeEach(async () => {
     el = await fixture<ContentBrowserGrid>(html`<cx-content-browser-grid><</cx-content-browser-grid>`);
     await elementUpdated(el);
@@ -148,6 +153,7 @@ describe('content-browser-grid', () => {
     const cards = el.shadowRoot!.querySelectorAll('cx-content-browser-asset-card');
     expect(cards.length).to.be.at.least(1);
     expect(cards[0].getAttribute('asset-id')).to.equal('a1');
+    expect((cards[0] as HTMLElement).dataset.id).to.equal('a1');
     expect(cards[0].getAttribute('asset-name')).to.equal('One');
   });
 
@@ -170,6 +176,68 @@ describe('content-browser-grid', () => {
 
     expect(one.hasAttribute('selected')).to.be.false;
     expect(two.hasAttribute('selected')).to.be.true;
+  });
+
+  it('forwards in-cold-storage to rendered asset cards', async () => {
+    el = await fixture<ContentBrowserGrid>(html`
+      <cx-content-browser-grid
+        .assets=${[
+          makeAsset({ id: 'cold', inColdStorage: true, name: 'Cold' }),
+          makeAsset({ id: 'warm', name: 'Warm' }),
+        ]}
+      ><</cx-content-browser-grid>
+    `);
+    await elementUpdated(el);
+    await waitUntil(
+      () => el.shadowRoot!.querySelectorAll('cx-content-browser-asset-card').length >= 2,
+      'virtualizer did not render both cards',
+      { interval: 50, timeout: 5000 },
+    );
+    const cards = [...el.shadowRoot!.querySelectorAll('cx-content-browser-asset-card')];
+    const cold = cards.find((c) => c.getAttribute('asset-id') === 'cold')!;
+    const warm = cards.find((c) => c.getAttribute('asset-id') === 'warm')!;
+
+    expect(cold.hasAttribute('in-cold-storage')).to.be.true;
+    expect(warm.hasAttribute('in-cold-storage')).to.be.false;
+  });
+
+  it('does not emit cx-content-browser-grid-click when clicking a cold storage asset', async () => {
+    el = await fixture<ContentBrowserGrid>(html`
+      <cx-content-browser-grid
+        .assets=${[
+          makeAsset({ id: 'cold', inColdStorage: true, name: 'Cold' }),
+          makeAsset({ id: 'warm', name: 'Warm' }),
+        ]}
+      ><</cx-content-browser-grid>
+    `);
+    await elementUpdated(el);
+    await waitUntil(
+      () => el.shadowRoot!.querySelectorAll('cx-content-browser-asset-card').length >= 2,
+      'virtualizer did not render both cards',
+      { interval: 50, timeout: 5000 },
+    );
+    const cards = [...el.shadowRoot!.querySelectorAll('cx-content-browser-asset-card')];
+    const cold = cards.find((c) => c.getAttribute('asset-id') === 'cold')!;
+    const warm = cards.find((c) => c.getAttribute('asset-id') === 'warm')!;
+
+    let clickCount = 0;
+    el.addEventListener('cx-content-browser-grid-click', () => {
+      clickCount += 1;
+    });
+
+    cold.dispatchEvent(
+      new MouseEvent('click', { bubbles: true, composed: true }),
+    );
+    await new Promise((r) => setTimeout(r, 50));
+    expect(clickCount).to.equal(0);
+
+    const p = oneEvent(el, 'cx-content-browser-grid-click');
+    warm.dispatchEvent(
+      new MouseEvent('click', { bubbles: true, composed: true }),
+    );
+    const ev = await p;
+    expect(ev.detail.id).to.equal('warm');
+    expect(clickCount).to.equal(1);
   });
 
   it('emits cx-content-browser-grid-click when a card receives a click targeted at the card', async () => {
@@ -255,6 +323,137 @@ describe('content-browser-grid', () => {
       );
       await new Promise((r) => setTimeout(r, 300));
       expect(count).to.equal(0);
+    });
+  });
+
+  it('captures the first visible card on scroll and restores it to the same offset', async () => {
+    el = await fixture<ContentBrowserGrid>(html`
+      <cx-content-browser-grid
+        .assets=${[
+          makeAsset({ id: 'above', name: 'Above' }),
+          makeAsset({ id: 'anchor', name: 'Anchor' }),
+        ]}
+      ><</cx-content-browser-grid>
+    `);
+    await elementUpdated(el);
+    await waitUntil(
+      () => el.shadowRoot!.querySelectorAll('cx-content-browser-asset-card').length >= 2,
+      'virtualizer did not render cards',
+      { interval: 50, timeout: 5000 },
+    );
+
+    const virtualizer = el.shadowRoot!.querySelector('lit-virtualizer') as HTMLElement;
+    const cards = [...el.shadowRoot!.querySelectorAll('cx-content-browser-asset-card')];
+    const aboveCard = cards.find((card) => card.getAttribute('asset-id') === 'above') as HTMLElement;
+    const anchorCard = cards.find((card) => card.getAttribute('asset-id') === 'anchor') as HTMLElement;
+    const scrollTo = sinon.spy();
+    let scrollTop = 250;
+
+    Object.defineProperties(virtualizer, {
+      clientHeight: { configurable: true, get: () => 100 },
+      scrollHeight: { configurable: true, get: () => 500 },
+      scrollTo: { configurable: true, value: scrollTo },
+      scrollTop: {
+        configurable: true,
+        get: () => scrollTop,
+        set: (value) => {
+          scrollTop = value;
+        },
+      },
+    });
+    sinon.stub(virtualizer, 'getBoundingClientRect').returns({ top: 100 } as DOMRect);
+    sinon.stub(aboveCard, 'getBoundingClientRect').returns({ bottom: 90, top: 20 } as DOMRect);
+    const anchorRect = sinon.stub(anchorCard, 'getBoundingClientRect');
+    anchorRect.returns({ bottom: 300, top: 120 } as DOMRect);
+
+    invokeHandleScroll(el, virtualizer as HTMLDivElement);
+
+    anchorRect.returns({ bottom: 360, top: 180 } as DOMRect);
+    (
+      el as unknown as {
+        scrollAnchorController: {
+          restore: () => void;
+        };
+      }
+    ).scrollAnchorController.restore();
+
+    expect(scrollTop).to.equal(310);
+    expect(scrollTo).to.have.been.calledOnceWith({
+      behavior: 'auto',
+      top: 310,
+    });
+  });
+
+  it('uses layout metrics to keep the captured asset at the same offset after grid layout changes', async () => {
+    el = await fixture<ContentBrowserGrid>(html`
+      <cx-content-browser-grid
+        .assets=${[
+          makeAsset({ id: 'above', name: 'Above' }),
+          makeAsset({ id: 'middle', name: 'Middle' }),
+          makeAsset({ id: 'anchor', name: 'Anchor' }),
+        ]}
+      ><</cx-content-browser-grid>
+    `);
+    await elementUpdated(el);
+    await waitUntil(
+      () => el.shadowRoot!.querySelectorAll('cx-content-browser-asset-card').length >= 3,
+      'virtualizer did not render cards',
+      { interval: 50, timeout: 5000 },
+    );
+
+    const virtualizer = el.shadowRoot!.querySelector('lit-virtualizer') as HTMLElement;
+    const cards = [...el.shadowRoot!.querySelectorAll('cx-content-browser-asset-card')] as HTMLElement[];
+    const anchorCard = cards.find((card) => card.getAttribute('asset-id') === 'anchor')!;
+    const scrollTo = sinon.spy();
+    let scrollTop = 250;
+
+    Object.defineProperties(virtualizer, {
+      clientHeight: { configurable: true, get: () => 100 },
+      scrollHeight: { configurable: true, get: () => 500 },
+      scrollTo: { configurable: true, value: scrollTo },
+      scrollTop: {
+        configurable: true,
+        get: () => scrollTop,
+        set: (value) => {
+          scrollTop = value;
+        },
+      },
+    });
+    sinon.stub(virtualizer, 'getBoundingClientRect').returns({ top: 100 } as DOMRect);
+    cards
+      .filter((card) => card !== anchorCard)
+      .forEach((card) => {
+        sinon.stub(card, 'getBoundingClientRect').returns({ bottom: 90, top: 20 } as DOMRect);
+      });
+    const anchorRect = sinon.stub(anchorCard, 'getBoundingClientRect');
+    anchorRect.returns({ bottom: 300, top: 120 } as DOMRect);
+
+    invokeHandleScroll(el, virtualizer as HTMLDivElement);
+    anchorRect.returns({ bottom: 700, top: 600 } as DOMRect);
+    (
+      el as unknown as {
+        scrollAnchorController: {
+          restore: () => void;
+          setLayoutMetrics: (options: { columnCount: number; itemHeight: number }) => void;
+        };
+      }
+    ).scrollAnchorController.setLayoutMetrics({
+      columnCount: 2,
+      itemHeight: 100,
+    });
+
+    (
+      el as unknown as {
+        scrollAnchorController: {
+          restore: () => void;
+        };
+      }
+    ).scrollAnchorController.restore();
+
+    expect(scrollTop).to.equal(80);
+    expect(scrollTo).to.have.been.calledOnceWith({
+      behavior: 'auto',
+      top: 80,
     });
   });
 

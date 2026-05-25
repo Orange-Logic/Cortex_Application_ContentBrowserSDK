@@ -14,7 +14,12 @@ export default css`
   }
 
   .control-bar__search-input {
-    width: 100%;
-    max-width: 320px;
+    max-width: 300px;
+    min-width: 160px;
+    flex: 1;
+  }
+
+  .control-bar__right {
+    margin-left: auto;
   }
 `;
