@@ -17,6 +17,7 @@
       "import": "./build/content-browser.mjs",
       "default": "./build/content-browser.mjs"
     },
+    "./build/OrangeDAMContentBrowserSDK.min.css": "./build/OrangeDAMContentBrowserSDK.min.css",
     "./package.json": "./package.json"
   },
   "sideEffects": [

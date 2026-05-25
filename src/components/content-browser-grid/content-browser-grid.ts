@@ -84,10 +84,6 @@ export default class CxContentBrowserGrid extends CortexElement {
 
   #lastWidth = 0;
 
-  #layout: ReturnType<typeof grid> | undefined;
-
-  #layoutItemWidth = -1;
-
   constructor() {
     super();
 
@@ -186,26 +182,6 @@ export default class CxContentBrowserGrid extends CortexElement {
     }
   }
 
-  #getLayout() {
-    const fallback = ASSET_SIZE[this.view]?.minWidth ?? ASSET_SIZE[GridView.Large].minWidth;
-    const itemWidth = this.columnWidth || fallback;
-
-    if (this.#layout && this.#layoutItemWidth === itemWidth) {
-      return this.#layout;
-    }
-
-    this.#layoutItemWidth = itemWidth;
-    this.#layout = grid({
-      gap: `${this.#gutter}px`,
-      itemSize: {
-        height: `${Math.max(itemWidth, 150)}px`,
-        width: `${itemWidth}px`,
-      },
-    });
-
-    return this.#layout;
-  }
-
   private renderItem(asset: Asset) {
     return html`
       <cx-content-browser-asset-card
@@ -273,7 +249,14 @@ export default class CxContentBrowserGrid extends CortexElement {
                   height: '100%',
                   'overflow-x': 'hidden',
                 })}
-                .layout=${this.#getLayout()}
+                .layout=${grid({
+                  gap: `${this.#gutter}px`,
+                  itemSize: {
+                    height: `${Math.max(this.columnWidth, 150)}px`,
+                    width: `${this.columnWidth}px`,
+                  },
+                  flex: { preserve: 'aspect-ratio' },
+                })}
                 .items=${this.assets}
                 .renderItem=${this.renderItem}
                 @scroll=${this.handleScroll}
