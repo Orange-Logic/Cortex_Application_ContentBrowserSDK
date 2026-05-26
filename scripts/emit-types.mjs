@@ -10,5 +10,20 @@ const config = path.join(root, 'tsconfig.build.json');
 
 const opts = { cwd: root, stdio: 'inherit' };
 
-spawnSync(process.execPath, [tsc, '-p', config], opts);
-spawnSync(process.execPath, [tscAlias, '-p', config], opts);
+function check(result, label) {
+  if (result.error) {
+    console.error(`[emit-types] ${label} failed:`, result.error);
+    process.exit(1);
+  }
+  if (result.signal) {
+    console.error(`[emit-types] ${label} terminated by signal ${result.signal}`);
+    process.exit(1);
+  }
+  if (typeof result.status === 'number' && result.status !== 0) {
+    console.error(`[emit-types] ${label} exited with code ${result.status}`);
+    process.exit(result.status);
+  }
+}
+
+check(spawnSync(process.execPath, [tsc, '-p', config], opts), 'tsc');
+check(spawnSync(process.execPath, [tscAlias, '-p', config], opts), 'tsc-alias');

@@ -193,7 +193,7 @@ export default class CxContentBrowserAssetCard extends CortexElement {
                 `,
               )}
               ${when(
-                this.showSize,
+                this.showSize && this.assetSize.trim() !== '',
                 () => html`
                   <cx-line-clamp
                     lines="1"
@@ -213,7 +213,7 @@ export default class CxContentBrowserAssetCard extends CortexElement {
                   (this.showDimensions &&
                     Boolean(Number(this.assetWidth)) &&
                     Boolean(Number(this.assetHeight))) ||
-                  this.showSize
+                  (this.showSize && this.assetSize.trim() !== '')
                 ),
                 () => html`
                   <cx-typography variant="small" class="content-browser-asset-card__placeholder">

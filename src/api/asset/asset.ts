@@ -125,7 +125,7 @@ export async function apiGetAssetLinks({
   let hasError = false;
 
   try {
-    const responses = await Promise.all(assets.map((asset) => {
+    const settled = await Promise.allSettled(assets.map((asset) => {
       return http.request<
         GetAssetLinkResponse,
         GetAssetLinkRequest
@@ -268,16 +268,9 @@ export async function apiGetAssetLinks({
               }
 
               if (key === TransformationAction.Metadata) {
-                const validTransformations = [{
-                  key: 'fl_keep_metadata',
-                  value: value.keepMetadata,
-                }].filter((item) => item.value !== undefined).map((item) => ({ key: item.key, value: item.value }));
-
-                validTransformations.forEach(({ key: vKey }, index) => {
-                  imageUrl += `${vKey}${index < validTransformations.length - 1 ? ',' : ''}`;
-                });
-
-                imageUrl += '/';
+                if (value.keepMetadata === true) {
+                  imageUrl += 'fl_keep_metadata/';
+                }
               }
             });
 
@@ -314,8 +307,17 @@ export async function apiGetAssetLinks({
       });
     }));
 
+    const data = settled.flatMap((result) => {
+      if (result.status === 'fulfilled') {
+        return [result.value.data];
+      }
+
+      hasError = true;
+      return [];
+    });
+
     return {
-      data: responses.map((response) => response.data),
+      data,
       isError: hasError,
     };
   } catch {
@@ -427,6 +429,7 @@ export async function apiGetAssets({
       data: {
         Fields: [
           DEFAULT_VIEW_SIZE,
+          FIELD_ALLOW_ATS_LINK,
           FIELD_DOC_TYPE,
           FIELD_EXTENSION,
           FIELD_FILE_SIZE,
@@ -436,6 +439,7 @@ export async function apiGetAssets({
           FIELD_MAX_WIDTH,
           FIELD_ORIGINAL_FILE_NAME,
           FIELD_RECORD_ID,
+          FIELD_SCRUB_URL,
           FIELD_SUBTYPE,
           FIELD_TITLE_WITH_FALLBACK,
           FIELD_UPDATED_FILE_NAME,

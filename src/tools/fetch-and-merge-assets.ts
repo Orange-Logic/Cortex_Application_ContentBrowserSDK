@@ -140,6 +140,10 @@ export class FetchAndMergeAssetsController implements ReactiveController {
 
   #hasFetchedOnce = false;
 
+  private requestInterceptorId: number | null = null;
+
+  private responseInterceptorId: number | null = null;
+
   constructor(host: CortexElement, {
     availableDocTypes,
     baseUrl,
@@ -174,7 +178,7 @@ export class FetchAndMergeAssetsController implements ReactiveController {
 
     http.defaults.baseURL = baseUrl;
 
-    http.interceptors.request.use((config) => {
+    this.requestInterceptorId = http.interceptors.request.use((config) => {
       if (config.url && ![
         AssetApiEndpoint.GET_AVAILABLE_EXTENSIONS,
         AssetApiEndpoint.GET_ASSET_VERSION_HISTORY,
@@ -207,7 +211,7 @@ export class FetchAndMergeAssetsController implements ReactiveController {
       return config;
     });
 
-    http.interceptors.response.use(
+    this.responseInterceptorId = http.interceptors.response.use(
       (response) => {
         if (response.status >= 200 && response.status < 300 && !this.isLoggedIn) {
           this.isLoggedIn = true;
@@ -620,6 +624,16 @@ export class FetchAndMergeAssetsController implements ReactiveController {
   }
 
   hostDisconnected() {
+    if (this.requestInterceptorId !== null) {
+      http.interceptors.request.eject(this.requestInterceptorId);
+      this.requestInterceptorId = null;
+    }
+
+    if (this.responseInterceptorId !== null) {
+      http.interceptors.response.eject(this.responseInterceptorId);
+      this.responseInterceptorId = null;
+    }
+
     this.facets = [];
     this.items = [];
     this.totalCount = 0;

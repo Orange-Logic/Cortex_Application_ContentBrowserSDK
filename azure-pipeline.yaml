@@ -110,6 +110,11 @@ stages:
               command: 'custom'
               customCommand: 'run publish:library'
 
+          - bash: |
+              rm -f "$(Build.SourcesDirectory)/.npmrc"
+            displayName: 'Cleanup .npmrc'
+            condition: always()
+
           - template: azure-pipelines/common/steps-s3-publish.yml@infra-templates
             parameters:
               artifacts:

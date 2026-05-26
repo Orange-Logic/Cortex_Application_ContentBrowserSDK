@@ -113,6 +113,7 @@ describe('content-browser-asset-preview', () => {
         el.docType = MediaType.Image;
         el.imageUrl = 'https://placehold.co/600x400';
         el.originalUrl = 'https://placehold.co/800x600';
+        await elementUpdated(el);
         el.loaded = true;
         await elementUpdated(el);
         const container = el.shadowRoot!.querySelector('[data-testid="content-browser-asset-preview__representative-container"]');
@@ -129,6 +130,7 @@ describe('content-browser-asset-preview', () => {
         el.docType = MediaType.Image;
         el.imageUrl = 'https://placehold.co/600x400';
         el.originalUrl = 'https://placehold.co/800x600';
+        await elementUpdated(el);
         el.loaded = true;
         await elementUpdated(el);
         const container = el.shadowRoot!.querySelector('[data-testid="content-browser-asset-preview__representative-container"]');
@@ -146,6 +148,7 @@ describe('content-browser-asset-preview', () => {
         el.docType = MediaType.Image;
         el.imageUrl = 'https://placehold.co/600x400';
         el.originalUrl = 'https://broken.co/800x600';
+        await elementUpdated(el);
         el.loaded = true;
         await elementUpdated(el);
         const container = el.shadowRoot!.querySelector('[data-testid="content-browser-asset-preview__representative-container"]');

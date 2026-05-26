@@ -115,10 +115,16 @@ export default class CxContentBrowserControlFilter extends CortexElement {
         [facet.facetDetails.facetFieldName]: displayNames,
       };
     }, {} as Record<string, Record<string, string>>);
+
+    this.updateAppliedFiltersCount();
   }
 
   @watch('selectedFacets')
   handleSelectedFacetsChange() {
+    this.updateAppliedFiltersCount();
+  }
+
+  private updateAppliedFiltersCount() {
     this.appliedFiltersCount = Object.entries(this.selectedFacets).reduce((acc, [key, values]) => {
       return acc + values.filter((value) => this.mappedDisplayNames[key]?.[value]).length;
     }, 0);

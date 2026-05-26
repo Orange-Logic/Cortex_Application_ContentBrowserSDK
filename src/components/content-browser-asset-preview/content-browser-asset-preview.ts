@@ -1,4 +1,4 @@
-import { CSSResultGroup, html, nothing } from 'lit';
+import { CSSResultGroup, html, nothing, PropertyValues } from 'lit';
 import { property, state } from 'lit/decorators.js';
 import { classMap } from 'lit/directives/class-map.js';
 import { when } from 'lit/directives/when.js';
@@ -93,6 +93,19 @@ export default class CxContentBrowserAssetPreview extends CortexElement {
 
   private handleError() {
     this.isError = true;
+  }
+
+  protected override willUpdate(changedProps: PropertyValues<this>) {
+    if (
+      changedProps.has('imageUrl') ||
+      changedProps.has('originalUrl') ||
+      changedProps.has('previewUrl') ||
+      changedProps.has('docType') ||
+      changedProps.has('inColdStorage')
+    ) {
+      this.loaded = false;
+      this.isError = false;
+    }
   }
 
   private renderThumbnail() {
