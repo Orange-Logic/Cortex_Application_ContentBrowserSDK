@@ -373,6 +373,17 @@ describe('content-browser-grid', () => {
       el as unknown as {
         scrollAnchorController: {
           restore: () => void;
+          setLayoutMetrics: (options: { columnCount: number; itemHeight: number }) => void;
+        };
+      }
+    ).scrollAnchorController.setLayoutMetrics({
+      columnCount: 0,
+      itemHeight: 0,
+    });
+    (
+      el as unknown as {
+        scrollAnchorController: {
+          restore: () => void;
         };
       }
     ).scrollAnchorController.restore();
