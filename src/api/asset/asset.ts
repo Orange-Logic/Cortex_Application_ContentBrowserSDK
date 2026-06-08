@@ -429,7 +429,6 @@ export async function apiGetAssets({
       data: {
         Fields: [
           DEFAULT_VIEW_SIZE,
-          FIELD_ALLOW_ATS_LINK,
           FIELD_DOC_TYPE,
           FIELD_EXTENSION,
           FIELD_FILE_SIZE,
@@ -439,7 +438,6 @@ export async function apiGetAssets({
           FIELD_MAX_WIDTH,
           FIELD_ORIGINAL_FILE_NAME,
           FIELD_RECORD_ID,
-          FIELD_SCRUB_URL,
           FIELD_SUBTYPE,
           FIELD_TITLE_WITH_FALLBACK,
           FIELD_UPDATED_FILE_NAME,
