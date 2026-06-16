@@ -337,7 +337,7 @@ export const searchApi = createApi({
         items:
           response.contentItems?.map((item) => {
             let extension = GetValueByKeyCaseInsensitive(item.fields, FIELD_EXTENSION) ?? '';
-            const name = GetValueByKeyCaseInsensitive(item.fields, FIELD_ORIGINAL_FILE_NAME);
+            const name = GetValueByKeyCaseInsensitive(item.fields, FIELD_TITLE_WITH_FALLBACK);
             if (extension && !extension.startsWith('.')) {
               extension = '.' + extension;
             }
@@ -487,7 +487,7 @@ export const searchApi = createApi({
           extension = '.' + extension;
         }
 
-        const name = GetValueByKeyCaseInsensitive(item.fields, FIELD_ORIGINAL_FILE_NAME);
+        const name = GetValueByKeyCaseInsensitive(item.fields, FIELD_TITLE_WITH_FALLBACK);
         if (extension && !extension.startsWith('.')) {
           extension = '.' + extension;
         }
