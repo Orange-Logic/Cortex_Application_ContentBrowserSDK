@@ -101,6 +101,24 @@ const ControlBar: FC<Props> = ({
   }, [isDefined, searchText, onSearchChange]);
 
   useEffect(() => {
+    const searchInput = searchRef.current;
+    if (!searchInput) return;
+
+    const onMouseDown = (e: MouseEvent) => {
+      // Prevent host-page modal focus traps (e.g. Drupal's jQuery UI Dialog, Contentful)
+      // from intercepting mousedown before cx-input delegates focus to its shadow DOM input.
+      // Without this, clicking the search field in a third-party modal context steals focus
+      // back to the modal's first tabbable element, making it impossible to type.
+      e.stopPropagation();
+    };
+
+    searchInput.addEventListener('mousedown', onMouseDown);
+    return () => {
+      searchInput.removeEventListener('mousedown', onMouseDown);
+    };
+  }, [isDefined]);
+
+  useEffect(() => {
     const onViewSelect = (e: CxSelectEvent<CxMenuItem>) => {
       const value = e.detail.item.value;
 
