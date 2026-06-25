@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -186,6 +186,24 @@
             <b>onAssetAction</b>
             <p>
               A function that will be called when an action is performed on an asset.
+            </p>
+          </li>
+          <li>
+            <b>getPinnedState</b>
+            <p>
+              A function that returns whether an asset is pinned. Receives <code>recordId</code> and must return a boolean.
+            </p>
+          </li>
+          <li>
+            <b>onPinAsset</b>
+            <p>
+              An async function called when a user pins an asset. Receives <code>recordId</code> and should return a Promise.
+            </p>
+          </li>
+          <li>
+            <b>onUnpinAsset</b>
+            <p>
+              An async function called when a user unpins an asset. Receives <code>recordId</code> and should return a Promise.
             </p>
           </li>
           <li>
@@ -394,6 +412,12 @@ customStorage: {
             </p>
           </li>
           <li>
+            <b>allowFormatDialogPin</b> (default false)
+            <p>
+              A boolean to allow pin/unpin actions in the format dialog header.
+            </p>
+          </li>
+          <li>
             <b>allowLogout</b> (default true)
             <p>
               A boolean to allow the user to logout from the content browser. When disabled, the user will not be able
@@ -463,6 +487,15 @@ customStorage: {
         },
         onError: (errorMessage, error) => {
         },
+        getPinnedState: (recordId) => {
+          return localStorage.getItem(`pinned:${recordId}`) === 'true';
+        },
+        onPinAsset: async (recordId) => {
+          localStorage.setItem(`pinned:${recordId}`, 'true');
+        },
+        onUnpinAsset: async (recordId) => {
+          localStorage.removeItem(`pinned:${recordId}`);
+        },
         availableDocTypes: ['DO_DOCUMENTS.Image_DbBO.*', 'DO_DOCUMENTS.Audio_DbBO.*', 'DO_DOCUMENTS.Multimedia_DbBO.*', 'DO_DOCUMENTS.Video_DbBO.*'],
         availableRepresentativeSubtypes: ['Other'],
         // container element to attach, leave blank to open popup 
@@ -486,6 +519,7 @@ customStorage: {
         showCollections: true,
         allowTracking: true,
         allowPin: true,
+        allowFormatDialogPin: true,
         useSession: '',
       };
       document.getElementById("content").innerHTML = JSON.stringify(config, function (key, value) {
@@ -498,7 +532,17 @@ customStorage: {
     function loadConfig() {
       const value = document.getElementById("content").textContent;
       const config = JSON.parse(value.replace(/<br>/g, ""), function (key, value) {
-        if (typeof value === "string" && (key === "onAssetSelected" || key === "onError" || key === "onAppAuthUrlCopied")) {
+        if (
+          typeof value === "string"
+          && [
+              "onAssetSelected",
+              "onError",
+              "onAppAuthUrlCopied",
+              "getPinnedState",
+              "onPinAsset",
+              "onUnpinAsset"
+            ].includes(key)
+        ) {
           return new Function("return " + value)();
         }
         return value;
