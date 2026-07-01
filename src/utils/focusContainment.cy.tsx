@@ -41,6 +41,21 @@ describe('Utils - findFocusContainmentHost', () => {
     expect(findFocusContainmentHost()).to.equal(dialog);
   });
 
+  it('detects a native <dialog> opened with showModal()', () => {
+    const dialog = document.createElement('dialog');
+    dialog.setAttribute('data-test-modal', '');
+    const btn = document.createElement('button');
+    dialog.appendChild(btn);
+    document.body.appendChild(dialog);
+    // showModal() sets the `open` attribute but no aria-modal attribute.
+    (dialog as HTMLDialogElement).showModal();
+    btn.focus();
+
+    expect(findFocusContainmentHost()).to.equal(dialog);
+
+    (dialog as HTMLDialogElement).close();
+  });
+
   it('ignores hidden (closed) modals', () => {
     modal('ui-dialog', 'display:none;');
 

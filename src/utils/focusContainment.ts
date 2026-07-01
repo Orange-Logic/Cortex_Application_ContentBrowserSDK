@@ -2,34 +2,47 @@
  * Focus-trap-aware popup anchoring (ticket 29KEV1).
  *
  * When the Content Browser SDK opens in popup mode (no `containerId`), its UI is
- * appended to `document.body`. If the host page has an active modal with a focus
- * trap — Drupal's jQuery UI Dialog, Bootstrap, react-focus-lock / focus-trap,
- * a native `<dialog>`, etc. — that trap forcibly returns focus to the modal
- * whenever focus lands on an element *outside* the modal's containment subtree.
- * The CBSDK search field then becomes impossible to type in, because it lives in
- * `document.body`, a sibling of the modal rather than a descendant.
+ * appended to `document.body`, outside any host-page modal. If the host page has
+ * an active modal with a focus trap — Drupal's jQuery UI Dialog, Bootstrap,
+ * react-focus-lock / focus-trap, a native `<dialog>` opened with `showModal()`,
+ * etc. — that trap forces focus back into the modal (or makes the rest of the
+ * page `inert`) whenever focus lands on the CBSDK search field, making it
+ * impossible to type.
  *
  * Every containment-based focus trap allows focus for elements that are DOM
  * descendants of its container (jQuery UI checks `closest('.ui-dialog')`,
- * focus-trap checks `container.contains(target)`, native dialogs don't mark
- * their own subtree `inert`, ...). So the robust, framework-agnostic fix is to
- * mount the CBSDK popup *inside* the active modal container instead of
+ * focus-trap checks `container.contains(target)`, native modal dialogs don't
+ * mark their own subtree `inert`, ...). So the robust, framework-agnostic fix is
+ * to mount the CBSDK popup *inside* the active modal container instead of
  * `document.body`.
  */
 
 const MODAL_SELECTORS = [
-  '[aria-modal="true"]', // native <dialog> + most ARIA-compliant libraries
+  '[aria-modal="true"]', // ARIA-compliant dialogs (most libraries)
+  'dialog[open]', // native <dialog> (showModal() sets no aria-modal attribute)
   '.ui-dialog', // jQuery UI Dialog (used by Drupal core modals)
   '.modal.show', // Bootstrap 4 / 5
   '.modal.in', // Bootstrap 3
   '[data-focus-lock-disabled="false"]', // react-focus-lock / focus-trap-react
 ].join(',');
 
+// Resolve the realm (window) that owns an element, so `instanceof` checks and
+// style lookups use the element's own document rather than the ambient global.
+// This keeps the helpers correct when inspecting elements from an iframe
+// document passed to `findFocusContainmentHost`.
+function viewOf(el: Element): Window & typeof globalThis {
+  return el.ownerDocument.defaultView ?? window;
+}
+
 function isVisible(el: Element | null): el is HTMLElement {
-  if (!(el instanceof HTMLElement) || !el.isConnected) {
+  if (!el || !el.isConnected) {
     return false;
   }
-  const style = window.getComputedStyle(el);
+  const view = viewOf(el);
+  if (!(el instanceof view.HTMLElement)) {
+    return false;
+  }
+  const style = view.getComputedStyle(el);
   if (style.visibility === 'hidden' || style.display === 'none') {
     return false;
   }
@@ -45,9 +58,11 @@ function isVisible(el: Element | null): el is HTMLElement {
  * clip it to that element's box, so we must not anchor there.
  */
 function establishesFixedContainingBlock(el: HTMLElement): boolean {
+  const doc = el.ownerDocument;
+  const view = doc.defaultView ?? window;
   let node: HTMLElement | null = el;
-  while (node && node !== document.body && node !== document.documentElement) {
-    const style = window.getComputedStyle(node);
+  while (node && node !== doc.body && node !== doc.documentElement) {
+    const style = view.getComputedStyle(node);
     if (
       (style.transform && style.transform !== 'none') ||
       (style.perspective && style.perspective !== 'none') ||
@@ -67,12 +82,13 @@ function pickTopmost(candidates: HTMLElement[]): HTMLElement | null {
     return null;
   }
   return candidates.reduce((top, el) => {
-    const zTop = parseInt(window.getComputedStyle(top).zIndex, 10) || 0;
-    const zEl = parseInt(window.getComputedStyle(el).zIndex, 10) || 0;
+    const zTop = parseInt(viewOf(top).getComputedStyle(top).zIndex, 10) || 0;
+    const zEl = parseInt(viewOf(el).getComputedStyle(el).zIndex, 10) || 0;
     if (zEl !== zTop) {
       return zEl > zTop ? el : top;
     }
     // Same stacking level: whichever comes later in the document paints on top.
+    // (DOCUMENT_POSITION_* constants share the same value across realms.)
     return el.compareDocumentPosition(top) & Node.DOCUMENT_POSITION_PRECEDING
       ? el
       : top;
@@ -88,11 +104,13 @@ function pickTopmost(candidates: HTMLElement[]): HTMLElement | null {
 export function findFocusContainmentHost(
   doc: Document = document,
 ): HTMLElement | null {
+  const view = doc.defaultView ?? window;
+
   // Strongest signal: the element focused when `open()` was called is almost
   // always the trigger *inside* the host modal.
   const active = doc.activeElement;
   const fromActive =
-    active instanceof HTMLElement
+    active instanceof view.HTMLElement
       ? active.closest<HTMLElement>(MODAL_SELECTORS)
       : null;
 
