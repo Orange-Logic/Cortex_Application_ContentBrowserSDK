@@ -62,6 +62,18 @@ type OrangeDAMContentBrowser = {
      */
     onAssetAction?: AppContextType['onAssetAction'];
     /**
+     * Callback to get pinned state of an asset by record id
+     */
+    getPinnedState?: AppContextType['getPinnedState'];
+    /**
+     * Callback when user pins an asset
+     */
+    onPinAsset?: AppContextType['onPinAsset'];
+    /**
+     * Callback when user unpins an asset
+     */
+    onUnpinAsset?: AppContextType['onUnpinAsset'];
+    /**
      * Callback when the user clicks Connect button
      * Currently, it is used only for Canva integration
      * because Canva blocks the CBSDK from opening new tab
@@ -197,6 +209,11 @@ type OrangeDAMContentBrowser = {
     allowFavorites?: boolean;
 
     /**
+     * The flag to allow pin/unpin actions in format dialog
+     */
+    allowFormatDialogPin?: boolean;
+
+    /**
      * The flag to allow the user to pin the browser
      */
     allowPin?: boolean;
@@ -288,6 +305,18 @@ const ContentBrowser: OrangeDAMContentBrowser = {
           // Callback function triggered when the browser is closed
           window.alert('Content Browser is closing');
         },
+        getPinnedState: (recordId) => {
+          // Callback function to get the pinned state of an asset
+          return localStorage.getItem(\`pinned:\${recordId}\`) === 'true';
+        },
+        onPinAsset: async (recordId) => {
+          // Callback function triggered when an asset is pinned
+          localStorage.setItem(\`pinned:\${recordId}\`, 'true');
+        },
+        onUnpinAsset: async (recordId) => {
+          // Callback function triggered when an asset is unpinned
+          localStorage.removeItem(\`pinned:\${recordId}\`);
+        },
         containerId: "", // ID of the container to attach the browser; opens in a popup if blank
         extraFields: ['coreField.OriginalFileName', 'document.CortexPath'], // Additional fields to retrieve from the assets
         baseUrl: "", // Default base URL to pre-fill in the content browser
@@ -307,23 +336,28 @@ const ContentBrowser: OrangeDAMContentBrowser = {
         showCollections: true, // Whether to show collections in the content browser
         lastLocationMode: true, // Whether to open the last selected folder on load
         allowTracking: true, // Whether to enable tracking parameters for asset URLs
+        allowFormatDialogPin: true, // Whether to show pin/unpin actions in format dialog
       });`);
   },
   open: async ({
     onAssetAction,
+    getPinnedState,
     onAssetSelected,
     onAppAuthUrlCopied,
     onImageSelected,
     onError,
     onClose,
+    onPinAsset,
     onRequestToken,
     onTokenChanged,
+    onUnpinAsset,
     onConnectClicked,
     onSiteUrlChanged,
     customStorage,
     allowedExtensions,
     allowedFolders,
     allowFavorites,
+    allowFormatDialogPin,
     allowPin,
     allowLogout,
     allowProxy,
@@ -433,6 +467,18 @@ const ContentBrowser: OrangeDAMContentBrowser = {
       typeof onTokenChanged === 'function' && !!onTokenChanged
         ? onTokenChanged
         : undefined;
+    const getPinnedStateHandler =
+      typeof getPinnedState === 'function' && !!getPinnedState
+        ? getPinnedState
+        : () => false;
+    const onPinAssetHandler =
+      typeof onPinAsset === 'function' && !!onPinAsset
+        ? onPinAsset
+        : undefined;
+    const onUnpinAssetHandler =
+      typeof onUnpinAsset === 'function' && !!onUnpinAsset
+        ? onUnpinAsset
+        : undefined;
 
     const handleClose = () => {
       store.dispatch(resetImportStatus());
@@ -483,6 +529,7 @@ const ContentBrowser: OrangeDAMContentBrowser = {
             allowTracking: allowTracking !== undefined ? !!allowTracking : true,
             allowProxy: allowProxy !== undefined ? !!allowProxy : true,
             allowFavorites: !!allowFavorites,
+            allowFormatDialogPin: !!allowFormatDialogPin,
             defaultGridView: defaultGridView ?? '',
           }}
         >
@@ -492,13 +539,16 @@ const ContentBrowser: OrangeDAMContentBrowser = {
             loadExternalFonts={loadExternalFonts}
             multiSelect={!!multiSelect}
             onError={errorHandler}
+            getPinnedState={getPinnedStateHandler}
             onAssetAction={assetActionHandler}
             onAssetSelected={assetSelectedHandler}
             onAppAuthUrlCopied={appAuthUrlCopiedHandler}
             onImageSelected={imageSelectedHandler}
+            onPinAsset={onPinAssetHandler}
             onClose={handleClose}
             onConnectClicked={onConnectClicked}
             onTokenChanged={onTokenChangedHandler}
+            onUnpinAsset={onUnpinAssetHandler}
             onSiteUrlChanged={onSiteUrlChanged}
           />
         </GlobalConfigContext.Provider>

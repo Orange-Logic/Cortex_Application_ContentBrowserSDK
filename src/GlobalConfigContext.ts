@@ -35,6 +35,7 @@ export type GlobalConfigContextType = {
   allowProxy: boolean;
   allowFavorites: boolean;
   allowPin: boolean;
+  allowFormatDialogPin?: boolean;
   defaultGridView: string;
 };
 
@@ -60,5 +61,6 @@ export const GlobalConfigContext = createContext<GlobalConfigContextType>({
   allowProxy: false,
   allowFavorites: false,
   allowPin: false,
+  allowFormatDialogPin: false,
   defaultGridView: '',
 });

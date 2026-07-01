@@ -214,6 +214,7 @@ const HomePage: FC<Props> = () => {
     allowedExtensions, // list of allowed extensions from runtime properties. e.g. ['.jpg', '.png', '.mp4']
     allowedFolders,
     allowFavorites,
+    allowFormatDialogPin,
     allowPin,
     allowProxy,
     allowTracking,
@@ -228,7 +229,16 @@ const HomePage: FC<Props> = () => {
     showVersions,
     defaultGridView,
   } = useContext(GlobalConfigContext);
-  const { extraFields, onAssetAction, onAssetSelected, onClose } = useContext(AppContext);
+  const {
+    extraFields,
+    getPinnedState,
+    onAssetAction,
+    onAssetSelected,
+    onClose,
+    onError,
+    onPinAsset,
+    onUnpinAsset,
+  } = useContext(AppContext);
 
   const { data: selectedAssetData, isFetching: isFetchingSelectedAsset, isError: isErrorSelectedAsset } = useGetAssetByIdQuery(selectedAssetId ? {
     id: selectedAssetId,
@@ -289,6 +299,7 @@ const HomePage: FC<Props> = () => {
   const [browserMounted, setBrowserMounted] = useState(false);
   const [isResized, setIsResized] = useState(false);
   const [showFormatLoader, setShowFormatLoader] = useState<FormatLoaderState>(FormatLoaderState.Hide);
+  const [isPinned, setIsPinned] = useState(false);
   const [itemsCount, setItemsCount] = useState(0);
   const [isPersistent, setIsPersistent] = useState(false);
   const [isInitialLoadComplete, setIsInitialLoadComplete] = useState(false);
@@ -317,6 +328,23 @@ const HomePage: FC<Props> = () => {
     offset: number;
   } | null>(null);
   const assetScrollContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!selectedAsset?.recordId || !allowFormatDialogPin) {
+      setIsPinned(false);
+      return;
+    }
+
+    try {
+      setIsPinned(Boolean(getPinnedState?.(selectedAsset.recordId)));
+    } catch (error) {
+      setIsPinned(false);
+      const callbackError = error instanceof Error
+        ? error
+        : new Error('Failed to get pinned state');
+      onError('Failed to get pinned state', callbackError);
+    }
+  }, [allowFormatDialogPin, getPinnedState, onError, selectedAsset?.recordId]);
 
   const mappedMediaTypes = useMemo(() => {
     if (state.selectedFacets.Types && state.selectedFacets.Types.length > 0) return state.selectedFacets.Types;
@@ -1048,6 +1076,7 @@ const HomePage: FC<Props> = () => {
           <FormatDialog
           allowCustomFormat={!!ATSEnabled && !!selectedAsset?.allowATSLink}
           allowFavorites={allowFavorites}
+          allowFormatDialogPin={allowFormatDialogPin}
           allowProxy={allowProxy}
           allowTracking={allowTracking}
           allowedExtensions={allowedExtensions}
@@ -1059,6 +1088,7 @@ const HomePage: FC<Props> = () => {
           ctaTextTransform={ctaTextTransform}
           extensions={supportedExtensions ?? []}
           isFavorite={!!isFavorite}
+          isPinned={isPinned}
           maxHeight={state.containerSize.height}
           open={!!selectedAsset && showFormatLoader === FormatLoaderState.ShowDialog}
           previewUrl={isErrorAvailableProxies || isFetchingAvailableProxies ? undefined : availableProxies?.previewUrl}
@@ -1075,6 +1105,7 @@ const HomePage: FC<Props> = () => {
           variant={isMobile ? 'drawer' : 'dialog'}
           boundary={containerRef.current}
           onClose={() => {
+            setIsPinned(false);
             appDispatch(setSelectedAssetId(null));
             onAssetAction('unselect', '');
           }}
@@ -1176,6 +1207,68 @@ const HomePage: FC<Props> = () => {
             if (importAssets.fulfilled.match(images)) {
               await handleSelectedAsset(images.payload, sourceProxyMetadata, transformedAssetMetadata);
             }
+          }}
+          onPin={async () => {
+            if (!selectedAsset) {
+              return false;
+            }
+
+            const previousPinnedState = isPinned;
+            if (onAssetAction) {
+              onAssetAction('pin', selectedAsset.recordId);
+            }
+
+            setIsPinned(true);
+
+            try {
+              if (onPinAsset) {
+                await onPinAsset(selectedAsset.recordId);
+              }
+            } catch (error) {
+              setIsPinned(previousPinnedState);
+              const callbackError = error instanceof Error
+                ? error
+                : new Error('Failed to pin asset');
+              onError('Failed to pin asset', callbackError);
+              return false;
+            }
+
+            if (onAssetAction) {
+              onAssetAction('afterPin', selectedAsset.recordId);
+            }
+
+            return true;
+          }}
+          onUnPin={async () => {
+            if (!selectedAsset) {
+              return false;
+            }
+
+            const previousPinnedState = isPinned;
+            if (onAssetAction) {
+              onAssetAction('unpin', selectedAsset.recordId);
+            }
+
+            setIsPinned(false);
+
+            try {
+              if (onUnpinAsset) {
+                await onUnpinAsset(selectedAsset.recordId);
+              }
+            } catch (error) {
+              setIsPinned(previousPinnedState);
+              const callbackError = error instanceof Error
+                ? error
+                : new Error('Failed to unpin asset');
+              onError('Failed to unpin asset', callbackError);
+              return false;
+            }
+
+            if (onAssetAction) {
+              onAssetAction('afterUnpin', selectedAsset.recordId);
+            }
+
+            return true;
           }}
           onUnFavorite={async () => {
             if (!selectedAsset) {
