@@ -23,6 +23,7 @@ import { searchApi } from './store/search/search.api';
 import { userApi } from './store/user/user.api';
 import { Asset, Facet, Folder, GetContentRequest, GetFoldersRequest } from './types/search';
 import { ContentBrowserApiService } from './ApiService';
+import { findFocusContainmentHost } from './utils/focusContainment';
 
 type OrangeDAMContentBrowser = {
   help: () => void;
@@ -364,7 +365,10 @@ const ContentBrowser: OrangeDAMContentBrowser = {
 
     let container = containerId && document.getElementById(containerId);
     if (!containerId) {
-      container = document.body;
+      // Popup mode: if the host page has an active modal with a focus trap
+      // (e.g. Drupal's jQuery UI Dialog), mount the picker inside it so its
+      // inputs stay focusable; otherwise fall back to document.body. See 29KEV1.
+      container = findFocusContainmentHost() ?? document.body;
     } else if (!container) {
       console.error(`Container with id ${containerId} is not found`);
       return;
