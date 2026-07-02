@@ -289,13 +289,12 @@ const ControlBar: FC<Props> = ({
               return (
                 <cx-tag
                   key={value}
-                  removable
+                  removable={true}
                   data-value={value}
                   data-type={key}
                   size="small"
                 >
                   {mappedDisplayNames[key][value]}
-                  <cx-icon slot="suffix" name="close"></cx-icon>
                 </cx-tag>
               );
             });
