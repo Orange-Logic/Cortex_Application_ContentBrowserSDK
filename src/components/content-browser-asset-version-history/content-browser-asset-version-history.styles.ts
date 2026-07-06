@@ -23,6 +23,10 @@ export default css`
     width: 100%;
   }
 
+  .content-browser-asset-version-history__menu-item cx-line-clamp {
+    max-width: 100%;
+  }
+
   .content-browser-asset-version-history__menu-item::part(base) {
     cursor: auto;
   }
