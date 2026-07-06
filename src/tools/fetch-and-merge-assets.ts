@@ -350,6 +350,48 @@ export class FetchAndMergeAssetsController implements ReactiveController {
     return await apiGetFolders(request);
   }
 
+  /**
+   * A folder switch (or any refetch) can return a facet list that no longer includes a
+   * currently-selected value. Keep those selected-but-missing values visible (count 0) instead
+   * of silently dropping them from the filter dropdown, mirroring the legacy React behavior.
+   */
+  private mergeFacetsWithSelected(
+    newFacets: Facet[],
+    previousFacets: Facet[],
+    selectedFacets: Record<string, string[]> = {},
+  ): Facet[] {
+    const facetKey = (facet: Facet) => `${facet.facetDetails.facetFieldName}|${facet.facetDetails.displayName}`;
+
+    const facetsMap = new Map(
+      previousFacets.map((facet) => [
+        facetKey(facet),
+        {
+          ...facet,
+          values: facet.values
+            .filter((value) => selectedFacets[facet.facetDetails.facetFieldName]?.includes(value.value))
+            .map((value) => ({ ...value, count: 0 })),
+        },
+      ]),
+    );
+
+    newFacets
+      .filter((facet) => facet.values.length > 0)
+      .forEach((facet) => {
+        const previousSelectedValues = facetsMap.get(facetKey(facet))?.values ?? [];
+
+        const values = [
+          ...facet.values,
+          ...previousSelectedValues.filter((previousValue) => !facet.values.some(
+            (value) => value.value === previousValue.value && value.displayValue === previousValue.displayValue,
+          )),
+        ];
+
+        facetsMap.set(facetKey(facet), { ...facet, values });
+      });
+
+    return Array.from(facetsMap.values());
+  }
+
   async fetchAndMergeAssets(request: GetAssetsRequest) {
     /**
      * Always run these lines immediately
@@ -428,7 +470,7 @@ export class FetchAndMergeAssetsController implements ReactiveController {
       } else {
         this.items = assets.items;
       }
-      this.facets = assets.facets;
+      this.facets = this.mergeFacetsWithSelected(assets.facets, this.facets, request.selectedFacets);
       this.totalCount = assets.totalCount;
 
       this.loading = false;

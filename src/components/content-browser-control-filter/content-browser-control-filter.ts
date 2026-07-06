@@ -244,7 +244,6 @@ export default class CxContentBrowserControlFilter extends CortexElement {
                     size="small"
                   >
                     ${this.mappedDisplayNames[key][value]}
-                    <cx-icon slot="suffix" name="close"></cx-icon>
                   </cx-tag>
                 `;
               });

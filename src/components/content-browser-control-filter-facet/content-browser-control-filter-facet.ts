@@ -146,7 +146,7 @@ export default class CxContentBrowserControlFilterFacet extends CortexElement {
                     ?partial-sync-checkboxes=${totalCount < all}
                     ?selected=${this.collections.includes(key)}
                   >
-                    ${this.mappedDisplayNames[key]} ${!!all && `(${all})`}
+                    ${this.mappedDisplayNames[key]} ${all ? `(${all})` : nothing}
                     ${repeat(Object.entries(rest),
                       ([subtype, count]) => {
                         return html`
