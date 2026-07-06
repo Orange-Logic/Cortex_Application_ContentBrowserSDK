@@ -123,7 +123,7 @@ export default class CxContentBrowserControlView extends CortexElement {
         ${when(this.isMobile,
           () => html`
             <cx-menu variant="multiple" key="multiple-menu">
-              <cx-menu active name="main">
+              <cx-menu active name="main" no-uncheck>
                 <cx-menu-label>${this.localize.term('view')}</cx-menu-label>
                 <cx-menu-item
                   menu="submenu"
@@ -147,7 +147,7 @@ export default class CxContentBrowserControlView extends CortexElement {
                   </cx-space>
                 </cx-menu-item>
               </cx-menu>
-              <cx-menu name="submenu" back="main">
+              <cx-menu name="submenu" back="main" no-uncheck>
                 ${repeat(this.views,
                 (item) => item.value,
                 (item) => (
@@ -164,7 +164,7 @@ export default class CxContentBrowserControlView extends CortexElement {
             </cx-menu>
           `,
           () => html`
-            <cx-menu key="default-menu">
+            <cx-menu key="default-menu" no-uncheck>
               <cx-menu-label>${this.localize.term('view')}</cx-menu-label>
               <cx-menu-item type="checkbox">
                 ${this.localize.term('grid')}
@@ -172,7 +172,7 @@ export default class CxContentBrowserControlView extends CortexElement {
                   () => html` (${this.selectedView?.label})`,
                   () => nothing,
                 )}
-                <cx-menu slot="submenu">
+                <cx-menu slot="submenu" no-uncheck>
                   ${repeat(this.views,
                     (item) => item.value,
                     (item) => (
