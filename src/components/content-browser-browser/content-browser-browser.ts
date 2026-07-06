@@ -306,6 +306,7 @@ export default class CxContentBrowserBrowser extends CortexElement {
                 min-query-length=${this.minQueryLength}
                 value=${ifDefined(this.folderId || undefined)}
                 selected-label=${ifDefined(this.folderTitle || undefined)}
+                auto-page-size
                 .token=${this.token}
                 .baseUrl=${this.baseUrl}
                 .form=${this.closest('form')}
