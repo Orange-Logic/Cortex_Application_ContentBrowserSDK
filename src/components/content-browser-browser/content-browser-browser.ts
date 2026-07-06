@@ -17,6 +17,7 @@ import CxTooltip from '@orangelogic/design-system/components/tooltip';
 import CxTypography from '@orangelogic/design-system/components/typography';
 import { svgToDataUrl } from '@/utils/string';
 import { customElement, getTabbableBoundary, LocalizeController } from '@orangelogic/design-system/utils';
+import { watch } from '@/utils/watch';
 
 import styles from './content-browser-browser.styles';
 
