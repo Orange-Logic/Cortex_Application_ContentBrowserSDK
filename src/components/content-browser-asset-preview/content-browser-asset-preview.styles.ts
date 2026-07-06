@@ -102,16 +102,6 @@ export default css`
     height: 100%;
   }
 
-  .content-browser-asset-preview__representative-overlay {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    top: 0;
-    left: 0;
-    background-color: transparent;
-    z-index: 1;
-  }
-
   .content-browser-asset-preview__image-skeleton {
     --border-radius: var(--cx-border-radius-medium);
 

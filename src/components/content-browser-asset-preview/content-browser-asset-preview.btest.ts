@@ -3,6 +3,7 @@ import './content-browser-asset-preview';
 
 import { MediaType } from '@/types/asset';
 import { elementUpdated, expect, fixture, html, waitUntil } from '@open-wc/testing';
+import sinon from 'sinon';
 
 import CxContentBrowserAssetPreviewVideo from './content-browser-asset-preview-video/content-browser-asset-preview-video';
 
@@ -91,6 +92,18 @@ describe('content-browser-asset-preview', () => {
         video!.emit('cx-error');
         await elementUpdated(el);
         expect(el.isError).to.be.true;
+      });
+
+      it('forwards updateProgress to the preview video', () => {
+        const updateProgressSpy = sinon.spy(video!, 'updateProgress');
+        el.updateProgress(0.5);
+        expect(updateProgressSpy).to.have.been.calledWith(0.5);
+      });
+
+      it('forwards resetProgress to the preview video', () => {
+        const resetProgressSpy = sinon.spy(video!, 'resetProgress');
+        el.resetProgress();
+        expect(resetProgressSpy).to.have.been.called;
       });
     });
 

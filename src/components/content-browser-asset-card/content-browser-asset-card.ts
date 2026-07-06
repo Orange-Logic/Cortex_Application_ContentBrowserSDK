@@ -1,5 +1,5 @@
 import { CSSResultGroup, html, nothing } from 'lit';
-import { property } from 'lit/decorators.js';
+import { property, query } from 'lit/decorators.js';
 import { classMap } from 'lit/directives/class-map.js';
 import { repeat } from 'lit/directives/repeat.js';
 import { when } from 'lit/directives/when.js';
@@ -103,6 +103,35 @@ export default class CxContentBrowserAssetCard extends CortexElement {
   @property({ attribute: 'show-dimensions', reflect: true, type: Boolean })
   showDimensions: boolean = false;
 
+  @query('cx-content-browser-asset-preview')
+  private readonly preview?: CxContentBrowserAssetPreview;
+
+  private get isScrubbable(): boolean {
+    return this.docType === MediaType.Video && this.view !== GridView.Small && !this.inColdStorage;
+  }
+
+  private handleCardPointerMove(event: MouseEvent) {
+    if (!this.isScrubbable) {
+      return;
+    }
+
+    const cardRect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+    if (cardRect.width <= 0) {
+      return;
+    }
+
+    const ratio = (event.clientX - cardRect.left) / cardRect.width;
+    this.preview?.updateProgress(ratio);
+  }
+
+  private handleCardPointerLeave() {
+    if (!this.isScrubbable) {
+      return;
+    }
+
+    this.preview?.resetProgress();
+  }
+
   render() {
     return html`
       <cx-card
@@ -113,6 +142,9 @@ export default class CxContentBrowserAssetCard extends CortexElement {
           'content-browser-asset-card--selected': this.selected,
         })}
         interactive
+        @mouseenter=${this.handleCardPointerMove}
+        @mousemove=${this.handleCardPointerMove}
+        @mouseleave=${this.handleCardPointerLeave}
       >
         <cx-content-browser-asset-preview
           slot="image"

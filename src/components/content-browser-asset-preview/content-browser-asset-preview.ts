@@ -1,5 +1,5 @@
 import { CSSResultGroup, html, nothing, PropertyValues } from 'lit';
-import { property, state } from 'lit/decorators.js';
+import { property, query, state } from 'lit/decorators.js';
 import { classMap } from 'lit/directives/class-map.js';
 import { when } from 'lit/directives/when.js';
 
@@ -50,6 +50,9 @@ export default class CxContentBrowserAssetPreview extends CortexElement {
 
   private readonly localize = new LocalizeController(this);
 
+  @query('cx-content-browser-asset-preview-video')
+  private readonly previewVideo?: CxContentBrowserAssetPreviewVideo;
+
   @property({ attribute: 'image-url', reflect: true, type: String })
   imageUrl: string = '';
 
@@ -85,6 +88,14 @@ export default class CxContentBrowserAssetPreview extends CortexElement {
 
   get isUrlFilled(): boolean {
     return typeof this.imageUrl === 'string' && this.imageUrl.length > 0;
+  }
+
+  updateProgress(ratio: number) {
+    this.previewVideo?.updateProgress(ratio);
+  }
+
+  resetProgress() {
+    this.previewVideo?.resetProgress();
   }
 
   private handleLoaded() {

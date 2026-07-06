@@ -22,8 +22,7 @@ export default class CxContentBrowserAssetPreviewVideo extends CortexElement {
 
   private readonly localize = new LocalizeController(this);
 
-  @query('.content-browser-asset-preview__representative-overlay')
-  contentOverlay: HTMLDivElement;
+  private hasRevealedFrame = false;
 
   @query('cx-video')
   videoElement?: CxVideo;
@@ -80,37 +79,27 @@ export default class CxContentBrowserAssetPreviewVideo extends CortexElement {
     this.emit('cx-loaded');
   }
 
-  private handleMouseEnter(event: MouseEvent) {
-    event.stopImmediatePropagation();
-    this.updateVideoProgress(event);
+  updateProgress(ratio: number) {
+    const clampedRatio = Math.min(1, Math.max(0, ratio));
+    this.progress = clampedRatio * 100;
+
+    const duration = this.videoElement?.duration ?? 0;
+    if (duration <= 0) {
+      return;
+    }
+
+    if (!this.hasRevealedFrame) {
+      this.hasRevealedFrame = true;
+      this.videoElement?.player?.hasStarted(true);
+    }
+
+    this.videoElement?.seek(clampedRatio * duration);
   }
 
-  private handleMouseLeave(event: MouseEvent) {
-    event.stopImmediatePropagation();
+  resetProgress() {
     this.progress = 0;
-
-    if (this.videoElement) {
-      this.videoElement.seek(0);
-      this.videoElement.pause();
-    }
-  }
-
-  private handleMouseMove(event: MouseEvent) {
-    event.stopImmediatePropagation();
-    this.updateVideoProgress(event);
-  }
-
-  private updateVideoProgress(event: MouseEvent) {
-    const width = this.contentOverlay.offsetWidth;
-    if (
-      this.videoElement?.duration &&
-      width > 0 &&
-      event.currentTarget === this.contentOverlay
-    ) {
-      const ratio = Math.min(1, Math.max(0, event.offsetX / width));
-      this.progress = ratio * 100;
-      this.videoElement.seek(ratio * this.videoElement.duration);
-    }
+    this.videoElement?.seek(0);
+    this.videoElement?.pause();
   }
 
   render() {
@@ -132,6 +121,7 @@ export default class CxContentBrowserAssetPreviewVideo extends CortexElement {
               height="100%"
               width="100%"
               ?show-controls=${this.controls}
+              ?hide-big-play-button=${!this.controls}
               @cx-loaded-metadata=${this.handleLoaded}
               @cx-error=${this.handleError}
             ></cx-video>
@@ -161,13 +151,6 @@ export default class CxContentBrowserAssetPreviewVideo extends CortexElement {
             value=${this.progress}
             max="100"
           ></cx-progress-bar>
-          <div
-            class="content-browser-asset-preview__representative-overlay"
-            @mouseenter=${this.handleMouseEnter}
-            @mouseleave=${this.handleMouseLeave}
-            @mousemove=${this.handleMouseMove}
-          >
-          </div>
         `,
         () => nothing,
       )}

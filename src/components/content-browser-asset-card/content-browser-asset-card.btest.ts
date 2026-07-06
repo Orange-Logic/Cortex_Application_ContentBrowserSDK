@@ -1,6 +1,7 @@
 import './content-browser-asset-card';
 
 import { elementUpdated, expect, fixture, html } from '@open-wc/testing';
+import sinon from 'sinon';
 
 import { MediaType } from '@/types/asset';
 import { GridView } from '@/types/content-browser';
@@ -206,6 +207,54 @@ describe('content-browser-asset-card', () => {
       const lastInfo = rows[rows.length - 1];
       const placeholder = lastInfo?.querySelector('.content-browser-asset-card__placeholder');
       expect(placeholder?.textContent?.trim()).to.equal(PLACEHOLDER_TEXT);
+    });
+  });
+
+  describe('hover scrubbing', () => {
+    beforeEach(async () => {
+      el.imageUrl = THUMB;
+      el.scrubUrl = 'https://example.com/scrub.mp4';
+      el.docType = MediaType.Video;
+      await elementUpdated(el);
+    });
+
+    it('forwards mousemove ratio to the preview when scrubbable', () => {
+      const preview = getPreview(el);
+      const updateProgressSpy = sinon.spy(preview as unknown as { updateProgress: (ratio: number) => void }, 'updateProgress');
+      const card = getCard(el);
+      sinon.stub(card, 'getBoundingClientRect').returns({ left: 0, width: 200 } as DOMRect);
+      card.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: 100 }));
+      expect(updateProgressSpy).to.have.been.calledWith(0.5);
+    });
+
+    it('forwards mouseleave to reset progress on the preview when scrubbable', () => {
+      const preview = getPreview(el);
+      const resetProgressSpy = sinon.spy(preview as unknown as { resetProgress: () => void }, 'resetProgress');
+      const card = getCard(el);
+      card.dispatchEvent(new MouseEvent('mouseleave', { bubbles: true }));
+      expect(resetProgressSpy).to.have.been.called;
+    });
+
+    it('does not forward hover when the grid view is small', async () => {
+      el.view = GridView.Small;
+      await elementUpdated(el);
+      const preview = getPreview(el);
+      const updateProgressSpy = sinon.spy(preview as unknown as { updateProgress: (ratio: number) => void }, 'updateProgress');
+      const card = getCard(el);
+      sinon.stub(card, 'getBoundingClientRect').returns({ left: 0, width: 200 } as DOMRect);
+      card.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: 100 }));
+      expect(updateProgressSpy).to.not.have.been.called;
+    });
+
+    it('does not forward hover for non-video doc types', async () => {
+      el.docType = MediaType.Image;
+      await elementUpdated(el);
+      const preview = getPreview(el);
+      const updateProgressSpy = sinon.spy(preview as unknown as { updateProgress: (ratio: number) => void }, 'updateProgress');
+      const card = getCard(el);
+      sinon.stub(card, 'getBoundingClientRect').returns({ left: 0, width: 200 } as DOMRect);
+      card.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: 100 }));
+      expect(updateProgressSpy).to.not.have.been.called;
     });
   });
 });

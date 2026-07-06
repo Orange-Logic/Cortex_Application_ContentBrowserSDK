@@ -12,18 +12,6 @@ const SAMPLE_VIDEO_SRC =
 const SAMPLE_HORIZONTAL_THUMBNAIL_SRC = 'https://placehold.co/600x400';
 const SAMPLE_VERTICAL_THUMBNAIL_SRC = 'https://placehold.co/400x600';
 
-function dispatchMouseMoveWithOffset(overlay: HTMLElement, offsetX: number) {
-  const event = new MouseEvent('mousemove', { bubbles: true });
-  Object.defineProperty(event, 'offsetX', { configurable: true, enumerable: true, value: offsetX });
-  overlay.dispatchEvent(event);
-}
-
-function dispatchMouseEnter(overlay: HTMLElement, offsetX = 100) {
-  const event = new MouseEvent('mouseenter', { bubbles: true });
-  Object.defineProperty(event, 'offsetX', { configurable: true, enumerable: true, value: offsetX });
-  overlay.dispatchEvent(event);
-}
-
 describe('content-browser-asset-preview-video', () => {
   let el: CxContentBrowserAssetPreviewVideo;
 
@@ -226,42 +214,67 @@ describe('content-browser-asset-preview-video', () => {
     });
   });
 
-  describe('overlay scrubbing', () => {
+  describe('progress control API', () => {
     beforeEach(async () => {
       el.src = SAMPLE_VIDEO_SRC;
       await elementUpdated(el);
       const video = el.querySelector('cx-video')!;
       Object.defineProperty(video, 'duration', { configurable: true, value: 10 });
-      Object.defineProperty(el.contentOverlay, 'offsetWidth', { configurable: true, value: 200 });
     });
 
-    it('updates progress and seeks on mouseenter', () => {
+    it('updates progress and seeks via updateProgress', () => {
       const video = el.querySelector('cx-video')!;
       const seek = sinon.spy(video, 'seek');
-      dispatchMouseEnter(el.contentOverlay);
-      expect(el.progress).to.not.equal(0);
-      expect(seek).to.have.been.calledWith(5);
-    });
-
-    it('updates progress and seeks on mousemove', () => {
-      const video = el.querySelector('cx-video')!;
-      const seek = sinon.spy(video, 'seek');
-      dispatchMouseMoveWithOffset(el.contentOverlay, 100);
+      el.updateProgress(0.5);
       expect(el.progress).to.equal(50);
       expect(seek).to.have.been.calledWith(5);
     });
 
-    it('resets progress and seeks to the start on mouseleave', async () => {
+    it('reveals the video frame via player.hasStarted once on the first update', () => {
+      const video = el.querySelector('cx-video')!;
+      const hasStarted = sinon.spy();
+      const currentTime = sinon.spy();
+      Object.defineProperty(video, 'player', { configurable: true, value: { currentTime, hasStarted } });
+
+      el.updateProgress(0.2);
+      expect(hasStarted).to.have.been.calledOnceWith(true);
+
+      el.updateProgress(0.6);
+      expect(hasStarted).to.have.been.calledOnce;
+    });
+
+    it('clamps the ratio to the 0-1 range', () => {
       const video = el.querySelector('cx-video')!;
       const seek = sinon.spy(video, 'seek');
-      dispatchMouseMoveWithOffset(el.contentOverlay, 100);
-      expect(el.progress).to.equal(50);
+      el.updateProgress(1.5);
+      expect(el.progress).to.equal(100);
+      expect(seek).to.have.been.calledWith(10);
 
-      el.contentOverlay.dispatchEvent(new MouseEvent('mouseleave', { bubbles: true }));
-      await elementUpdated(el);
-
+      el.updateProgress(-0.5);
       expect(el.progress).to.equal(0);
       expect(seek).to.have.been.calledWith(0);
+    });
+
+    it('updates progress via updateProgress even when video duration is not yet loaded', () => {
+      const video = el.querySelector('cx-video')!;
+      Object.defineProperty(video, 'duration', { configurable: true, value: 0 });
+      const seek = sinon.spy(video, 'seek');
+      el.updateProgress(0.5);
+      expect(el.progress).to.equal(50);
+      expect(seek).to.not.have.been.called;
+    });
+
+    it('resets progress and seeks to the start via resetProgress', () => {
+      const video = el.querySelector('cx-video')!;
+      const seek = sinon.spy(video, 'seek');
+      const pause = sinon.spy(video, 'pause');
+      el.updateProgress(0.5);
+      expect(el.progress).to.equal(50);
+
+      el.resetProgress();
+      expect(el.progress).to.equal(0);
+      expect(seek).to.have.been.calledWith(0);
+      expect(pause).to.have.been.called;
     });
   });
 });
