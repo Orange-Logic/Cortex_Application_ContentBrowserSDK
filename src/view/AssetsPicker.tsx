@@ -9,8 +9,8 @@ import {
 
 import { AppContext } from '@/AppContext';
 import { GlobalConfigContext } from '@/GlobalConfigContext';
-import { useAppDispatch } from '@/store';
-import { logout } from '@/store/auth/auth.slice';
+import { useAppDispatch, useAppSelector } from '@/store';
+import { applySessionSelector, logout } from '@/store/auth/auth.slice';
 import {
     Asset, Facet, Folder, GetAssetLinkResponse, GetContentRequest, GetFoldersRequest, GridView,
 } from '@/types/search';
@@ -124,6 +124,7 @@ const AssetsPicker = forwardRef<AssetsPickerHandle, Props>(function AssetsPicker
   ref,
 ) {
   const appDispatch = useAppDispatch();
+  const useSession = useAppSelector(applySessionSelector);
   const {
     allowFavorites,
     allowLogout,
@@ -352,6 +353,7 @@ const AssetsPicker = forwardRef<AssetsPickerHandle, Props>(function AssetsPicker
       default-folder-id={defaultSettings.lastLocation}
       token={accessToken ?? ''}
       base-url={siteUrl ?? ''}
+      use-session={useSession}
       extra-fields={extraFields}
       error-message="Unauthorized"
       can-pin={allowPin}
