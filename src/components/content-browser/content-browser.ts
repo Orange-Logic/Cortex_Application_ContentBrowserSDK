@@ -38,6 +38,7 @@ import type { Asset, AssetLinkInfo, AssetTransformationInfo, GetAssetsRequest } 
 export const COMPUTED_FIELDS = ['ScrubUrl', 'AllowATSLink'];
 const MOBILE_WIDTH_THRESHOLD = 480;
 const FORCE_OVERLAY_THRESHOLD = 650;
+const PERSISTENT_DRAWER_WIDTH = 400;
 /**
  * @summary CxContentBrowser
  */
@@ -227,6 +228,9 @@ export default class CxContentBrowser extends CortexElement {
 
   @state()
   private forceOverlay = false;
+
+  @state()
+  private canPinLayout = true;
 
   @state()
   private view = this.defaultGridView;
@@ -654,8 +658,10 @@ export default class CxContentBrowser extends CortexElement {
       return;
     }
 
-    this.isMobile = entries[0].contentRect.width < MOBILE_WIDTH_THRESHOLD;
-    this.forceOverlay = entries[0].contentRect.width < FORCE_OVERLAY_THRESHOLD;
+    const width = entries[0].contentRect.width;
+    this.isMobile = width < MOBILE_WIDTH_THRESHOLD;
+    this.forceOverlay = width < FORCE_OVERLAY_THRESHOLD;
+    this.canPinLayout = width >= FORCE_OVERLAY_THRESHOLD + PERSISTENT_DRAWER_WIDTH;
   }
 
   render() {
@@ -709,7 +715,7 @@ export default class CxContentBrowser extends CortexElement {
             base-url=${this.baseUrl}
             use-session=${this.useSession}
             ?can-favorite=${this.canFavorite}
-            ?can-pin=${this.canPin}
+            ?can-pin=${this.canPin && this.canPinLayout}
             ?force-overlay=${this.forceOverlay}
             ?show-collections=${this.showCollections}
             ?show-favorite-folder=${this.showFavoriteFolder}

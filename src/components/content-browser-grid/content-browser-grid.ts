@@ -99,11 +99,8 @@ export default class CxContentBrowserGrid extends CortexElement {
   }
 
   @watch('view', { waitUntilFirstUpdate: true })
-  async handleViewChange() {
+  handleViewChange() {
     this.scrollAnchorController.capture();
-
-    await this.updateComplete;
-
     this.calculatePageSize(this.#lastWidth, this.#lastHeight, true);
   }
 
@@ -178,7 +175,11 @@ export default class CxContentBrowserGrid extends CortexElement {
       rowCount = Math.ceil(height / (breakPoint + this.#gutter));
     }
 
-    this.columnWidth = Math.floor((effectiveWidth - this.#gutter * (columnCount + 1)) / columnCount);
+    const newColumnWidth = Math.floor((effectiveWidth - this.#gutter * (columnCount + 1)) / columnCount);
+
+    if (newColumnWidth !== this.columnWidth) {
+      this.columnWidth = newColumnWidth;
+    }
 
     return {
       columnCount,

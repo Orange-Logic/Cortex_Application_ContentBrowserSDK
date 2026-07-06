@@ -236,6 +236,13 @@ export default class CxContentBrowserBrowser extends CortexElement {
     this.isPersistent = !this.isPersistent;
   }
 
+  @watch('forceOverlay', { waitUntilFirstUpdate: true })
+  handleForceOverlayChange() {
+    if (this.forceOverlay) {
+      this.isPersistent = false;
+    }
+  }
+
   private handleFolderSelectSearchTermChange(event: CxFolderSelectSearchTermChangeEvent): void {
     this.searchTerm = event.detail.value;
   }
@@ -273,7 +280,7 @@ export default class CxContentBrowserBrowser extends CortexElement {
         @cx-after-hide=${this.updateAccessibleTrigger}
       >
         ${when(
-          !this.forceOverlay && this.canPin,
+          !this.forceOverlay && (this.canPin || this.isPersistent),
           () => html`
             <cx-tooltip
               slot="header-actions"

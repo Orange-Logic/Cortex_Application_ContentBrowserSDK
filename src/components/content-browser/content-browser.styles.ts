@@ -15,6 +15,7 @@ export default css`
     height: var(--content-browser-height, 100dvh);
     width: 100%;
     position: relative;
+    overflow: hidden;
   }
 
   .content-browser__content {
