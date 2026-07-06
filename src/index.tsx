@@ -471,7 +471,7 @@ const ContentBrowser: OrangeDAMContentBrowser = {
             },
             isContentBrowserPopedup: !containerId,
             showCollections: !!showCollections,
-            showFavoriteFolder: !!showFavoriteFolder,
+            showFavoriteFolder: showFavoriteFolder !== false,
             showVersions: !!showVersions,
             useSession,
             allowPin: !!allowPin,
