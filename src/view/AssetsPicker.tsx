@@ -17,7 +17,10 @@ import {
 import { isPromise } from '@/utils/function';
 import { deleteData, getData, storeData } from '@/utils/storage';
 
-import type { CxContentBrowserGridClickEvent, CxContentBrowserRequestChangeEvent, CxContentBrowserSelectedAssetEvent } from '@/events';
+import type {
+    CxContentBrowserGridClickEvent, CxContentBrowserPinAssetChangeEvent, CxContentBrowserPinAssetLookupEvent,
+    CxContentBrowserRequestChangeEvent, CxContentBrowserSelectedAssetEvent,
+} from '@/events';
 type CxContentBrowserAssetsRequest = Omit<GetContentRequest, 'folderID'> & { folderId?: string };
 type CxContentBrowserFoldersRequest = {
   allowedFolders?: string[];
@@ -60,6 +63,7 @@ type CxContentBrowserElement = HTMLElement & {
     totalCount: number;
   }>;
   selectAsset: (recordId: string) => Promise<void>;
+  setIsAssetPinned: (isAssetPinned: boolean) => void;
 };
 
 type Props = {
@@ -127,6 +131,7 @@ const AssetsPicker = forwardRef<AssetsPickerHandle, Props>(function AssetsPicker
   const useSession = useAppSelector(applySessionSelector);
   const {
     allowFavorites,
+    allowFormatDialogPin,
     allowLogout,
     allowPin,
     allowProxy,
@@ -147,7 +152,9 @@ const AssetsPicker = forwardRef<AssetsPickerHandle, Props>(function AssetsPicker
     showFavoriteFolder,
     showVersions,
   } = useContext(GlobalConfigContext);
-  const { extraFields, onAssetAction, onAssetSelected, onClose } = useContext(AppContext);
+  const {
+    extraFields, getPinnedState, onAssetAction, onAssetSelected, onClose, onError, onPinAsset, onUnpinAsset,
+  } = useContext(AppContext);
 
   const contentBrowserRef = useRef<CxContentBrowserElement | null>(null);
 
@@ -288,6 +295,48 @@ const AssetsPicker = forwardRef<AssetsPickerHandle, Props>(function AssetsPicker
     }
   }, [onAssetAction]);
 
+  const onPinAssetLookup = useCallback((event: CxContentBrowserPinAssetLookupEvent) => {
+    if (!getPinnedState) {
+      return;
+    }
+
+    try {
+      event.detail.isAssetPinned = Boolean(getPinnedState(event.detail.assetId));
+    } catch (error) {
+      event.detail.isAssetPinned = false;
+      const callbackError = error instanceof Error
+        ? error
+        : new Error('Failed to get pinned state');
+      onError('Failed to get pinned state', callbackError);
+    }
+  }, [getPinnedState, onError]);
+
+  const onPinAssetChange = useCallback(async (event: CxContentBrowserPinAssetChangeEvent) => {
+    const { assetId, isPinned } = event.detail;
+    const el = contentBrowserRef.current;
+    const action = isPinned ? 'unpin' : 'pin';
+    const errorMessage = `Failed to ${action} asset`;
+
+    onAssetAction?.(action, assetId);
+
+    try {
+      if (isPinned) {
+        await onUnpinAsset?.(assetId);
+      } else {
+        await onPinAsset?.(assetId);
+      }
+    } catch (error) {
+      const callbackError = error instanceof Error ? error : new Error(errorMessage);
+
+      onError(errorMessage, callbackError);
+      el?.setIsAssetPinned(isPinned);
+      return;
+    }
+
+    el?.setIsAssetPinned(!isPinned);
+    onAssetAction?.(`after${isPinned ? 'Unpin' : 'Pin'}`, assetId);
+  }, [onAssetAction, onError, onPinAsset, onUnpinAsset]);
+
   const onLogout = useCallback(() => {
     appDispatch(logout());
   }, [appDispatch]);
@@ -357,6 +406,7 @@ const AssetsPicker = forwardRef<AssetsPickerHandle, Props>(function AssetsPicker
       extra-fields={extraFields}
       error-message="Unauthorized"
       can-pin={allowPin}
+      can-pin-asset={allowFormatDialogPin}
       can-favorite={allowFavorites}
       can-logout={allowLogout}
       can-use-proxies={allowProxy}
@@ -375,6 +425,8 @@ const AssetsPicker = forwardRef<AssetsPickerHandle, Props>(function AssetsPicker
       oncx-content-browser-selected-asset={onSelectedAsset}
       oncx-content-browser-request-change={onFetchAndMergeAssetsSuccess}
       oncx-content-browser-grid-click={onGridClick}
+      oncx-content-browser-pin-asset-lookup={onPinAssetLookup}
+      oncx-content-browser-pin-asset-change={onPinAssetChange}
       oncx-content-browser-header-close={onClose}
       oncx-content-browser-header-logout={onLogout}
     />

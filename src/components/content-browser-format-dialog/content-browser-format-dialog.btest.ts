@@ -118,6 +118,15 @@ function invokeHandleFavorite(el: CxContentBrowserFormatDialog) {
   handleFavorite!.call(el);
 }
 
+function invokeHandlePinAsset(el: CxContentBrowserFormatDialog) {
+  const handlePinAsset = Object.getOwnPropertyDescriptor(
+    Object.getPrototypeOf(el),
+    'handlePinAsset',
+  )?.value as (() => void) | undefined;
+  expect(handlePinAsset).to.be.a('function');
+  handlePinAsset!.call(el);
+}
+
 function invokeHandleProxyConfirm(el: CxContentBrowserFormatDialog) {
   const handleProxyConfirm = Object.getOwnPropertyDescriptor(
     Object.getPrototypeOf(el),
@@ -284,6 +293,71 @@ describe('content-browser-format-dialog', () => {
     expect(star.getAttribute('style')).to.include('var(--cx-color-warning)');
   });
 
+  it('emits cx-content-browser-format-dialog-pin-asset-change when the pin button is clicked', async () => {
+    el = await fixture<CxContentBrowserFormatDialog>(
+      html`<cx-content-browser-format-dialog can-pin-asset></cx-content-browser-format-dialog>`,
+    );
+    el.open({ asset: makeAsset(), isFavorite: false, isAssetPinned: false, proxies: [] });
+    await elementUpdated(el);
+
+    const pinButton = el.shadowRoot!.querySelector('cx-icon-button[name="keep"]');
+    expect(pinButton).to.exist;
+
+    const p = oneEvent(el, 'cx-content-browser-format-dialog-pin-asset-change');
+    (pinButton as HTMLElement).click();
+    const ev = await p;
+    expect(ev.detail.assetId).to.equal('asset-1');
+    expect(ev.detail.isPinned).to.equal(false);
+    expect(el.loadingPinAsset).to.be.true;
+  });
+
+  it('renders pin icon as keep with text color when not pinned', async () => {
+    el = await fixture<CxContentBrowserFormatDialog>(
+      html`<cx-content-browser-format-dialog can-pin-asset></cx-content-browser-format-dialog>`,
+    );
+    el.open({ asset: makeAsset(), isFavorite: false, isAssetPinned: false, proxies: [] });
+    await elementUpdated(el);
+
+    const pinButton = el.shadowRoot!.querySelector('cx-icon-button[name="keep"]') as HTMLElement;
+
+    expect(pinButton).to.exist;
+    expect(pinButton.getAttribute('style')).to.include('var(--cx-color-text)');
+    expect(pinButton.getAttribute('style')).to.not.include('var(--cx-color-warning)');
+  });
+
+  it('renders pin icon as keep_off with warning color when pinned', async () => {
+    el = await fixture<CxContentBrowserFormatDialog>(
+      html`<cx-content-browser-format-dialog can-pin-asset></cx-content-browser-format-dialog>`,
+    );
+    el.open({ asset: makeAsset(), isFavorite: false, isAssetPinned: true, proxies: [] });
+    await elementUpdated(el);
+
+    const pinButton = el.shadowRoot!.querySelector('cx-icon-button[name="keep_off"]') as HTMLElement;
+
+    expect(pinButton).to.exist;
+    expect(pinButton.getAttribute('style')).to.include('var(--cx-color-warning)');
+  });
+
+  it('does not render the pin action when can-pin-asset is absent', async () => {
+    el.open({ asset: makeAsset(), isFavorite: false, isAssetPinned: false, proxies: [] });
+    await elementUpdated(el);
+
+    expect(el.shadowRoot!.querySelector('cx-icon-button[name="keep"]')).to.be.null;
+    expect(el.shadowRoot!.querySelector('cx-icon-button[name="keep_off"]')).to.be.null;
+  });
+
+  it('shows a spinner instead of the pin button while loadingPinAsset', async () => {
+    el = await fixture<CxContentBrowserFormatDialog>(
+      html`<cx-content-browser-format-dialog can-pin-asset loading-pin-asset></cx-content-browser-format-dialog>`,
+    );
+    el.open({ asset: makeAsset(), isFavorite: false, isAssetPinned: false, proxies: [] });
+    await elementUpdated(el);
+
+    expect(el.shadowRoot!.querySelector('cx-icon-button[name="keep"]')).to.be.null;
+    expect(el.shadowRoot!.querySelector('cx-icon-button[name="keep_off"]')).to.be.null;
+    expect(el.shadowRoot!.querySelector('cx-spinner')).to.exist;
+  });
+
   it('emits cx-content-browser-format-dialog-version-history-open when history is clicked', async () => {
     el = await fixture<CxContentBrowserFormatDialog>(
       html`<cx-content-browser-format-dialog can-view-versions can-use-proxies></cx-content-browser-format-dialog>`,
@@ -385,8 +459,27 @@ describe('content-browser-format-dialog', () => {
     expect(prevented).to.be.true;
   });
 
+  it('prevents cx-request-close while loadingPinAsset', async () => {
+    el = await fixture<CxContentBrowserFormatDialog>(
+      html`<cx-content-browser-format-dialog can-pin-asset loading-pin-asset></cx-content-browser-format-dialog>`,
+    );
+    el.open({ asset: makeAsset(), isFavorite: false, isAssetPinned: false, proxies: [] });
+    await elementUpdated(el);
+
+    const inner = getInnerDialog(el);
+    const prevented = !inner.dispatchEvent(
+      new CustomEvent('cx-request-close', {
+        bubbles: true,
+        cancelable: true,
+        composed: true,
+        detail: { source: 'overlay' },
+      }),
+    );
+    expect(prevented).to.be.true;
+  });
+
   it('closes and resets on cx-request-close when not in version history', async () => {
-    el.open({ asset: makeAsset(), isFavorite: false, proxies: [] });
+    el.open({ asset: makeAsset(), isFavorite: false, isAssetPinned: true, proxies: [] });
     await elementUpdated(el);
     expect(el.shadowRoot!.querySelector('cx-content-browser-asset-preview')).to.exist;
     el.trackingParameters = [{ key: 'custom', value: 'edited' }];
@@ -411,6 +504,7 @@ describe('content-browser-format-dialog', () => {
     expect(el.shadowRoot!.querySelector('cx-content-browser-asset-preview')).to.be.null;
     expect(el.trackingParameters).to.deep.equal(DEFAULT_TRACKING_PARAMETERS_SNAPSHOT);
     expect(el.enabledTracking).to.be.false;
+    expect(el.isAssetPinned).to.be.false;
   });
 
   describe('handler early returns', () => {
@@ -459,6 +553,55 @@ describe('content-browser-format-dialog', () => {
         count += 1;
       });
       invokeHandleFavorite(el);
+      expect(count).to.equal(0);
+    });
+
+    it('handlePinAsset does not emit when loadingPinAsset is true', async () => {
+      el = await fixture<CxContentBrowserFormatDialog>(
+        html`<cx-content-browser-format-dialog can-pin-asset loading-pin-asset></cx-content-browser-format-dialog>`,
+      );
+      el.open({ asset: makeAsset(), isFavorite: false, isAssetPinned: false, proxies: [] });
+      await elementUpdated(el);
+
+      let count = 0;
+      el.addEventListener('cx-content-browser-format-dialog-pin-asset-change', () => {
+        count += 1;
+      });
+      invokeHandlePinAsset(el);
+      expect(count).to.equal(0);
+    });
+
+    it('handlePinAsset does not emit when there is no asset', async () => {
+      el = await fixture<CxContentBrowserFormatDialog>(
+        html`<cx-content-browser-format-dialog can-pin-asset></cx-content-browser-format-dialog>`,
+      );
+      await elementUpdated(el);
+
+      let count = 0;
+      el.addEventListener('cx-content-browser-format-dialog-pin-asset-change', () => {
+        count += 1;
+      });
+      invokeHandlePinAsset(el);
+      expect(count).to.equal(0);
+    });
+
+    it('handlePinAsset does not emit when asset id is empty', async () => {
+      el = await fixture<CxContentBrowserFormatDialog>(
+        html`<cx-content-browser-format-dialog can-pin-asset></cx-content-browser-format-dialog>`,
+      );
+      el.open({
+        asset: makeAsset({ id: '' }),
+        isFavorite: false,
+        isAssetPinned: false,
+        proxies: [],
+      });
+      await elementUpdated(el);
+
+      let count = 0;
+      el.addEventListener('cx-content-browser-format-dialog-pin-asset-change', () => {
+        count += 1;
+      });
+      invokeHandlePinAsset(el);
       expect(count).to.equal(0);
     });
 
@@ -1011,6 +1154,28 @@ describe('content-browser-format-dialog', () => {
     el.setIsFavorite(true);
     await elementUpdated(el);
     expect(el.loadingFavorites).to.equal(false);
+  });
+
+  it('setIsAssetPinned updates isAssetPinned and clears loadingPinAsset', async () => {
+    el = await fixture<CxContentBrowserFormatDialog>(
+      html`<cx-content-browser-format-dialog can-pin-asset loading-pin-asset></cx-content-browser-format-dialog>`,
+    );
+    el.open({ asset: makeAsset(), isFavorite: false, isAssetPinned: false, proxies: [] });
+    await elementUpdated(el);
+    expect(el.loadingPinAsset).to.be.true;
+
+    el.setIsAssetPinned(true);
+    await elementUpdated(el);
+
+    expect(el.isAssetPinned).to.be.true;
+    expect(el.loadingPinAsset).to.be.false;
+  });
+
+  it('open() defaults isAssetPinned to false when omitted', async () => {
+    el.open({ asset: makeAsset(), isFavorite: false, proxies: [] });
+    await elementUpdated(el);
+
+    expect(el.isAssetPinned).to.be.false;
   });
 
   describe('mapFormatConfirmPayload', () => {

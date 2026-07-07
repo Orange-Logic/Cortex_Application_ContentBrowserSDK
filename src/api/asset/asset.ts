@@ -464,7 +464,7 @@ export async function apiGetAssets({
           const mappedItems =
             rawResponse.contentItems?.map((item) => {
               let extension = item.fields[FIELD_EXTENSION] ?? '';
-              const name = item.fields[FIELD_ORIGINAL_FILE_NAME];
+              const name = item.fields[FIELD_TITLE_WITH_FALLBACK];
 
               if (extension && !extension.startsWith('.')) {
                 extension = '.' + extension;

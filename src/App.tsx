@@ -43,6 +43,9 @@ type Props = {
   onTokenChanged?: (token: string) => void;
   onSiteUrlChanged?: (siteUrl: string) => void;
   assetsPickerRef?: Ref<AssetsPickerHandle>;
+  getPinnedState?: AppContextType['getPinnedState'];
+  onPinAsset?: AppContextType['onPinAsset'];
+  onUnpinAsset?: AppContextType['onUnpinAsset'];
 };
 
 const Container = styled.div<{ open?: boolean }>`
@@ -71,6 +74,9 @@ export const App: FC<Props> = ({
   onTokenChanged,
   onSiteUrlChanged,
   assetsPickerRef,
+  getPinnedState,
+  onPinAsset,
+  onUnpinAsset,
 }) => {
   const isAuthenticated = useAppSelector(authenticatedSelector);
   const accessToken = useAppSelector(accessTokenSelector);
@@ -115,23 +121,29 @@ export const App: FC<Props> = ({
   const contextValue = useMemo(
     () => ({
       extraFields,
+      getPinnedState,
       onAssetAction,
       onAssetSelected,
       onAppAuthUrlCopied,
       onImageSelected,
+      onPinAsset,
       onError,
       onClose: handleClose,
       onConnectClicked,
+      onUnpinAsset,
     }),
     [
       extraFields,
+      getPinnedState,
       onAssetAction,
       onAssetSelected,
       onAppAuthUrlCopied,
       onImageSelected,
+      onPinAsset,
       onError,
       handleClose,
       onConnectClicked,
+      onUnpinAsset,
     ],
   );
 

@@ -346,6 +346,16 @@ describe('content-browser', () => {
     expect(dialog.canUseProxies).to.be.false;
   });
 
+  it('passes can-pin-asset to the format dialog, independent from can-pin', async () => {
+    const { el } = await fixtureWithMock(html`
+      <cx-content-browser ?can-pin-asset=${true} ?can-pin=${false}></cx-content-browser>
+    `);
+
+    const dialog = getFormatDialog(el);
+    expect(dialog.canPinAsset).to.be.true;
+    expect(el.canPin).to.be.false;
+  });
+
   it('opens the format dialog after a grid click when fetchAssetByID resolves', async () => {
     const asset = makeAsset();
     const openPayload = { asset, isFavorite: false, proxies: [] as unknown[] };
@@ -368,9 +378,97 @@ describe('content-browser', () => {
     );
 
     await waitUntil(() => openSpy.calledOnce);
-    expect(openSpy.firstCall.args[0]).to.deep.equal(openPayload);
+    expect(openSpy.firstCall.args[0]).to.deep.equal({ ...openPayload, isAssetPinned: false });
     expect(el.selectedAssetId).to.equal(asset.id);
     expect(getGrid(el)!.getAttribute('selected-asset-id')).to.equal(asset.id);
+  });
+
+  it('does not emit cx-content-browser-pin-asset-lookup when can-pin-asset is absent', async () => {
+    const asset = makeAsset();
+    const openPayload = { asset, isFavorite: false, proxies: [] as unknown[] };
+
+    const { el } = await fixtureWithMock(html`<cx-content-browser></cx-content-browser>`, {
+      fetchAssetByIDResult: openPayload,
+      items: [asset],
+      totalCount: 1,
+    });
+
+    const dialog = getFormatDialog(el);
+    const openSpy = sinon.spy(dialog, 'open');
+    let lookupCount = 0;
+    el.addEventListener('cx-content-browser-pin-asset-lookup', () => {
+      lookupCount += 1;
+    });
+
+    getGrid(el)!.dispatchEvent(
+      new CustomEvent('cx-content-browser-grid-click', {
+        bubbles: true,
+        composed: true,
+        detail: { id: asset.id },
+      }),
+    );
+
+    await waitUntil(() => openSpy.calledOnce);
+    expect(lookupCount).to.equal(0);
+    expect(openSpy.firstCall.args[0]).to.deep.equal({ ...openPayload, isAssetPinned: false });
+  });
+
+  it('emits cx-content-browser-pin-asset-lookup and opens with the mutated isAssetPinned', async () => {
+    const asset = makeAsset();
+    const openPayload = { asset, isFavorite: false, proxies: [] as unknown[] };
+
+    const { el } = await fixtureWithMock(html`<cx-content-browser ?can-pin-asset=${true}></cx-content-browser>`, {
+      fetchAssetByIDResult: openPayload,
+      items: [asset],
+      totalCount: 1,
+    });
+
+    const dialog = getFormatDialog(el);
+    const openSpy = sinon.spy(dialog, 'open');
+    let lookupAssetId: string | undefined;
+    el.addEventListener('cx-content-browser-pin-asset-lookup', (event) => {
+      lookupAssetId = event.detail.assetId;
+      event.detail.isAssetPinned = true;
+    });
+
+    getGrid(el)!.dispatchEvent(
+      new CustomEvent('cx-content-browser-grid-click', {
+        bubbles: true,
+        composed: true,
+        detail: { id: asset.id },
+      }),
+    );
+
+    await waitUntil(() => openSpy.calledOnce);
+    expect(lookupAssetId).to.equal(asset.id);
+    expect(openSpy.firstCall.args[0]).to.deep.equal({ ...openPayload, isAssetPinned: true });
+  });
+
+  it('re-emits cx-content-browser-pin-asset-change when the format dialog requests a pin toggle', async () => {
+    const { el } = await fixtureWithMock(html`<cx-content-browser ?can-pin-asset=${true}></cx-content-browser>`);
+    const dialog = getFormatDialog(el);
+
+    const p = oneEvent(el, 'cx-content-browser-pin-asset-change');
+    dialog.dispatchEvent(
+      new CustomEvent('cx-content-browser-format-dialog-pin-asset-change', {
+        bubbles: true,
+        composed: true,
+        detail: { assetId: 'rec-9', isPinned: false },
+      }),
+    );
+    const ev = await p;
+
+    expect(ev.detail).to.deep.equal({ assetId: 'rec-9', isPinned: false });
+  });
+
+  it('setIsAssetPinned delegates to the format dialog', async () => {
+    const { el } = await fixtureWithMock(html`<cx-content-browser ?can-pin-asset=${true}></cx-content-browser>`);
+    const dialog = getFormatDialog(el);
+    const spy = sinon.spy(dialog, 'setIsAssetPinned');
+
+    el.setIsAssetPinned(true);
+
+    expect(spy).to.have.been.calledWith(true);
   });
 
   it('does not open the format dialog when fetchAssetByID resolves undefined', async () => {
@@ -446,7 +544,7 @@ describe('content-browser', () => {
     await el.selectAsset(asset.id);
 
     await waitUntil(() => openSpy.calledOnce);
-    expect(openSpy.firstCall.args[0]).to.deep.equal(openPayload);
+    expect(openSpy.firstCall.args[0]).to.deep.equal({ ...openPayload, isAssetPinned: false });
     expect(el.selectedAssetId).to.equal(asset.id);
   });
 

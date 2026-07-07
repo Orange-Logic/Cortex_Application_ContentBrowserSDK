@@ -552,7 +552,7 @@ export class FetchAndMergeAssetsController implements ReactiveController {
         identifier: item[FIELD_IDENTIFIER] ?? '',
         imageUrl: item[DEFAULT_VIEW_SIZE] ?? '',
         inColdStorage: Boolean(item.inColdStorage),
-        name: item[FIELD_ORIGINAL_FILE_NAME] ?? '',
+        name: item[FIELD_TITLE_WITH_FALLBACK] ?? '',
         originalUrl: item[ORIGINAL_VIEW_SIZE] ?? '',
         previewUrl: proxyData?.previewUrl ?? '',
         recordId: item[FIELD_RECORD_ID] ?? '',

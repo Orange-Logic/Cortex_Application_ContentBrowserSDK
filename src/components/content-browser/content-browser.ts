@@ -16,7 +16,8 @@ import {
     CxContentBrowserControlBarSearchChangeEvent, CxContentBrowserControlFilterChangeEvent,
     CxContentBrowserControlSortOrderChangeEvent, CxContentBrowserControlViewChangeEvent,
     CxContentBrowserFormatDialogFavoriteChangeEvent, CxContentBrowserFormatDialogFormatConfirmEvent,
-    CxContentBrowserFormatDialogProxyConfirmEvent, CxContentBrowserFormatDialogVersionHistoryOpenEvent,
+    CxContentBrowserFormatDialogPinAssetChangeEvent, CxContentBrowserFormatDialogProxyConfirmEvent,
+    CxContentBrowserFormatDialogVersionHistoryOpenEvent,
     CxContentBrowserGridClickEvent, CxContentBrowserGridResizeEvent, CxResizeEvent, CxSelectionChangeEvent,
 } from '@/events';
 import componentStyles from '@/styles/component.styles';
@@ -143,6 +144,13 @@ export default class CxContentBrowser extends CortexElement {
 
   @property({ attribute: 'can-favorite', reflect: true, type: Boolean })
   canFavorite = false;
+
+  /**
+   * Whether to show the pin/unpin action for the selected asset in the format dialog.
+   * Not to be confused with `can-pin`, which controls pinning the folder browser drawer open.
+   */
+  @property({ attribute: 'can-pin-asset', reflect: true, type: Boolean })
+  canPinAsset = false;
 
   @property({ attribute: 'can-use-proxies', reflect: true, type: Boolean })
   canUseProxies = false;
@@ -321,6 +329,14 @@ export default class CxContentBrowser extends CortexElement {
     await this.openFormatDialog(id);
   }
 
+  /**
+   * The host application owns pinned state; call this once it has resolved a
+   * pin/unpin request (see `cx-content-browser-pin-asset-change`) to reflect the result.
+   */
+  setIsAssetPinned(isAssetPinned: boolean) {
+    this.formatDialog.setIsAssetPinned(isAssetPinned);
+  }
+
   private async openFormatDialog(id: string) {
     this.selectedAssetId = id;
 
@@ -335,7 +351,17 @@ export default class CxContentBrowser extends CortexElement {
         return;
       }
 
-      this.formatDialog.open(asset);
+      let isAssetPinned = false;
+
+      if (this.canPinAsset) {
+        const lookupEvent = this.emit('cx-content-browser-pin-asset-lookup', {
+          detail: { assetId: id, isAssetPinned: false },
+        });
+
+        isAssetPinned = lookupEvent.detail.isAssetPinned;
+      }
+
+      this.formatDialog.open({ ...asset, isAssetPinned });
     } catch {
       this.selectedAssetId = undefined;
     }
@@ -523,6 +549,22 @@ export default class CxContentBrowser extends CortexElement {
         },
       });
     }
+  }
+
+  /**
+   * Pinned state is owned by the host application, not the SDK, so this only forwards
+   * the toggle request outward. The host is responsible for calling `setIsAssetPinned()`
+   * once it has resolved the pin/unpin action.
+   */
+  private handlePinAssetChange(event: CxContentBrowserFormatDialogPinAssetChangeEvent) {
+    const { assetId, isPinned } = event.detail;
+
+    this.emit('cx-content-browser-pin-asset-change', {
+      detail: {
+        assetId,
+        isPinned,
+      },
+    });
   }
 
   private async handleProxyConfirm(event: CxContentBrowserFormatDialogProxyConfirmEvent) {
@@ -786,11 +828,13 @@ export default class CxContentBrowser extends CortexElement {
           token=${this.token}
           ?can-custom-format=${!!parameters?.ATSEnabled}
           ?can-favorite=${this.canFavorite}
+          ?can-pin-asset=${this.canPinAsset}
           ?can-track=${this.canTrack}
           ?can-use-proxies=${this.canUseProxies}
           ?can-view-versions=${this.canViewVersions}
           @cx-content-browser-format-dialog-version-history-open=${this.handleVersionHistoryOpen}
           @cx-content-browser-format-dialog-favorite-change=${this.handleFavoriteChange}
+          @cx-content-browser-format-dialog-pin-asset-change=${this.handlePinAssetChange}
           @cx-content-browser-format-dialog-proxy-confirm=${this.handleProxyConfirm}
           @cx-content-browser-format-dialog-format-confirm=${this.handleFormatConfirm}
           @cx-content-browser-format-dialog-close=${this.handleFormatDialogClose}

@@ -110,6 +110,9 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
   @property({ attribute: 'can-favorite', reflect: false, type: Boolean })
   canFavorite: boolean = false;
 
+  @property({ attribute: 'can-pin-asset', reflect: false, type: Boolean })
+  canPinAsset: boolean = false;
+
   @property({ attribute: 'can-track', reflect: false, type: Boolean })
   canTrack: boolean = false;
 
@@ -124,6 +127,9 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
 
   @property({ attribute: 'loading-favorites', reflect: true, type: Boolean })
   loadingFavorites: boolean = false;
+
+  @property({ attribute: 'loading-pin-asset', reflect: true, type: Boolean })
+  loadingPinAsset: boolean = false;
 
   @property({ attribute: 'loading-proxies', reflect: true, type: Boolean })
   loadingProxies: boolean = false;
@@ -145,6 +151,9 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
 
   @state()
   isFavorite: boolean = false;
+
+  @state()
+  isAssetPinned: boolean = false;
 
   @state()
   proxies: AvailableProxy[] = [];
@@ -218,14 +227,17 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
   open({
     asset,
     isFavorite,
+    isAssetPinned = false,
     proxies,
   }: {
     asset: Asset & { previewUrl: string };
     isFavorite: boolean;
+    isAssetPinned?: boolean;
     proxies: AvailableProxy[];
   }) {
     this.asset = asset;
     this.isFavorite = isFavorite;
+    this.isAssetPinned = isAssetPinned;
     this.proxies = proxies;
     this.isOpen = true;
   }
@@ -242,6 +254,11 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
   setIsFavorite(isFavorite: boolean) {
     this.isFavorite = isFavorite;
     this.loadingFavorites = false;
+  }
+
+  setIsAssetPinned(isAssetPinned: boolean) {
+    this.isAssetPinned = isAssetPinned;
+    this.loadingPinAsset = false;
   }
 
   setLoadingConfirm(loadingConfirm: boolean) {
@@ -326,6 +343,21 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
       detail: {
         assetId: this.asset.id,
         isFavorite: this.isFavorite,
+      },
+    });
+  }
+
+  private handlePinAsset() {
+    if (this.loadingPinAsset || !this.asset?.id) {
+      return;
+    }
+
+    this.loadingPinAsset = true;
+
+    this.emit('cx-content-browser-format-dialog-pin-asset-change', {
+      detail: {
+        assetId: this.asset.id,
+        isPinned: this.isAssetPinned,
       },
     });
   }
@@ -507,6 +539,50 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
                       : 'var(--cx-color-text)',
                   })}
                   @click=${this.handleFavorite}
+                ></cx-icon-button>
+              `,
+            )}
+          </cx-tooltip>
+        `,
+        () => nothing,
+      )}
+      ${when(
+        this.canPinAsset,
+        () => html`
+          <cx-tooltip
+            slot="header-actions"
+            content=${when(this.isAssetPinned,
+              () => this.localize.term('unpin'),
+              () => this.localize.term('pin'),
+            )}
+            placement="bottom"
+          >
+            ${when(
+              this.loadingPinAsset,
+              () => html`
+                <cx-space
+                  align-items="center"
+                  justify-content="center"
+                  style=${styleMap({
+                    height: '32px',
+                    width: '32px',
+                  })}
+                >
+                  <cx-spinner></cx-spinner>
+                </cx-space>
+              `,
+              () => html`
+                <cx-icon-button
+                  name=${when(this.isAssetPinned,
+                    () => 'keep_off',
+                    () => 'keep',
+                  )}
+                  style=${styleMap({
+                    color: this.isAssetPinned
+                      ? 'var(--cx-color-warning)'
+                      : 'var(--cx-color-text)',
+                  })}
+                  @click=${this.handlePinAsset}
                 ></cx-icon-button>
               `,
             )}
@@ -750,7 +826,7 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
   }
 
   private handleRequestClose(event: CxRequestCloseEvent) {
-    if (this.loadingFavorites) {
+    if (this.loadingFavorites || this.loadingPinAsset) {
       event.preventDefault();
 
       return;
@@ -772,7 +848,9 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
     this.enabledTracking = false;
     this.filteredProxies = [];
     this.isFavorite = false;
+    this.isAssetPinned = false;
     this.loadingConfirm = false;
+    this.loadingPinAsset = false;
     this.loadingVersionHistory = false;
     this.proxies = [];
     this.selectedProxy = '';
