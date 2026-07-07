@@ -160,7 +160,7 @@ export default class CxContentBrowserControlSort extends CortexElement {
             ></cx-icon-button>
           </cx-tooltip>
         </div>
-        <cx-menu>
+        <cx-menu no-uncheck>
           ${repeat(this.mappedSortDirections,
             (item) => item.value,
             (item) => {
