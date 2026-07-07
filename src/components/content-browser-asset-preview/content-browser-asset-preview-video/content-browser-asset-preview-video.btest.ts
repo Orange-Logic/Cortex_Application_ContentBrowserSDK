@@ -4,6 +4,7 @@ import { elementUpdated, expect, fixture, html, oneEvent } from '@open-wc/testin
 import sinon from 'sinon';
 
 import { Orientation } from '@/types/base';
+import CxVideo from '@orangelogic/design-system/components/video';
 
 import type CxContentBrowserAssetPreviewVideo from './content-browser-asset-preview-video';
 
@@ -16,7 +17,23 @@ describe('content-browser-asset-preview-video', () => {
   let el: CxContentBrowserAssetPreviewVideo;
 
   beforeEach(async () => {
+    /**
+     * cx-video's real videojs player setup is asynchronous and network-bound (it fetches
+     * SAMPLE_VIDEO_SRC for real). None of these tests exercise real playback — they only
+     * dispatch synthetic events on <cx-video> and stub its properties directly — so the real
+     * player is stubbed out to avoid a teardown race where fixtureCleanup's disconnectedCallback
+     * can run while the real player is mid-setup, which throws inside the design system's own
+     * cleanup code.
+     */
+    sinon.stub(
+      CxVideo.prototype as unknown as { setupVideoJsPlayer: (src?: string) => Promise<void> },
+      'setupVideoJsPlayer',
+    ).resolves();
     el = await fixture(html`<cx-content-browser-asset-preview-video></cx-content-browser-asset-preview-video>`);
+  });
+
+  afterEach(() => {
+    sinon.restore();
   });
 
   describe('initial state', () => {
@@ -234,6 +251,12 @@ describe('content-browser-asset-preview-video', () => {
       const video = el.querySelector('cx-video')!;
       const hasStarted = sinon.spy();
       const currentTime = sinon.spy();
+      // Real videojs Player instances expose a much larger API (el, on, off, isDisposed,
+      // dispose, ...) than this test needs, and cx-video's own disconnectedCallback cleanup
+      // calls into that API on teardown. Rather than reimplementing it, restore the original
+      // (real setup is stubbed out in beforeEach, so this is null) player once done so
+      // teardown runs against a state cx-video already knows how to clean up safely.
+      const originalPlayer = video.player;
       Object.defineProperty(video, 'player', { configurable: true, value: { currentTime, hasStarted } });
 
       el.updateProgress(0.2);
@@ -241,6 +264,8 @@ describe('content-browser-asset-preview-video', () => {
 
       el.updateProgress(0.6);
       expect(hasStarted).to.have.been.calledOnce;
+
+      Object.defineProperty(video, 'player', { configurable: true, value: originalPlayer });
     });
 
     it('clamps the ratio to the 0-1 range', () => {
