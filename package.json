@@ -93,7 +93,7 @@
   "dependencies": {
     "@lit-labs/virtualizer": "^2.1.1",
     "@open-wc/testing": "^4.0.0",
-    "@orangelogic/design-system": "2.128.0",
+    "@orangelogic/design-system": "2.132.0",
     "@reduxjs/toolkit": "^2.11.2",
     "@types/node": "^20.4.8",
     "@types/react": "^19.0.8",
