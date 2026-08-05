@@ -1,53 +1,27 @@
 import '@orangelogic/design-system/assets/design-system.css';
 import '@orangelogic/design-system/assets/outlined.css';
-import '@orangelogic/design-system/components/alert';
-import '@orangelogic/design-system/components/avatar';
-import '@orangelogic/design-system/components/badge';
-import '@orangelogic/design-system/components/button';
-import '@orangelogic/design-system/components/button-group';
-import '@orangelogic/design-system/components/card';
-import '@orangelogic/design-system/components/checkbox';
-import '@orangelogic/design-system/components/copy-button';
-import '@orangelogic/design-system/components/details';
-import '@orangelogic/design-system/components/dialog';
-import '@orangelogic/design-system/components/divider';
-import '@orangelogic/design-system/components/drawer';
-import '@orangelogic/design-system/components/dropdown';
-import '@orangelogic/design-system/components/grid';
-import '@orangelogic/design-system/components/grid-item';
-import '@orangelogic/design-system/components/icon';
-import '@orangelogic/design-system/components/icon-button';
-import '@orangelogic/design-system/components/input';
-import '@orangelogic/design-system/components/input-group';
-import '@orangelogic/design-system/components/line-clamp';
-import '@orangelogic/design-system/components/menu';
-import '@orangelogic/design-system/components/menu-item';
-import '@orangelogic/design-system/components/menu-label';
-import '@orangelogic/design-system/components/option';
-import '@orangelogic/design-system/components/progress-bar';
-import '@orangelogic/design-system/components/resize-observer';
-import '@orangelogic/design-system/components/select';
-import '@orangelogic/design-system/components/skeleton';
-import '@orangelogic/design-system/components/space';
-import '@orangelogic/design-system/components/spinner';
-import '@orangelogic/design-system/components/switch';
-import '@orangelogic/design-system/components/tag';
-import '@orangelogic/design-system/components/tooltip';
-import '@orangelogic/design-system/components/tree';
-import '@orangelogic/design-system/components/tree-item';
-import '@orangelogic/design-system/components/typography';
 import '@orangelogic/design-system/css/ol-light.css';
 import '@orangelogic/design-system/react-types';
 
-import { FC, useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  FC,
+  Ref,
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import styled from 'styled-components';
 import WebFont from 'webfontloader';
 
 import { AppContext, AppContextType } from '@/AppContext';
-import AssetsPicker from '@/view/AssetsPicker';
+import AssetsPicker, { AssetsPickerHandle } from '@/view/AssetsPicker';
+import '@/components/content-browser-loader';
 
 import { useAppSelector } from './store';
-import { accessTokenSelector, siteUrlSelector } from './store/auth/auth.slice';
+import { accessTokenSelector, authenticatedSelector, siteUrlSelector } from './store/auth/auth.slice';
+import Authenticate from './page/Authenticate';
 
 type Props = {
   containerId?: string;
@@ -71,6 +45,7 @@ type Props = {
   onTokenChanged?: (token: string) => void;
   onUnpinAsset?: AppContextType['onUnpinAsset'];
   onSiteUrlChanged?: (siteUrl: string) => void;
+  assetsPickerRef?: Ref<AssetsPickerHandle>;
 };
 
 const Container = styled.div<{ open?: boolean }>`
@@ -101,7 +76,9 @@ export const App: FC<Props> = ({
   onTokenChanged,
   onUnpinAsset,
   onSiteUrlChanged,
+  assetsPickerRef,
 }) => {
+  const isAuthenticated = useAppSelector(authenticatedSelector);
   const accessToken = useAppSelector(accessTokenSelector);
   const siteUrl = useAppSelector(siteUrlSelector);
   const [open, setOpen] = useState(true);
@@ -120,7 +97,6 @@ export const App: FC<Props> = ({
         },
       });
     } else {
-      // @ts-expect-error
       import('./fonts.css');
     }
   }, [loadExternalFonts]);
@@ -171,15 +147,30 @@ export const App: FC<Props> = ({
     ],
   );
 
+  let content = <Authenticate />;
+
+  if (isAuthenticated) {
+    const assetsPicker = (
+      <AssetsPicker
+        ref={assetsPickerRef}
+        accessToken={accessToken}
+        siteUrl={siteUrl}
+        multiSelect={multiSelect}
+      />
+    );
+
+    content = containerId ? assetsPicker : <Container open={open}>{assetsPicker}</Container>;
+  }
+
   return (
     <AppContext.Provider value={contextValue}>
-      {containerId ? (
-        <AssetsPicker multiSelect={multiSelect} />
-      ) : (
-        <Container open={open}>
-          <AssetsPicker multiSelect={multiSelect} />
-        </Container>
-      )}
+      <Suspense
+        fallback={
+          <cx-content-browser-loader></cx-content-browser-loader>
+        }
+      >
+        {content}
+      </Suspense>
     </AppContext.Provider>
   );
 };

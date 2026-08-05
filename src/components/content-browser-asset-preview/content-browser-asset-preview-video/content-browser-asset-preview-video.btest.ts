@@ -1,0 +1,305 @@
+import './content-browser-asset-preview-video';
+
+import { elementUpdated, expect, fixture, html, oneEvent } from '@open-wc/testing';
+import sinon from 'sinon';
+
+import { Orientation } from '@/types/base';
+import CxVideo from '@orangelogic/design-system/components/video';
+
+import type CxContentBrowserAssetPreviewVideo from './content-browser-asset-preview-video';
+
+const SAMPLE_VIDEO_SRC =
+  'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
+const SAMPLE_HORIZONTAL_THUMBNAIL_SRC = 'https://placehold.co/600x400';
+const SAMPLE_VERTICAL_THUMBNAIL_SRC = 'https://placehold.co/400x600';
+
+describe('content-browser-asset-preview-video', () => {
+  let el: CxContentBrowserAssetPreviewVideo;
+
+  beforeEach(async () => {
+    /**
+     * cx-video's real videojs player setup is asynchronous and network-bound (it fetches
+     * SAMPLE_VIDEO_SRC for real). None of these tests exercise real playback — they only
+     * dispatch synthetic events on <cx-video> and stub its properties directly — so the real
+     * player is stubbed out to avoid a teardown race where fixtureCleanup's disconnectedCallback
+     * can run while the real player is mid-setup, which throws inside the design system's own
+     * cleanup code.
+     */
+    sinon.stub(
+      CxVideo.prototype as unknown as { setupVideoJsPlayer: (src?: string) => Promise<void> },
+      'setupVideoJsPlayer',
+    ).resolves();
+    el = await fixture(html`<cx-content-browser-asset-preview-video></cx-content-browser-asset-preview-video>`);
+  });
+
+  afterEach(() => {
+    sinon.restore();
+  });
+
+  describe('initial state', () => {
+    it('is accessible', async () => {
+      await expect(el).to.be.accessible();
+    });
+    it('has default values', () => {
+      expect(el).to.exist;
+      expect(el.shadowRoot).to.be.null;
+      expect(el.src).to.be.empty;
+      expect(el.alt).to.be.empty;
+      expect(el.thumbnailOnly).to.be.false;
+      expect(el.thumbnailSrc).to.be.empty;
+      expect(el.loaded).to.be.false;
+      expect(el.assetDirection).to.equal(Orientation.Horizontal);
+      expect(el.progress).to.equal(0);
+    });
+  });
+
+  describe('when src is set and not thumbnail-only', () => {
+    beforeEach(async () => {
+      el.src = SAMPLE_VIDEO_SRC;
+      el.thumbnailSrc = SAMPLE_HORIZONTAL_THUMBNAIL_SRC;
+      await elementUpdated(el);
+    });
+
+    it('renders the video', () => {
+      const video = el.querySelector('cx-video');
+      expect(video).to.exist;
+      expect(video).to.have.attribute('src', SAMPLE_VIDEO_SRC);
+      expect(video).to.have.attribute('poster', SAMPLE_HORIZONTAL_THUMBNAIL_SRC);
+      expect(video).to.have.attribute('disable-picture-in-picture');
+      expect(video).to.have.attribute('disable-remote-playback');
+      expect(video).to.have.attribute('height', '100%');
+      expect(video).to.have.attribute('width', '100%');
+    });
+
+    it('renders the progress bar', () => {
+      expect(el.querySelector('cx-progress-bar')).to.exist;
+    });
+
+    it('does not render an img', () => {
+      expect(el.querySelector('img')).to.be.null;
+    });
+  });
+
+  describe('when thumbnail-only is true with src set', () => {
+    beforeEach(async () => {
+      el.src = SAMPLE_VIDEO_SRC;
+      el.thumbnailSrc = SAMPLE_HORIZONTAL_THUMBNAIL_SRC;
+      el.thumbnailOnly = true;
+      await elementUpdated(el);
+    });
+
+    it('renders an img instead of video', () => {
+      expect(el.querySelector('cx-video')).to.be.null;
+      const img = el.querySelector('img');
+      expect(img).to.exist;
+      expect(img).to.have.attribute('src', SAMPLE_HORIZONTAL_THUMBNAIL_SRC);
+    });
+
+    it('does not render the progress bar', () => {
+      expect(el.querySelector('cx-progress-bar')).to.be.null;
+    });
+  });
+
+  describe('cx-loaded and orientation', () => {
+    it('emits cx-loaded and sets horizontal orientation from video metadata', async () => {
+      el.src = SAMPLE_VIDEO_SRC;
+      await elementUpdated(el);
+      const video = el.querySelector('cx-video')!;
+      Object.defineProperty(video, 'videoWidth', { configurable: true, value: 1920 });
+      Object.defineProperty(video, 'videoHeight', { configurable: true, value: 1080 });
+
+      const loaded = oneEvent(el, 'cx-loaded');
+      video.dispatchEvent(new CustomEvent('cx-loaded-metadata'));
+      await loaded;
+
+      expect(el.assetDirection).to.equal(Orientation.Horizontal);
+      const rep = el.querySelector('.content-browser-asset-preview__representative');
+      expect(rep?.classList.contains('content-browser-asset-preview__representative--horizontal')).to.be.true;
+    });
+
+    it('emits cx-loaded and sets vertical orientation from video metadata', async () => {
+      el.src = SAMPLE_VIDEO_SRC;
+      await elementUpdated(el);
+      const video = el.querySelector('cx-video')!;
+      Object.defineProperty(video, 'videoWidth', { configurable: true, value: 720 });
+      Object.defineProperty(video, 'videoHeight', { configurable: true, value: 1280 });
+
+      const loaded = oneEvent(el, 'cx-loaded');
+      video.dispatchEvent(new CustomEvent('cx-loaded-metadata'));
+      await loaded;
+
+      expect(el.assetDirection).to.equal(Orientation.Vertical);
+      const rep = el.querySelector('.content-browser-asset-preview__representative');
+      expect(rep?.classList.contains('content-browser-asset-preview__representative--vertical')).to.be.true;
+    });
+
+    it('emits cx-loaded and sets orientation from img load when thumbnail-only', async () => {
+      el.thumbnailSrc = SAMPLE_HORIZONTAL_THUMBNAIL_SRC;
+      el.thumbnailOnly = true;
+      el.src = SAMPLE_VIDEO_SRC;
+      await elementUpdated(el);
+      const img = el.querySelector('img')!;
+      Object.defineProperty(img, 'naturalWidth', { configurable: true, value: 400 });
+      Object.defineProperty(img, 'naturalHeight', { configurable: true, value: 800 });
+
+      const loaded = oneEvent(el, 'cx-loaded');
+      img.dispatchEvent(new Event('load'));
+      await loaded;
+
+      expect(el.assetDirection).to.equal(Orientation.Vertical);
+    });
+
+    it('emits cx-loaded and sets orientation from img load when thumbnail-only and vertical thumbnail', async () => {
+      el.thumbnailSrc = SAMPLE_VERTICAL_THUMBNAIL_SRC;
+      el.thumbnailOnly = true;
+      el.src = SAMPLE_VIDEO_SRC;
+      await elementUpdated(el);
+      const img = el.querySelector('img')!;
+      Object.defineProperty(img, 'naturalWidth', { configurable: true, value: 400 });
+      Object.defineProperty(img, 'naturalHeight', { configurable: true, value: 800 });
+
+      const loaded = oneEvent(el, 'cx-loaded');
+      img.dispatchEvent(new Event('load'));
+      await loaded;
+
+      expect(el.assetDirection).to.equal(Orientation.Vertical);
+    });
+  });
+
+  describe('cx-error', () => {
+    it('emits cx-error when the video fires error', async () => {
+      el.src = SAMPLE_VIDEO_SRC;
+      await elementUpdated(el);
+      const video = el.querySelector('cx-video')!;
+
+      const err = oneEvent(el, 'cx-error');
+      video.dispatchEvent(new CustomEvent('cx-error'));
+      await err;
+    });
+
+    it('emits cx-error when the img fires error', async () => {
+      el.thumbnailSrc = SAMPLE_HORIZONTAL_THUMBNAIL_SRC;
+      el.thumbnailOnly = true;
+      await elementUpdated(el);
+      const img = el.querySelector('img')!;
+
+      const err = oneEvent(el, 'cx-error');
+      img.dispatchEvent(new Event('error'));
+      await err;
+    });
+  });
+
+  describe('play icon visibility', () => {
+    it('renders the play icon when using cx-video without controls', async () => {
+      el.src = SAMPLE_VIDEO_SRC;
+      el.loaded = true;
+      await elementUpdated(el);
+
+      expect(el.querySelector('.content-browser-asset-preview__video-icon')).to.exist;
+    });
+
+    it('does not render the play icon when using cx-video with controls', async () => {
+      el.src = SAMPLE_VIDEO_SRC;
+      el.controls = true;
+      el.loaded = true;
+      await elementUpdated(el);
+
+      expect(el.querySelector('.content-browser-asset-preview__video-icon')).to.be.null;
+    });
+
+    it('renders the play icon for thumbnail-only before load', async () => {
+      el.src = SAMPLE_VIDEO_SRC;
+      el.thumbnailSrc = SAMPLE_HORIZONTAL_THUMBNAIL_SRC;
+      el.thumbnailOnly = true;
+      await elementUpdated(el);
+
+      expect(el.querySelector('.content-browser-asset-preview__video-icon')).to.exist;
+    });
+
+    it('renders the play icon for thumbnail-only when loaded', async () => {
+      el.src = SAMPLE_VIDEO_SRC;
+      el.thumbnailSrc = SAMPLE_HORIZONTAL_THUMBNAIL_SRC;
+      el.thumbnailOnly = true;
+      el.loaded = true;
+      await elementUpdated(el);
+
+      const iconWrap = el.querySelector('.content-browser-asset-preview__video-icon');
+      expect(iconWrap).to.exist;
+      const icon = iconWrap?.querySelector('cx-icon');
+      expect(icon).to.exist;
+      expect(icon?.getAttribute('name')).to.equal('play_arrow');
+    });
+  });
+
+  describe('progress control API', () => {
+    beforeEach(async () => {
+      el.src = SAMPLE_VIDEO_SRC;
+      await elementUpdated(el);
+      const video = el.querySelector('cx-video')!;
+      Object.defineProperty(video, 'duration', { configurable: true, value: 10 });
+    });
+
+    it('updates progress and seeks via updateProgress', () => {
+      const video = el.querySelector('cx-video')!;
+      const seek = sinon.spy(video, 'seek');
+      el.updateProgress(0.5);
+      expect(el.progress).to.equal(50);
+      expect(seek).to.have.been.calledWith(5);
+    });
+
+    it('reveals the video frame via player.hasStarted once on the first update', () => {
+      const video = el.querySelector('cx-video')!;
+      const hasStarted = sinon.spy();
+      const currentTime = sinon.spy();
+      // Real videojs Player instances expose a much larger API (el, on, off, isDisposed,
+      // dispose, ...) than this test needs, and cx-video's own disconnectedCallback cleanup
+      // calls into that API on teardown. Rather than reimplementing it, restore the original
+      // (real setup is stubbed out in beforeEach, so this is null) player once done so
+      // teardown runs against a state cx-video already knows how to clean up safely.
+      const originalPlayer = video.player;
+      Object.defineProperty(video, 'player', { configurable: true, value: { currentTime, hasStarted } });
+
+      el.updateProgress(0.2);
+      expect(hasStarted).to.have.been.calledOnceWith(true);
+
+      el.updateProgress(0.6);
+      expect(hasStarted).to.have.been.calledOnce;
+
+      Object.defineProperty(video, 'player', { configurable: true, value: originalPlayer });
+    });
+
+    it('clamps the ratio to the 0-1 range', () => {
+      const video = el.querySelector('cx-video')!;
+      const seek = sinon.spy(video, 'seek');
+      el.updateProgress(1.5);
+      expect(el.progress).to.equal(100);
+      expect(seek).to.have.been.calledWith(10);
+
+      el.updateProgress(-0.5);
+      expect(el.progress).to.equal(0);
+      expect(seek).to.have.been.calledWith(0);
+    });
+
+    it('updates progress via updateProgress even when video duration is not yet loaded', () => {
+      const video = el.querySelector('cx-video')!;
+      Object.defineProperty(video, 'duration', { configurable: true, value: 0 });
+      const seek = sinon.spy(video, 'seek');
+      el.updateProgress(0.5);
+      expect(el.progress).to.equal(50);
+      expect(seek).to.not.have.been.called;
+    });
+
+    it('resets progress and seeks to the start via resetProgress', () => {
+      const video = el.querySelector('cx-video')!;
+      const seek = sinon.spy(video, 'seek');
+      const pause = sinon.spy(video, 'pause');
+      el.updateProgress(0.5);
+      expect(el.progress).to.equal(50);
+
+      el.resetProgress();
+      expect(el.progress).to.equal(0);
+      expect(seek).to.have.been.calledWith(0);
+      expect(pause).to.have.been.called;
+    });
+  });
+});

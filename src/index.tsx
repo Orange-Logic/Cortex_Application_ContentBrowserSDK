@@ -1,9 +1,13 @@
 import './styles.css';
 
+export { default as CxContentBrowser } from './components/content-browser/content-browser';
+
+import { createRef } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Provider } from 'react-redux';
 
 import { App } from '@/App';
+import type { AssetsPickerHandle } from './view/AssetsPicker';
 import { AppContextType } from '@/AppContext';
 import {
   CtaTextTransform,
@@ -11,18 +15,22 @@ import {
   ImageCardDisplayInfo,
 } from '@/GlobalConfigContext';
 import { store } from '@/store';
-import { resetImportStatus, setSelectedAssetId } from '@/store/assets/assets.slice';
 import {
   initAuthInfoFromCache,
   setUseHeaders,
   setUserConfigSiteUrl,
 } from '@/store/auth/auth.slice';
+import { refreshAccessToken } from '@/utils/api';
+import { Folder, GetContentRequest, GetContentResponse, GetFoldersRequest } from './types/search';
 
-import { assetsApi } from './store/assets/assets.api';
-import { searchApi } from './store/search/search.api';
-import { userApi } from './store/user/user.api';
-import { Asset, Facet, Folder, GetContentRequest, GetFoldersRequest } from './types/search';
-import { ContentBrowserApiService } from './ApiService';
+/**
+ * Listen for 401 events from the design system's shared axios instance.
+ * The design system dispatches `cx-unauthorized` whenever any of its requests get a 401;
+ * this lets the SDK kick off the same token-refresh flow it uses for its own fetches.
+ */
+globalThis.addEventListener('cx-unauthorized', refreshAccessToken);
+
+const assetsPickerRef = createRef<AssetsPickerHandle>();
 
 type OrangeDAMContentBrowser = {
   help: () => void;
@@ -234,15 +242,11 @@ type OrangeDAMContentBrowser = {
     defaultGridView?: string;
   }) => Promise<void>;
   close: () => void;
-  fetchAssets: (params: GetContentRequest) => Promise<{
-    facets: Facet[];
-    items: Asset[];
-    totalCount: number;
-  } | undefined>;
+  fetchAssets: (params: GetContentRequest) => Promise<GetContentResponse | undefined> | undefined;
   fetchFolders: (params: GetFoldersRequest) => Promise<{
     items: Folder[];
     totalCount: number;
-  } | undefined>;
+  } | undefined> | undefined;
   previewAsset?: (assetId: string) => void;
   /**
    * Global function which mirrored the behavior of onAssetSelected
@@ -477,10 +481,6 @@ const ContentBrowser: OrangeDAMContentBrowser = {
         : undefined;
 
     const handleClose = () => {
-      store.dispatch(resetImportStatus());
-      store.dispatch(searchApi.util.resetApiState());
-      store.dispatch(assetsApi.util.resetApiState());
-      store.dispatch(userApi.util.resetApiState());
       root.unmount();
       // Reset these function when close the Content Browser
       window.OrangeDAMContentBrowser._onAssetSelected = undefined;
@@ -517,15 +517,15 @@ const ContentBrowser: OrangeDAMContentBrowser = {
             },
             isContentBrowserPopedup: !containerId,
             showCollections: !!showCollections,
-            showFavoriteFolder: !!showFavoriteFolder,
+            showFavoriteFolder: showFavoriteFolder !== false,
             showVersions: !!showVersions,
             useSession,
             allowPin: !!allowPin,
+            allowFormatDialogPin: !!allowFormatDialogPin,
             allowLogout: allowLogout !== undefined ? !!allowLogout : true,
             allowTracking: allowTracking !== undefined ? !!allowTracking : true,
             allowProxy: allowProxy !== undefined ? !!allowProxy : true,
             allowFavorites: !!allowFavorites,
-            allowFormatDialogPin: !!allowFormatDialogPin,
             defaultGridView: defaultGridView ?? '',
           }}
         >
@@ -546,6 +546,7 @@ const ContentBrowser: OrangeDAMContentBrowser = {
             onTokenChanged={onTokenChangedHandler}
             onUnpinAsset={onUnpinAssetHandler}
             onSiteUrlChanged={onSiteUrlChanged}
+            assetsPickerRef={assetsPickerRef}
           />
         </GlobalConfigContext.Provider>
       </Provider>,
@@ -555,16 +556,18 @@ const ContentBrowser: OrangeDAMContentBrowser = {
     window.OrangeDAMContentBrowser._onClose?.();
   },
   fetchAssets: (params: GetContentRequest) => {
-    return ContentBrowserApiService.fetchAssets(params);
+    return assetsPickerRef.current?.fetchAssets(params);
   },
   fetchFolders: (params: GetFoldersRequest) => {
-    return ContentBrowserApiService.fetchFolders(params);
+    return assetsPickerRef.current?.fetchFolders(params);
   },
   previewAsset: (recordId: string) => {
-    store.dispatch(setSelectedAssetId(recordId));
+    return assetsPickerRef.current?.selectAsset(recordId);
   },
 };
 
-window.OrangeDAMContentBrowser = ContentBrowser;
+// Public host integration uses globalThis so the bundle works as a classic <script>
+// (where `this` in the UMD wrapper is `window`) and matches nested `window` usage below.
+(globalThis as unknown as Window).OrangeDAMContentBrowser = ContentBrowser;
 
 export default ContentBrowser;

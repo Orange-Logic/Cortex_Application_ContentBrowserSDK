@@ -1,0 +1,22 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "declarationMap": false,
+    "outDir": "build",
+    "rootDir": "src",
+    "skipLibCheck": true,
+    "noEmitOnError": false
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  "exclude": [
+    "node_modules",
+    "build",
+    "**/*.btest.ts",
+    "**/*.test.ts",
+    "**/*.spec.ts",
+    "**/*.cy.tsx"
+  ]
+}

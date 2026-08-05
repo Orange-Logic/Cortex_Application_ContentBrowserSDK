@@ -70,11 +70,11 @@ stages:
               tokenSuffix: '__'
               additionalVariables: |
                 - tag: v$(GitVersion.FullSemVer)
-                
+
           - task: DownloadSecureFile@1
             name: npmrcFile
             inputs:
-              secureFile: 'npmrc'   
+              secureFile: 'npmrc'
 
           - bash: |
               echo "Renaming secure file to .npmrc"
@@ -86,14 +86,34 @@ stages:
               npmEndpoint: 'OL NPM registry'
               isCustomNpmEndpoint: true
               version: '$(GitVersion.FullSemVer)'
-              skipBuild: false
+              skipBuild: true
               skipPublish: true
+
+          - bash: |
+              npx playwright install chromium
+            displayName: 'Install Playwright Chromium'
+            workingDirectory: $(Build.SourcesDirectory)
+
+          - bash: |
+              NODE_OPTIONS=--dns-result-order=ipv4first npm run test-browser
+            displayName: 'Run browser tests'
+            workingDirectory: $(Build.SourcesDirectory)
+
+          - bash: |
+              npm run build
+            displayName: 'Build library'
+            workingDirectory: $(Build.SourcesDirectory)
 
           - task: Npm@1
             displayName: 'NPM publish'
             inputs:
               command: 'custom'
               customCommand: 'run publish:library'
+
+          - bash: |
+              rm -f "$(Build.SourcesDirectory)/.npmrc"
+            displayName: 'Cleanup .npmrc'
+            condition: always()
 
           - template: azure-pipelines/common/steps-s3-publish.yml@infra-templates
             parameters:

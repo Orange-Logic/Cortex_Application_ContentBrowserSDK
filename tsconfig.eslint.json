@@ -5,10 +5,6 @@
     "src/**/*.tsx",
     "src/**/*.js",
     "src/**/*.jsx",
-    "cypress/**/*.ts",
-    "cypress/**/*.tsx",
-    "cypress/**/*.d.ts",
-    "cypress/**/*.js",
-    "cypress/**/*.jsx"
+    "web-test-runner.config.mjs"
   ]
 }

@@ -1,11 +1,7 @@
-export const convertPixelsToAspectRatio = (width: number, height: number) => {
-  const gcd = (a: number, b: number): number => (b === 0 ? a : gcd(b, a % b));
-  const roundedWidth = Math.round(width);
-  const roundedHeight = Math.round(height);
-  const divisor = gcd(roundedWidth, roundedHeight);
+export function safeInteger(value: unknown): number {
+  if (Number.isNaN(value) || !Number.isInteger(value)) {
+    return 0;
+  }
 
-  return {
-    width: roundedWidth / divisor,
-    height: roundedHeight / divisor,
-  };
-};
+  return value as number;
+}

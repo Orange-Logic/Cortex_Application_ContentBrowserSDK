@@ -54,7 +54,7 @@ export const GlobalConfigContext = createContext<GlobalConfigContextType>({
   pluginInfo: {},
   isContentBrowserPopedup: false,
   showCollections: false,
-  showFavoriteFolder: false,
+  showFavoriteFolder: true,
   showVersions: false,
   allowLogout: true,
   allowTracking: true,
