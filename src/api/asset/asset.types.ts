@@ -17,7 +17,7 @@ export type ContentItem = {
 };
 
 export type GetAssetLinkRequest = {
-  ExtraFields?: string;
+  ExtraFields?: string[];
   GenerateAssetUrl?: boolean;
   Parameters?: TrackingParameter[];
   Proxy?: string;

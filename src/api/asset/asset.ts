@@ -2,6 +2,7 @@ import http from '@/api/api';
 import { Asset, GetAssetsRequest, MediaType } from '@/types/asset';
 import { TransformationAction } from '@/types/content-browser';
 import { AssetApiEndpoint } from '@/api/endpoints';
+import { appendPathAndQuery } from '@/utils/appendPathAndQuery';
 
 import {
   CortexErrorResponse,
@@ -83,6 +84,14 @@ function isCortexErrorResponse(response: GetAssetLinkResponse | CortexErrorRespo
   return response && typeof response === 'object' && 'ErrorCode' in response;
 }
 
+// What a backend without the POST overload answers. 403/404 are excluded: they carry business errors
+// (OL_ERR_002_NOTALLOWED / OL_ERR_001_NOTFOUND), so one denied asset must not disable POST for the site.
+const POST_UNSUPPORTED_STATUSES = new Set([405, 501]);
+
+// Origins known to reject the POST overload, so the rejection is not paid again. Keyed by origin because the
+// capability belongs to the backend, not to the bundle: http's baseURL can point at another site.
+const postUnsupportedOrigins = new Set<string>();
+
 function createId() {
   const cryptoApi = globalThis.crypto;
 
@@ -110,6 +119,172 @@ function createId() {
   return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
+function buildAssetLinkImageUrl({
+  asset,
+  extension,
+  parameters,
+  permanentLink,
+  rawResponse,
+  transformations,
+  useSession,
+}: {
+  asset: Asset;
+  extension?: string;
+  parameters: GetAssetLinksRequest['parameters'];
+  permanentLink?: string;
+  rawResponse: GetAssetLinkResponse;
+  transformations: GetAssetLinksRequest['transformations'];
+  useSession?: string;
+}): string {
+  let baseImageUrl = permanentLink || rawResponse.imageUrl;
+
+  // Built separately from the base URL: these are path segments, and appendPathAndQuery() has to place them
+  // before any query string the server already put on the link. Asset links generated under a parameter
+  // session already end in "?UseSession=<id>" — appending onto the raw string would push the whole
+  // transformation into the query value instead of the path (L-428JQO).
+  let transformationPath = '';
+
+  if (transformations && transformations.length > 0) {
+    transformationPath += '/t/';
+  }
+
+  transformations?.forEach(({ key, value }) => {
+    if (key === TransformationAction.Resize) {
+      const validTransformations = [
+        ...[
+          {
+            key: 're_w_',
+            value: value.width,
+          },
+          {
+            key: 're_h_',
+            value: value.height,
+          },
+        ]
+          .filter((item) => item.value !== undefined)
+          .map((item) => ({
+            key: item.key,
+            value: Math.round(Number(item.value)),
+          })),
+        {
+          key: 're_rm_',
+          value: 'stretch',
+        },
+      ];
+
+      validTransformations.forEach(({ key: vKey, value: vValue }, index) => {
+        transformationPath += `${vKey}${vValue}${index < validTransformations.length - 1 ? ',' : ''}`;
+      });
+
+      transformationPath += '/';
+    }
+
+    if (key === TransformationAction.Crop) {
+      const validTransformations = [
+        ...[
+          {
+            key: 'c_w_',
+            value: value.width,
+          },
+          {
+            key: 'c_h_',
+            value: value.height,
+          },
+          {
+            key: 'c_x_',
+            value: value.x,
+          },
+          {
+            key: 'c_y_',
+            value: value.y,
+          },
+        ]
+          .filter((item) => item.value !== undefined)
+          .map((item) => ({
+            key: item.key,
+            value: Math.round(Number(item.value)),
+          })),
+        {
+          key: 'c_whu_',
+          value: 'pixel',
+        },
+      ];
+
+      validTransformations.forEach(({ key: vKey, value: vValue }, index) => {
+        transformationPath += `${vKey}${vValue}${index < validTransformations.length - 1 ? ',' : ''}`;
+      });
+
+      transformationPath += '/';
+    }
+
+    if (key === TransformationAction.Rotate) {
+      const validTransformations = [{
+        key: 'r_a_',
+        value: value.rotation,
+      }].filter((item) => item.value !== undefined).map((item) => ({ key: item.key, value: Math.round(Number(item.value)) }));
+
+      validTransformations.forEach(({ key: vKey, value: vValue }, index) => {
+        transformationPath += `${vKey}${vValue}${index < validTransformations.length - 1 ? ',' : ''}`;
+      });
+
+      transformationPath += '/';
+    }
+
+    if (key === TransformationAction.Quality) {
+      const validTransformations = [{
+        key: 'q_level_',
+        value: value.quality,
+      }].filter((item) => item.value !== undefined).map((item) => ({ key: item.key, value: Math.round(Number(item.value)) }));
+
+      validTransformations.forEach(({ key: vKey, value: vValue }, index) => {
+        transformationPath += `${vKey}${vValue}${index < validTransformations.length - 1 ? ',' : ''}`;
+      });
+
+      transformationPath += '/';
+    }
+
+    if (key === TransformationAction.Metadata) {
+      if (value.keepMetadata === true) {
+        transformationPath += 'fl_keep_metadata/';
+      }
+    }
+  });
+
+  const hasTransformations = Boolean(transformations && transformations.length > 0);
+
+  if (hasTransformations) {
+    transformationPath += `${asset.identifier}`;
+  }
+
+  if (!permanentLink) {
+    const assetExtension = extension ?? asset.extension;
+    const normalizedExtension = assetExtension.startsWith('.') ? assetExtension : `.${assetExtension}`;
+
+    if (hasTransformations) {
+      // This is a brand-new path built from asset.identifier, not the server's original filename, so the
+      // extension is appended rather than replacing anything.
+      transformationPath += normalizedExtension;
+    } else {
+      // No new path segments are being added — swap the extension already on the server's link instead of
+      // appending a second one after it (e.g. ".../abc.jpg" -> ".../abc.png", not ".../abc.jpg.png").
+      const [basePath, baseTail] = baseImageUrl.split(/([?#].*)$/, 2);
+      baseImageUrl = basePath.replace(/\.[^./]+$/, '') + normalizedExtension + (baseTail ?? '');
+    }
+  }
+
+  const queryParams: string[] = [];
+
+  parameters?.forEach(({ key, value }) => {
+    queryParams.push(`${encodeURIComponent(key.trim())}=${encodeURIComponent(value.trim())}`);
+  });
+
+  if (useSession) {
+    queryParams.push(`UseSession=${encodeURIComponent(useSession)}`);
+  }
+
+  return appendPathAndQuery(baseImageUrl, transformationPath, queryParams);
+}
+
 export async function apiGetAssetLinks({
   assets,
   extension,
@@ -123,193 +298,110 @@ export async function apiGetAssetLinks({
   const getAssetLinkErrors: { [key: string]: Asset[] } = {};
   const isOnlyOneAssetSelected = assets.length === 1;
   let hasError = false;
+  const origin = http.defaults.baseURL ?? window.location.origin;
 
   try {
-    const settled = await Promise.allSettled(assets.map((asset) => {
-      return http.request<
-        GetAssetLinkResponse,
-        GetAssetLinkRequest
-      >({
-        method: 'GET',
-        params: {
-          ExtraFields: extraFields,
-          GenerateAssetUrl: !permanentLink,
-          Parameters: parameters,
-          Proxy: proxyPreference,
-          RecordId: asset.recordId,
-          UseSession: useSession || undefined,
-        },
-        paramsSerializer: {
-          indexes: null,
-        },
-        transformResponse: [
-          ...(Array.isArray(http.defaults.transformResponse)
-            ? http.defaults.transformResponse
-            : []),
-          (rawResponse: GetAssetLinkResponse | CortexErrorResponse): GetAssetLinkResponse => {
-            if (isCortexErrorResponse(rawResponse)) {
-              hasError = true;
-              // We will give more details error message if only one asset was imported
-              if (isOnlyOneAssetSelected) {
-                if (getAssetLinkErrors[rawResponse.ErrorCode]) {
-                  getAssetLinkErrors[rawResponse.ErrorCode].push(asset);
-                } else {
-                  getAssetLinkErrors[rawResponse.ErrorCode] = [asset];
-                }
-              }
+    const settled = await Promise.allSettled(assets.map(async (asset) => {
+      const requestBody: GetAssetLinkRequest = {
+        GenerateAssetUrl: !permanentLink,
+        Parameters: parameters,
+        Proxy: proxyPreference,
+        RecordId: asset.recordId,
+      };
 
-              return {
-                imageUrl: asset.imageUrl,
-              } as GetAssetLinkResponse;
-            }
+      if (extraFields?.length) {
+        requestBody.ExtraFields = extraFields;
+      }
 
-            const sourceUrl = permanentLink || rawResponse.imageUrl;
-            const [sourcePath, sourceQuery] = sourceUrl.split('?', 2);
-            const mergedParams = new URLSearchParams(sourceQuery ?? '');
-            let imageUrl = sourcePath;
+      // UseSession is read via Request["UseSession"] (query + form), never a JSON body, so it always stays on the
+      // query string regardless of which verb ends up serving the request.
+      const useSessionQuery = useSession
+        ? `?${new URLSearchParams({ UseSession: useSession }).toString()}`
+        : '';
 
-            if (transformations && transformations.length > 0) {
-              imageUrl += '/t/';
-            }
+      const attemptPost = !postUnsupportedOrigins.has(origin);
+      let rawResponse: GetAssetLinkResponse | CortexErrorResponse | undefined;
 
-            transformations?.forEach(({ key, value }) => {
-              if (key === TransformationAction.Resize) {
-                const validTransformations = [
-                  ...[
-                    {
-                      key: 're_w_',
-                      value: value.width,
-                    },
-                    {
-                      key: 're_h_',
-                      value: value.height,
-                    },
-                  ]
-                    .filter((item) => item.value !== undefined)
-                    .map((item) => ({
-                      key: item.key,
-                      value: Math.round(Number(item.value)),
-                    })),
-                  {
-                    key: 're_rm_',
-                    value: 'stretch',
-                  },
-                ];
+      if (attemptPost) {
+        try {
+          const postResult = await http.request<
+            GetAssetLinkResponse | CortexErrorResponse,
+            GetAssetLinkRequest
+          >({
+            data: requestBody,
+            method: 'POST',
+            url: `${AssetApiEndpoint.GET_ASSET_LINK}${useSessionQuery}`,
+            validateStatus: () => true,
+          });
 
-                validTransformations.forEach(({ key: vKey, value: vValue }, index) => {
-                  imageUrl += `${vKey}${vValue}${index < validTransformations.length - 1 ? ',' : ''}`;
-                });
+          if (POST_UNSUPPORTED_STATUSES.has(postResult.status)) {
+            // Only a status demotes the origin — a thrown request may be a transient network failure.
+            postUnsupportedOrigins.add(origin);
+          } else {
+            rawResponse = postResult.data;
+          }
+        } catch {
+          // A preflight that disallows POST rejects instead of answering, so there is no status to inspect; fall
+          // back to GET below without demoting the origin (this may be transient).
+        }
+      }
 
-                imageUrl += '/';
-              }
-
-              if (key === TransformationAction.Crop) {
-                const validTransformations = [
-                  ...[
-                    {
-                      key: 'c_w_',
-                      value: value.width,
-                    },
-                    {
-                      key: 'c_h_',
-                      value: value.height,
-                    },
-                    {
-                      key: 'c_x_',
-                      value: value.x,
-                    },
-                    {
-                      key: 'c_y_',
-                      value: value.y,
-                    },
-                  ]
-                    .filter((item) => item.value !== undefined)
-                    .map((item) => ({
-                      key: item.key,
-                      value: Math.round(Number(item.value)),
-                    })),
-                  {
-                    key: 'c_whu_',
-                    value: 'pixel',
-                  },
-                ];
-
-                validTransformations.forEach(({ key: vKey, value: vValue }, index) => {
-                  imageUrl += `${vKey}${vValue}${index < validTransformations.length - 1 ? ',' : ''}`;
-                });
-
-                imageUrl += '/';
-              }
-
-              if (key === TransformationAction.Rotate) {
-                const validTransformations = [{
-                  key: 'r_a_',
-                  value: value.rotation,
-                }].filter((item) => item.value !== undefined).map((item) => ({ key: item.key, value: Math.round(Number(item.value)) }));
-
-                validTransformations.forEach(({ key: vKey, value: vValue }, index) => {
-                  imageUrl += `${vKey}${vValue}${index < validTransformations.length - 1 ? ',' : ''}`;
-                });
-
-                imageUrl += '/';
-              }
-
-              if (key === TransformationAction.Quality) {
-                const validTransformations = [{
-                  key: 'q_level_',
-                  value: value.quality,
-                }].filter((item) => item.value !== undefined).map((item) => ({ key: item.key, value: Math.round(Number(item.value)) }));
-
-                validTransformations.forEach(({ key: vKey, value: vValue }, index) => {
-                  imageUrl += `${vKey}${vValue}${index < validTransformations.length - 1 ? ',' : ''}`;
-                });
-
-                imageUrl += '/';
-              }
-
-              if (key === TransformationAction.Metadata) {
-                if (value.keepMetadata === true) {
-                  imageUrl += 'fl_keep_metadata/';
-                }
-              }
-            });
-
-            if (transformations && transformations.length > 0) {
-              imageUrl += `${asset.identifier}`;
-            }
-
-            if (!permanentLink) {
-              const assetExtension = extension ?? asset.extension;
-              const normalizedExtension = assetExtension.startsWith('.') ? assetExtension : `.${assetExtension}`;
-              imageUrl = imageUrl.replace(/\.[^./]+$/, '') + normalizedExtension;
-            }
-
-            parameters?.forEach(({ key, value }) => {
-              mergedParams.set(key.trim(), value.trim());
-            });
-
-            if (useSession && !mergedParams.has('UseSession')) {
-              mergedParams.set('UseSession', useSession);
-            }
-
-            const finalQuery = mergedParams.toString();
-            if (finalQuery) {
-              imageUrl += `?${finalQuery}`;
-            }
-
-            return {
-              ...rawResponse,
-              imageUrl,
-            };
+      if (rawResponse === undefined) {
+        // A long ExtraFields list still overflows the URL here — that is the defect POST fixes, so GET is a
+        // fallback only.
+        const getResult = await http.request<
+          GetAssetLinkResponse | CortexErrorResponse,
+          GetAssetLinkRequest
+        >({
+          method: 'GET',
+          params: {
+            ...requestBody,
+            UseSession: useSession || undefined,
           },
-        ],
-        url: AssetApiEndpoint.GET_ASSET_LINK,
+          paramsSerializer: {
+            indexes: null,
+          },
+          url: AssetApiEndpoint.GET_ASSET_LINK,
+        });
+
+        rawResponse = getResult.data;
+      }
+
+      if (isCortexErrorResponse(rawResponse)) {
+        hasError = true;
+        // We will give more details error message if only one asset was imported
+        if (isOnlyOneAssetSelected) {
+          if (getAssetLinkErrors[rawResponse.ErrorCode]) {
+            getAssetLinkErrors[rawResponse.ErrorCode].push(asset);
+          } else {
+            getAssetLinkErrors[rawResponse.ErrorCode] = [asset];
+          }
+        }
+
+        return {
+          imageUrl: asset.imageUrl,
+        } as GetAssetLinkResponse;
+      }
+
+      const imageUrl = buildAssetLinkImageUrl({
+        asset,
+        extension,
+        parameters,
+        permanentLink,
+        rawResponse,
+        transformations,
+        useSession,
       });
+
+      return {
+        ...rawResponse,
+        imageUrl,
+      };
     }));
 
     const data = settled.flatMap((result) => {
       if (result.status === 'fulfilled') {
-        return [result.value.data];
+        return [result.value];
       }
 
       hasError = true;
