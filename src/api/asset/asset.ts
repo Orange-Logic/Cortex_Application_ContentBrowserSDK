@@ -314,10 +314,11 @@ export async function apiGetAssetLinks({
       }
 
       // UseSession is read via Request["UseSession"] (query + form), never a JSON body, so it always stays on the
-      // query string regardless of which verb ends up serving the request.
-      const useSessionQuery = useSession
-        ? `?${new URLSearchParams({ UseSession: useSession }).toString()}`
-        : '';
+      // query string regardless of which verb ends up serving the request. It travels via `params` rather than
+      // being appended to `url`, because the auth interceptor matches `config.url` against the endpoint constant
+      // by exact string equality -- a url carrying its own query string misses that allowlist and silently drops
+      // the Token.
+      const useSessionParams = useSession ? { UseSession: useSession } : undefined;
 
       const attemptPost = !postUnsupportedOrigins.has(origin);
       let rawResponse: GetAssetLinkResponse | CortexErrorResponse | undefined;
@@ -330,7 +331,8 @@ export async function apiGetAssetLinks({
           >({
             data: requestBody,
             method: 'POST',
-            url: `${AssetApiEndpoint.GET_ASSET_LINK}${useSessionQuery}`,
+            params: useSessionParams,
+            url: AssetApiEndpoint.GET_ASSET_LINK,
             validateStatus: () => true,
           });
 

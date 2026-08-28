@@ -181,6 +181,8 @@ export class FetchAndMergeAssetsController implements ReactiveController {
     http.defaults.baseURL = baseUrl;
 
     this.requestInterceptorId = http.interceptors.request.use((config) => {
+      // Match on the path only: a url may legitimately carry its own query string, and exact equality
+      // would drop it out of this allowlist -- silently sending the request without Token/UseSession.
       if (config.url && ![
         AssetApiEndpoint.GET_AVAILABLE_EXTENSIONS,
         AssetApiEndpoint.GET_ASSET_VERSION_HISTORY,
@@ -196,7 +198,7 @@ export class FetchAndMergeAssetsController implements ReactiveController {
         MetadataApiEndpoint.GET_SORT_ORDERS,
         AuthApiEndpoint.GET_USER_INFO,
         FOLDER_API_ENDPOINT,
-      ].includes(config.url)) {
+      ].includes(config.url.split('?')[0])) {
         return config;
       }
 
