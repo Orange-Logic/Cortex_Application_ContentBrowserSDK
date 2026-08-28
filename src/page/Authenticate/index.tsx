@@ -5,7 +5,8 @@ import { AppContext } from '@/AppContext';
 import { GlobalConfigContext } from '@/GlobalConfigContext';
 import { useAppDispatch, useAppSelector } from '@/store';
 import {
-    appAuthUrlSelector, authStateSelector, cancelAuth, setUseSession, siteUrlSelector, USE_SESSION,
+  appAuthUrlSelector, applySessionSelector, authStateSelector, cancelAuth, setUseSession,
+  siteUrlSelector, USE_SESSION,
 } from '@/store/auth/auth.slice';
 import { getData } from '@/utils/storage';
 
@@ -28,7 +29,10 @@ type Props = {
 
 const RestoreSession: FC<Props> = ({ onCancel }) => {
   const dispatch = useAppDispatch();
+  const currentSession = useAppSelector(applySessionSelector);
   useEffect(() => {
+    // A session set from the SDK config takes precedence over the stored one
+    if (currentSession) return;
     getData(USE_SESSION).then((storedSession) => {
       if (storedSession) {
         dispatch(setUseSession(storedSession));

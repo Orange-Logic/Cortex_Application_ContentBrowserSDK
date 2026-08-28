@@ -19,6 +19,7 @@ import {
   initAuthInfoFromCache,
   setUseHeaders,
   setUserConfigSiteUrl,
+  setUseSession,
 } from '@/store/auth/auth.slice';
 import { refreshAccessToken } from '@/utils/api';
 import { findFocusContainmentHost } from '@/utils/focus-containment';
@@ -443,6 +444,13 @@ const ContentBrowser: OrangeDAMContentBrowser = {
 
     if (onRequestToken) {
       store.dispatch(setUseHeaders(true));
+    }
+
+    // The API layer reads the session from the auth store, so the configured
+    // session must be dispatched here — not only from the connect form, which
+    // token-authenticated integrations never submit
+    if (useSession) {
+      store.dispatch(setUseSession(useSession));
     }
 
     store.dispatch(initAuthInfoFromCache());
