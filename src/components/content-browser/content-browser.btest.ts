@@ -733,6 +733,44 @@ describe('content-browser', () => {
     expect(selectedSpy).not.to.have.been.called;
   });
 
+  it('emits cx-content-browser-selected-asset for a file-less asset that resolves to no link', async () => {
+    // Regression, L-29Q5K0: digitized = 0 (e.g. a text fragment) — GetAssetLink succeeds and returns the
+    // requested ExtraFields, but there is no file to link to. Gating the callback on imageUrl (2.3.0) swallowed
+    // the selection entirely, giving the host neither an event nor an error. Reported at
+    // https://link.orangelogic.com/asset-management/2P7YOHEHMD263?DetailTab=Overview&Anchor=2P7YOL7KIP92
+    const asset = makeAsset({ extension: '', imageUrl: '' });
+    const { el } = await fixtureWithMock(html`<cx-content-browser></cx-content-browser>`, {
+      getAssetLinkResult: {
+        data: [{ extraFields: { 'Dell.Snippet': 'A fragment of text' }, imageUrl: '' }],
+        isError: false,
+      },
+      items: [asset],
+      totalCount: 1,
+    });
+
+    const dialog = getFormatDialog(el);
+    const hideSpy = sinon.spy(dialog, 'hide');
+    const p = oneEvent(el, 'cx-content-browser-selected-asset');
+
+    dialog.dispatchEvent(
+      new CustomEvent('cx-content-browser-format-dialog-proxy-confirm', {
+        bubbles: true,
+        composed: true,
+        detail: {
+          asset,
+          selectedProxyMetadata: null,
+          useRepresentative: false,
+        },
+      }),
+    );
+
+    const ev = await p;
+    expect(ev.detail).to.be.an('array').with.lengthOf(1);
+    expect(ev.detail[0].extraFields['Dell.Snippet']).to.equal('A fragment of text');
+    expect(ev.detail[0].imageUrl).to.equal('');
+    expect(hideSpy).to.have.been.called;
+  });
+
   it('merges ScrubUrl into selected payload when extra-fields requests it', async () => {
     const asset = makeAsset({ scrubUrl: 'https://scrub.example/s.vtt' });
     const { el } = await fixtureWithMock(

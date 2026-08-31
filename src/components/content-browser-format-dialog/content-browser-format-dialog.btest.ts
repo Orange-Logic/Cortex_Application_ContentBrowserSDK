@@ -872,6 +872,42 @@ describe('content-browser-format-dialog', () => {
     expect(count).to.equal(0);
   });
 
+  it('keeps an original-file proxy for an asset that has no extension of its own', async () => {
+    // Regression, L-29Q5K0: digitized = 0 (e.g. a text fragment) — there is no file extension to test against
+    // supported-extensions, so the proxy must not be filtered away, or the dialog falls through to "no
+    // available options" and the host never gets a selection. Assets that DO have an unsupported extension are
+    // still filtered (test above). Reported at
+    // https://link.orangelogic.com/asset-management/2P7YOHEHMD263?DetailTab=Overview&Anchor=2P7YOL7KIP92
+    el = await fixture<CxContentBrowserFormatDialog>(
+      html`<cx-content-browser-format-dialog
+        can-use-proxies
+        supported-extensions="gif"
+      ></cx-content-browser-format-dialog>`,
+    );
+    el.open({
+      asset: makeAsset({ extension: '' }),
+      isFavorite: false,
+      proxies: [
+        makeProxy({
+          extension: null,
+          id: 'p-raw',
+          proxyLabel: 'Raw',
+          proxyName: 'RAW',
+        }),
+      ],
+    });
+    await elementUpdated(el);
+
+    expect(getProxySelector(el).items.map((item) => item.id)).to.deep.equal(['p-raw']);
+
+    const p = oneEvent(el, 'cx-content-browser-format-dialog-proxy-confirm');
+    (el.shadowRoot!.querySelector(
+      '.content-browser-format__footer__button',
+    ) as HTMLElement).click();
+    const ev = await p;
+    expect(ev.detail.proxyPreference).to.equal('RAW');
+  });
+
   it('shows custom format footer and restores proxy footer after cancel', async () => {
     el = await fixture<CxContentBrowserFormatDialog>(
       html`<cx-content-browser-format-dialog

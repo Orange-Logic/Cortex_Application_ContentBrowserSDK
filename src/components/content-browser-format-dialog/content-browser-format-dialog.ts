@@ -254,8 +254,14 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
   @watch('supportedExtensions')
   handleSupportedExtensionsChange() {
     this.filteredProxies = this.proxies.filter((item) => {
-      if (!item.extension && this.asset) {
-        return this.supportedExtensions.includes(this.asset.extension.replace(/^\./, ''));
+      const assetExtension = this.asset?.extension?.replace(/^\./, '') ?? '';
+
+      // A proxy with no extension of its own serves the asset's original file, so it is only offered when that
+      // file's own extension is one we support. An asset with no file at all (digitized = 0 — e.g. a text
+      // fragment) has no extension to test, and the question is unanswerable rather than answered "no": keep
+      // the proxy, as the SDK did before 2.3.0, instead of leaving the dialog with nothing to select.
+      if (!item.extension && this.asset && assetExtension) {
+        return this.supportedExtensions.includes(assetExtension);
       }
 
       return true;

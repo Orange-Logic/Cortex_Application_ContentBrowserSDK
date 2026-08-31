@@ -577,7 +577,11 @@ export default class CxContentBrowser extends CortexElement {
         extraFields: this.extraFields,
       });
 
-      if (response.isError || !response.data[0]?.imageUrl) {
+      // Only a real failure keeps the dialog open. A successful response with no link is not one: an asset with
+      // no file of its own (digitized = 0 — e.g. a text fragment) has nothing to link to, yet still carries the
+      // ExtraFields the host asked for, and swallowing the selection leaves the integration with no callback
+      // and no error to act on.
+      if (response.isError) {
         this.formatDialog.setLoadingConfirm(false);
 
         return;
@@ -603,7 +607,11 @@ export default class CxContentBrowser extends CortexElement {
         extraFields: this.extraFields,
       });
 
-      if (response.isError || !response.data[0]?.imageUrl) {
+      // Only a real failure keeps the dialog open. A successful response with no link is not one: an asset with
+      // no file of its own (digitized = 0 — e.g. a text fragment) has nothing to link to, yet still carries the
+      // ExtraFields the host asked for, and swallowing the selection leaves the integration with no callback
+      // and no error to act on.
+      if (response.isError) {
         this.formatDialog.setLoadingConfirm(false);
 
         return;

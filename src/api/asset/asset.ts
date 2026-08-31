@@ -256,8 +256,12 @@ function buildAssetLinkImageUrl({
     transformationPath += `${asset.identifier}`;
   }
 
-  if (!permanentLink) {
-    const assetExtension = extension ?? asset.extension;
+  // An asset with no file of its own (digitized = 0 — e.g. a text fragment) carries no extension, and the
+  // server returns no link to rewrite. Both halves below would then produce a bogus path (an empty base plus a
+  // lone "." separator), so skip the rewrite entirely and let the caller see the link the server actually gave.
+  const assetExtension = extension ?? asset.extension;
+
+  if (!permanentLink && assetExtension) {
     const normalizedExtension = assetExtension.startsWith('.') ? assetExtension : `.${assetExtension}`;
 
     if (hasTransformations) {
