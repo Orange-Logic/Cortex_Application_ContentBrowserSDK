@@ -1316,4 +1316,31 @@ describe('content-browser', () => {
     expect(req.start).to.equal(0);
     expect(el.lastRequest.searchText).to.equal('sunset photos');
   });
+
+  it('forwards the active searchText to the control bar', async () => {
+    const { el } = await fixtureWithMock(html`<cx-content-browser></cx-content-browser>`);
+
+    el.lastRequest = { ...el.lastRequest, searchText: 'HU1405JO' };
+    el.requestUpdate();
+    await elementUpdated(el);
+
+    const bar = getControlBar(el);
+    expect(bar.getAttribute('search-text')).to.equal('HU1405JO');
+    expect(bar.searchText).to.equal('HU1405JO');
+  });
+
+  it('displays a search term restored through default-search-text', async () => {
+    const { el } = await fixtureWithMock(
+      html`<cx-content-browser default-search-text="HU1405JO"></cx-content-browser>`,
+    );
+
+    expect(el.lastRequest.searchText).to.equal('HU1405JO');
+
+    el.requestUpdate();
+    await elementUpdated(el);
+
+    const bar = getControlBar(el);
+    expect(bar.getAttribute('search-text')).to.equal('HU1405JO');
+    expect(bar.searchText).to.equal('HU1405JO');
+  });
 });

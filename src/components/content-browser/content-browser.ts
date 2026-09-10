@@ -802,6 +802,7 @@ export default class CxContentBrowser extends CortexElement {
             ?loading=${loading}
             can-sort
             current-count=${items.length}
+            search-text=${ifDefined(request?.searchText)}
             sort-order-name=${ifDefined(request?.sortOrderName)}
             sort-direction=${ifDefined(request?.sortDirection)}
             total-count=${totalCount}

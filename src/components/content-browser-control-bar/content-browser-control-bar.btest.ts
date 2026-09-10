@@ -36,6 +36,7 @@ describe('content-browser-control-bar', () => {
       expect(el.isSeeThrough).to.be.false;
       expect(el.loading).to.be.false;
       expect(el.newlyChangedOption).to.be.undefined;
+      expect(el.searchText).to.equal('');
     });
 
     it('renders search input with search icon and localized placeholder', () => {
@@ -94,6 +95,12 @@ describe('content-browser-control-bar', () => {
         'is-see-through',
       );
     });
+
+    it('renders searchText into the search input', async () => {
+      el.searchText = 'HU1405JO';
+      await elementUpdated(el);
+      expect(getSearchInput(el).value).to.equal('HU1405JO');
+    });
   });
 
   describe('cx-content-browser-control-bar-search-change', () => {
@@ -111,6 +118,24 @@ describe('content-browser-control-bar', () => {
       expect(evt.detail.searchText).to.equal('asset query');
       await elementUpdated(el);
       expect(getSearchInput(el).value).to.equal('asset query');
+    });
+
+    it('emits an empty searchText when a populated input is cleared', async () => {
+      el.searchText = 'HU1405JO';
+      await elementUpdated(el);
+
+      // Mirrors cx-input's clear button, which blanks the value then emits cx-change.
+      const input = getSearchInput(el);
+      input.value = '';
+      await elementUpdated(input);
+
+      const evtPromise = oneEvent(el, 'cx-content-browser-control-bar-search-change');
+      input.dispatchEvent(
+        new CustomEvent('cx-change', { bubbles: true, composed: true }),
+      );
+      const evt = await evtPromise;
+
+      expect(evt.detail.searchText).to.equal('');
     });
   });
 });
