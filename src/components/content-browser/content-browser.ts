@@ -28,6 +28,7 @@ import {
 import { GetFolderRequest } from '@/types/folder';
 import { safeInteger } from '@/utils/number';
 import { watch } from '@/utils/watch';
+import { resolveSiteSessionUrl, SITE_SESSION_EXPIRED_MESSAGE } from '@/utils/site-session';
 import CxIcon from '@orangelogic/design-system/components/icon';
 import CxIconButton from '@orangelogic/design-system/components/icon-button';
 import CxResizeObserver from '@orangelogic/design-system/components/resize-observer';
@@ -140,6 +141,9 @@ export default class CxContentBrowser extends CortexElement {
 
   @property({ attribute: 'use-session', reflect: false, type: String })
   useSession = '';
+
+  @property({ attribute: 'use-site-session', type: Boolean })
+  useSiteSession = false;
 
   @property({ attribute: 'can-pin', reflect: true, type: Boolean })
   canPin = false;
@@ -279,6 +283,9 @@ export default class CxContentBrowser extends CortexElement {
   }
 
   runFirstUpdated() {
+    if (this.useSiteSession) {
+      this.baseUrl = resolveSiteSessionUrl(this.baseUrl);
+    }
     switch (this.view) {
       case GridView.Large:
         this.defaultPageSize = 15;
@@ -313,6 +320,7 @@ export default class CxContentBrowser extends CortexElement {
         defaultSortOrderName: this.defaultSortOrderName,
         token: this.token,
         useSession: this.useSession,
+        useSiteSession: this.useSiteSession,
       });
 
       this.requestUpdate();
@@ -740,12 +748,15 @@ export default class CxContentBrowser extends CortexElement {
 
     if (!isLoggedIn) {
       return html`
+        ${when(this.useSiteSession && this.showCloseButton, () => html`
+          <cx-content-browser-header show-close-button></cx-content-browser-header>
+        `)}
         <cx-space class="content-browser__message" align-items="center" justify-content="center" spacing="small" direction="vertical">
           <cx-icon name="warning" class="content-browser__message__icon"></cx-icon>
-          ${when(this.errorMessage,
+          ${when(this.useSiteSession || this.errorMessage,
             () => html`
               <cx-typography class="content-browser__message__text">
-                ${this.errorMessage}
+                ${this.useSiteSession ? SITE_SESSION_EXPIRED_MESSAGE : this.errorMessage}
               </cx-typography>
             `,
             () => nothing,
@@ -763,9 +774,10 @@ export default class CxContentBrowser extends CortexElement {
             favorite-folder-id=${ifDefined(userInfo?.favoriteFolderRecordID)}
             folder-id=${ifDefined(this.lastRequest.folderId || undefined)}
             folder-title=${ifDefined(this.folderTitle || undefined)}
-            token=${this.token}
+            token=${this.useSiteSession ? '' : this.token}
             base-url=${this.baseUrl}
-            use-session=${this.useSession}
+            use-session=${this.useSiteSession ? '' : this.useSession}
+            ?use-site-session=${this.useSiteSession}
             ?can-favorite=${this.canFavorite}
             ?can-pin=${this.canPin && this.canPinLayout}
             ?force-overlay=${this.forceOverlay}
@@ -787,7 +799,7 @@ export default class CxContentBrowser extends CortexElement {
             avatar=${ifDefined(userInfo?.avatar)}
             full-name=${ifDefined(userInfo?.fullName)}
             folder-title=${ifDefined(this.folderTitle || undefined)}
-            ?can-logout=${this.canLogout}
+            ?can-logout=${!this.useSiteSession && this.canLogout}
             ?show-close-button=${this.showCloseButton}
           ></cx-content-browser-header>
           <cx-content-browser-control-bar
@@ -837,7 +849,7 @@ export default class CxContentBrowser extends CortexElement {
           cta-text=${this.ctaText}
           cta-text-transform=${this.ctaTextTransform}
           variant=${this.isMobile ? ContentBrowserFormatDialogVariant.Drawer : ContentBrowserFormatDialogVariant.Dialog}
-          token=${this.token}
+          token=${this.useSiteSession ? '' : this.token}
           ?can-custom-format=${!!parameters?.ATSEnabled}
           ?can-favorite=${this.canFavorite}
           ?can-pin-asset=${this.canPinAsset}

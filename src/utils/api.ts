@@ -7,6 +7,7 @@ import {
 } from '@/store/auth/auth.slice';
 
 import { getRequestUrl } from './getRequestUrl';
+import { getSiteSessionRequestUrl } from './site-session';
 
 type CortexFetchOptions = RequestInit & {
   /**
@@ -28,6 +29,9 @@ const mutex = new Mutex();
  * Returns the new access token on success, or null if refresh failed (in which case the user is also logged out).
  */
 export const refreshAccessToken = async (): Promise<string | null> => {
+  if (store.getState()[AUTH_FEATURE_KEY].useSiteSession) {
+    return null;
+  }
   await mutex.waitForUnlock();
 
   // Another caller already refreshed while we were waiting — re-read latest state.
@@ -40,6 +44,10 @@ export const refreshAccessToken = async (): Promise<string | null> => {
   try {
     const authState = store.getState()[AUTH_FEATURE_KEY];
 
+    if (authState.useSiteSession) {
+      return null;
+    }
+
     if (!authState.accessKey || !authState.siteUrl) {
       store.dispatch(logout());
       return null;
@@ -47,6 +55,9 @@ export const refreshAccessToken = async (): Promise<string | null> => {
 
     try {
       const tokenResp = await getAccessTokenService(authState.accessKey);
+      if (store.getState()[AUTH_FEATURE_KEY].useSiteSession) {
+        return null;
+      }
       if (tokenResp.accessToken) {
         store.dispatch(setAccessToken(tokenResp.accessToken));
         return tokenResp.accessToken;
@@ -54,7 +65,9 @@ export const refreshAccessToken = async (): Promise<string | null> => {
       store.dispatch(logout());
       return null;
     } catch {
-      store.dispatch(logout());
+      if (!store.getState()[AUTH_FEATURE_KEY].useSiteSession) {
+        store.dispatch(logout());
+      }
       return null;
     }
   } finally {
@@ -109,6 +122,13 @@ const fetchWithTimeout = async (resource: RequestInfo | URL, options?: RequestIn
 export const cortexFetch = async (resource: string, options?: CortexFetchOptions) => {
   const { retryWhenUnauthorize = true } = options || {};
   const authState = store.getState()[AUTH_FEATURE_KEY];
+  if (authState.useSiteSession) {
+    const headers = new Headers(options?.headers);
+    ['Authorization', 'Token', 'UseSession'].forEach((name) => headers.delete(name));
+    return fetchWithTimeout(getSiteSessionRequestUrl(authState.siteUrl, resource), {
+      ...options, credentials: 'same-origin', headers,
+    });
+  }
   resource = getRequestUrl(authState.siteUrl, resource, authState.accessToken);
   const response = await fetchWithTimeout(resource, options);
 

@@ -40,6 +40,7 @@ import { Asset, GetAssetsRequest, MediaType } from '@/types/asset';
 import { UserInfo } from '@/types/auth';
 import { Facet, SortOrder } from '@/types/content-browser';
 import { GetFolderRequest } from '@/types/folder';
+import { getSiteSessionRequestUrl, resolveSiteSessionUrl } from '@/utils/site-session';
 
 import type { ReactiveController } from 'lit';
 import _intersection from 'lodash-es/intersection';
@@ -57,6 +58,7 @@ type FetchAndMergeAssetsControllerOptions = {
   defaultSortOrderName: string;
   token: string;
   useSession: string;
+  useSiteSession?: boolean;
 };
 
 type FetchAndMergeAssetsControllerDataOptions = {
@@ -92,6 +94,8 @@ export class FetchAndMergeAssetsController implements ReactiveController {
   private token: string;
 
   private useSession: string;
+
+  private readonly useSiteSession: boolean;
 
   private pendingTokenRefresh: Promise<string | null> | null = null;
 
@@ -157,6 +161,7 @@ export class FetchAndMergeAssetsController implements ReactiveController {
     defaultSortOrderName,
     token,
     useSession,
+    useSiteSession = false,
   }: FetchAndMergeAssetsControllerOptions) {
     this.host = host;
 
@@ -174,13 +179,32 @@ export class FetchAndMergeAssetsController implements ReactiveController {
 
     this.defaultSortDirection = defaultSortDirection;
 
-    this.token = token;
+    this.useSiteSession = useSiteSession;
+    this.token = useSiteSession ? '' : token;
 
-    this.useSession = useSession;
+    this.useSession = useSiteSession ? '' : useSession;
+
+    if (useSiteSession) {
+      baseUrl = resolveSiteSessionUrl(baseUrl);
+    }
 
     http.defaults.baseURL = baseUrl;
 
     this.requestInterceptorId = http.interceptors.request.use((config) => {
+      if (this.useSiteSession) {
+        config.baseURL = baseUrl;
+        config.url = getSiteSessionRequestUrl(baseUrl, config.url ?? '');
+        config.withCredentials = true;
+        config.auth = undefined;
+        ['Authorization', 'Token', 'UseSession'].forEach((name) => config.headers.delete(name));
+        config.params = { ...config.params };
+        for (const key of Object.keys(config.params)) {
+          if (['token', 'usesession'].includes(key.toLowerCase())) {
+            delete config.params[key];
+          }
+        }
+        return config;
+      }
       // Match on the path only: a url may legitimately carry its own query string, and exact equality
       // would drop it out of this allowlist -- silently sending the request without Token/UseSession.
       if (config.url && ![
@@ -217,7 +241,7 @@ export class FetchAndMergeAssetsController implements ReactiveController {
 
     this.responseInterceptorId = http.interceptors.response.use(
       (response) => {
-        if (response.status >= 200 && response.status < 300 && !this.isLoggedIn) {
+        if (!this.useSiteSession && response.status >= 200 && response.status < 300 && !this.isLoggedIn) {
           this.isLoggedIn = true;
           this.host.requestUpdate();
         }
@@ -225,6 +249,11 @@ export class FetchAndMergeAssetsController implements ReactiveController {
         return response;
       },
       async (error) => {
+        if (this.useSiteSession && error?.response?.status === 401) {
+          this.isLoggedIn = false;
+          this.host.requestUpdate();
+          return Promise.reject(error);
+        }
         const originalConfig = error?.config as (typeof error.config & { _retry?: boolean }) | undefined;
 
         if (error?.response?.status === 401 && originalConfig && !originalConfig._retry) {
@@ -269,6 +298,9 @@ export class FetchAndMergeAssetsController implements ReactiveController {
   }
 
   updateAuth(token: string, useSession: string) {
+    if (this.useSiteSession) {
+      return;
+    }
     const tokenChanged = this.token !== token;
     const wasLoggedOut = !this.isLoggedIn;
 
@@ -611,7 +643,7 @@ export class FetchAndMergeAssetsController implements ReactiveController {
   async getAssetLink(payload: GetAssetLinksRequest) {
     const response = await apiGetAssetLinks({
       ...payload,
-      useSession: payload.useSession ?? this.useSession,
+      useSession: this.useSiteSession ? undefined : payload.useSession ?? this.useSession,
     });
 
     if (!payload.useRepresentative) {

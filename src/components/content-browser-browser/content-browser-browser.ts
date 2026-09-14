@@ -1,10 +1,10 @@
-import { html, nothing } from 'lit';
+import { html, noChange, nothing } from 'lit';
 import { property, query, state } from 'lit/decorators.js';
 import { classMap } from 'lit/directives/class-map.js';
 import { ifDefined } from 'lit/directives/if-defined.js';
 import { when } from 'lit/directives/when.js';
 
-import { apiGetCollections } from '@/api/folder';
+import { apiGetCollections, apiGetFolders } from '@/api/folder';
 import CortexElement from '@/base/element';
 import componentStyles from '@/styles/component.styles';
 import CxButton from '@orangelogic/design-system/components/button';
@@ -89,6 +89,9 @@ export default class CxContentBrowserBrowser extends CortexElement {
 
   @property({ attribute: 'base-url', type: String })
   baseUrl = '';
+
+  @property({ attribute: 'use-site-session', type: Boolean })
+  useSiteSession = false;
 
   @state()
   private searchTerm = '';
@@ -322,6 +325,7 @@ export default class CxContentBrowserBrowser extends CortexElement {
                 selected-label=${ifDefined(this.folderTitle || undefined)}
                 auto-page-size
                 .token=${this.token}
+                .api=${this.useSiteSession ? apiGetFolders : noChange}
                 .baseUrl=${this.baseUrl}
                 .form=${this.closest('form')}
                 .firstFetchCallback=${this.handleFirstFetchCallback}

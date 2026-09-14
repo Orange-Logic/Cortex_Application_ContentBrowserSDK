@@ -53,6 +53,35 @@ yarn build
 # More guide
 For detail guides on usage check out the [Orange Logic Developer Portal](https://developer.orangelogic.com/docs/generic-asset-browser)
 
+## Reuse the Current Cortex Login
+
+For an HTML page served by the Cortex site, enable `useSiteSession` to use the
+browser's existing site login. No site URL, token callback, or SDK login is needed.
+Load `build/OrangeDAMContentBrowserSDK.min.js` and
+`build/OrangeDAMContentBrowserSDK.min.css`, then open the picker with:
+
+```html
+<div id="asset-picker" style="height: 600px"></div>
+<script>
+  OrangeDAMContentBrowser.open({
+    containerId: 'asset-picker',
+    useSiteSession: true,
+    onAssetSelected: (assets) => console.log(assets),
+  });
+</script>
+```
+
+The site defaults to `window.location.origin`. For a Cortex installation under a
+virtual directory, supply a `baseUrl` on that same origin. The HTML page (or iframe
+document) must run on the Cortex origin; loading the SDK script from Cortex into a
+page on another domain does not share its login.
+
+This mode uses cookies managed by the browser and ignores saved SDK credentials,
+`onRequestToken`, and `useSession`. It hides SDK logout and does not launch SDK
+authentication when the site session expires. Sign in through the Cortex site and
+reopen the picker to resume. Omit `useSiteSession` to retain the existing SDK
+authentication flow.
+
 # Change Log
 * March 24, 2026 - v2.2.3
   * Supports displaying asset thumbnails according to the selected format (https://link.orangelogic.com/Tasks/420YSB)

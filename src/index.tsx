@@ -20,8 +20,11 @@ import {
   setUseHeaders,
   setUserConfigSiteUrl,
   setUseSession,
+  setSiteSession,
 } from '@/store/auth/auth.slice';
 import { refreshAccessToken } from '@/utils/api';
+import { abortAuthService } from '@/store/auth/auth.service';
+import { resolveSiteSessionUrl } from '@/utils/site-session';
 import { findFocusContainmentHost } from '@/utils/focus-containment';
 import { Folder, GetContentRequest, GetContentResponse, GetFoldersRequest } from './types/search';
 
@@ -121,6 +124,8 @@ type OrangeDAMContentBrowser = {
      * Base url. If specified, we will prefill the site URL in the authentication page
      */
     baseUrl?: string;
+    /** Reuse the current Cortex site's browser session without requesting credentials. */
+    useSiteSession?: boolean;
     /**
      * Only show IIIF prefix. When enable, instead of return full IIIF image url, we will
      * only return the url before the {region}. IIIF link will have the format like below
@@ -390,8 +395,10 @@ const ContentBrowser: OrangeDAMContentBrowser = {
     showFavoriteFolder,
     showVersions,
     useSession,
+    useSiteSession = false,
     defaultGridView,
   }) => {
+    const siteSessionUrl = useSiteSession ? resolveSiteSessionUrl(baseUrl) : undefined;
     // !! Always assign this first to make sure that storage functionality works
     const customStorageHandlers =
       typeof customStorage === 'object' && !!customStorage
@@ -429,7 +436,8 @@ const ContentBrowser: OrangeDAMContentBrowser = {
     }
     const root = createRoot(pickerRoot);
 
-    if (onRequestToken) {
+    window.OrangeDAMContentBrowser._onRequestToken = undefined;
+    if (!useSiteSession && onRequestToken) {
       window.OrangeDAMContentBrowser._onRequestToken = () => {
         return onRequestToken().then((token) => {
           return { token, siteUrl: baseUrl };
@@ -438,22 +446,26 @@ const ContentBrowser: OrangeDAMContentBrowser = {
     }
 
     // Dispatch some event before start render the APP
-    if (baseUrl) {
+    if (useSiteSession) {
+      abortAuthService();
+    }
+    store.dispatch(setSiteSession(siteSessionUrl));
+    if (!useSiteSession && baseUrl) {
       store.dispatch(setUserConfigSiteUrl(baseUrl));
     }
 
-    if (onRequestToken) {
-      store.dispatch(setUseHeaders(true));
-    }
+    store.dispatch(setUseHeaders(!useSiteSession && !!onRequestToken));
 
     // The API layer reads the session from the auth store, so the configured
     // session must be dispatched here — not only from the connect form, which
     // token-authenticated integrations never submit
-    if (useSession) {
+    if (!useSiteSession && useSession) {
       store.dispatch(setUseSession(useSession));
     }
 
-    store.dispatch(initAuthInfoFromCache());
+    if (!useSiteSession) {
+      store.dispatch(initAuthInfoFromCache());
+    }
 
     const errorHandler =
       typeof onError === 'function' && !!onError ? onError : console.log;
@@ -531,10 +543,10 @@ const ContentBrowser: OrangeDAMContentBrowser = {
             showCollections: !!showCollections,
             showFavoriteFolder: showFavoriteFolder !== false,
             showVersions: !!showVersions,
-            useSession,
+            useSession: useSiteSession ? undefined : useSession,
             allowPin: !!allowPin,
             allowFormatDialogPin: !!allowFormatDialogPin,
-            allowLogout: allowLogout !== undefined ? !!allowLogout : true,
+            allowLogout: !useSiteSession && (allowLogout !== undefined ? !!allowLogout : true),
             allowTracking: allowTracking !== undefined ? !!allowTracking : true,
             allowProxy: allowProxy !== undefined ? !!allowProxy : true,
             allowFavorites: !!allowFavorites,

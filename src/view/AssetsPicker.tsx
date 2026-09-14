@@ -10,7 +10,7 @@ import {
 import { AppContext } from '@/AppContext';
 import { GlobalConfigContext } from '@/GlobalConfigContext';
 import { useAppDispatch, useAppSelector } from '@/store';
-import { applySessionSelector, logout } from '@/store/auth/auth.slice';
+import { applySessionSelector, logout, siteSessionSelector } from '@/store/auth/auth.slice';
 import {
     Asset, Facet, Folder, GetAssetLinkResponse, GetContentRequest, GetFoldersRequest, GridView,
 } from '@/types/search';
@@ -129,6 +129,7 @@ const AssetsPicker = forwardRef<AssetsPickerHandle, Props>(function AssetsPicker
 ) {
   const appDispatch = useAppDispatch();
   const useSession = useAppSelector(applySessionSelector);
+  const useSiteSession = useAppSelector(siteSessionSelector);
   const {
     allowFavorites,
     allowFormatDialogPin,
@@ -403,6 +404,7 @@ const AssetsPicker = forwardRef<AssetsPickerHandle, Props>(function AssetsPicker
       token={accessToken ?? ''}
       base-url={siteUrl ?? ''}
       use-session={useSession}
+      use-site-session={useSiteSession}
       extra-fields={extraFields}
       error-message="Unauthorized"
       can-pin={allowPin}
