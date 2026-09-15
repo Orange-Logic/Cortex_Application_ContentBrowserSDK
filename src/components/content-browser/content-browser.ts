@@ -30,6 +30,7 @@ import {
 import { GetFolderRequest } from '@/types/folder';
 import { safeInteger } from '@/utils/number';
 import { watch } from '@/utils/watch';
+import { resolveSiteSessionUrl, SITE_SESSION_EXPIRED_MESSAGE } from '@/utils/site-session';
 import CxIcon from '@orangelogic/design-system/components/icon';
 import CxIconButton from '@orangelogic/design-system/components/icon-button';
 import CxResizeObserver from '@orangelogic/design-system/components/resize-observer';
@@ -158,6 +159,9 @@ export default class CxContentBrowser extends CortexElement {
   @property({ attribute: 'use-session', reflect: false, type: String })
   useSession = '';
 
+  @property({ attribute: 'use-site-session', type: Boolean })
+  useSiteSession = false;
+
   @property({ attribute: 'can-pin', reflect: true, type: Boolean })
   canPin = false;
 
@@ -173,6 +177,14 @@ export default class CxContentBrowser extends CortexElement {
 
   @property({ attribute: 'can-use-proxies', reflect: true, type: Boolean })
   canUseProxies = false;
+
+  /**
+   * Pick-only mode: no available-proxies lookup, no transformation on confirm. The preview popup
+   * shows the asset's LargeSizePreview and confirming emits the asset straight to the host.
+   * Implies `can-use-proxies=false`.
+   */
+  @property({ attribute: 'simple-pick', reflect: true, type: Boolean })
+  simplePick = false;
 
   @property({ attribute: 'can-view-versions', reflect: true, type: Boolean })
   canViewVersions = false;
@@ -342,6 +354,10 @@ export default class CxContentBrowser extends CortexElement {
   }
 
   runFirstUpdated() {
+    if (this.useSiteSession) {
+      this.baseUrl = resolveSiteSessionUrl(this.baseUrl);
+    }
+
     this.defaultPageSize = resolvePageSize(this.view);
 
     this.lastRequest = {
@@ -367,6 +383,7 @@ export default class CxContentBrowser extends CortexElement {
         defaultSortOrderName: this.defaultSortOrderName,
         token: this.token,
         useSession: this.useSession,
+        useSiteSession: this.useSiteSession,
       });
 
       this.requestUpdate();
@@ -399,6 +416,7 @@ export default class CxContentBrowser extends CortexElement {
     try {
       const asset = await this.fetchAndMergeAssetsController.fetchAssetByID(id, {
         canFavorite: this.canFavorite,
+        simplePick: this.simplePick,
       });
 
       if (!asset) {
@@ -436,6 +454,20 @@ export default class CxContentBrowser extends CortexElement {
   @watch(['token', 'useSession'], { waitUntilFirstUpdate: true })
   handleAuthChange() {
     this.fetchAndMergeAssetsController?.updateAuth(this.token, this.useSession);
+  }
+
+  @watch('useSiteSession', { waitUntilFirstUpdate: true })
+  handleSiteSessionChange() {
+    if (this.useSiteSession) {
+      this.baseUrl = resolveSiteSessionUrl(this.baseUrl);
+    }
+
+    this.fetchAndMergeAssetsController?.updateSiteSession(
+      this.useSiteSession,
+      this.baseUrl,
+      this.token,
+      this.useSession,
+    );
   }
 
   private async handleSortOrderChange(event: CxContentBrowserControlSortOrderChangeEvent) {
@@ -614,6 +646,22 @@ export default class CxContentBrowser extends CortexElement {
   }
 
   private async handleProxyConfirm(event: CxContentBrowserFormatDialogProxyConfirmEvent) {
+    // Simple-pick mode hands the host the asset it already has: there is no proxy or transformation
+    // to resolve, so a GetAssetLink round trip would only re-fetch what the grid fetched.
+    if (this.simplePick) {
+      // handleSelectedAsset builds the payload off images[0], so stand in the preview the grid
+      // already fetched (CoreField.LargeSizePreview) as the link rather than leaving it empty.
+      this.handleSelectedAsset({
+        asset: event.detail.asset,
+        images: [{ imageUrl: event.detail.asset.imageUrl ?? '' }],
+        selectedProxyMetadata: event.detail.selectedProxyMetadata,
+      });
+
+      this.formatDialog.hide();
+
+      return;
+    }
+
     try {
       const response = await this.fetchAndMergeAssetsController.getAssetLink({
         ...event.detail,
@@ -784,12 +832,15 @@ export default class CxContentBrowser extends CortexElement {
 
     if (!isLoggedIn) {
       return html`
+        ${when(this.useSiteSession && this.showCloseButton, () => html`
+          <cx-content-browser-header show-close-button></cx-content-browser-header>
+        `)}
         <cx-space class="content-browser__message" align-items="center" justify-content="center" spacing="small" direction="vertical">
           <cx-icon name="warning" class="content-browser__message__icon"></cx-icon>
-          ${when(this.errorMessage,
+          ${when(this.useSiteSession || this.errorMessage,
             () => html`
               <cx-typography class="content-browser__message__text">
-                ${this.errorMessage}
+                ${this.useSiteSession ? SITE_SESSION_EXPIRED_MESSAGE : this.errorMessage}
               </cx-typography>
             `,
             () => nothing,
@@ -807,9 +858,10 @@ export default class CxContentBrowser extends CortexElement {
             favorite-folder-id=${ifDefined(userInfo?.favoriteFolderRecordID)}
             folder-id=${ifDefined(this.lastRequest.folderId || undefined)}
             folder-title=${ifDefined(this.folderTitle || undefined)}
-            token=${this.token}
+            token=${this.useSiteSession ? '' : this.token}
             base-url=${this.baseUrl}
-            use-session=${this.useSession}
+            use-session=${this.useSiteSession ? '' : this.useSession}
+            ?use-site-session=${this.useSiteSession}
             ?can-favorite=${this.canFavorite}
             ?can-pin=${this.canPin && this.canPinLayout}
             ?force-overlay=${this.forceOverlay}
@@ -831,7 +883,7 @@ export default class CxContentBrowser extends CortexElement {
             avatar=${ifDefined(userInfo?.avatar)}
             full-name=${ifDefined(userInfo?.fullName)}
             folder-title=${ifDefined(this.folderTitle || undefined)}
-            ?can-logout=${this.canLogout}
+            ?can-logout=${!this.useSiteSession && this.canLogout}
             ?show-close-button=${this.showCloseButton}
           ></cx-content-browser-header>
           <cx-content-browser-control-bar
@@ -901,13 +953,14 @@ export default class CxContentBrowser extends CortexElement {
           cta-text=${this.ctaText}
           cta-text-transform=${this.ctaTextTransform}
           variant=${this.isMobile ? ContentBrowserFormatDialogVariant.Drawer : ContentBrowserFormatDialogVariant.Dialog}
-          token=${this.token}
+          token=${this.useSiteSession ? '' : this.token}
           ?auto-confirm-single-option=${this.view === TABLE_VIEW && this.canUseTable}
           ?can-custom-format=${!!parameters?.ATSEnabled}
           ?can-favorite=${this.canFavorite}
           ?can-pin-asset=${this.canPinAsset}
           ?can-track=${this.canTrack}
-          ?can-use-proxies=${this.canUseProxies}
+          ?can-use-proxies=${this.canUseProxies && !this.simplePick}
+          ?simple-pick=${this.simplePick}
           ?can-view-versions=${this.canViewVersions}
           @cx-content-browser-format-dialog-version-history-open=${this.handleVersionHistoryOpen}
           @cx-content-browser-format-dialog-favorite-change=${this.handleFavoriteChange}

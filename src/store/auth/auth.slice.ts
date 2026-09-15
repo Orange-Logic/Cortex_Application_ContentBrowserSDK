@@ -27,6 +27,7 @@ export type AuthState = {
   status: 'authenticated' | 'unauthenticated' | 'restoreSession' | 'requestLogin' | 'waitForAuthorize'; 
   useHeaders?: boolean;
   useSession: string;
+  useSiteSession?: boolean;
 };
 
 // #region Slice
@@ -40,6 +41,14 @@ export const authSlice = createSlice({
   name: AUTH_FEATURE_KEY,
   initialState,
   reducers: {
+    setSiteSession: (state, action: PayloadAction<string | undefined>) => {
+      if (action.payload !== undefined) {
+        return { ...initialState, useSiteSession: true, siteUrl: action.payload, status: 'authenticated' };
+      }
+      if (state.useSiteSession) {
+        return { ...initialState };
+      }
+    },
     setAccessToken: (state, action: PayloadAction<string | undefined>) => {
       state.accessToken = action.payload;
     },
@@ -99,6 +108,7 @@ export const authSlice = createSlice({
         // eslint-disable-next-line @typescript-eslint/no-use-before-define
         oAuth.fulfilled,
         (state, { payload }) => {
+          if (state.useSiteSession) return;
           if (payload) {
             const { accessKey, accessToken, siteUrl } = payload;
             state.accessKey = accessKey;
@@ -112,19 +122,21 @@ export const authSlice = createSlice({
       )
     // eslint-disable-next-line @typescript-eslint/no-use-before-define
       .addCase(oAuth.rejected, (state, action) => {
+        if (state.useSiteSession) return;
         state.error = action.payload as string;
         state.status = 'unauthenticated';
         deleteData(AUTH_FEATURE_ACCESS_KEY_KEY);
       })
     // eslint-disable-next-line @typescript-eslint/no-use-before-define
       .addCase(oAuth.pending, (state) => {
+        if (state.useSiteSession) return;
         state.error = '';
       });
   },
 });
 
 export default authSlice.reducer;
-export const { logout, setAccessToken, generateNonce, setSiteUrl, setUserConfigSiteUrl, setUseSession, setUseHeaders, setAuthStatus } = authSlice.actions;
+export const { logout, setAccessToken, generateNonce, setSiteUrl, setUserConfigSiteUrl, setUseSession, setUseHeaders, setAuthStatus, setSiteSession } = authSlice.actions;
 // #endregion
 
 // #region Selector
@@ -161,6 +173,9 @@ export const applySessionSelector = (rootState: RootState) =>
 export const applyHeadersSelector = (rootState: RootState) =>
   !!rootState[AUTH_FEATURE_KEY].useHeaders;
 
+export const siteSessionSelector = (rootState: RootState) =>
+  !!rootState[AUTH_FEATURE_KEY].useSiteSession;
+
 export const appAuthUrlSelector = (rootState: RootState) => {
   const siteUrl = rootState[AUTH_FEATURE_KEY].siteUrl;
   return siteUrl ? getRequestUrl(siteUrl, `AppAuth?RID=${rootState[AUTH_FEATURE_KEY].nonce}`) : '';
@@ -185,7 +200,7 @@ async ({ siteUrl, callbackFn }, { rejectWithValue, dispatch, getState }) => {
     dispatch(generateNonce());
     const nonce = nonceSelector(getState() as RootState);
     const resp = await requestAuthorizeService(nonce ?? '');
-    if (authAbortController.controller.signal.aborted) {
+    if (authAbortController.controller.signal.aborted || siteSessionSelector(getState() as RootState)) {
       throw Error(CANCEL_AUTH_MESSAGE);
     }
     const requestID = resp.requestID;
@@ -194,6 +209,9 @@ async ({ siteUrl, callbackFn }, { rejectWithValue, dispatch, getState }) => {
     if (callbackFn) callbackFn(popupUrl);
     else window.open(popupUrl, '_blank');
     const getAccessKeyData = await getAccessKeyService(requestID);
+    if (siteSessionSelector(getState() as RootState)) {
+      throw Error(CANCEL_AUTH_MESSAGE);
+    }
     if (getAccessKeyData.accessKey) {
       const tokenResp = await getAccessTokenService(getAccessKeyData.accessKey);
       if (tokenResp.accessToken) {
@@ -230,12 +248,15 @@ async ({ siteUrl, callbackFn }, { rejectWithValue, dispatch, getState }) => {
 export const initAuthInfoFromCache = createAsyncThunk(
   `${AUTH_FEATURE_KEY}/initAuthInfoFromCache`,
   async (_, { dispatch, rejectWithValue, getState }) => {
+    const usingSiteSession = () => siteSessionSelector(getState() as RootState);
+    if (usingSiteSession()) return;
     dispatch(authSlice.actions.setAuthStatus('restoreSession'));
     const useHeaders = applyHeadersSelector(getState() as RootState);
 
     const execute = async () => {
       if (useHeaders && window.OrangeDAMContentBrowser?._onRequestToken) {
         const result = await window.OrangeDAMContentBrowser?._onRequestToken();
+        if (usingSiteSession()) return true;
 
         if (result) {
           dispatch(
@@ -255,6 +276,7 @@ export const initAuthInfoFromCache = createAsyncThunk(
         let siteUrl = siteUrlSelector(getState() as RootState);
         if (!siteUrl) {
           siteUrl = await getData(AUTH_FEATURE_SITE_URL_KEY) ?? '';
+          if (usingSiteSession()) return true;
           if (!siteUrl) {
           // eslint-disable-next-line @typescript-eslint/no-use-before-define
             siteUrl = userConfigSiteUrlSelector(getState() as RootState) ?? '';
@@ -270,6 +292,7 @@ export const initAuthInfoFromCache = createAsyncThunk(
         }
 
         const accessKey = await getData(AUTH_FEATURE_ACCESS_KEY_KEY);
+        if (usingSiteSession()) return true;
 
         if (accessKey) {
           if (useHeaders) {
@@ -283,6 +306,7 @@ export const initAuthInfoFromCache = createAsyncThunk(
             const accessToken = (
               await getAccessTokenService(accessKey)
             ).accessToken;
+            if (usingSiteSession()) return true;
             if (accessToken) {
               dispatch(
                 // eslint-disable-next-line @typescript-eslint/no-use-before-define
@@ -312,7 +336,7 @@ export const initAuthInfoFromCache = createAsyncThunk(
     } catch (exception) {
       return rejectWithValue((exception as Error).message);
     } finally {
-      if (!isSuccess) {
+      if (!isSuccess && !usingSiteSession()) {
         dispatch(logout());
       }
     }

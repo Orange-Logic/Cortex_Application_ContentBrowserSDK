@@ -40,6 +40,7 @@ import { Asset, GetAssetsRequest, MediaType } from '@/types/asset';
 import { UserInfo } from '@/types/auth';
 import { Facet, SortOrder } from '@/types/content-browser';
 import { GetFolderRequest } from '@/types/folder';
+import { getSiteSessionRequestUrl, resolveSiteSessionUrl } from '@/utils/site-session';
 
 import type { ReactiveController } from 'lit';
 import _intersection from 'lodash-es/intersection';
@@ -59,6 +60,7 @@ type FetchAndMergeAssetsControllerOptions = {
   defaultSortOrderName: string;
   token: string;
   useSession: string;
+  useSiteSession?: boolean;
 };
 
 type FetchAndMergeAssetsControllerDataOptions = {
@@ -94,6 +96,10 @@ export class FetchAndMergeAssetsController implements ReactiveController {
   private token: string;
 
   private useSession: string;
+
+  private useSiteSession: boolean;
+
+  private baseUrl: string;
 
   private pendingTokenRefresh: Promise<string | null> | null = null;
 
@@ -162,6 +168,7 @@ export class FetchAndMergeAssetsController implements ReactiveController {
     defaultSortOrderName,
     token,
     useSession,
+    useSiteSession = false,
   }: FetchAndMergeAssetsControllerOptions) {
     this.host = host;
 
@@ -181,13 +188,23 @@ export class FetchAndMergeAssetsController implements ReactiveController {
 
     this.defaultSortDirection = defaultSortDirection;
 
-    this.token = token;
-
-    this.useSession = useSession;
-
-    http.defaults.baseURL = baseUrl;
+    this.applyTransportMode(useSiteSession, baseUrl, token, useSession);
 
     this.requestInterceptorId = http.interceptors.request.use((config) => {
+      if (this.useSiteSession) {
+        config.baseURL = this.baseUrl;
+        config.url = getSiteSessionRequestUrl(this.baseUrl, config.url ?? '');
+        config.withCredentials = true;
+        config.auth = undefined;
+        ['Authorization', 'Token', 'UseSession'].forEach((name) => config.headers.delete(name));
+        config.params = { ...config.params };
+        for (const key of Object.keys(config.params)) {
+          if (['token', 'usesession'].includes(key.toLowerCase())) {
+            delete config.params[key];
+          }
+        }
+        return config;
+      }
       // Match on the path only: a url may legitimately carry its own query string, and exact equality
       // would drop it out of this allowlist -- silently sending the request without Token/UseSession.
       if (config.url && ![
@@ -209,8 +226,8 @@ export class FetchAndMergeAssetsController implements ReactiveController {
         return config;
       }
 
-      if (baseUrl) {
-        config.baseURL = baseUrl;
+      if (this.baseUrl) {
+        config.baseURL = this.baseUrl;
       }
 
       config.params = {
@@ -224,7 +241,7 @@ export class FetchAndMergeAssetsController implements ReactiveController {
 
     this.responseInterceptorId = http.interceptors.response.use(
       (response) => {
-        if (response.status >= 200 && response.status < 300 && !this.isLoggedIn) {
+        if (!this.useSiteSession && response.status >= 200 && response.status < 300 && !this.isLoggedIn) {
           this.isLoggedIn = true;
           this.host.requestUpdate();
         }
@@ -232,6 +249,11 @@ export class FetchAndMergeAssetsController implements ReactiveController {
         return response;
       },
       async (error) => {
+        if (this.useSiteSession && error?.response?.status === 401) {
+          this.isLoggedIn = false;
+          this.host.requestUpdate();
+          return Promise.reject(error);
+        }
         const originalConfig = error?.config as (typeof error.config & { _retry?: boolean }) | undefined;
 
         if (error?.response?.status === 401 && originalConfig && !originalConfig._retry) {
@@ -275,7 +297,53 @@ export class FetchAndMergeAssetsController implements ReactiveController {
     return this.pendingTokenRefresh;
   }
 
+  /**
+   * Site-session mode decides the transport (cookies on the Cortex origin vs. Token/UseSession
+   * params), so it has to be applied to the interceptor state and base URL, not just captured once.
+   */
+  private applyTransportMode(useSiteSession: boolean, baseUrl: string, token: string, useSession: string) {
+    this.useSiteSession = useSiteSession;
+    this.baseUrl = useSiteSession ? resolveSiteSessionUrl(baseUrl) : baseUrl;
+    this.token = useSiteSession ? '' : token;
+    this.useSession = useSiteSession ? '' : useSession;
+
+    http.defaults.baseURL = this.baseUrl;
+  }
+
+  /**
+   * `setSiteSession(...)` can flip the mode while the host stays mounted, so keep the transport in
+   * step with the UI instead of serving requests through the mode the controller was built with.
+   */
+  updateSiteSession(useSiteSession: boolean, baseUrl: string, token: string, useSession: string) {
+    if (useSiteSession === this.useSiteSession) {
+      return;
+    }
+
+    this.applyTransportMode(useSiteSession, baseUrl, token, useSession);
+
+    // A pending refresh belongs to the previous mode; release its waiter so it cannot resolve later.
+    if (this.resolvePendingTokenRefresh) {
+      this.resolvePendingTokenRefresh(null);
+      this.pendingTokenRefresh = null;
+      this.resolvePendingTokenRefresh = null;
+    }
+
+    this.isLoggedIn = true;
+    this.#hasFetchedOnce = false;
+
+    this.fetchInitialData();
+
+    if (this.lastRequest) {
+      this.fetchAndMergeAssets(this.lastRequest);
+    }
+
+    this.host.requestUpdate();
+  }
+
   updateAuth(token: string, useSession: string) {
+    if (this.useSiteSession) {
+      return;
+    }
     const tokenChanged = this.token !== token;
     const wasLoggedOut = !this.isLoggedIn;
 
@@ -506,10 +574,11 @@ export class FetchAndMergeAssetsController implements ReactiveController {
   async fetchAssetByID(id: string, options?: {
     allowedExtensions?: string[];
     canFavorite?: boolean;
+    simplePick?: boolean;
   }) {
-    const { allowedExtensions = [], canFavorite = false } = options ?? {};
+    const { allowedExtensions = [], canFavorite = false, simplePick = false } = options ?? {};
 
-    const promises: Partial<[Promise<GetAssetsByIDsResponse>, Promise<GetAvailableProxiesResponse>, Promise<boolean>]> = [
+    const promises: Partial<[Promise<GetAssetsByIDsResponse>, Promise<GetAvailableProxiesResponse | undefined>, Promise<boolean>]> = [
       apiGetAssetsByIDs({
         extraFields: [
           DEFAULT_VIEW_SIZE,
@@ -528,9 +597,13 @@ export class FetchAndMergeAssetsController implements ReactiveController {
         ],
         recordIds: [id],
       }),
-      apiGetAvailableProxies({
-        assetRecordId: id,
-      }),
+      // Simple-pick mode never offers a proxy or a transformation, so the only thing this response
+      // would still supply is the preview image -- which getcontent already returns as LargeSizePreview.
+      simplePick
+        ? Promise.resolve(undefined)
+        : apiGetAvailableProxies({
+          assetRecordId: id,
+        }),
     ];
 
     if (canFavorite) {
@@ -566,7 +639,7 @@ export class FetchAndMergeAssetsController implements ReactiveController {
         inColdStorage: Boolean(item.inColdStorage),
         name: item[FIELD_TITLE_WITH_FALLBACK] ?? '',
         originalUrl: item[ORIGINAL_VIEW_SIZE] ?? '',
-        previewUrl: proxyData?.previewUrl ?? '',
+        previewUrl: proxyData?.previewUrl ?? item[DEFAULT_VIEW_SIZE] ?? '',
         recordId: item[FIELD_RECORD_ID] ?? '',
         scrubUrl: item[FIELD_SCRUB_URL] ?? '',
         size: item[FIELD_FILE_SIZE] ?? '0 MB',
@@ -619,7 +692,7 @@ export class FetchAndMergeAssetsController implements ReactiveController {
   async getAssetLink(payload: GetAssetLinksRequest) {
     const response = await apiGetAssetLinks({
       ...payload,
-      useSession: payload.useSession ?? this.useSession,
+      useSession: this.useSiteSession ? undefined : payload.useSession ?? this.useSession,
     });
 
     if (!payload.useRepresentative) {

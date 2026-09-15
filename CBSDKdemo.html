@@ -297,6 +297,15 @@ customStorage: {
             </p>
           </li>
           <li>
+            <b>useSiteSession</b> (default false)
+            <p>
+              Use the current Cortex site's browser login without a site URL, token, or SDK login prompt.
+              The HTML page must be served from the Cortex origin. For a virtual directory,
+              provide a baseUrl on the same origin. SDK logout is hidden in this mode.
+            </p>
+            <pre>OrangeDAMContentBrowser.open({ useSiteSession: true });</pre>
+          </li>
+          <li>
             <b>displayInfo</b>
             <p>
               An object to configure the display of the asset information. The object has the following properties:

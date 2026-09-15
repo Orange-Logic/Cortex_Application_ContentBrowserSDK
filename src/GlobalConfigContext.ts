@@ -35,6 +35,7 @@ export type GlobalConfigContextType = {
   allowLogout?: boolean;
   allowTracking: boolean;
   allowProxy: boolean;
+  simplePick: boolean;
   allowFavorites: boolean;
   allowPin: boolean;
   allowFormatDialogPin?: boolean;
@@ -62,6 +63,7 @@ export const GlobalConfigContext = createContext<GlobalConfigContextType>({
   allowLogout: true,
   allowTracking: true,
   allowProxy: false,
+  simplePick: false,
   allowFavorites: false,
   allowPin: false,
   allowFormatDialogPin: false,

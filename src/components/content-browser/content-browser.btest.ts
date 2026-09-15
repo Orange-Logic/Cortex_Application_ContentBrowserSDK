@@ -1531,4 +1531,93 @@ describe('content-browser', () => {
       expect(el.tableColumns).to.deep.equal([{ field: 'CoreField.Identifier', title: 'Identifier' }]);
     });
   });
+
+  it('passes simple-pick through to the fetch controller and forces proxies off in the dialog', async () => {
+    const { el } = await fixtureWithMock(html`
+      <cx-content-browser ?simple-pick=${true} ?can-use-proxies=${true}></cx-content-browser>
+    `);
+
+    const dialog = getFormatDialog(el);
+
+    expect(el.simplePick).to.equal(true);
+    expect(dialog.canUseProxies).to.equal(false);
+  });
+
+  it('asks fetchAssetByID to skip the available-proxies lookup in simple-pick mode', async () => {
+    const asset = makeAsset();
+    const openPayload = { asset, isFavorite: false, proxies: [] as unknown[] };
+    const { el, mock } = await fixtureWithMock(
+      html`<cx-content-browser ?simple-pick=${true}></cx-content-browser>`,
+      { fetchAssetByIDResult: openPayload as unknown as OpenFormatPayload, items: [asset], totalCount: 1 },
+    );
+
+    await el.selectAsset(asset.id);
+
+    expect(mock.fetchAssetByID).to.have.been.calledOnceWith(asset.id, sinon.match({ simplePick: true }));
+  });
+
+  it('emits the selected asset without a getAssetLink request in simple-pick mode', async () => {
+    const asset = makeAsset({ imageUrl: 'https://cdn.example/large-size-preview.jpg' });
+    const { el, mock } = await fixtureWithMock(
+      html`<cx-content-browser ?simple-pick=${true}></cx-content-browser>`,
+      { items: [asset], totalCount: 1 },
+    );
+
+    const dialog = getFormatDialog(el);
+    const p = oneEvent(el, 'cx-content-browser-selected-asset');
+
+    dialog.dispatchEvent(
+      new CustomEvent('cx-content-browser-format-dialog-proxy-confirm', {
+        bubbles: true,
+        composed: true,
+        detail: {
+          asset,
+          extension: '.jpg',
+          proxyPreference: '',
+          selectedProxyMetadata: {
+            cdnName: null,
+            extension: '.jpg',
+            height: null,
+            isCustomFormat: false,
+            permanentLink: null,
+            proxyLabel: null,
+            proxyName: null,
+            width: null,
+          },
+          useRepresentative: false,
+        },
+      }),
+    );
+
+    const ev = await p;
+
+    expect(mock.getAssetLink).to.not.have.been.called;
+    expect(ev.detail).to.be.an('array').with.lengthOf(1);
+    expect(ev.detail[0].imageUrl).to.equal('https://cdn.example/large-size-preview.jpg');
+    expect(ev.detail[0].assetLinkInfo?.permanentLink).to.equal('https://cdn.example/large-size-preview.jpg');
+  });
+
+  it('still requests a transformation on confirm when simple-pick is off', async () => {
+    const asset = makeAsset();
+    const { el, mock } = await fixtureWithMock(html`<cx-content-browser></cx-content-browser>`, {
+      items: [asset],
+      totalCount: 1,
+    });
+
+    const dialog = getFormatDialog(el);
+    const p = oneEvent(el, 'cx-content-browser-selected-asset');
+
+    dialog.dispatchEvent(
+      new CustomEvent('cx-content-browser-format-dialog-proxy-confirm', {
+        bubbles: true,
+        composed: true,
+        detail: { asset, extension: '.jpg', proxyPreference: '', useRepresentative: false },
+      }),
+    );
+
+    await p;
+
+    expect(mock.getAssetLink).to.have.been.calledOnce;
+  });
+
 });

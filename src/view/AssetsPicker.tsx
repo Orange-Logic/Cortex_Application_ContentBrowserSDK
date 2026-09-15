@@ -10,7 +10,7 @@ import {
 import { AppContext } from '@/AppContext';
 import { GlobalConfigContext } from '@/GlobalConfigContext';
 import { useAppDispatch, useAppSelector } from '@/store';
-import { applySessionSelector, logout } from '@/store/auth/auth.slice';
+import { applySessionSelector, logout, siteSessionSelector } from '@/store/auth/auth.slice';
 import { ContentBrowserView, TABLE_VIEW } from '@/types/content-browser';
 import {
     Asset, Facet, Folder, GetAssetLinkResponse, GetContentRequest, GetFoldersRequest, GridView,
@@ -134,6 +134,7 @@ const AssetsPicker = forwardRef<AssetsPickerHandle, Props>(function AssetsPicker
 ) {
   const appDispatch = useAppDispatch();
   const useSession = useAppSelector(applySessionSelector);
+  const useSiteSession = useAppSelector(siteSessionSelector);
   const {
     allowFavorites,
     allowFormatDialogPin,
@@ -141,6 +142,7 @@ const AssetsPicker = forwardRef<AssetsPickerHandle, Props>(function AssetsPicker
     allowPin,
     allowProxy,
     allowTracking,
+    simplePick,
     allowedExtensions, // list of allowed extensions from runtime properties. e.g. ['.jpg', '.png', '.mp4']
     allowedFolders,
     availableDocTypes,
@@ -410,6 +412,7 @@ const AssetsPicker = forwardRef<AssetsPickerHandle, Props>(function AssetsPicker
       token={accessToken ?? ''}
       base-url={siteUrl ?? ''}
       use-session={useSession}
+      use-site-session={useSiteSession}
       extra-fields={extraFields}
       error-message="Unauthorized"
       can-pin={allowPin}
@@ -417,6 +420,7 @@ const AssetsPicker = forwardRef<AssetsPickerHandle, Props>(function AssetsPicker
       can-favorite={allowFavorites}
       can-logout={allowLogout}
       can-use-proxies={allowProxy}
+      simple-pick={simplePick}
       can-track={allowTracking}
       can-view-versions={showVersions}
       cta-text={ctaText}
