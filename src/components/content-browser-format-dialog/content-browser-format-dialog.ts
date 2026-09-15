@@ -148,6 +148,13 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
   @property({ attribute: 'can-use-proxies', reflect: false, type: Boolean })
   canUseProxies: boolean = false;
 
+  /**
+   * Pick-only mode. Suppresses the custom-format editor entirely: cx-asset-link-format issues its
+   * own transformasset request as soon as it is in the DOM, so hiding it with CSS is not enough.
+   */
+  @property({ attribute: 'simple-pick', reflect: false, type: Boolean })
+  simplePick: boolean = false;
+
   @property({ attribute: 'can-view-versions', reflect: false, type: Boolean })
   canViewVersions: boolean = false;
 
@@ -771,9 +778,10 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
           this.confirmedTransformations,
           this.selectedProxy,
           this.showCustomFormat,
+          this.simplePick,
         ],
         () => {
-          if (this.asset?.docType !== MediaType.Image) {
+          if (this.simplePick || this.asset?.docType !== MediaType.Image) {
             return nothing;
           }
 

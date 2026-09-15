@@ -1442,4 +1442,34 @@ describe('content-browser-format-dialog', () => {
       expect(p.parameters).to.deep.equal([{ key: 'src', value: 'news' }]);
     });
   });
+
+  it('renders cx-asset-link-format for an image asset by default', async () => {
+    const asset = makeAsset({
+      docType: MediaType.Image,
+      extension: '.jpg',
+      originalUrl: 'https://example.com/i.jpg',
+    });
+
+    el.open({ asset, isFavorite: false, proxies: [] });
+    await elementUpdated(el);
+
+    expect(el.shadowRoot!.querySelector('cx-asset-link-format')).to.exist;
+  });
+
+  it('does not render cx-asset-link-format in simple-pick mode', async () => {
+    const asset = makeAsset({
+      docType: MediaType.Image,
+      extension: '.jpg',
+      originalUrl: 'https://example.com/i.jpg',
+    });
+
+    el.simplePick = true;
+    el.open({ asset, isFavorite: false, proxies: [] });
+    await elementUpdated(el);
+
+    // cx-asset-link-format requests transformasset as soon as it is in the DOM, so it must be absent
+    // rather than hidden -- display:none would still cost the transformation request on every pick.
+    expect(el.shadowRoot!.querySelector('cx-asset-link-format')).to.be.null;
+  });
+
 });

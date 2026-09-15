@@ -894,6 +894,7 @@ export default class CxContentBrowser extends CortexElement {
           ?can-pin-asset=${this.canPinAsset}
           ?can-track=${this.canTrack}
           ?can-use-proxies=${this.canUseProxies && !this.simplePick}
+          ?simple-pick=${this.simplePick}
           ?can-view-versions=${this.canViewVersions}
           @cx-content-browser-format-dialog-version-history-open=${this.handleVersionHistoryOpen}
           @cx-content-browser-format-dialog-favorite-change=${this.handleFavoriteChange}
