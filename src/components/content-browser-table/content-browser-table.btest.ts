@@ -301,6 +301,16 @@ describe('content-browser-table', () => {
     expect(header.style.paddingInlineEnd).to.match(/^calc\(var\(--cx-spacing-medium\) \+ \d+px\)$/);
   });
 
+  it('shows the no-results state instead of an empty scroller when empty', async () => {
+    el = await fixture<ContentBrowserTable>(html`
+      <cx-content-browser-table style="height: 400px" empty .columns=${COLUMNS}></cx-content-browser-table>
+    `);
+    await elementUpdated(el);
+
+    expect(el.shadowRoot!.querySelector('cx-content-browser-no-result')).to.exist;
+    expect(el.shadowRoot!.querySelector('lit-virtualizer')).to.not.exist;
+  });
+
   it('applies the column alignment and line clamp to its cells', async () => {
     el = await fixture<ContentBrowserTable>(html`
       <cx-content-browser-table style="height: 400px"

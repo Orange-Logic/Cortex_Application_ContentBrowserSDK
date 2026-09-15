@@ -1,7 +1,9 @@
 import { css } from 'lit';
 
 export default css`
+  /* Containing block for the absolutely positioned loading bar, which is a direct child. */
   :host {
+    position: relative;
     display: block;
     flex: 1;
     min-height: 0;
