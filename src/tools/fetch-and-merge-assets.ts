@@ -566,10 +566,11 @@ export class FetchAndMergeAssetsController implements ReactiveController {
   async fetchAssetByID(id: string, options?: {
     allowedExtensions?: string[];
     canFavorite?: boolean;
+    simplePick?: boolean;
   }) {
-    const { allowedExtensions = [], canFavorite = false } = options ?? {};
+    const { allowedExtensions = [], canFavorite = false, simplePick = false } = options ?? {};
 
-    const promises: Partial<[Promise<GetAssetsByIDsResponse>, Promise<GetAvailableProxiesResponse>, Promise<boolean>]> = [
+    const promises: Partial<[Promise<GetAssetsByIDsResponse>, Promise<GetAvailableProxiesResponse | undefined>, Promise<boolean>]> = [
       apiGetAssetsByIDs({
         extraFields: [
           DEFAULT_VIEW_SIZE,
@@ -588,9 +589,13 @@ export class FetchAndMergeAssetsController implements ReactiveController {
         ],
         recordIds: [id],
       }),
-      apiGetAvailableProxies({
-        assetRecordId: id,
-      }),
+      // Simple-pick mode never offers a proxy or a transformation, so the only thing this response
+      // would still supply is the preview image -- which getcontent already returns as LargeSizePreview.
+      simplePick
+        ? Promise.resolve(undefined)
+        : apiGetAvailableProxies({
+          assetRecordId: id,
+        }),
     ];
 
     if (canFavorite) {
@@ -626,7 +631,7 @@ export class FetchAndMergeAssetsController implements ReactiveController {
         inColdStorage: Boolean(item.inColdStorage),
         name: item[FIELD_TITLE_WITH_FALLBACK] ?? '',
         originalUrl: item[ORIGINAL_VIEW_SIZE] ?? '',
-        previewUrl: proxyData?.previewUrl ?? '',
+        previewUrl: proxyData?.previewUrl ?? item[DEFAULT_VIEW_SIZE] ?? '',
         recordId: item[FIELD_RECORD_ID] ?? '',
         scrubUrl: item[FIELD_SCRUB_URL] ?? '',
         size: item[FIELD_FILE_SIZE] ?? '0 MB',

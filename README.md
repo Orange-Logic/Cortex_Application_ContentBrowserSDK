@@ -82,6 +82,32 @@ authentication when the site session expires. Sign in through the Cortex site an
 reopen the picker to resume. Omit `useSiteSession` to retain the existing SDK
 authentication flow.
 
+## Pick Without Formats (`simplePick`)
+
+Set `simplePick: true` when the host only needs the user to choose an asset. The SDK
+skips the available-proxies lookup and the transformation request that normally runs
+when an asset is confirmed, so picking costs one fewer round trip each way:
+
+```html
+<script>
+  OrangeDAMContentBrowser.open({
+    containerId: 'asset-picker',
+    simplePick: true,
+    onAssetSelected: (assets) => console.log(assets),
+  });
+</script>
+```
+
+The preview popup still opens with the asset's metadata, but shows only the image
+(`CoreField.LargeSizePreview`, already returned by the content request that fills the
+grid) and a single confirm button -- no proxy selector and no custom-format section.
+Confirming emits the asset straight to `onAssetSelected`.
+
+`simplePick` implies `allowProxy: false`; passing both is not an error, the proxy
+setting is simply ignored. Because no GetAssetLink request is made, only the computed
+`extraFields` (`ScrubUrl` and `AllowATSLink`) are returned in this mode -- request any
+other field with `simplePick` off.
+
 # Change Log
 * March 24, 2026 - v2.2.3
   * Supports displaying asset thumbnails according to the selected format (https://link.orangelogic.com/Tasks/420YSB)

@@ -218,6 +218,16 @@ type OrangeDAMContentBrowser = {
     allowProxy?: boolean;
 
     /**
+     * Pick-only mode. Skips the available-proxies lookup and the transformation request made when
+     * an asset is confirmed; the preview popup shows the asset's LargeSizePreview and confirming
+     * emits the asset straight to `onAssetSelected`. Implies `allowProxy: false`.
+     *
+     * Note: because no GetAssetLink request is made, only the computed `extraFields`
+     * (`ScrubUrl`, `AllowATSLink`) can be returned in this mode.
+     */
+    simplePick?: boolean;
+
+    /**
      * The flag to allow the user to select favorites
      */
     allowFavorites?: boolean;
@@ -372,6 +382,7 @@ const ContentBrowser: OrangeDAMContentBrowser = {
     allowLogout,
     allowProxy,
     allowTracking,
+    simplePick,
     availableDocTypes,
     availableRepresentativeSubtypes,
     baseUrl,
@@ -548,7 +559,8 @@ const ContentBrowser: OrangeDAMContentBrowser = {
             allowFormatDialogPin: !!allowFormatDialogPin,
             allowLogout: !useSiteSession && (allowLogout !== undefined ? !!allowLogout : true),
             allowTracking: allowTracking !== undefined ? !!allowTracking : true,
-            allowProxy: allowProxy !== undefined ? !!allowProxy : true,
+            allowProxy: simplePick ? false : (allowProxy !== undefined ? !!allowProxy : true),
+            simplePick: !!simplePick,
             allowFavorites: !!allowFavorites,
             defaultGridView: defaultGridView ?? '',
           }}

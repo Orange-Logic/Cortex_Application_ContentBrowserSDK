@@ -137,6 +137,7 @@ const AssetsPicker = forwardRef<AssetsPickerHandle, Props>(function AssetsPicker
     allowPin,
     allowProxy,
     allowTracking,
+    simplePick,
     allowedExtensions, // list of allowed extensions from runtime properties. e.g. ['.jpg', '.png', '.mp4']
     allowedFolders,
     availableDocTypes,
@@ -412,6 +413,7 @@ const AssetsPicker = forwardRef<AssetsPickerHandle, Props>(function AssetsPicker
       can-favorite={allowFavorites}
       can-logout={allowLogout}
       can-use-proxies={allowProxy}
+      simple-pick={simplePick}
       can-track={allowTracking}
       can-view-versions={showVersions}
       cta-text={ctaText}
