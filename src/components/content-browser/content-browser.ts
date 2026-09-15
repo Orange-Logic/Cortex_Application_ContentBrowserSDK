@@ -872,6 +872,7 @@ export default class CxContentBrowser extends CortexElement {
           cta-text-transform=${this.ctaTextTransform}
           variant=${this.isMobile ? ContentBrowserFormatDialogVariant.Drawer : ContentBrowserFormatDialogVariant.Dialog}
           token=${this.token}
+          ?auto-confirm-single-option=${this.view === TABLE_VIEW && this.canUseTable}
           ?can-custom-format=${!!parameters?.ATSEnabled}
           ?can-favorite=${this.canFavorite}
           ?can-pin-asset=${this.canPinAsset}

@@ -148,6 +148,14 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
   @property({ attribute: 'can-use-proxies', reflect: false, type: Boolean })
   canUseProxies: boolean = false;
 
+  /**
+   * Skip the dialog and insert straight away when it would offer no choice at all — see
+   * `hasNoSelectionToMake`. Off by default: this changes what a click does, so a surface opts in
+   * rather than inheriting it.
+   */
+  @property({ attribute: 'auto-confirm-single-option', reflect: false, type: Boolean })
+  autoConfirmSingleOption: boolean = false;
+
   @property({ attribute: 'can-view-versions', reflect: false, type: Boolean })
   canViewVersions: boolean = false;
 
@@ -250,10 +258,8 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
     return this.canCustomFormat && extensionList.some((item) => item.value === this.asset!.extension);
   }
 
-  @watch('proxies', { waitUntilFirstUpdate: true })
-  @watch('supportedExtensions')
-  handleSupportedExtensionsChange() {
-    this.filteredProxies = this.proxies.filter((item) => {
+  private filterProxies(proxies: AvailableProxy[]): AvailableProxy[] {
+    return proxies.filter((item) => {
       const assetExtension = this.asset?.extension?.replace(/^\./, '') ?? '';
 
       // A proxy with no extension of its own serves the asset's original file, so it is only offered when that
@@ -266,7 +272,33 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
 
       return true;
     });
+  }
+
+  @watch('proxies', { waitUntilFirstUpdate: true })
+  @watch('supportedExtensions')
+  handleSupportedExtensionsChange() {
+    this.filteredProxies = this.filterProxies(this.proxies);
     this.selectedProxy = this.filteredProxies[0]?.id ?? '';
+  }
+
+  /**
+   * True when opening the dialog would show the user nothing they could act on: no preview to look
+   * at, no ATS custom format, and at most one format to pick. An asset with no file of its own
+   * (`digitized = 0` — a text fragment) lands here.
+   *
+   * Tracking is deliberately not part of this test. Its parameters decorate an asset link, and an
+   * asset that reaches this state has no link to decorate — gating on `canTrack` would disable the
+   * shortcut for every host that enables tracking, in exchange for a dialog offering nothing.
+   */
+  private get hasNoSelectionToMake(): boolean {
+    if (!this.asset || this.asset.previewUrl || this.canUseATS) {
+      return false;
+    }
+
+    // With proxies off there is no format picker at all, so the original file is the only outcome.
+    // With proxies on, exactly one — never zero, which confirms nothing and would make the click a
+    // silent no-op; that case still gets the dialog and its empty state.
+    return this.canUseProxies ? this.filteredProxies.length === 1 : true;
   }
 
   open({
@@ -284,6 +316,17 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
     this.isFavorite = isFavorite;
     this.isAssetPinned = isAssetPinned;
     this.proxies = proxies;
+
+    // The watcher that derives these runs on the next update, and the decision below needs them now.
+    this.filteredProxies = this.filterProxies(this.proxies);
+    this.selectedProxy = this.filteredProxies[0]?.id ?? '';
+
+    if (this.autoConfirmSingleOption && this.hasNoSelectionToMake) {
+      this.handleProxyConfirm();
+
+      return;
+    }
+
     this.isOpen = true;
   }
 

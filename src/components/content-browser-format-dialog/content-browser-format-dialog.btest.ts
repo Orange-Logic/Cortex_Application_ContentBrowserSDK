@@ -1442,4 +1442,163 @@ describe('content-browser-format-dialog', () => {
       expect(p.parameters).to.deep.equal([{ key: 'src', value: 'news' }]);
     });
   });
+
+  describe('auto-confirm when there is nothing to choose', () => {
+    /**
+     * Shape taken from a live text fragment (L-29Q5K0): no file, so no extension, no rendition and
+     * no preview, and the only proxy on offer is the original.
+     */
+    function makeFragment(overrides: Partial<Asset> = {}) {
+      return makeAsset({
+        docType: MediaType.Multimedia,
+        extension: '',
+        imageUrl: '',
+        previewUrl: '',
+        ...overrides,
+      } as Partial<Asset>);
+    }
+
+    function makeOriginalProxy() {
+      return makeProxy({ extension: null, id: 'trx', proxyLabel: 'Original', proxyName: 'TRX' });
+    }
+
+    async function makeDialog(autoConfirm: boolean) {
+      const dialog = await fixture<CxContentBrowserFormatDialog>(html`
+        <cx-content-browser-format-dialog
+          .availableExtensions=${allEmptyExtensions()}
+          ?auto-confirm-single-option=${autoConfirm}
+          ?can-use-proxies=${true}
+        ></cx-content-browser-format-dialog>
+      `);
+      await elementUpdated(dialog);
+
+      return dialog;
+    }
+
+    it('inserts straight away instead of opening a dialog that offers nothing', async () => {
+      const dialog = await makeDialog(true);
+      let confirms = 0;
+      dialog.addEventListener('cx-content-browser-format-dialog-proxy-confirm', () => { confirms += 1; });
+
+      dialog.open({
+        asset: makeFragment(),
+        isFavorite: false,
+        proxies: [makeOriginalProxy()],
+      });
+      await elementUpdated(dialog);
+
+      expect(getInnerDialog(dialog)).to.not.have.attribute('open');
+      expect(confirms).to.equal(1);
+    });
+
+    it('still opens when the asset has a preview to look at', async () => {
+      const dialog = await makeDialog(true);
+      let confirms = 0;
+      dialog.addEventListener('cx-content-browser-format-dialog-proxy-confirm', () => { confirms += 1; });
+
+      dialog.open({
+        asset: makeFragment({ previewUrl: 'https://example.com/preview.jpg' } as Partial<Asset>),
+        isFavorite: false,
+        proxies: [makeOriginalProxy()],
+      });
+      await elementUpdated(dialog);
+
+      expect(getInnerDialog(dialog)).to.have.attribute('open');
+      expect(confirms).to.equal(0);
+    });
+
+    it('still opens when there is more than one format to pick', async () => {
+      const dialog = await makeDialog(true);
+      let confirms = 0;
+      dialog.addEventListener('cx-content-browser-format-dialog-proxy-confirm', () => { confirms += 1; });
+
+      dialog.open({
+        asset: makeFragment(),
+        isFavorite: false,
+        proxies: [makeOriginalProxy(), makeProxy({ extension: null, id: 'web', proxyName: 'WEB' })],
+      });
+      await elementUpdated(dialog);
+
+      expect(getInnerDialog(dialog)).to.have.attribute('open');
+      expect(confirms).to.equal(0);
+    });
+
+    it('still opens when no format is on offer, rather than confirming nothing', async () => {
+      const dialog = await makeDialog(true);
+      let confirms = 0;
+      dialog.addEventListener('cx-content-browser-format-dialog-proxy-confirm', () => { confirms += 1; });
+
+      // Zero proxies would make handleProxyConfirm a silent no-op, so the click has to land somewhere.
+      dialog.open({ asset: makeFragment(), isFavorite: false, proxies: [] });
+      await elementUpdated(dialog);
+
+      expect(getInnerDialog(dialog)).to.have.attribute('open');
+      expect(confirms).to.equal(0);
+    });
+
+    it('opens as before unless the surface opts in', async () => {
+      const dialog = await makeDialog(false);
+      let confirms = 0;
+      dialog.addEventListener('cx-content-browser-format-dialog-proxy-confirm', () => { confirms += 1; });
+
+      dialog.open({
+        asset: makeFragment(),
+        isFavorite: false,
+        proxies: [makeOriginalProxy()],
+      });
+      await elementUpdated(dialog);
+
+      expect(getInnerDialog(dialog)).to.have.attribute('open');
+      expect(confirms).to.equal(0);
+    });
+
+    it('inserts straight away with tracking enabled, since there is no link to decorate', async () => {
+      const dialog = await fixture<CxContentBrowserFormatDialog>(html`
+        <cx-content-browser-format-dialog
+          .availableExtensions=${allEmptyExtensions()}
+          ?auto-confirm-single-option=${true}
+          ?can-track=${true}
+          ?can-use-proxies=${true}
+        ></cx-content-browser-format-dialog>
+      `);
+      await elementUpdated(dialog);
+      let confirms = 0;
+      dialog.addEventListener('cx-content-browser-format-dialog-proxy-confirm', () => { confirms += 1; });
+
+      dialog.open({
+        asset: makeFragment(),
+        isFavorite: false,
+        proxies: [makeOriginalProxy()],
+      });
+      await elementUpdated(dialog);
+
+      expect(getInnerDialog(dialog)).to.not.have.attribute('open');
+      expect(confirms).to.equal(1);
+    });
+
+    it('still opens when the asset extension makes an ATS custom format reachable', async () => {
+      const dialog = await fixture<CxContentBrowserFormatDialog>(html`
+        <cx-content-browser-format-dialog
+          .availableExtensions=${videoMp4Extensions()}
+          .supportedExtensions=${['mp4']}
+          ?auto-confirm-single-option=${true}
+          ?can-custom-format=${true}
+          ?can-use-proxies=${true}
+        ></cx-content-browser-format-dialog>
+      `);
+      await elementUpdated(dialog);
+      let confirms = 0;
+      dialog.addEventListener('cx-content-browser-format-dialog-proxy-confirm', () => { confirms += 1; });
+
+      dialog.open({
+        asset: makeFragment({ docType: MediaType.Video, extension: '.mp4' } as Partial<Asset>),
+        isFavorite: false,
+        proxies: [makeOriginalProxy()],
+      });
+      await elementUpdated(dialog);
+
+      expect(getInnerDialog(dialog)).to.have.attribute('open');
+      expect(confirms).to.equal(0);
+    });
+  });
 });
