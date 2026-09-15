@@ -41,6 +41,7 @@ export default css`
     background-color: var(--cx-color-neutral-50);
     border-bottom: 1px solid var(--cx-color-neutral-200);
     color: var(--cx-color-neutral-700);
+    margin-top: 5px;
   }
 
   /* cx-typography sets its own font-weight, so the host cannot simply inherit one in. */
