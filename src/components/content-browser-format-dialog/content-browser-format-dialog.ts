@@ -688,7 +688,9 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
     let previewer: TemplateResult | undefined = undefined;
     let proxySelector: TemplateResult | undefined = undefined;
 
-    if (this.asset.docType === MediaType.Image) {
+    // The cropper is filled by cx-asset-link-format, which simple-pick does not render; without it
+    // the element would spin forever, so fall back to the plain image previewer.
+    if (!this.simplePick && this.asset.docType === MediaType.Image) {
       previewer = html`
         <cx-cropper id="cropper" class="content-browser-format__cropper" fill-image></cx-cropper>
       `;

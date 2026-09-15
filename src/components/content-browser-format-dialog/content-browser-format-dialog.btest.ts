@@ -1472,4 +1472,26 @@ describe('content-browser-format-dialog', () => {
     expect(el.shadowRoot!.querySelector('cx-asset-link-format')).to.be.null;
   });
 
+
+  it('previews an image with the plain previewer instead of the cropper in simple-pick mode', async () => {
+    const asset = makeAsset({
+      docType: MediaType.Image,
+      extension: '.jpg',
+      imageUrl: 'https://example.com/large-size-preview.jpg',
+      originalUrl: 'https://example.com/i.jpg',
+    });
+
+    el.simplePick = true;
+    el.open({ asset, isFavorite: false, proxies: [] });
+    await elementUpdated(el);
+
+    // cx-cropper is filled by cx-asset-link-format, which simple-pick does not render, so a cropper
+    // here would show a spinner and never resolve to an image.
+    expect(el.shadowRoot!.querySelector('#cropper')).to.be.null;
+
+    const preview = el.shadowRoot!.querySelector('cx-content-browser-asset-preview');
+    expect(preview).to.exist;
+    expect(preview!.getAttribute('image-url')).to.equal(asset.imageUrl);
+  });
+
 });
