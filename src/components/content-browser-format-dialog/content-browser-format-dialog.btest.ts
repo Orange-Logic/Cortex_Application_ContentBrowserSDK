@@ -1600,6 +1600,96 @@ describe('content-browser-format-dialog', () => {
       expect(confirms).to.equal(1);
     });
 
+    it('still opens for an asset that has a file but no preview yet', async () => {
+      const dialog = await makeDialog(true);
+      let confirms = 0;
+      dialog.addEventListener('cx-content-browser-format-dialog-proxy-confirm', () => { confirms += 1; });
+
+      // A PDF whose rendition has not been generated has no previewUrl either. An absent preview is
+      // not evidence of an absent file, so only the empty extension may trigger the shortcut.
+      dialog.open({
+        asset: makeFragment({ extension: '.pdf' } as Partial<Asset>),
+        isFavorite: false,
+        proxies: [makeOriginalProxy()],
+      });
+      await elementUpdated(dialog);
+
+      expect(getInnerDialog(dialog)).to.have.attribute('open');
+      expect(confirms).to.equal(0);
+    });
+
+    it('still opens when the proxies call failed, for an asset that has a file', async () => {
+      const dialog = await fixture<CxContentBrowserFormatDialog>(html`
+        <cx-content-browser-format-dialog
+          .availableExtensions=${allEmptyExtensions()}
+          ?auto-confirm-single-option=${true}
+        ></cx-content-browser-format-dialog>
+      `);
+      await elementUpdated(dialog);
+      let confirms = 0;
+      dialog.addEventListener('cx-content-browser-format-dialog-proxy-confirm', () => { confirms += 1; });
+
+      // apiGetAvailableProxies returns exactly this from its catch, with can-use-proxies off by
+      // default — the shape that would otherwise auto-insert every row after one 5xx.
+      dialog.open({
+        asset: makeFragment({ extension: '.jpg' } as Partial<Asset>),
+        isFavorite: false,
+        proxies: [],
+      });
+      await elementUpdated(dialog);
+
+      expect(getInnerDialog(dialog)).to.have.attribute('open');
+      expect(confirms).to.equal(0);
+    });
+
+    it('inserts a file-less asset straight away with the proxy picker switched off', async () => {
+      const dialog = await fixture<CxContentBrowserFormatDialog>(html`
+        <cx-content-browser-format-dialog
+          .availableExtensions=${allEmptyExtensions()}
+          ?auto-confirm-single-option=${true}
+        ></cx-content-browser-format-dialog>
+      `);
+      await elementUpdated(dialog);
+      let confirms = 0;
+      dialog.addEventListener('cx-content-browser-format-dialog-proxy-confirm', () => { confirms += 1; });
+
+      dialog.open({ asset: makeFragment(), isFavorite: false, proxies: [] });
+      await elementUpdated(dialog);
+
+      expect(getInnerDialog(dialog)).to.not.have.attribute('open');
+      expect(confirms).to.equal(1);
+    });
+
+    it('hands the asset over once when it is picked twice in quick succession', async () => {
+      const dialog = await makeDialog(true);
+      let confirms = 0;
+      dialog.addEventListener('cx-content-browser-format-dialog-proxy-confirm', () => { confirms += 1; });
+
+      // No dialog means no confirm button to disable, so open() has to serialise this itself.
+      dialog.open({ asset: makeFragment(), isFavorite: false, proxies: [makeOriginalProxy()] });
+      dialog.open({ asset: makeFragment(), isFavorite: false, proxies: [makeOriginalProxy()] });
+      await elementUpdated(dialog);
+
+      expect(confirms).to.equal(1);
+    });
+
+    it('reports that no dialog is on screen after an auto-confirm', async () => {
+      const dialog = await makeDialog(true);
+
+      dialog.open({ asset: makeFragment(), isFavorite: false, proxies: [makeOriginalProxy()] });
+      await elementUpdated(dialog);
+      expect(dialog.isDialogOpen).to.be.false;
+
+      // The host uses this to decide whether a failed insert has anywhere to report into.
+      dialog.open({
+        asset: makeFragment({ previewUrl: 'https://example.com/p.jpg' } as Partial<Asset>),
+        isFavorite: false,
+        proxies: [makeOriginalProxy()],
+      });
+      await elementUpdated(dialog);
+      expect(dialog.isDialogOpen).to.be.true;
+    });
+
     it('still opens when the asset extension makes an ATS custom format reachable', async () => {
       const dialog = await fixture<CxContentBrowserFormatDialog>(html`
         <cx-content-browser-format-dialog

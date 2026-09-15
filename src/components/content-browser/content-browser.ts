@@ -690,7 +690,7 @@ export default class CxContentBrowser extends CortexElement {
       // ExtraFields the host asked for, and swallowing the selection leaves the integration with no callback
       // and no error to act on.
       if (response.isError) {
-        this.formatDialog.setLoadingConfirm(false);
+        this.reportProxyConfirmFailure();
 
         return;
       }
@@ -703,7 +703,19 @@ export default class CxContentBrowser extends CortexElement {
 
       this.formatDialog.hide();
     } catch {
+      this.reportProxyConfirmFailure();
+    }
+  }
+
+  /**
+   * An auto-confirmed insert never opened a dialog, so stopping its spinner reports the failure
+   * nowhere and leaves the row selected with nothing pending. Reset the selection in that case.
+   */
+  private reportProxyConfirmFailure() {
+    if (this.formatDialog.isDialogOpen) {
       this.formatDialog.setLoadingConfirm(false);
+    } else {
+      this.formatDialog.hide();
     }
   }
 

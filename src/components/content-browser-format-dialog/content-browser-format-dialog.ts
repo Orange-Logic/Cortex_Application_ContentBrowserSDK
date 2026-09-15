@@ -289,16 +289,21 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
   }
 
   /**
-   * True when opening the dialog would show the user nothing they could act on: no preview to look
-   * at, no ATS custom format, and at most one format to pick. An asset with no file of its own
-   * (`digitized = 0` — a text fragment) lands here.
+   * True when opening the dialog would show the user nothing they could act on: the asset has no
+   * file of its own (`digitized = 0` — a text fragment), no preview, no ATS custom format, and at
+   * most one format to pick.
+   *
+   * The empty extension is what establishes "no file", and it has to be tested directly. An absent
+   * `previewUrl` does not imply one: a PDF or a rendition that has not been generated yet also has
+   * none, and `apiGetAvailableProxies` returns an empty `previewUrl` from its catch, so any failure
+   * of that call would otherwise make every row auto-insert.
    *
    * Tracking is deliberately not part of this test. Its parameters decorate an asset link, and an
    * asset that reaches this state has no link to decorate — gating on `canTrack` would disable the
    * shortcut for every host that enables tracking, in exchange for a dialog offering nothing.
    */
   private get hasNoSelectionToMake(): boolean {
-    if (!this.asset || this.asset.previewUrl || this.canUseATS) {
+    if (!this.asset || this.asset.extension || this.asset.previewUrl || this.canUseATS) {
       return false;
     }
 
@@ -329,7 +334,11 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
     this.selectedProxy = this.filteredProxies[0]?.id ?? '';
 
     if (this.autoConfirmSingleOption && !this.disabledConfirm && this.hasNoSelectionToMake) {
-      this.handleProxyConfirm();
+      // Without the dialog there is no confirm button to disable, so a second click would otherwise
+      // hand the same asset over twice while the first insert is still in flight.
+      if (!this.loadingConfirm) {
+        this.handleProxyConfirm();
+      }
 
       return;
     }
@@ -339,6 +348,11 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
 
   hide() {
     this.handleClose();
+  }
+
+  /** Whether the dialog is actually on screen — false when `open()` took the auto-confirm path. */
+  get isDialogOpen(): boolean {
+    return this.isOpen;
   }
 
   setVersionHistory(versions: AssetVersion[]) {
