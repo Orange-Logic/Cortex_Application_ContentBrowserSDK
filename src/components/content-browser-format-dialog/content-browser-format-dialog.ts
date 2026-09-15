@@ -896,7 +896,7 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
         <cx-button
           class="content-browser-format__footer__button"
           variant="primary"
-          ?loading=${this.loadingProxies}
+          ?loading=${this.loadingConfirm || this.loadingProxies}
           @click=${this.handleProxyConfirm}
         >
           <cx-icon slot="prefix" name="folder"></cx-icon>

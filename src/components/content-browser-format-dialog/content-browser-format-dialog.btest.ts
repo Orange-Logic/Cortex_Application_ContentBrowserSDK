@@ -1708,7 +1708,41 @@ describe('content-browser-format-dialog', () => {
       );
 
       expect(prevented).to.be.true;
+
+      // Without this the dialog could not have closed yet either way, so the assertion below would
+      // pass with the guard removed.
+      await elementUpdated(dialog);
       expect(getInnerDialog(dialog)).to.have.attribute('open');
+    });
+
+    it('shows the insert as pending while the dialog is held open', async () => {
+      // With proxies off this is the button that renders, and it used to bind `loadingProxies`,
+      // which nothing in the SDK ever sets — so the dialog was held with no visible progress.
+      const dialog = await fixture<CxContentBrowserFormatDialog>(html`
+        <cx-content-browser-format-dialog
+          .availableExtensions=${allEmptyExtensions()}
+        ></cx-content-browser-format-dialog>
+      `);
+      await elementUpdated(dialog);
+      dialog.open({
+        asset: makeFragment({ previewUrl: 'https://example.com/p.jpg' } as Partial<Asset>),
+        isFavorite: false,
+        proxies: [makeOriginalProxy()],
+      });
+      await elementUpdated(dialog);
+
+      // hasAttribute rather than the chai-dom matcher: a failing `to.have.attribute` on a design
+      // system element wedges the runner instead of reporting, which hides the regression.
+      const button = dialog.shadowRoot!.querySelector('.content-browser-format__footer__button')!;
+      expect(button.hasAttribute('loading')).to.be.false;
+
+      dialog.setLoadingConfirm(true);
+      await elementUpdated(dialog);
+      expect(button.hasAttribute('loading')).to.be.true;
+
+      dialog.setLoadingConfirm(false);
+      await elementUpdated(dialog);
+      expect(button.hasAttribute('loading')).to.be.false;
     });
 
     it('allows dismissal once no insert is outstanding', async () => {

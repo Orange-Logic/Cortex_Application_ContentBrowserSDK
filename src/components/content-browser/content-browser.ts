@@ -760,6 +760,10 @@ export default class CxContentBrowser extends CortexElement {
   }
 
   private async handleFormatConfirm(event: CxContentBrowserFormatDialogFormatConfirmEvent) {
+    // Reachable only through the ATS custom-format path, which always has a dialog on screen to
+    // serialise it — latched anyway so the guard does not depend on that staying true.
+    this.#insertInFlight = true;
+
     try {
       const response = await this.fetchAndMergeAssetsController.getAssetLink({
         ...event.detail,
@@ -787,6 +791,8 @@ export default class CxContentBrowser extends CortexElement {
       this.formatDialog.hide();
     } catch {
       this.formatDialog.setLoadingConfirm(false);
+    } finally {
+      this.#insertInFlight = false;
     }
   }
 
