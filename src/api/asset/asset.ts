@@ -511,7 +511,26 @@ export async function apiGetAssetsByIDs({
   }
 }
 
+export const ASSET_LIST_FIELDS = [
+  DEFAULT_VIEW_SIZE,
+  FIELD_DOC_TYPE,
+  FIELD_EXTENSION,
+  FIELD_FILE_SIZE,
+  FIELD_IDENTIFIER,
+  FIELD_KEYWORDS,
+  FIELD_MAX_HEIGHT,
+  FIELD_MAX_WIDTH,
+  FIELD_ORIGINAL_FILE_NAME,
+  FIELD_RECORD_ID,
+  FIELD_SUBTYPE,
+  FIELD_TITLE_WITH_FALLBACK,
+  FIELD_UPDATED_FILE_NAME,
+  FIELD_STORAGE_GROUP,
+  ORIGINAL_VIEW_SIZE,
+];
+
 export async function apiGetAssets({
+  fields,
   folderId,
   isSeeThrough,
   limitedToDocTypes = [],
@@ -522,25 +541,14 @@ export async function apiGetAssets({
   start,
   useSession,
 }: GetAssetsRequest) {
+  const validatedFields = fields?.filter((field) => field && typeof field === 'string') ?? [];
+
   try {
     const response = await http.request<GetAssetsResponse>({
       data: {
         Fields: [
-          DEFAULT_VIEW_SIZE,
-          FIELD_DOC_TYPE,
-          FIELD_EXTENSION,
-          FIELD_FILE_SIZE,
-          FIELD_IDENTIFIER,
-          FIELD_KEYWORDS,
-          FIELD_MAX_HEIGHT,
-          FIELD_MAX_WIDTH,
-          FIELD_ORIGINAL_FILE_NAME,
-          FIELD_RECORD_ID,
-          FIELD_SUBTYPE,
-          FIELD_TITLE_WITH_FALLBACK,
-          FIELD_UPDATED_FILE_NAME,
-          FIELD_STORAGE_GROUP,
-          ORIGINAL_VIEW_SIZE,
+          ...ASSET_LIST_FIELDS,
+          ...validatedFields.filter((field) => !ASSET_LIST_FIELDS.includes(field)),
         ],
         Limit: pageSize || undefined,
         LimitedToDocTypes: limitedToDocTypes,
@@ -569,6 +577,13 @@ export async function apiGetAssets({
               }
 
               return {
+                // Spread first so a requested field that shares a name with a mapped property cannot
+                // shadow it; a column reading that Cortex field still resolves under its own key.
+                ...validatedFields.reduce<Record<string, string>>((acc, field) => {
+                  acc[field] = item.fields[field] ?? '';
+
+                  return acc;
+                }, {}),
                 allowATSLink: item.fields[FIELD_ALLOW_ATS_LINK] === 'True',
                 docSubType: item.fields[FIELD_SUBTYPE] ?? '',
                 docType: (item.fields[FIELD_DOC_TYPE] as MediaType) ?? '',

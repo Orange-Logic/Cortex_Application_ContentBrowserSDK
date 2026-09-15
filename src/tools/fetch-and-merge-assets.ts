@@ -47,6 +47,8 @@ import _isEqual from 'lodash-es/isEqual';
 import _uniqBy from 'lodash-es/uniqBy';
 
 type FetchAndMergeAssetsControllerOptions = {
+  /** Cortex fields the table-view columns read, requested on every search alongside the fixed set. */
+  additionalFields?: string[];
   availableDocTypes: string[];
   baseUrl: string;
   defaultFolderId: string;
@@ -101,6 +103,8 @@ export class FetchAndMergeAssetsController implements ReactiveController {
 
   private readonly availableDocTypes: string[];
 
+  private readonly additionalFields: string[];
+
   private readonly defaultSearchText: string;
 
   private readonly defaultSelectedFacets: Record<string, string[]>;
@@ -147,6 +151,7 @@ export class FetchAndMergeAssetsController implements ReactiveController {
   private responseInterceptorId: number | null = null;
 
   constructor(host: CortexElement, {
+    additionalFields,
     availableDocTypes,
     baseUrl,
     defaultFolderId,
@@ -161,6 +166,8 @@ export class FetchAndMergeAssetsController implements ReactiveController {
     this.host = host;
 
     this.availableDocTypes = availableDocTypes;
+
+    this.additionalFields = additionalFields ?? [];
 
     this.defaultFolderId = defaultFolderId;
 
@@ -459,6 +466,7 @@ export class FetchAndMergeAssetsController implements ReactiveController {
 
       request = {
         ...request,
+        fields: this.additionalFields,
         limitedToDocTypes: this.availableDocTypes,
       };
 

@@ -12,7 +12,7 @@ import CxTooltip from '@orangelogic/design-system/components/tooltip';
 import CortexElement from '@/base/element';
 import type { CxSelectEvent } from '@/events';
 import componentStyles from '@/styles/component.styles';
-import { ControlOption, GridView } from '@/types/content-browser';
+import { type ContentBrowserView, ControlOption, GridView, TABLE_VIEW } from '@/types/content-browser';
 import { customElement, LocalizeController } from '@orangelogic/design-system/utils';
 import { watch } from '@/utils/watch';
 
@@ -58,7 +58,7 @@ export default class CxContentBrowserControlView extends CortexElement {
   private readonly localize = new LocalizeController(this);
 
   @property({ attribute: 'view', reflect: true, type: String })
-  view: GridView = GridView.Medium;
+  view: ContentBrowserView = GridView.Medium;
 
   @property({ attribute: 'views', reflect: false, type: Array })
   views: ControlOption[] = [];
@@ -69,8 +69,15 @@ export default class CxContentBrowserControlView extends CortexElement {
   @property({ attribute: 'is-mobile', reflect: false, type: Boolean })
   isMobile = false;
 
+  @property({ attribute: 'can-use-table', reflect: true, type: Boolean })
+  canUseTable = false;
+
   @state()
   private selectedView: ControlOption | undefined;
+
+  private get isTable(): boolean {
+    return this.view === TABLE_VIEW;
+  }
 
   runConnectedCallback() {
     this.handleViewChange();
@@ -90,9 +97,26 @@ export default class CxContentBrowserControlView extends CortexElement {
     this.emit('cx-content-browser-control-view-change', {
       detail: {
         isSeeThrough: value === 'see-thru' ? !this.isSeeThrough : this.isSeeThrough,
-        view: value === 'see-thru' ? this.view : value as GridView,
+        view: value === 'see-thru' ? this.view : value as ContentBrowserView,
       },
     });
+  }
+
+  private renderTableOption() {
+    if (!this.canUseTable) {
+      return nothing;
+    }
+
+    return html`
+      <cx-menu-item
+        value=${TABLE_VIEW}
+        type="checkbox"
+        ?checked=${this.isTable}
+      >
+        <cx-line-clamp lines="1">${this.localize.term('table')}</cx-line-clamp>
+        <cx-icon slot="prefix" name="table_rows"></cx-icon>
+      </cx-menu-item>
+    `;
   }
 
   @watch('view', { waitUntilFirstUpdate: true })
@@ -136,6 +160,7 @@ export default class CxContentBrowserControlView extends CortexElement {
                   )}
                   <cx-icon slot="prefix" name="grid_view"></cx-icon>
                 </cx-menu-item>
+                ${this.renderTableOption()}
                 <cx-divider></cx-divider>
                 <cx-menu-item value="see-thru" class="menu-item--switch">
                   <cx-space direction="horizontal" justify-content="space-between">
@@ -166,7 +191,7 @@ export default class CxContentBrowserControlView extends CortexElement {
           () => html`
             <cx-menu key="default-menu" no-uncheck>
               <cx-menu-label>${this.localize.term('view')}</cx-menu-label>
-              <cx-menu-item type="checkbox">
+              <cx-menu-item type="checkbox" ?checked=${this.canUseTable && !this.isTable}>
                 ${this.localize.term('grid')}
                 ${when(this.selectedView,
                   () => html` (${this.selectedView?.label})`,
@@ -188,6 +213,7 @@ export default class CxContentBrowserControlView extends CortexElement {
                 </cx-menu>
                 <cx-icon slot="prefix" name="grid_view"></cx-icon>
               </cx-menu-item>
+              ${this.renderTableOption()}
               <cx-divider></cx-divider>
               <cx-menu-item value="see-thru" class="menu-item--switch">
                 <cx-space direction="horizontal" justify-content="space-between">

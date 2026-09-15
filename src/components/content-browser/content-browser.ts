@@ -12,6 +12,7 @@ import CxContentBrowserFormatDialog from '@/components/content-browser-format-di
 import CxContentBrowserGrid from '@/components/content-browser-grid/content-browser-grid';
 import CxContentBrowserHeader from '@/components/content-browser-header/content-browser-header';
 import CxContentBrowserNoResult from '@/components/content-browser-no-result/content-browser-no-result';
+import CxContentBrowserTable from '@/components/content-browser-table/content-browser-table';
 import {
     CxContentBrowserControlBarSearchChangeEvent, CxContentBrowserControlFilterChangeEvent,
     CxContentBrowserControlSortOrderChangeEvent, CxContentBrowserControlViewChangeEvent,
@@ -23,7 +24,8 @@ import {
 import componentStyles from '@/styles/component.styles';
 import { FetchAndMergeAssetsController } from '@/tools/fetch-and-merge-assets';
 import {
-  ChangeOption, ContentBrowserFormatDialogVariant, type CtaTextTransform, GridView, OptionType,
+  ChangeOption, ContentBrowserFormatDialogVariant, type ContentBrowserView, type CtaTextTransform,
+  GridView, OptionType, TABLE_VIEW, type TableColumn,
 } from '@/types/content-browser';
 import { GetFolderRequest } from '@/types/folder';
 import { safeInteger } from '@/utils/number';
@@ -42,6 +44,20 @@ export const COMPUTED_FIELDS = ['ScrubUrl', 'AllowATSLink'];
 const MOBILE_WIDTH_THRESHOLD = 480;
 const FORCE_OVERLAY_THRESHOLD = 650;
 const PERSISTENT_DRAWER_WIDTH = 400;
+
+/** How many items one screen of a view holds: small tiles and table rows both fit far more than a large tile. */
+function resolvePageSize(view: ContentBrowserView): number {
+  switch (view) {
+    case GridView.Large:
+      return 15;
+    case GridView.Small:
+    case TABLE_VIEW:
+      return 30;
+    default:
+      return 20;
+  }
+}
+
 /**
  * @summary CxContentBrowser
  */
@@ -56,6 +72,7 @@ export default class CxContentBrowser extends CortexElement {
     'cx-content-browser-grid': CxContentBrowserGrid,
     'cx-content-browser-header': CxContentBrowserHeader,
     'cx-content-browser-no-result': CxContentBrowserNoResult,
+    'cx-content-browser-table': CxContentBrowserTable,
     'cx-icon': CxIcon,
     'cx-icon-button': CxIconButton,
     'cx-resize-observer': CxResizeObserver,
@@ -184,7 +201,15 @@ export default class CxContentBrowser extends CortexElement {
   extraFields: string[] = [];
 
   @property({ attribute: 'default-grid-view', type: String })
-  defaultGridView: GridView = GridView.Medium;
+  defaultGridView: ContentBrowserView = GridView.Medium;
+
+  /**
+   * Columns of the table view, defined by the host: a title, the Cortex field the column reads, and
+   * its styling. The table view is offered only while this is non-empty — an empty table is not a
+   * view mode — and the fields are read once, when the fetch controller is created.
+   */
+  @property({ attribute: 'table-columns', type: Array })
+  tableColumns: TableColumn[] = [];
 
   @property({ attribute: 'default-sort-order-name', type: String })
   defaultSortOrderName: string = '';
@@ -243,7 +268,7 @@ export default class CxContentBrowser extends CortexElement {
   private canPinLayout = true;
 
   @state()
-  private view = this.defaultGridView;
+  private view: ContentBrowserView = this.defaultGridView;
 
   @state()
   private folderTitle: string | undefined = undefined;
@@ -274,22 +299,20 @@ export default class CxContentBrowser extends CortexElement {
     super.willUpdate(changedProperties);
 
     if (!this.hasUpdated) {
-      this.view = this.defaultGridView;
+      // A table with no columns is not a view, so a stored or configured `table` falls back to the
+      // grid rather than rendering an empty frame the user cannot switch out of.
+      this.view = this.defaultGridView === TABLE_VIEW && !this.canUseTable
+        ? GridView.Medium
+        : this.defaultGridView;
     }
   }
 
+  private get canUseTable(): boolean {
+    return this.tableColumns.length > 0;
+  }
+
   runFirstUpdated() {
-    switch (this.view) {
-      case GridView.Large:
-        this.defaultPageSize = 15;
-        break;
-      case GridView.Medium:
-        this.defaultPageSize = 20;
-        break;
-      case GridView.Small:
-        this.defaultPageSize = 30;
-        break;
-    }
+    this.defaultPageSize = resolvePageSize(this.view);
 
     this.lastRequest = {
       ...this.lastRequest,
@@ -303,6 +326,7 @@ export default class CxContentBrowser extends CortexElement {
 
     this.updateComplete.then(() => {
       this.fetchAndMergeAssetsController = new FetchAndMergeAssetsController(this, {
+        additionalFields: this.tableColumns.map((column) => column.field),
         availableDocTypes: this.availableDocTypes,
         baseUrl: this.baseUrl,
         defaultFolderId: this.defaultFolderId,
@@ -430,17 +454,7 @@ export default class CxContentBrowser extends CortexElement {
       await this.fetchAndMergeAssetsController.fetchAndMergeAssets(this.lastRequest);
     }
 
-    switch (event.detail.view) {
-      case GridView.Large:
-        this.defaultPageSize = 15;
-        break;
-      case GridView.Medium:
-        this.defaultPageSize = 20;
-        break;
-      case GridView.Small:
-        this.defaultPageSize = 30;
-        break;
-    }
+    this.defaultPageSize = resolvePageSize(event.detail.view);
 
     this.view = event.detail.view;
   }
@@ -797,6 +811,7 @@ export default class CxContentBrowser extends CortexElement {
             .newlyChangedOption=${this.newlyChangedOption}
             .sortOrders=${sortOrders}
             .views=${this.views}
+            ?can-use-table=${this.canUseTable}
             ?is-mobile=${this.isMobile}
             ?is-see-through=${request?.isSeeThrough}
             ?loading=${loading}
@@ -812,20 +827,36 @@ export default class CxContentBrowser extends CortexElement {
             @cx-content-browser-control-filter-change=${this.handleFilterChange}
             @cx-content-browser-control-bar-search-change=${this.handleSearchChange}
           ></cx-content-browser-control-bar>
-          <cx-content-browser-grid
-            .assets=${items}
-            ?has-more=${items.length < totalCount}
-            ?loading=${loading}
-            ?show-title=${this.showTitle}
-            ?show-size=${this.showSize}
-            ?show-dimensions=${this.showDimensions}
-            ?show-tags=${this.showTags}
-            selected-asset-id=${ifDefined(this.selectedAssetId || undefined)}
-            view=${this.view}
-            @cx-content-browser-grid-scroll-end=${this.handleScrollEnd}
-            @cx-content-browser-grid-resize=${this.handleGridResize}
-            @cx-content-browser-grid-click=${this.handleGridClick}
-          ></cx-content-browser-grid>
+          ${when(this.view === TABLE_VIEW && this.canUseTable,
+            () => html`
+              <cx-content-browser-table
+                .assets=${items}
+                .columns=${this.tableColumns}
+                ?has-more=${items.length < totalCount}
+                ?loading=${loading}
+                selected-asset-id=${ifDefined(this.selectedAssetId || undefined)}
+                @cx-content-browser-grid-scroll-end=${this.handleScrollEnd}
+                @cx-content-browser-grid-resize=${this.handleGridResize}
+                @cx-content-browser-grid-click=${this.handleGridClick}
+              ></cx-content-browser-table>
+            `,
+            () => html`
+              <cx-content-browser-grid
+                .assets=${items}
+                ?has-more=${items.length < totalCount}
+                ?loading=${loading}
+                ?show-title=${this.showTitle}
+                ?show-size=${this.showSize}
+                ?show-dimensions=${this.showDimensions}
+                ?show-tags=${this.showTags}
+                selected-asset-id=${ifDefined(this.selectedAssetId || undefined)}
+                view=${this.view}
+                @cx-content-browser-grid-scroll-end=${this.handleScrollEnd}
+                @cx-content-browser-grid-resize=${this.handleGridResize}
+                @cx-content-browser-grid-click=${this.handleGridClick}
+              ></cx-content-browser-grid>
+            `,
+          )}
         </cx-resize-observer>
         <cx-content-browser-format-dialog
           .availableExtensions=${availableExtensions}

@@ -1,9 +1,9 @@
 import { GetAssetsRequest } from '@/types/asset';
-import { GridView } from '@/types/content-browser';
+import { ContentBrowserView } from '@/types/content-browser';
 
 export type CxContentBrowserRequestChangeEvent = CustomEvent<{
   request: GetAssetsRequest | null;
-  view: GridView;
+  view: ContentBrowserView;
 }>;
 
 declare global {

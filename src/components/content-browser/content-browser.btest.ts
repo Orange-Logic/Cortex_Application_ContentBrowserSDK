@@ -12,7 +12,9 @@ import {
 import type { GetAssetLinksResponse } from '@/api/asset/asset.types';
 import type { Asset, AssetVersion, GetAssetsRequest } from '@/types/asset';
 import { MediaType } from '@/types/asset';
-import { GridView, OptionType, ContentBrowserFormatDialogVariant } from '@/types/content-browser';
+import {
+  ContentBrowserFormatDialogVariant, GridView, OptionType, TABLE_VIEW, type TableColumn,
+} from '@/types/content-browser';
 import type { GetFolderRequest } from '@/types/folder';
 
 import sinon from 'sinon';
@@ -144,8 +146,27 @@ function getGrid(el: CxContentBrowser) {
   return el.shadowRoot!.querySelector('cx-content-browser-grid');
 }
 
+function getTable(el: CxContentBrowser) {
+  return el.shadowRoot!.querySelector('cx-content-browser-table');
+}
+
 function getControlBar(el: CxContentBrowser) {
   return el.shadowRoot!.querySelector('cx-content-browser-control-bar') as CxContentBrowserControlBar;
+}
+
+const TABLE_COLUMNS: TableColumn[] = [
+  { field: 'CoreField.Identifier', title: 'Identifier', width: '160px' },
+  { field: 'Dell.Snippet', lines: 2, title: 'Snippet' },
+];
+
+function selectTableView(el: CxContentBrowser) {
+  getControlBar(el).dispatchEvent(
+    new CustomEvent('cx-content-browser-control-view-change', {
+      bubbles: true,
+      composed: true,
+      detail: { isSeeThrough: el.lastRequest.isSeeThrough, view: TABLE_VIEW },
+    }),
+  );
 }
 
 function getContentBrowserResizeObserver(el: CxContentBrowser) {
@@ -1342,5 +1363,137 @@ describe('content-browser', () => {
     const bar = getControlBar(el);
     expect(bar.getAttribute('search-text')).to.equal('HU1405JO');
     expect(bar.searchText).to.equal('HU1405JO');
+  });
+  describe('table view', () => {
+    it('offers the table only once the host has configured columns', async () => {
+      const { el } = await fixtureWithMock(html`<cx-content-browser></cx-content-browser>`);
+      expect(getControlBar(el).canUseTable).to.be.false;
+
+      el.tableColumns = TABLE_COLUMNS;
+      await elementUpdated(el);
+
+      expect(getControlBar(el).canUseTable).to.be.true;
+      expect(getGrid(el), 'grid stays until the view is switched').to.exist;
+      expect(getTable(el)).to.not.exist;
+    });
+
+    it('swaps the grid for the table on a view change, carrying the configured columns', async () => {
+      const { el } = await fixtureWithMock(
+        html`<cx-content-browser .tableColumns=${TABLE_COLUMNS}></cx-content-browser>`,
+      );
+
+      selectTableView(el);
+      await elementUpdated(el);
+
+      const table = getTable(el)!;
+      expect(table).to.exist;
+      expect(getGrid(el)).to.not.exist;
+      expect((table as unknown as { columns: TableColumn[] }).columns).to.deep.equal(TABLE_COLUMNS);
+    });
+
+    it('renders the table from the start when it is the configured default view', async () => {
+      const { el } = await fixtureWithMock(html`
+        <cx-content-browser
+          default-grid-view=${TABLE_VIEW}
+          .tableColumns=${TABLE_COLUMNS}
+        ></cx-content-browser>
+      `);
+
+      expect(getTable(el)).to.exist;
+      expect(getGrid(el)).to.not.exist;
+    });
+
+    it('falls back to the grid when the table is the default view but no columns are configured', async () => {
+      const { el } = await fixtureWithMock(html`
+        <cx-content-browser default-grid-view=${TABLE_VIEW}></cx-content-browser>
+      `);
+
+      expect(getTable(el)).to.not.exist;
+      expect(getGrid(el)).to.have.attribute('view', GridView.Medium);
+    });
+
+    it('pages 30 rows at a time in the table view', async () => {
+      const { el, mock } = await fixtureWithMock(html`
+        <cx-content-browser
+          default-grid-view=${TABLE_VIEW}
+          .tableColumns=${TABLE_COLUMNS}
+        ></cx-content-browser>
+      `);
+
+      el.lastRequest = {
+        ...el.lastRequest!,
+        pageSize: 5,
+        start: 10,
+      };
+      el.requestUpdate();
+      await elementUpdated(el);
+      mock.fetchAndMergeAssets.resetHistory();
+
+      getTable(el)!.dispatchEvent(
+        new CustomEvent('cx-content-browser-grid-scroll-end', { bubbles: true, composed: true }),
+      );
+
+      await waitUntil(() => mock.fetchAndMergeAssets.calledOnce);
+      expect(mock.fetchAndMergeAssets.firstCall.args[0].pageSize).to.equal(30);
+    });
+
+    it('opens the format dialog for a row activated in the table', async () => {
+      const asset = makeAsset({ extension: '', id: 'frag-1', imageUrl: '' });
+      const { el, mock } = await fixtureWithMock(
+        html`<cx-content-browser .tableColumns=${TABLE_COLUMNS}></cx-content-browser>`,
+        {
+          fetchAssetByIDResult: { asset, isFavorite: false, proxies: [] },
+          items: [asset],
+          totalCount: 1,
+        },
+      );
+
+      selectTableView(el);
+      await elementUpdated(el);
+
+      getTable(el)!.dispatchEvent(
+        new CustomEvent('cx-content-browser-grid-click', {
+          bubbles: true,
+          composed: true,
+          detail: { id: 'frag-1' },
+        }),
+      );
+
+      await waitUntil(() => mock.fetchAssetByID.calledOnce);
+      expect(mock.fetchAssetByID).to.have.been.calledWith('frag-1');
+    });
+
+    it('hands the host a file-less selection made from the table', async () => {
+      // P0 item 3, L-429EVG: the table exists so a text fragment (digitized = 0) can be picked for its
+      // metadata alone. The callback must survive the empty link, as restored by L-29Q5K0.
+      const asset = makeAsset({ extension: '', id: 'frag-1', imageUrl: '' });
+      const { el } = await fixtureWithMock(
+        html`<cx-content-browser .tableColumns=${TABLE_COLUMNS}></cx-content-browser>`,
+        {
+          getAssetLinkResult: {
+            data: [{ extraFields: { 'Dell.Snippet': 'A fragment of text' }, imageUrl: '' }],
+            isError: false,
+          },
+          items: [asset],
+          totalCount: 1,
+        },
+      );
+
+      selectTableView(el);
+      await elementUpdated(el);
+
+      const p = oneEvent(el, 'cx-content-browser-selected-asset');
+      getFormatDialog(el).dispatchEvent(
+        new CustomEvent('cx-content-browser-format-dialog-proxy-confirm', {
+          bubbles: true,
+          composed: true,
+          detail: { asset, selectedProxyMetadata: null, useRepresentative: false },
+        }),
+      );
+      const ev = await p;
+
+      expect(ev.detail[0].extraFields['Dell.Snippet']).to.equal('A fragment of text');
+      expect(ev.detail[0].imageUrl).to.equal('');
+    });
   });
 });

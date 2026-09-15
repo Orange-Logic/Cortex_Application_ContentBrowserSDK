@@ -368,8 +368,34 @@ customStorage: {
           <li>
             <b>defaultGridView</b>
             <p>
-              The default grid view when showing assets (default medium).
-              Available value: small, medium, large
+              The default view when showing assets (default medium).
+              Available value: small, medium, large, table
+            </p>
+            <p>
+              <small>
+                Note: <code>table</code> applies only when <b>tableColumns</b> is also provided.
+              </small>
+            </p>
+          </li>
+          <li>
+            <b>tableColumns</b>
+            <p>
+              The columns of the table view. Providing this adds a Table option to the view menu, which lists assets as
+              rows of metadata instead of thumbnails - so an asset with no file of its own, such as a text fragment, is
+              browsable and selectable by its identifying fields.
+            </p>
+            <p>Each column takes:</p>
+            <ul>
+              <li><code>title</code> - the header text</li>
+              <li><code>field</code> - the Orange Logic field the column reads, e.g. "CoreField.Identifier"</li>
+              <li><code>width</code> (optional) - a CSS grid track, e.g. "160px", "2fr", "minmax(120px, 1fr)"</li>
+              <li><code>align</code> (optional) - left (default), center or right</li>
+              <li><code>lines</code> (optional) - lines shown before the cell text is clamped (default 1)</li>
+            </ul>
+            <p>
+              <small>
+                Note: the fields listed here are requested on every search, and field names are case-sensitive.
+              </small>
             </p>
           </li>
         </ul>
@@ -506,6 +532,10 @@ customStorage: {
         ctaTextTransform: 'capitalize', // 'none', 'uppercase', 'lowercase', 'capitalize' (default: 'capitalize')
         // extra asset fields to get
         extraFields: ['coreField.OriginalFileName', 'document.CortexPath'],
+        // tableColumns: [
+        //   { title: 'Identifier', field: 'CoreField.Identifier', width: '160px' },
+        //   { title: 'Title', field: 'CoreField.TitleWithFallback', width: 'minmax(0, 2fr)' },
+        // ],
         // default base url to pre-filled
         baseUrl: 'https://qa-latest.orangelogic.com',
         displayInfo: {

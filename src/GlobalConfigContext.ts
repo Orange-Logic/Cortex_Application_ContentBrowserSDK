@@ -1,5 +1,7 @@
 import { createContext } from 'react';
 
+import { TableColumn } from '@/types/content-browser';
+
 export type ImageCardDisplayInfo = {
   title?: boolean,
   dimension?: boolean,
@@ -37,6 +39,7 @@ export type GlobalConfigContextType = {
   allowPin: boolean;
   allowFormatDialogPin?: boolean;
   defaultGridView: string;
+  tableColumns?: TableColumn[];
 };
 
 export const GlobalConfigContext = createContext<GlobalConfigContextType>({
@@ -63,4 +66,5 @@ export const GlobalConfigContext = createContext<GlobalConfigContextType>({
   allowPin: false,
   allowFormatDialogPin: false,
   defaultGridView: '',
+  tableColumns: [],
 });

@@ -11,6 +11,7 @@ import { AppContext } from '@/AppContext';
 import { GlobalConfigContext } from '@/GlobalConfigContext';
 import { useAppDispatch, useAppSelector } from '@/store';
 import { applySessionSelector, logout } from '@/store/auth/auth.slice';
+import { ContentBrowserView, TABLE_VIEW } from '@/types/content-browser';
 import {
     Asset, Facet, Folder, GetAssetLinkResponse, GetContentRequest, GetFoldersRequest, GridView,
 } from '@/types/search';
@@ -75,13 +76,17 @@ type Props = {
 type DefaultSettings = {
   sortOrder: string;
   sortDirection: 'ascending' | 'descending' | '';
-  view: GridView;
+  view: ContentBrowserView;
   facets: Facet[];
   selectedFacets: Record<string, string[]>;
   isSeeThrough: boolean;
   searchText: string;
   lastLocation: string;
 };
+
+function isSupportedView(view: string): view is ContentBrowserView {
+  return view === TABLE_VIEW || Object.values(GridView).includes(view as GridView);
+}
 
 function parseSelectedFacets(selectedFilter: string | null): Record<string, string[]> {
   if (!selectedFilter) {
@@ -151,6 +156,7 @@ const AssetsPicker = forwardRef<AssetsPickerHandle, Props>(function AssetsPicker
     showCollections,
     showFavoriteFolder,
     showVersions,
+    tableColumns,
   } = useContext(GlobalConfigContext);
   const {
     extraFields, getPinnedState, onAssetAction, onAssetSelected, onClose, onError, onPinAsset, onUnpinAsset,
@@ -162,7 +168,7 @@ const AssetsPicker = forwardRef<AssetsPickerHandle, Props>(function AssetsPicker
   const [defaultSettings, setDefaultSettings] = useState<DefaultSettings>({
     sortOrder: '',
     sortDirection: '',
-    view: Object.values(GridView).includes(defaultGridView as GridView) ? defaultGridView as GridView : GridView.Medium,
+    view: isSupportedView(defaultGridView) ? defaultGridView : GridView.Medium,
     facets: [],
     selectedFacets: {},
     isSeeThrough: true,
@@ -356,7 +362,7 @@ const AssetsPicker = forwardRef<AssetsPickerHandle, Props>(function AssetsPicker
       const newDefaultSettings: Partial<DefaultSettings> = {
         sortOrder: sortOrder || '',
         sortDirection: ['ascending', 'descending'].includes(sortDirection as 'ascending' | 'descending') ? sortDirection as 'ascending' | 'descending' : undefined,
-        view: view as GridView || defaultSettings.view,
+        view: (view as ContentBrowserView) || defaultSettings.view,
         selectedFacets: parseSelectedFacets(selectedFilter),
         isSeeThrough: selectedIsSeeThrough === null ? true : selectedIsSeeThrough === 'true',
         searchText: searchText || '',
@@ -393,6 +399,7 @@ const AssetsPicker = forwardRef<AssetsPickerHandle, Props>(function AssetsPicker
       available-doc-types={availableDocTypes}
       available-representative-subtypes={availableRepresentativeSubtypes}
       default-grid-view={defaultSettings.view}
+      table-columns={tableColumns}
       default-sort-order-name={defaultSettings.sortOrder}
       default-sort-direction={defaultSettings.sortDirection}
       default-facets={defaultSettings.facets}

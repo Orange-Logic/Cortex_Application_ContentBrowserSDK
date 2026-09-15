@@ -3,7 +3,7 @@ import './content-browser-control-view';
 import { elementUpdated, expect, fixture, html, oneEvent } from '@open-wc/testing';
 
 import type CxMenuItem from '@orangelogic/design-system/components/menu-item';
-import { GridView, type ControlOption } from '@/types/content-browser';
+import { GridView, TABLE_VIEW, type ControlOption } from '@/types/content-browser';
 
 import type CxContentBrowserControlView from './content-browser-control-view';
 
@@ -185,6 +185,64 @@ describe('content-browser-control-view', () => {
       await dispatchSelectOnDropdown(el, small);
       const evt = await evtPromise;
       expect(evt.detail.view).to.equal('small');
+    });
+  });
+  describe('table view option', () => {
+    it('is absent while the host has configured no table columns', async () => {
+      await setViewsAndView(el, sampleViews, 'medium');
+
+      expect(getMenuItems(el).some((item) => item.value === TABLE_VIEW)).to.be.false;
+    });
+
+    it('is offered on both layouts once can-use-table is set', async () => {
+      el.canUseTable = true;
+      await setViewsAndView(el, sampleViews, 'medium');
+      expect(findMenuItem(el, (item) => item.value === TABLE_VIEW)).to.exist;
+
+      el.isMobile = true;
+      await elementUpdated(el);
+      expect(findMenuItem(el, (item) => item.value === TABLE_VIEW)).to.exist;
+    });
+
+    it('emits the table view when selected', async () => {
+      el.canUseTable = true;
+      await setViewsAndView(el, sampleViews, 'medium');
+
+      const table = findMenuItem(el, (item) => item.value === TABLE_VIEW);
+      const evtPromise = oneEvent(el, 'cx-content-browser-control-view-change');
+      await dispatchSelectOnDropdown(el, table);
+      const evt = await evtPromise;
+
+      expect(evt.detail.view).to.equal(TABLE_VIEW);
+      expect(evt.detail.isSeeThrough).to.be.false;
+    });
+
+    it('checks table or grid, never both', async () => {
+      el.canUseTable = true;
+      await setViewsAndView(el, sampleViews, 'medium');
+
+      const grid = getMenuItems(el)[0];
+      expect(grid.checked).to.be.true;
+      expect(findMenuItem(el, (item) => item.value === TABLE_VIEW).checked).to.be.false;
+
+      el.view = TABLE_VIEW;
+      await elementUpdated(el);
+
+      expect(getMenuItems(el)[0].checked).to.be.false;
+      expect(findMenuItem(el, (item) => item.value === TABLE_VIEW).checked).to.be.true;
+    });
+
+    it('returns to the grid when a size is picked from table view', async () => {
+      el.canUseTable = true;
+      await setViewsAndView(el, sampleViews, 'medium');
+      el.view = TABLE_VIEW;
+      await elementUpdated(el);
+
+      const small = findMenuItem(el, (item) => item.value === 'small');
+      const evtPromise = oneEvent(el, 'cx-content-browser-control-view-change');
+      await dispatchSelectOnDropdown(el, small);
+
+      expect((await evtPromise).detail.view).to.equal(GridView.Small);
     });
   });
 });

@@ -45,6 +45,38 @@ export enum GridView {
   Small = 'small',
 }
 
+/**
+ * The table layout. `GridView` members are the grid's pixel-width presets, so a layout that is not
+ * a grid at all cannot be one of them.
+ */
+export const TABLE_VIEW = 'table';
+
+/** What the content browser is currently rendering: one of the grid size presets, or the table. */
+export type ContentBrowserView = GridView | typeof TABLE_VIEW;
+
+export type TableColumnAlign = 'center' | 'left' | 'right';
+
+/**
+ * One column of the table view. The host owns the column set: the SDK ships the mechanism and no
+ * default column list, so nothing here is guessed from the asset's doc type.
+ */
+export type TableColumn = {
+  /** Horizontal alignment of the cell text. Default `left`. */
+  align?: TableColumnAlign;
+  /**
+   * Cortex field the column reads, e.g. `CoreField.Identifier` or `Dell.Snippet`. It is appended to
+   * the field list of the same search call the grid uses, so what a given caller gets back is decided
+   * server-side — the SDK neither filters nor resolves fields of its own.
+   */
+  field: string;
+  /** Lines a cell shows before the text is clamped. Default 1. */
+  lines?: number;
+  /** Column header text. */
+  title: string;
+  /** CSS grid track for the column, e.g. `200px`, `2fr`, `minmax(120px, 1fr)`. Default `minmax(0, 1fr)`. */
+  width?: string;
+};
+
 export const ASSET_SIZE = {
   [GridView.Small]: {
     maxWidth: 178,

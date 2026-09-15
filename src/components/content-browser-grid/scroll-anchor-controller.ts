@@ -95,7 +95,9 @@ export default class ScrollAnchorController implements ReactiveController {
     const sequence = ++this.#restoreSequence;
 
     void this.#host.updateComplete.then(async () => {
-      await this.#getContainer()?.layoutComplete;
+      // A virtualizer torn down mid-restore rejects layoutComplete with 'disconnected'. There is then
+      // nothing left to scroll, so swallow it rather than surface an unhandled rejection.
+      await this.#getContainer()?.layoutComplete?.catch(() => undefined);
 
       if (sequence !== this.#restoreSequence) {
         return;

@@ -15,6 +15,7 @@ import {
   ImageCardDisplayInfo,
 } from '@/GlobalConfigContext';
 import { store } from '@/store';
+import { TableColumn } from '@/types/content-browser';
 import {
   initAuthInfoFromCache,
   setUseHeaders,
@@ -238,10 +239,22 @@ type OrangeDAMContentBrowser = {
     loadExternalFonts?: boolean;
 
     /**
-     * The default grid view to be used when showing asset (default Medium)
-     * Available values: small, medium, large
+     * The default view to be used when showing assets (default medium)
+     * Available values: small, medium, large, table.
+     * `table` only applies when `tableColumns` is also provided.
      */
     defaultGridView?: string;
+
+    /**
+     * The columns of the table view. Each column carries a `title` (the header text), a `field`
+     * (the Cortex field it reads, e.g. "CoreField.Identifier") and optional
+     * styling: `width` (a CSS grid track), `align` and `lines`.
+     *
+     * The table view is offered in the view menu only when this is set, and the fields listed here
+     * are requested on every search — so an asset with no thumbnail, such as a text fragment,
+     * becomes browsable and selectable by its metadata.
+     */
+    tableColumns?: TableColumn[];
   }) => Promise<void>;
   close: () => void;
   fetchAssets: (params: GetContentRequest) => Promise<GetContentResponse | undefined> | undefined;
@@ -342,6 +355,11 @@ const ContentBrowser: OrangeDAMContentBrowser = {
         lastLocationMode: true, // Whether to open the last selected folder on load
         allowTracking: true, // Whether to enable tracking parameters for asset URLs
         allowFormatDialogPin: true, // Whether to show pin/unpin actions in format dialog
+        tableColumns: [ // Columns of the table view; omit to offer grid views only
+          { title: "Identifier", field: "CoreField.Identifier", width: "160px" },
+          { title: "Title", field: "CoreField.TitleWithFallback", width: "minmax(0, 2fr)" },
+          { title: "Description", field: "Document.CaptionLong", lines: 2 },
+        ],
       });`);
   },
   open: async ({
@@ -391,6 +409,7 @@ const ContentBrowser: OrangeDAMContentBrowser = {
     showVersions,
     useSession,
     defaultGridView,
+    tableColumns,
   }) => {
     // !! Always assign this first to make sure that storage functionality works
     const customStorageHandlers =
@@ -539,6 +558,7 @@ const ContentBrowser: OrangeDAMContentBrowser = {
             allowProxy: allowProxy !== undefined ? !!allowProxy : true,
             allowFavorites: !!allowFavorites,
             defaultGridView: defaultGridView ?? '',
+            tableColumns: tableColumns ?? [],
           }}
         >
           <App

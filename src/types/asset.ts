@@ -88,6 +88,11 @@ export type GetAssetLinksRequest = {
 };
 
 export type GetAssetsRequest = {
+  /**
+   * Extra Cortex fields to request alongside the fixed set, returned on each item under the field
+   * name as sent. Used by the table view to resolve host-configured columns.
+   */
+  fields?: string[];
   folderId?: string;
   isSeeThrough?: boolean;
   limitedToDocTypes?: string[];
