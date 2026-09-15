@@ -109,7 +109,7 @@ export class FetchAndMergeAssetsController implements ReactiveController {
 
   private readonly availableDocTypes: string[];
 
-  private readonly additionalFields: string[];
+  private additionalFields: string[];
 
   private readonly defaultSearchText: string;
 
@@ -338,6 +338,15 @@ export class FetchAndMergeAssetsController implements ReactiveController {
     }
 
     this.host.requestUpdate();
+  }
+
+  /**
+   * Table columns are host configuration and can be reconfigured after mount, unlike the rest of
+   * these options — every later fetch must ask for the current field list, not the one that
+   * happened to be set when the controller was constructed.
+   */
+  updateAdditionalFields(additionalFields: string[]) {
+    this.additionalFields = additionalFields;
   }
 
   updateAuth(token: string, useSession: string) {

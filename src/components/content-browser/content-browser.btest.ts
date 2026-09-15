@@ -113,6 +113,7 @@ function createMockFetchController(
       },
     }),
     removeAssetFromFavorite: sinon.stub().resolves(true),
+    updateAdditionalFields: sinon.stub(),
   };
 }
 
@@ -1494,6 +1495,42 @@ describe('content-browser', () => {
 
       expect(ev.detail[0].extraFields['Dell.Snippet']).to.equal('A fragment of text');
       expect(ev.detail[0].imageUrl).to.equal('');
+    });
+  });
+
+  describe('table-columns reconfigured after mount', () => {
+    /**
+     * The controller takes its field list once, at construction. A host that reconfigures columns
+     * later would otherwise keep fetching the original set, leaving the new columns' cells blank.
+     */
+    it('asks the fetch controller for the new column fields', async () => {
+      const { el, mock } = await fixtureWithMock(html`
+        <cx-content-browser .tableColumns=${TABLE_COLUMNS}></cx-content-browser>
+      `);
+      mock.updateAdditionalFields.resetHistory();
+
+      el.tableColumns = [
+        { field: 'CoreField.Identifier', title: 'Identifier' },
+        { field: 'Dell.Snippet', title: 'Snippet' },
+      ];
+      await elementUpdated(el);
+
+      expect(mock.updateAdditionalFields).to.have.been.calledOnceWith([
+        'CoreField.Identifier',
+        'Dell.Snippet',
+      ]);
+    });
+
+    it('refetches so the rows already on screen carry the new fields', async () => {
+      const { el, mock } = await fixtureWithMock(html`
+        <cx-content-browser .tableColumns=${TABLE_COLUMNS}></cx-content-browser>
+      `);
+      mock.fetchAssets.resetHistory();
+
+      el.tableColumns = [{ field: 'Dell.Snippet', title: 'Snippet' }];
+      await elementUpdated(el);
+
+      expect(mock.fetchAssets).to.have.been.calledOnce;
     });
   });
 

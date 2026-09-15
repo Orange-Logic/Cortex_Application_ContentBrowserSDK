@@ -426,7 +426,16 @@ export default class CxContentBrowser extends CortexElement {
     this.formatDialog.setIsAssetPinned(isAssetPinned);
   }
 
+  #openingAsset = false;
+
   private async openFormatDialog(id: string) {
+    // A row click and its CTA button can both land before the fetch resolves, and each one would
+    // otherwise open its own dialog — or, on the auto-confirm path, insert the asset again.
+    if (this.#openingAsset) {
+      return;
+    }
+
+    this.#openingAsset = true;
     this.selectedAssetId = id;
 
     try {
@@ -454,6 +463,8 @@ export default class CxContentBrowser extends CortexElement {
       this.formatDialog.open({ ...asset, isAssetPinned });
     } catch {
       this.selectedAssetId = undefined;
+    } finally {
+      this.#openingAsset = false;
     }
   }
 
@@ -465,6 +476,20 @@ export default class CxContentBrowser extends CortexElement {
         view: this.view,
       },
     });
+  }
+
+  @watch('tableColumns', { waitUntilFirstUpdate: true })
+  handleTableColumnsChange() {
+    if (!this.fetchAndMergeAssetsController) {
+      return;
+    }
+
+    this.fetchAndMergeAssetsController.updateAdditionalFields(
+      this.tableColumnList.map((column) => column.field),
+    );
+
+    // Rows already on screen were fetched without the new fields, so their cells would stay blank.
+    void this.fetchAssets(this.lastRequest);
   }
 
   @watch(['token', 'useSession'], { waitUntilFirstUpdate: true })
