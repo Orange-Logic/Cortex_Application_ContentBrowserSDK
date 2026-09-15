@@ -428,10 +428,15 @@ export default class CxContentBrowser extends CortexElement {
 
   #openingAsset = false;
 
+  #insertInFlight = false;
+
   private async openFormatDialog(id: string) {
     // A row click and its CTA button can both land before the fetch resolves, and each one would
-    // otherwise open its own dialog — or, on the auto-confirm path, insert the asset again.
-    if (this.#openingAsset) {
+    // otherwise open its own dialog — or, on the auto-confirm path, insert the asset again. The
+    // second guard covers the rest of an auto-confirmed insert, which outlives the fetch and has no
+    // dialog of its own: without it the next asset's dialog inherits that insert and is torn down
+    // when it settles.
+    if (this.#openingAsset || this.#insertInFlight) {
       return;
     }
 
@@ -489,7 +494,9 @@ export default class CxContentBrowser extends CortexElement {
     );
 
     // Rows already on screen were fetched without the new fields, so their cells would stay blank.
-    void this.fetchAssets(this.lastRequest);
+    // This has to be the stateful path: `fetchAssets` only returns the response and refreshes
+    // nothing, so the table would keep rendering the rows it already had.
+    void this.fetchAndMergeAssetsController.fetchAndMergeAssets(this.lastRequest);
   }
 
   @watch(['token', 'useSession'], { waitUntilFirstUpdate: true })
@@ -703,6 +710,9 @@ export default class CxContentBrowser extends CortexElement {
       return;
     }
 
+    // Only the asynchronous path needs this; simple-pick above resolves synchronously.
+    this.#insertInFlight = true;
+
     try {
       const response = await this.fetchAndMergeAssetsController.getAssetLink({
         ...event.detail,
@@ -729,6 +739,8 @@ export default class CxContentBrowser extends CortexElement {
       this.formatDialog.hide();
     } catch {
       this.reportProxyConfirmFailure();
+    } finally {
+      this.#insertInFlight = false;
     }
   }
 

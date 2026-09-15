@@ -343,6 +343,10 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
       return;
     }
 
+    // Only the shortcut above may inherit loadingConfirm, as its guard. A dialog that actually
+    // opens starts clean: an insert still in flight for a previous asset would otherwise show this
+    // one's confirm button already spinning, and settle against this dialog instead of its own.
+    this.loadingConfirm = false;
     this.isOpen = true;
   }
 

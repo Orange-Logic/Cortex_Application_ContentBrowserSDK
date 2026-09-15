@@ -1521,16 +1521,20 @@ describe('content-browser', () => {
       ]);
     });
 
-    it('refetches so the rows already on screen carry the new fields', async () => {
+    it('refetches through the stateful path so the rows on screen are replaced', async () => {
       const { el, mock } = await fixtureWithMock(html`
         <cx-content-browser .tableColumns=${TABLE_COLUMNS}></cx-content-browser>
       `);
+      mock.fetchAndMergeAssets.resetHistory();
       mock.fetchAssets.resetHistory();
 
       el.tableColumns = [{ field: 'Dell.Snippet', title: 'Snippet' }];
       await elementUpdated(el);
 
-      expect(mock.fetchAssets).to.have.been.calledOnce;
+      // fetchAssets only returns the response; it refreshes no state, so the table would keep
+      // rendering the rows it already had.
+      expect(mock.fetchAndMergeAssets).to.have.been.calledOnce;
+      expect(mock.fetchAssets).to.not.have.been.called;
     });
   });
 
