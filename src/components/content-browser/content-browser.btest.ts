@@ -1521,6 +1521,23 @@ describe('content-browser', () => {
       ]);
     });
 
+    it('restarts the refetch from the first page so scrolled-in rows are replaced', async () => {
+      const { el, mock } = await fixtureWithMock(html`
+        <cx-content-browser .tableColumns=${TABLE_COLUMNS}></cx-content-browser>
+      `);
+      el.lastRequest = { ...el.lastRequest, start: 30 };
+      await elementUpdated(el);
+      mock.fetchAndMergeAssets.resetHistory();
+
+      el.tableColumns = [{ field: 'Dell.Snippet', title: 'Snippet' }];
+      await elementUpdated(el);
+
+      // Past the first page the controller appends and de-duplicates by recordId, which would keep
+      // the field-less rows it already had.
+      expect(mock.fetchAndMergeAssets).to.have.been.calledOnce;
+      expect(mock.fetchAndMergeAssets.firstCall.args[0].start).to.equal(0);
+    });
+
     it('refetches through the stateful path so the rows on screen are replaced', async () => {
       const { el, mock } = await fixtureWithMock(html`
         <cx-content-browser .tableColumns=${TABLE_COLUMNS}></cx-content-browser>

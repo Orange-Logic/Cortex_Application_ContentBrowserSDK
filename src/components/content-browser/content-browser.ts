@@ -494,8 +494,11 @@ export default class CxContentBrowser extends CortexElement {
     );
 
     // Rows already on screen were fetched without the new fields, so their cells would stay blank.
-    // This has to be the stateful path: `fetchAssets` only returns the response and refreshes
-    // nothing, so the table would keep rendering the rows it already had.
+    // This has to be the stateful path -- `fetchAssets` only returns the response and refreshes
+    // nothing -- and it has to start from zero: past the first page the controller appends and
+    // de-duplicates by recordId, which keeps the field-less rows it already had.
+    this.lastRequest = { ...this.lastRequest, start: 0 };
+
     void this.fetchAndMergeAssetsController.fetchAndMergeAssets(this.lastRequest);
   }
 

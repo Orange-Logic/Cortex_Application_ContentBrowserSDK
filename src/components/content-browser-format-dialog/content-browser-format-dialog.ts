@@ -964,7 +964,10 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
   }
 
   private handleRequestClose(event: CxRequestCloseEvent) {
-    if (this.loadingFavorites || this.loadingPinAsset) {
+    // An insert cannot be abandoned: the request is already out, its closure still holds the asset,
+    // and the host blocks further selections until it settles. Dismissing here would hand over an
+    // asset the user cancelled, after a window of silently dead clicks.
+    if (this.loadingConfirm || this.loadingFavorites || this.loadingPinAsset) {
       event.preventDefault();
 
       return;

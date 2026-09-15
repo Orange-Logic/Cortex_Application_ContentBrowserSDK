@@ -1690,6 +1690,43 @@ describe('content-browser-format-dialog', () => {
       expect(dialog.isDialogOpen).to.be.true;
     });
 
+    it('refuses to dismiss while an insert is in flight', async () => {
+      const dialog = await makeDialog(false);
+      dialog.open({
+        asset: makeFragment({ previewUrl: 'https://example.com/p.jpg' } as Partial<Asset>),
+        isFavorite: false,
+        proxies: [makeOriginalProxy()],
+      });
+      await elementUpdated(dialog);
+      dialog.setLoadingConfirm(true);
+      await elementUpdated(dialog);
+
+      // The request is already out and its closure still holds the asset; dismissing here would
+      // hand over an asset the user cancelled, and the host blocks selections until it settles.
+      const prevented = !getInnerDialog(dialog).dispatchEvent(
+        new CustomEvent('cx-request-close', { bubbles: true, cancelable: true, composed: true, detail: { source: 'keyboard' } }),
+      );
+
+      expect(prevented).to.be.true;
+      expect(getInnerDialog(dialog)).to.have.attribute('open');
+    });
+
+    it('allows dismissal once no insert is outstanding', async () => {
+      const dialog = await makeDialog(false);
+      dialog.open({
+        asset: makeFragment({ previewUrl: 'https://example.com/p.jpg' } as Partial<Asset>),
+        isFavorite: false,
+        proxies: [makeOriginalProxy()],
+      });
+      await elementUpdated(dialog);
+
+      const prevented = !getInnerDialog(dialog).dispatchEvent(
+        new CustomEvent('cx-request-close', { bubbles: true, cancelable: true, composed: true, detail: { source: 'keyboard' } }),
+      );
+
+      expect(prevented).to.be.false;
+    });
+
     it('still opens when the asset extension makes an ATS custom format reachable', async () => {
       const dialog = await fixture<CxContentBrowserFormatDialog>(html`
         <cx-content-browser-format-dialog
