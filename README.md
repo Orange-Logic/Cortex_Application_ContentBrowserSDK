@@ -48,7 +48,7 @@ yarn start
 ```
 yarn build
 ```
-- use the 2 files `build\static\js\ContentBrowserSDK.min.js` and `build\static\css\ContentBrowserSDK.min.css` in your other projects
+- use the 2 files `build/OrangeDAMContentBrowserSDK.min.js` and `build/OrangeDAMContentBrowserSDK.min.css` in your other projects
 
 # More guide
 For detail guides on usage check out the [Orange Logic Developer Portal](https://developer.orangelogic.com/docs/generic-asset-browser)

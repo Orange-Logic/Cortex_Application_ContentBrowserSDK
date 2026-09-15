@@ -392,6 +392,20 @@ export default class CxContentBrowser extends CortexElement {
     this.fetchAndMergeAssetsController?.updateAuth(this.token, this.useSession);
   }
 
+  @watch('useSiteSession', { waitUntilFirstUpdate: true })
+  handleSiteSessionChange() {
+    if (this.useSiteSession) {
+      this.baseUrl = resolveSiteSessionUrl(this.baseUrl);
+    }
+
+    this.fetchAndMergeAssetsController?.updateSiteSession(
+      this.useSiteSession,
+      this.baseUrl,
+      this.token,
+      this.useSession,
+    );
+  }
+
   private async handleSortOrderChange(event: CxContentBrowserControlSortOrderChangeEvent) {
     const { sortDirection, sortOrderName } = event.detail;
 

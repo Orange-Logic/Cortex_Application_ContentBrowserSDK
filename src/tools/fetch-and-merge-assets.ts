@@ -95,7 +95,9 @@ export class FetchAndMergeAssetsController implements ReactiveController {
 
   private useSession: string;
 
-  private readonly useSiteSession: boolean;
+  private useSiteSession: boolean;
+
+  private baseUrl: string;
 
   private pendingTokenRefresh: Promise<string | null> | null = null;
 
@@ -179,21 +181,12 @@ export class FetchAndMergeAssetsController implements ReactiveController {
 
     this.defaultSortDirection = defaultSortDirection;
 
-    this.useSiteSession = useSiteSession;
-    this.token = useSiteSession ? '' : token;
-
-    this.useSession = useSiteSession ? '' : useSession;
-
-    if (useSiteSession) {
-      baseUrl = resolveSiteSessionUrl(baseUrl);
-    }
-
-    http.defaults.baseURL = baseUrl;
+    this.applyTransportMode(useSiteSession, baseUrl, token, useSession);
 
     this.requestInterceptorId = http.interceptors.request.use((config) => {
       if (this.useSiteSession) {
-        config.baseURL = baseUrl;
-        config.url = getSiteSessionRequestUrl(baseUrl, config.url ?? '');
+        config.baseURL = this.baseUrl;
+        config.url = getSiteSessionRequestUrl(this.baseUrl, config.url ?? '');
         config.withCredentials = true;
         config.auth = undefined;
         ['Authorization', 'Token', 'UseSession'].forEach((name) => config.headers.delete(name));
@@ -226,8 +219,8 @@ export class FetchAndMergeAssetsController implements ReactiveController {
         return config;
       }
 
-      if (baseUrl) {
-        config.baseURL = baseUrl;
+      if (this.baseUrl) {
+        config.baseURL = this.baseUrl;
       }
 
       config.params = {
@@ -295,6 +288,49 @@ export class FetchAndMergeAssetsController implements ReactiveController {
     }
 
     return this.pendingTokenRefresh;
+  }
+
+  /**
+   * Site-session mode decides the transport (cookies on the Cortex origin vs. Token/UseSession
+   * params), so it has to be applied to the interceptor state and base URL, not just captured once.
+   */
+  private applyTransportMode(useSiteSession: boolean, baseUrl: string, token: string, useSession: string) {
+    this.useSiteSession = useSiteSession;
+    this.baseUrl = useSiteSession ? resolveSiteSessionUrl(baseUrl) : baseUrl;
+    this.token = useSiteSession ? '' : token;
+    this.useSession = useSiteSession ? '' : useSession;
+
+    http.defaults.baseURL = this.baseUrl;
+  }
+
+  /**
+   * `setSiteSession(...)` can flip the mode while the host stays mounted, so keep the transport in
+   * step with the UI instead of serving requests through the mode the controller was built with.
+   */
+  updateSiteSession(useSiteSession: boolean, baseUrl: string, token: string, useSession: string) {
+    if (useSiteSession === this.useSiteSession) {
+      return;
+    }
+
+    this.applyTransportMode(useSiteSession, baseUrl, token, useSession);
+
+    // A pending refresh belongs to the previous mode; release its waiter so it cannot resolve later.
+    if (this.resolvePendingTokenRefresh) {
+      this.resolvePendingTokenRefresh(null);
+      this.pendingTokenRefresh = null;
+      this.resolvePendingTokenRefresh = null;
+    }
+
+    this.isLoggedIn = true;
+    this.#hasFetchedOnce = false;
+
+    this.fetchInitialData();
+
+    if (this.lastRequest) {
+      this.fetchAndMergeAssets(this.lastRequest);
+    }
+
+    this.host.requestUpdate();
   }
 
   updateAuth(token: string, useSession: string) {
