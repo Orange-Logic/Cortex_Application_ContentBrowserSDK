@@ -832,6 +832,8 @@ export default class CxContentBrowser extends CortexElement {
               <cx-content-browser-table
                 .assets=${items}
                 .columns=${this.tableColumns}
+                cta-text=${this.ctaText}
+                cta-text-transform=${this.ctaTextTransform}
                 ?has-more=${items.length < totalCount}
                 ?loading=${loading}
                 selected-asset-id=${ifDefined(this.selectedAssetId || undefined)}

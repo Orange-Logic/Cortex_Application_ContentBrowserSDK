@@ -138,7 +138,7 @@ export default class CxContentBrowserControlView extends CortexElement {
         <div slot="trigger">
           <cx-tooltip content=${this.localize.term('view')}>
             <cx-icon-button
-              name="dashboard"
+              name=${this.isTable ? 'table_rows' : 'dashboard'}
               label=${this.localize.term('view')}
               outline
             ></cx-icon-button>

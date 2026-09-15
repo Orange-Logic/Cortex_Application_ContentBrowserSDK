@@ -162,9 +162,11 @@ describe('content-browser-table', () => {
     await elementUpdated(el);
     const headers = [...el.shadowRoot!.querySelectorAll('[role="columnheader"]')];
 
-    expect(headers).to.have.lengthOf(2);
+    // The trailing header is the action column, which carries no title of its own.
+    expect(headers).to.have.lengthOf(3);
     expect(headers[0].textContent).to.contain('Identifier');
     expect(headers[1].textContent).to.contain('Snippet');
+    expect(headers[2]).to.have.class('content-browser-table__cell--action');
   });
 
   it('lays the header out with the configured column widths', async () => {
@@ -174,7 +176,7 @@ describe('content-browser-table', () => {
     await elementUpdated(el);
     const header = el.shadowRoot!.querySelector<HTMLElement>('.content-browser-table__header')!;
 
-    expect(header.style.gridTemplateColumns).to.equal('160px minmax(0px, 1fr)');
+    expect(header.style.gridTemplateColumns).to.equal('160px minmax(0px, 1fr) max-content');
   });
 
   it('renders a row per asset whose cells read the host-configured Cortex fields', async () => {
@@ -188,9 +190,115 @@ describe('content-browser-table', () => {
     await waitForRows(el, 1);
 
     const cells = getRows(el)[0].querySelectorAll('[role="cell"]');
-    expect(cells).to.have.lengthOf(2);
+    expect(cells).to.have.lengthOf(3);
     expect(cells[0].textContent).to.contain('FRAG-1');
     expect(cells[1].textContent).to.contain('A fragment of text');
+  });
+
+
+  it('offers an action button on each row that hands the asset to the host', async () => {
+    el = await fixture<ContentBrowserTable>(html`
+      <cx-content-browser-table style="height: 400px"
+        .assets=${[makeAsset()]}
+        .columns=${COLUMNS}
+      ></cx-content-browser-table>
+    `);
+    await elementUpdated(el);
+    await waitForRows(el, 1);
+
+    const button = getRows(el)[0].querySelector<HTMLElement>('.content-browser-table__action')!;
+    expect(button.textContent).to.contain('Insert');
+
+    setTimeout(() => button.click());
+    const event = await oneEvent(el, 'cx-content-browser-grid-click');
+
+    expect(event.detail.id).to.equal('asset-1');
+  });
+
+  it('labels the action button with the host cta text', async () => {
+    el = await fixture<ContentBrowserTable>(html`
+      <cx-content-browser-table style="height: 400px"
+        cta-text="Add"
+        .assets=${[makeAsset()]}
+        .columns=${COLUMNS}
+      ></cx-content-browser-table>
+    `);
+    await elementUpdated(el);
+    await waitForRows(el, 1);
+
+    const button = getRows(el)[0].querySelector<HTMLElement>('.content-browser-table__action')!;
+
+    expect(button.textContent).to.contain('Add');
+    expect(button.textContent).to.not.contain('Insert');
+  });
+
+  it('activates the asset once when the action button is clicked, not twice', async () => {
+    el = await fixture<ContentBrowserTable>(html`
+      <cx-content-browser-table style="height: 400px"
+        .assets=${[makeAsset()]}
+        .columns=${COLUMNS}
+      ></cx-content-browser-table>
+    `);
+    await elementUpdated(el);
+    await waitForRows(el, 1);
+
+    const spy = sinon.spy();
+    el.addEventListener('cx-content-browser-grid-click', spy);
+    // The row is clickable too, so the button's click must not also bubble into the row handler.
+    getRows(el)[0].querySelector<HTMLElement>('.content-browser-table__action')!.click();
+    await elementUpdated(el);
+
+    expect(spy).to.have.been.calledOnce;
+  });
+
+  it('keeps the action button out of the accessibility tree and off the tab order in the header', async () => {
+    el = await fixture<ContentBrowserTable>(html`
+      <cx-content-browser-table style="height: 400px" .columns=${COLUMNS}></cx-content-browser-table>
+    `);
+    await elementUpdated(el);
+
+    const twin = el.shadowRoot!.querySelector<HTMLElement>(
+      '.content-browser-table__action--placeholder',
+    )!;
+
+    // It exists only so the header grid resolves the same max-content action track the rows do.
+    expect(twin.getAttribute('aria-hidden')).to.equal('true');
+    expect(twin.getAttribute('tabindex')).to.equal('-1');
+    expect(twin.hasAttribute('data-id')).to.be.false;
+  });
+
+  it('does not hand over a cold-storage asset when its action button is clicked', async () => {
+    el = await fixture<ContentBrowserTable>(html`
+      <cx-content-browser-table style="height: 400px"
+        .assets=${[makeAsset({ inColdStorage: true })]}
+        .columns=${COLUMNS}
+      ></cx-content-browser-table>
+    `);
+    await elementUpdated(el);
+    await waitForRows(el, 1);
+
+    const spy = sinon.spy();
+    el.addEventListener('cx-content-browser-grid-click', spy);
+    getRows(el)[0].querySelector<HTMLElement>('.content-browser-table__action')!.click();
+    await elementUpdated(el);
+
+    expect(spy).to.not.have.been.called;
+  });
+
+  it('pads the header by the scroller gutter so its columns line up with the rows', async () => {
+    el = await fixture<ContentBrowserTable>(html`
+      <cx-content-browser-table style="height: 400px"
+        .assets=${[makeAsset()]}
+        .columns=${COLUMNS}
+      ></cx-content-browser-table>
+    `);
+    await elementUpdated(el);
+    await waitForRows(el, 1);
+
+    const header = el.shadowRoot!.querySelector<HTMLElement>('.content-browser-table__header')!;
+
+    // The header sits outside the scroller, so it has to reserve the scrollbar's width itself.
+    expect(header.style.paddingInlineEnd).to.match(/^calc\(var\(--cx-spacing-medium\) \+ \d+px\)$/);
   });
 
   it('applies the column alignment and line clamp to its cells', async () => {

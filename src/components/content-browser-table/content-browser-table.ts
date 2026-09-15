@@ -3,6 +3,7 @@ import '@lit-labs/virtualizer';
 import { html, nothing } from 'lit';
 import { property, query, state } from 'lit/decorators.js';
 import { classMap } from 'lit/directives/class-map.js';
+import { ifDefined } from 'lit/directives/if-defined.js';
 import { repeat } from 'lit/directives/repeat.js';
 import { styleMap } from 'lit/directives/style-map.js';
 import { when } from 'lit/directives/when.js';
@@ -11,8 +12,9 @@ import _debounce from 'lodash-es/debounce';
 import CortexElement from '@/base/element';
 import componentStyles from '@/styles/component.styles';
 import { Asset } from '@/types/asset';
-import { TableColumn } from '@/types/content-browser';
+import { type CtaTextTransform, TableColumn } from '@/types/content-browser';
 import { watch } from '@/utils/watch';
+import CxButton from '@orangelogic/design-system/components/button';
 import CxLineClamp from '@orangelogic/design-system/components/line-clamp';
 import CxProgressBar from '@orangelogic/design-system/components/progress-bar';
 import CxResizeObserver from '@orangelogic/design-system/components/resize-observer';
@@ -27,6 +29,14 @@ import type { CxResizeEvent } from '@/events';
 import type { CSSResultGroup } from 'lit';
 
 export const ROW_HEIGHT = 40;
+
+/**
+ * The action column is an explicit track, not an implicit one. Left implicit, the grid sizes it
+ * from content *after* distributing free space, so a host's fractional track (`minmax(0, 2fr)` on
+ * Title) is computed against a width the button then eats into and the last text column is clipped.
+ * `max-content` is stable across rows because every row's button carries the same label.
+ */
+export const ACTION_COLUMN_TRACK = 'max-content';
 
 /**
  * Column values ride on the asset under the Cortex field name as requested (see `apiGetAssets`),
@@ -60,6 +70,7 @@ export default class CxContentBrowserTable extends CortexElement {
   static readonly styles: CSSResultGroup = [componentStyles, styles];
 
   static readonly dependencies = {
+    'cx-button': CxButton,
     'cx-content-browser-no-result': CxContentBrowserNoResult,
     'cx-line-clamp': CxLineClamp,
     'cx-progress-bar': CxProgressBar,
@@ -75,11 +86,20 @@ export default class CxContentBrowserTable extends CortexElement {
   @query('lit-virtualizer')
   private readonly virtualizerEl: HTMLElement;
 
+  @query('.content-browser-table__header')
+  private readonly headerEl: HTMLDivElement;
+
   @property({ attribute: 'assets', reflect: false, type: Array })
   assets: Asset[] = [];
 
   @property({ attribute: 'columns', reflect: false, type: Array })
   columns: TableColumn[] = [];
+
+  @property({ attribute: 'cta-text', reflect: false, type: String })
+  ctaText: string = '';
+
+  @property({ attribute: 'cta-text-transform', reflect: false, type: String })
+  ctaTextTransform: CtaTextTransform = 'capitalize';
 
   @property({ attribute: 'empty', reflect: true, type: Boolean })
   empty: boolean = false;
@@ -111,11 +131,54 @@ export default class CxContentBrowserTable extends CortexElement {
     // these to the host for us.
     this.renderRow = this.renderRow.bind(this);
     this.handleRowClick = this.handleRowClick.bind(this);
+    this.handleActionClick = this.handleActionClick.bind(this);
     this.handleRowKeyDown = this.handleRowKeyDown.bind(this);
   }
 
   private get templateColumns(): string {
-    return this.columns.map((column) => column.width ?? 'minmax(0, 1fr)').join(' ');
+    const columns = this.columns.map((column) => column.width ?? 'minmax(0, 1fr)');
+
+    return [...columns, ACTION_COLUMN_TRACK].join(' ');
+  }
+
+  #gutterObserver: ResizeObserver | undefined;
+
+  #observedScroller: HTMLElement | undefined;
+
+  private syncScrollbarGutter() {
+    if (!this.virtualizerEl || !this.headerEl) {
+      return;
+    }
+
+    const gutter = this.virtualizerEl.offsetWidth - this.virtualizerEl.clientWidth;
+
+    this.headerEl.style.paddingInlineEnd = `calc(var(--cx-spacing-medium) + ${gutter}px)`;
+  }
+
+  updated() {
+    // The scroller gains its scrollbar only once rows are laid out, which is after this update
+    // completes -- measuring here alone would always read the empty-list gutter of 0. The empty
+    // state and the scroller are separate template branches, so the element is replaced whenever
+    // the list flips between them and the observer has to follow it.
+    if (this.virtualizerEl !== this.#observedScroller) {
+      this.#gutterObserver?.disconnect();
+      this.#observedScroller = this.virtualizerEl;
+
+      if (this.virtualizerEl) {
+        this.#gutterObserver ??= new ResizeObserver(() => this.syncScrollbarGutter());
+        this.#gutterObserver.observe(this.virtualizerEl);
+      }
+    }
+
+    this.syncScrollbarGutter();
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+
+    this.#gutterObserver?.disconnect();
+    this.#gutterObserver = undefined;
+    this.#observedScroller = undefined;
   }
 
   @watch('assets')
@@ -180,6 +243,12 @@ export default class CxContentBrowserTable extends CortexElement {
     this.selectRow((event.currentTarget as HTMLElement).dataset.id ?? '');
   }
 
+  private handleActionClick(event: MouseEvent) {
+    // The row is also clickable, so let the button own the activation rather than firing twice.
+    event.stopPropagation();
+    this.selectRow((event.currentTarget as HTMLElement).dataset.id ?? '');
+  }
+
   private handleRowKeyDown(event: KeyboardEvent) {
     if (event.key !== 'Enter' && event.key !== ' ') {
       return;
@@ -187,6 +256,32 @@ export default class CxContentBrowserTable extends CortexElement {
 
     event.preventDefault();
     this.selectRow((event.currentTarget as HTMLElement).dataset.id ?? '');
+  }
+
+  /**
+   * @param assetId - omitted for the header's sizing twin, which is inert and never announced.
+   */
+  private renderActionButton(assetId: string | undefined) {
+    const isPlaceholder = assetId === undefined;
+
+    return html`
+      <cx-button
+        class=${classMap({
+          'content-browser-table__action': true,
+          'content-browser-table__action--placeholder': isPlaceholder,
+        })}
+        data-id=${ifDefined(assetId)}
+        size="small"
+        variant="primary"
+        tabindex="-1"
+        aria-hidden=${isPlaceholder ? 'true' : 'false'}
+        @click=${isPlaceholder ? nothing : this.handleActionClick}
+      >
+        <span style=${styleMap({ textTransform: this.ctaTextTransform })}>
+          ${this.ctaText || this.localize.term('insert')}
+        </span>
+      </cx-button>
+    `;
   }
 
   private renderRow(asset: Asset) {
@@ -229,6 +324,9 @@ export default class CxContentBrowserTable extends CortexElement {
             </div>
           `,
         )}
+        <div class="content-browser-table__cell content-browser-table__cell--action" role="cell">
+          ${this.renderActionButton(asset.id)}
+        </div>
       </div>
     `;
   }
@@ -285,6 +383,13 @@ export default class CxContentBrowserTable extends CortexElement {
                   </div>
                 `,
               )}
+              <div
+                class="content-browser-table__cell content-browser-table__cell--action"
+                role="columnheader"
+                aria-label=${this.ctaText || this.localize.term('insert')}
+              >
+                ${this.renderActionButton(undefined)}
+              </div>
             </div>
           </div>
           ${when(this.empty,
