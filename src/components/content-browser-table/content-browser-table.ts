@@ -378,7 +378,7 @@ export default class CxContentBrowserTable extends CortexElement {
                     role="columnheader"
                   >
                     <cx-line-clamp lines="1">
-                      <cx-typography variant="body3">${column.title}</cx-typography>
+                      <cx-typography variant="small">${column.title}</cx-typography>
                     </cx-line-clamp>
                   </div>
                 `,

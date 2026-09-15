@@ -38,8 +38,14 @@ export default css`
   }
 
   .content-browser-table__header {
-    border-bottom: 1px solid var(--cx-color-neutral-300);
+    background-color: var(--cx-color-neutral-50);
+    border-bottom: 1px solid var(--cx-color-neutral-200);
     color: var(--cx-color-neutral-700);
+  }
+
+  /* cx-typography sets its own font-weight, so the host cannot simply inherit one in. */
+  .content-browser-table__header cx-typography::part(base) {
+    font-weight: var(--cx-font-weight-medium);
   }
 
   .content-browser-table__body {
