@@ -1496,4 +1496,39 @@ describe('content-browser', () => {
       expect(ev.detail[0].imageUrl).to.equal('');
     });
   });
+
+  describe('table-columns from an attribute', () => {
+    /**
+     * A host that stringifies an array into the attribute hands Lit `""` or `"[object Object]"`.
+     * The stock Array converter turns both into null, which used to throw on every read.
+     */
+    it('treats an unreadable table-columns attribute as no columns instead of throwing', async () => {
+      const el = await fixture<CxContentBrowser>(html`
+        <cx-content-browser table-columns=${String([])}></cx-content-browser>
+      `);
+      await elementUpdated(el);
+
+      expect(el.tableColumns).to.deep.equal([]);
+    });
+
+    it('treats a stringified object array as no columns instead of throwing', async () => {
+      const el = await fixture<CxContentBrowser>(html`
+        <cx-content-browser table-columns=${String([{ field: 'F', title: 'T' }])}></cx-content-browser>
+      `);
+      await elementUpdated(el);
+
+      expect(el.tableColumns).to.deep.equal([]);
+    });
+
+    it('reads a valid JSON table-columns attribute', async () => {
+      const el = await fixture<CxContentBrowser>(html`
+        <cx-content-browser
+          table-columns=${JSON.stringify([{ field: 'CoreField.Identifier', title: 'Identifier' }])}
+        ></cx-content-browser>
+      `);
+      await elementUpdated(el);
+
+      expect(el.tableColumns).to.deep.equal([{ field: 'CoreField.Identifier', title: 'Identifier' }]);
+    });
+  });
 });

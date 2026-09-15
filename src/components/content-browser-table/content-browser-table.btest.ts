@@ -311,6 +311,31 @@ describe('content-browser-table', () => {
     expect(el.shadowRoot!.querySelector('lit-virtualizer')).to.not.exist;
   });
 
+
+
+  it('marks the selected row once the host resolves the selection', async () => {
+    el = await fixture<ContentBrowserTable>(html`
+      <cx-content-browser-table style="height: 400px"
+        .assets=${[makeAsset(), makeAsset({ id: 'asset-2' })]}
+        .columns=${COLUMNS}
+      ></cx-content-browser-table>
+    `);
+    await elementUpdated(el);
+    await waitForRows(el, 2);
+
+    // The host sets this after a click resolves, while the same asset list stands. Nothing else
+    // bound to the virtualizer changes identity, so without a fresh items array it never re-renders.
+    el.selectedAssetId = 'asset-2';
+    await elementUpdated(el);
+
+    const rows = getRows(el);
+    expect(rows).to.have.lengthOf(2);
+    // Joined rather than asserted per element: a failing chai-dom element assertion serializes the
+    // whole row subtree and wedges the runner.
+    expect(rows.map((r) => r.classList.contains('content-browser-table__row--selected')).join(',')).to.equal('false,true');
+    expect(rows.map((r) => r.getAttribute('aria-selected')).join(',')).to.equal('false,true');
+  });
+
   it('applies the column alignment and line clamp to its cells', async () => {
     el = await fixture<ContentBrowserTable>(html`
       <cx-content-browser-table style="height: 400px"

@@ -208,7 +208,32 @@ export default class CxContentBrowser extends CortexElement {
    * its styling. The table view is offered only while this is non-empty — an empty table is not a
    * view mode — and the fields are read once, when the fetch controller is created.
    */
-  @property({ attribute: 'table-columns', type: Array })
+  @property({
+    attribute: 'table-columns',
+    /**
+     * Lit's stock Array converter returns `null` for anything `JSON.parse` rejects, and a host that
+     * stringifies an array into the attribute hands it `""` or `"[object Object]"`. `null` then
+     * throws on every read below, taking the whole picker down. An unreadable value means "no
+     * columns", which turns the table view off — the same outcome as not configuring one.
+     */
+    converter: {
+      fromAttribute: (value: string | null): TableColumn[] => {
+        if (!value) {
+          return [];
+        }
+
+        try {
+          const parsed: unknown = JSON.parse(value);
+
+          return Array.isArray(parsed) ? parsed as TableColumn[] : [];
+        } catch {
+          return [];
+        }
+      },
+      toAttribute: (value: TableColumn[]) => JSON.stringify(value ?? []),
+    },
+    type: Array,
+  })
   tableColumns: TableColumn[] = [];
 
   @property({ attribute: 'default-sort-order-name', type: String })
@@ -307,8 +332,13 @@ export default class CxContentBrowser extends CortexElement {
     }
   }
 
+  /** Never trust the host's value: it also arrives by direct property assignment, past the converter. */
+  private get tableColumnList(): TableColumn[] {
+    return Array.isArray(this.tableColumns) ? this.tableColumns : [];
+  }
+
   private get canUseTable(): boolean {
-    return this.tableColumns.length > 0;
+    return this.tableColumnList.length > 0;
   }
 
   runFirstUpdated() {
@@ -326,7 +356,7 @@ export default class CxContentBrowser extends CortexElement {
 
     this.updateComplete.then(() => {
       this.fetchAndMergeAssetsController = new FetchAndMergeAssetsController(this, {
-        additionalFields: this.tableColumns.map((column) => column.field),
+        additionalFields: this.tableColumnList.map((column) => column.field),
         availableDocTypes: this.availableDocTypes,
         baseUrl: this.baseUrl,
         defaultFolderId: this.defaultFolderId,
@@ -831,7 +861,7 @@ export default class CxContentBrowser extends CortexElement {
             () => html`
               <cx-content-browser-table
                 .assets=${items}
-                .columns=${this.tableColumns}
+                .columns=${this.tableColumnList}
                 ?empty=${!loading && items.length === 0}
                 cta-text=${this.ctaText}
                 cta-text-transform=${this.ctaTextTransform}

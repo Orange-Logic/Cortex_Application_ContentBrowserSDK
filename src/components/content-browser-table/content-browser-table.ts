@@ -129,7 +129,6 @@ export default class CxContentBrowserTable extends CortexElement {
 
     // Rows are rendered by lit-virtualizer, not by this element's own template, so Lit does not bind
     // these to the host for us.
-    this.renderRow = this.renderRow.bind(this);
     this.handleRowClick = this.handleRowClick.bind(this);
     this.handleActionClick = this.handleActionClick.bind(this);
     this.handleRowKeyDown = this.handleRowKeyDown.bind(this);
@@ -284,6 +283,12 @@ export default class CxContentBrowserTable extends CortexElement {
     `;
   }
 
+  /**
+   * Bound fresh on every render at the call site, deliberately. `lit-virtualizer` re-runs this only
+   * when `items` or `renderItem` change identity, and the selected id lives on neither — with a
+   * stable reference the rows keep their first render and the selected row is never marked. A new
+   * `items` array alone does not do it; the function identity is what the virtualizer acts on.
+   */
   private renderRow(asset: Asset) {
     // The virtualizer can still ask for an index the shrunken item list no longer has.
     if (!asset) {
@@ -409,7 +414,7 @@ export default class CxContentBrowserTable extends CortexElement {
                   'overflow-x': 'hidden',
                 })}
                 .items=${this.assets}
-                .renderItem=${this.renderRow}
+                .renderItem=${(asset: Asset) => this.renderRow(asset)}
                 @scroll=${this.handleScroll}
               ></lit-virtualizer>
             `,
