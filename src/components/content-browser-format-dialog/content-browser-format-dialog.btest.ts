@@ -1552,6 +1552,30 @@ describe('content-browser-format-dialog', () => {
       expect(confirms).to.equal(0);
     });
 
+    it('does not insert behind disabledConfirm, which exists to prevent exactly that', async () => {
+      const dialog = await fixture<CxContentBrowserFormatDialog>(html`
+        <cx-content-browser-format-dialog
+          .availableExtensions=${allEmptyExtensions()}
+          ?auto-confirm-single-option=${true}
+          ?can-use-proxies=${true}
+          ?disabled-confirm=${true}
+        ></cx-content-browser-format-dialog>
+      `);
+      await elementUpdated(dialog);
+      let confirms = 0;
+      dialog.addEventListener('cx-content-browser-format-dialog-proxy-confirm', () => { confirms += 1; });
+
+      dialog.open({
+        asset: makeFragment(),
+        isFavorite: false,
+        proxies: [makeOriginalProxy()],
+      });
+      await elementUpdated(dialog);
+
+      expect(getInnerDialog(dialog)).to.have.attribute('open');
+      expect(confirms).to.equal(0);
+    });
+
     it('inserts straight away with tracking enabled, since there is no link to decorate', async () => {
       const dialog = await fixture<CxContentBrowserFormatDialog>(html`
         <cx-content-browser-format-dialog

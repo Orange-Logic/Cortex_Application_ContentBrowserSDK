@@ -328,7 +328,7 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
     this.filteredProxies = this.filterProxies(this.proxies);
     this.selectedProxy = this.filteredProxies[0]?.id ?? '';
 
-    if (this.autoConfirmSingleOption && this.hasNoSelectionToMake) {
+    if (this.autoConfirmSingleOption && !this.disabledConfirm && this.hasNoSelectionToMake) {
       this.handleProxyConfirm();
 
       return;

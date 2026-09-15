@@ -344,9 +344,25 @@ export default class CxContentBrowser extends CortexElement {
     }
   }
 
-  /** Never trust the host's value: it also arrives by direct property assignment, past the converter. */
+  /**
+   * Never trust the host's value: it also arrives by direct property assignment, past the converter.
+   * Entries are checked one by one, not just the outer array — `field` is dereferenced while the
+   * fetch controller is being built, where a throw leaves the controller unassigned and the picker
+   * blank. `title` is only rendered, and Lit renders a nullish one as nothing, so a column is not
+   * worth dropping over it.
+   */
   private get tableColumnList(): TableColumn[] {
-    return Array.isArray(this.tableColumns) ? this.tableColumns : [];
+    const columns: unknown = this.tableColumns;
+
+    if (!Array.isArray(columns)) {
+      return [];
+    }
+
+    return columns.filter((column): column is TableColumn => {
+      return !!column && typeof column === 'object'
+        && typeof (column as TableColumn).field === 'string'
+        && (column as TableColumn).field.length > 0;
+    });
   }
 
   private get canUseTable(): boolean {

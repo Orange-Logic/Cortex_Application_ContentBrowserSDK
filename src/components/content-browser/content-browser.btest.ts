@@ -1520,6 +1520,54 @@ describe('content-browser', () => {
       expect(el.tableColumns).to.deep.equal([]);
     });
 
+    /**
+     * The outer-array guard let a bad entry through, and `field` is dereferenced while the fetch
+     * controller is being built — a throw there left the controller unassigned and the picker blank.
+     */
+    it('drops entries that carry no usable field instead of blanking the picker', async () => {
+      const { el } = await fixtureWithMock(html`
+        <cx-content-browser
+          .tableColumns=${[null, {}, { title: 'No field' }, { field: '', title: 'Empty' }, ...TABLE_COLUMNS] as TableColumn[]}
+        ></cx-content-browser>
+      `);
+      await elementUpdated(el);
+
+      selectTableView(el);
+      await elementUpdated(el);
+
+      const table = getTable(el)!;
+      expect(table).to.exist;
+      expect((table as unknown as { columns: TableColumn[] }).columns).to.deep.equal(TABLE_COLUMNS);
+    });
+
+    it('offers no table when every configured column is unusable', async () => {
+      const { el } = await fixtureWithMock(html`
+        <cx-content-browser .tableColumns=${[null, {}] as unknown as TableColumn[]}></cx-content-browser>
+      `);
+      await elementUpdated(el);
+
+      selectTableView(el);
+      await elementUpdated(el);
+
+      expect(getTable(el)).to.not.exist;
+      expect(getGrid(el)).to.exist;
+    });
+
+    it('keeps a column whose title is missing, since only field is dereferenced', async () => {
+      const { el } = await fixtureWithMock(html`
+        <cx-content-browser
+          .tableColumns=${[{ field: 'CoreField.Identifier' }] as unknown as TableColumn[]}
+        ></cx-content-browser>
+      `);
+      await elementUpdated(el);
+
+      selectTableView(el);
+      await elementUpdated(el);
+
+      const table = getTable(el)!;
+      expect((table as unknown as { columns: TableColumn[] }).columns).to.have.lengthOf(1);
+    });
+
     it('reads a valid JSON table-columns attribute', async () => {
       const el = await fixture<CxContentBrowser>(html`
         <cx-content-browser
