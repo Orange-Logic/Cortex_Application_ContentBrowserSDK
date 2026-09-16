@@ -584,7 +584,10 @@ export async function apiGetAssets({
                 // Spread first so a requested field that shares a name with a mapped property cannot
                 // shadow it; a column reading that Cortex field still resolves under its own key.
                 ...validatedFields.reduce<Record<string, string>>((acc, field) => {
-                  acc[field] = item.fields[field] ?? '';
+                  const sourceField = ASSET_LIST_FIELDS.find(
+                    (defaultField) => defaultField.toLowerCase() === field.toLowerCase(),
+                  ) ?? field;
+                  acc[field] = item.fields[sourceField] ?? '';
 
                   return acc;
                 }, {}),
