@@ -333,7 +333,9 @@ describe('content-browser-table', () => {
     // Joined rather than asserted per element: a failing chai-dom element assertion serializes the
     // whole row subtree and wedges the runner.
     expect(rows.map((r) => r.classList.contains('content-browser-table__row--selected')).join(',')).to.equal('false,true');
-    expect(rows.map((r) => r.getAttribute('aria-selected')).join(',')).to.equal('false,true');
+    // aria-selected is only honoured for rows inside a grid or treegrid. Under role="table"
+    // assistive tech drops it, which left the selection conveyed by background colour alone.
+    expect(rows.map((r) => r.getAttribute('aria-current')).join(',')).to.equal('false,true');
   });
 
   it('applies the column alignment and line clamp to its cells', async () => {
@@ -399,7 +401,7 @@ describe('content-browser-table', () => {
 
     expect(one.classList.contains('content-browser-table__row--selected')).to.be.false;
     expect(two.classList.contains('content-browser-table__row--selected')).to.be.true;
-    expect(two.getAttribute('aria-selected')).to.equal('true');
+    expect(two.getAttribute('aria-current')).to.equal('true');
   });
 
   it('emits cx-content-browser-grid-click when a row is clicked', async () => {

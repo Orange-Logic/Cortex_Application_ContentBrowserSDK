@@ -354,6 +354,23 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
     this.handleClose();
   }
 
+  /**
+   * Show a dialog that `open()` skipped through the auto-confirm shortcut. The asset, proxies and
+   * resolved selection are still in place, so this lands the user on exactly the dialog the
+   * shortcut spared them, with its confirm button live again to retry.
+   */
+  revealAfterAutoConfirm() {
+    if (!this.asset) {
+      // Nothing left to show. Close cleanly rather than latching loadingConfirm on a blank dialog.
+      this.handleClose();
+
+      return;
+    }
+
+    this.loadingConfirm = false;
+    this.isOpen = true;
+  }
+
   /** Whether the dialog is actually on screen — false when `open()` took the auto-confirm path. */
   get isDialogOpen(): boolean {
     return this.isOpen;

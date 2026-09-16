@@ -747,16 +747,18 @@ export default class CxContentBrowser extends CortexElement {
     }
   }
 
-  /**
-   * An auto-confirmed insert never opened a dialog, so stopping its spinner reports the failure
-   * nowhere and leaves the row selected with nothing pending. Reset the selection in that case.
-   */
   private reportProxyConfirmFailure() {
     if (this.formatDialog.isDialogOpen) {
       this.formatDialog.setLoadingConfirm(false);
-    } else {
-      this.formatDialog.hide();
+
+      return;
     }
+
+    // An auto-confirmed insert has no dialog to report into, and the SDK has no error event, so
+    // hiding here returned the user to an unchanged table with no message and no way to retry.
+    // Show the dialog the shortcut skipped instead: it is the state the non-shortcut path would
+    // have left them in, and its confirm button is the retry.
+    this.formatDialog.revealAfterAutoConfirm();
   }
 
   private async handleFormatConfirm(event: CxContentBrowserFormatDialogFormatConfirmEvent) {

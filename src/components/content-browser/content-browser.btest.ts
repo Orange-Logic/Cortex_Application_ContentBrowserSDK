@@ -1496,6 +1496,70 @@ describe('content-browser', () => {
       expect(ev.detail[0].extraFields['Dell.Snippet']).to.equal('A fragment of text');
       expect(ev.detail[0].imageUrl).to.equal('');
     });
+
+    it('shows the skipped dialog when an auto-confirmed insert fails', async () => {
+      const asset = makeAsset({ extension: '', id: 'frag-1', imageUrl: '' });
+      const { el, mock } = await fixtureWithMock(
+        html`<cx-content-browser .tableColumns=${TABLE_COLUMNS}></cx-content-browser>`,
+        {
+          fetchAssetByIDResult: { asset, isFavorite: false, proxies: [] },
+          items: [asset],
+          totalCount: 1,
+        },
+      );
+      mock.getAssetLink.rejects(new Error('link generation failed'));
+
+      selectTableView(el);
+      await elementUpdated(el);
+
+      getTable(el)!.dispatchEvent(
+        new CustomEvent('cx-content-browser-grid-click', {
+          bubbles: true,
+          composed: true,
+          detail: { id: 'frag-1' },
+        }),
+      );
+
+      // The shortcut skipped the dialog, so there is nowhere to report into and the SDK has no
+      // error event. The dialog it skipped is the fallback: its confirm button is the retry.
+      await waitUntil(() => getFormatDialog(el).isDialogOpen);
+      expect(el.selectedAssetId).to.equal('frag-1');
+    });
+
+    it('ignores a second row activated while an insert is still in flight', async () => {
+      const first = makeAsset({ extension: '', id: 'frag-1', imageUrl: '' });
+      const second = makeAsset({ extension: '', id: 'frag-2', imageUrl: '' });
+      const { el, mock } = await fixtureWithMock(
+        html`<cx-content-browser .tableColumns=${TABLE_COLUMNS}></cx-content-browser>`,
+        {
+          fetchAssetByIDResult: { asset: first, isFavorite: false, proxies: [] },
+          items: [first, second],
+          totalCount: 2,
+        },
+      );
+      // Never settles, so the first insert stays outstanding for the whole test.
+      mock.getAssetLink.returns(new Promise(() => {}));
+
+      selectTableView(el);
+      await elementUpdated(el);
+
+      const activate = (id: string) => getTable(el)!.dispatchEvent(
+        new CustomEvent('cx-content-browser-grid-click', {
+          bubbles: true,
+          composed: true,
+          detail: { id },
+        }),
+      );
+
+      activate('frag-1');
+      await waitUntil(() => mock.getAssetLink.calledOnce);
+      activate('frag-2');
+      await elementUpdated(el);
+
+      // Without the in-flight guard the second row hands its asset over on top of the first.
+      expect(mock.getAssetLink).to.have.been.calledOnce;
+      expect(el.selectedAssetId).to.equal('frag-1');
+    });
   });
 
   describe('table-columns reconfigured after mount', () => {

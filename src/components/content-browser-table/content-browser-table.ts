@@ -305,7 +305,7 @@ export default class CxContentBrowserTable extends CortexElement {
         data-id=${asset.id}
         role="row"
         tabindex=${asset.inColdStorage ? -1 : 0}
-        aria-selected=${asset.id === this.selectedAssetId}
+        aria-current=${asset.id === this.selectedAssetId ? 'true' : 'false'}
         style=${styleMap({
           'grid-template-columns': this.templateColumns,
           'min-height': `${ROW_HEIGHT}px`,
