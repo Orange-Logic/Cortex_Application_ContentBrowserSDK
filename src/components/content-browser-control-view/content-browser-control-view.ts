@@ -191,7 +191,7 @@ export default class CxContentBrowserControlView extends CortexElement {
           () => html`
             <cx-menu key="default-menu" no-uncheck>
               <cx-menu-label>${this.localize.term('view')}</cx-menu-label>
-              <cx-menu-item type="checkbox" ?checked=${this.canUseTable && !this.isTable}>
+              <cx-menu-item type="checkbox" ?checked=${!this.isTable}>
                 ${this.localize.term('grid')}
                 ${when(this.selectedView,
                   () => html` (${this.selectedView?.label})`,

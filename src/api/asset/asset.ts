@@ -548,7 +548,11 @@ export async function apiGetAssets({
       data: {
         Fields: [
           ...ASSET_LIST_FIELDS,
-          ...validatedFields.filter((field) => !ASSET_LIST_FIELDS.includes(field)),
+          ...validatedFields.filter((field, index) => {
+            const seen = [...ASSET_LIST_FIELDS, ...validatedFields.slice(0, index)];
+
+            return !seen.some((item) => item.toLowerCase() === field.toLowerCase());
+          }),
         ],
         Limit: pageSize || undefined,
         LimitedToDocTypes: limitedToDocTypes,
