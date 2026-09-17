@@ -34,7 +34,8 @@ import CxContentBrowserAssetVersionHistory from '../content-browser-asset-versio
 import styles from './content-browser-format-dialog.styles';
 
 import {
-  type Parameter, type Transformation, type CtaTextTransform, ContentBrowserFormatDialogVariant,
+  type Parameter, type Transformation, type CtaTextTransform, type AutoSelectFormat,
+  autoSelectFormatConverter, ContentBrowserFormatDialogVariant, isAutoSelectFormatActive,
 } from '@/types/content-browser';
 import type CxMenuItem from '@orangelogic/design-system/components/menu-item';
 const DEFAULT_TRACKING_PARAMETERS: Parameter[] = [{
@@ -149,12 +150,12 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
   canUseProxies: boolean = false;
 
   /**
-   * Skip the dialog and insert straight away when it would offer no choice at all — see
-   * `hasNoSelectionToMake`. Off by default: this changes what a click does, so a surface opts in
-   * rather than inheriting it.
+   * Skip the format picker and insert directly — see `resolveAutoSelection` for what each value
+   * does. Off by default: this changes what a click does, so a host opts in rather than
+   * inheriting it.
    */
-  @property({ attribute: 'auto-confirm-single-option', reflect: false, type: Boolean })
-  autoConfirmSingleOption: boolean = false;
+  @property({ attribute: 'auto-select-format', converter: autoSelectFormatConverter, reflect: false })
+  autoSelectFormat: AutoSelectFormat = false;
 
   /**
    * Pick-only mode. Suppresses the custom-format editor entirely: cx-asset-link-format issues its
@@ -289,28 +290,41 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
   }
 
   /**
-   * True when opening the dialog would show the user nothing they could act on: the asset has no
-   * file of its own (`digitized = 0` — a text fragment), no preview, no ATS custom format, and at
-   * most one format to pick.
+   * What `autoSelectFormat` resolves to for this asset: the proxy to insert with, or `undefined`
+   * when the dialog should open as usual.
    *
-   * The empty extension is what establishes "no file", and it has to be tested directly. An absent
-   * `previewUrl` does not imply one: a PDF or a rendition that has not been generated yet also has
-   * none, and `apiGetAvailableProxies` returns an empty `previewUrl` from its catch, so any failure
-   * of that call would otherwise make every row auto-insert.
-   *
-   * Tracking is deliberately not part of this test. Its parameters decorate an asset link, and an
-   * asset that reaches this state has no link to decorate — gating on `canTrack` would disable the
-   * shortcut for every host that enables tracking, in exchange for a dialog offering nothing.
+   * `{ proxy: undefined }` is deliberate rather than a miss — with the picker switched off there is
+   * no format to name and the original file is the only outcome, which is `handleProxyConfirm`'s
+   * no-proxy branch. With the picker on a proxy must actually resolve: confirming none emits
+   * nothing and would turn the click into a silent no-op, so both an empty proxy list and a format
+   * name that matches nothing fall back to the dialog.
    */
-  private get hasNoSelectionToMake(): boolean {
-    if (!this.asset || this.asset.extension || this.asset.previewUrl || this.canUseATS) {
-      return false;
+  private resolveAutoSelection(): { proxy?: AvailableProxy } | undefined {
+    const requested = this.autoSelectFormat;
+
+    if (!isAutoSelectFormatActive(requested)) {
+      return undefined;
     }
 
-    // With proxies off there is no format picker at all, so the original file is the only outcome.
-    // With proxies on, exactly one — never zero, which confirms nothing and would make the click a
-    // silent no-op; that case still gets the dialog and its empty state.
-    return this.canUseProxies ? this.filteredProxies.length === 1 : true;
+    if (!this.canUseProxies) {
+      return { proxy: undefined };
+    }
+
+    if (requested === true) {
+      const [first] = this.filteredProxies;
+
+      return first ? { proxy: first } : undefined;
+    }
+
+    const wanted = String(requested).trim().toLowerCase();
+
+    // proxyName is the stable identifier and what the selection payload reports back as
+    // proxyPreference; proxyLabel is accepted too because it is what the picker shows.
+    const match = this.filteredProxies.find((proxy) => {
+      return proxy.proxyName?.toLowerCase() === wanted || proxy.proxyLabel?.toLowerCase() === wanted;
+    });
+
+    return match ? { proxy: match } : undefined;
   }
 
   open({
@@ -333,7 +347,13 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
     this.filteredProxies = this.filterProxies(this.proxies);
     this.selectedProxy = this.filteredProxies[0]?.id ?? '';
 
-    if (this.autoConfirmSingleOption && !this.disabledConfirm && this.hasNoSelectionToMake) {
+    const autoSelection = this.disabledConfirm ? undefined : this.resolveAutoSelection();
+
+    if (autoSelection) {
+      if (autoSelection.proxy) {
+        this.selectedProxy = autoSelection.proxy.id;
+      }
+
       // Without the dialog there is no confirm button to disable, so a second click would otherwise
       // hand the same asset over twice while the first insert is still in flight.
       if (!this.loadingConfirm) {

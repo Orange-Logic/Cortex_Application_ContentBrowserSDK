@@ -755,4 +755,41 @@ describe('content-browser-grid', () => {
     await elementUpdated(el);
     await expect(el).to.be.accessible();
   });
+
+  describe('insert overlay pass-through', () => {
+    async function gridWithCards(template: unknown) {
+      const grid = await fixture<ContentBrowserGrid>(template as never);
+      await elementUpdated(grid);
+      await waitUntil(
+        () => grid.shadowRoot!.querySelectorAll('cx-content-browser-asset-card').length > 0,
+        'grid did not render cards',
+      );
+
+      return grid.shadowRoot!.querySelectorAll('cx-content-browser-asset-card')[0] as unknown as {
+        ctaText: string; showCta: boolean;
+      };
+    }
+
+    it('tells its cards to show the overlay, with the host cta text', async () => {
+      const card = await gridWithCards(html`
+        <cx-content-browser-grid
+          style="height: 400px"
+          .assets=${[makeAsset()]}
+          ?show-cta=${true}
+          cta-text="Add"
+        ></cx-content-browser-grid>
+      `);
+
+      expect(card.showCta).to.be.true;
+      expect(card.ctaText).to.equal('Add');
+    });
+
+    it('leaves the overlay off by default', async () => {
+      const card = await gridWithCards(html`
+        <cx-content-browser-grid style="height: 400px" .assets=${[makeAsset()]}></cx-content-browser-grid>
+      `);
+
+      expect(card.showCta).to.be.false;
+    });
+  });
 });

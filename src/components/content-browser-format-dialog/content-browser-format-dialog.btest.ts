@@ -1443,7 +1443,7 @@ describe('content-browser-format-dialog', () => {
     });
   });
 
-  describe('auto-confirm when there is nothing to choose', () => {
+  describe('auto-select-format', () => {
     /**
      * Shape taken from a live text fragment (L-29Q5K0): no file, so no extension, no rendition and
      * no preview, and the only proxy on offer is the original.
@@ -1462,11 +1462,15 @@ describe('content-browser-format-dialog', () => {
       return makeProxy({ extension: null, id: 'trx', proxyLabel: 'Original', proxyName: 'TRX' });
     }
 
-    async function makeDialog(autoConfirm: boolean) {
+    function makeWebProxy() {
+      return makeProxy({ extension: null, id: 'web', proxyLabel: 'Web ready', proxyName: 'WEB' });
+    }
+
+    async function makeDialog(autoSelectFormat: boolean | string) {
       const dialog = await fixture<CxContentBrowserFormatDialog>(html`
         <cx-content-browser-format-dialog
           .availableExtensions=${allEmptyExtensions()}
-          ?auto-confirm-single-option=${autoConfirm}
+          .autoSelectFormat=${autoSelectFormat}
           ?can-use-proxies=${true}
         ></cx-content-browser-format-dialog>
       `);
@@ -1475,315 +1479,395 @@ describe('content-browser-format-dialog', () => {
       return dialog;
     }
 
-    it('inserts straight away instead of opening a dialog that offers nothing', async () => {
-      const dialog = await makeDialog(true);
-      let confirms = 0;
-      dialog.addEventListener('cx-content-browser-format-dialog-proxy-confirm', () => { confirms += 1; });
-
-      dialog.open({
-        asset: makeFragment(),
-        isFavorite: false,
-        proxies: [makeOriginalProxy()],
+    function countConfirms(dialog: CxContentBrowserFormatDialog) {
+      const seen = { count: 0, proxyName: '' };
+      dialog.addEventListener('cx-content-browser-format-dialog-proxy-confirm', (event) => {
+        seen.count += 1;
+        seen.proxyName = (event as CustomEvent).detail?.proxyPreference ?? '';
       });
-      await elementUpdated(dialog);
 
-      expect(getInnerDialog(dialog)).to.not.have.attribute('open');
-      expect(confirms).to.equal(1);
-    });
+      return seen;
+    }
 
-    it('still opens when the asset has a preview to look at', async () => {
-      const dialog = await makeDialog(true);
-      let confirms = 0;
-      dialog.addEventListener('cx-content-browser-format-dialog-proxy-confirm', () => { confirms += 1; });
+    describe('false — the default', () => {
+      it('opens the dialog as before', async () => {
+        const dialog = await makeDialog(false);
+        const seen = countConfirms(dialog);
 
-      dialog.open({
-        asset: makeFragment({ previewUrl: 'https://example.com/preview.jpg' } as Partial<Asset>),
-        isFavorite: false,
-        proxies: [makeOriginalProxy()],
+        dialog.open({ asset: makeFragment(), isFavorite: false, proxies: [makeOriginalProxy()] });
+        await elementUpdated(dialog);
+
+        expect(getInnerDialog(dialog)).to.have.attribute('open');
+        expect(seen.count).to.equal(0);
       });
-      await elementUpdated(dialog);
 
-      expect(getInnerDialog(dialog)).to.have.attribute('open');
-      expect(confirms).to.equal(0);
-    });
+      it('opens the dialog even for an asset that offers only one format', async () => {
+        const dialog = await makeDialog(false);
+        const seen = countConfirms(dialog);
 
-    it('still opens when there is more than one format to pick', async () => {
-      const dialog = await makeDialog(true);
-      let confirms = 0;
-      dialog.addEventListener('cx-content-browser-format-dialog-proxy-confirm', () => { confirms += 1; });
+        // The previous heuristic skipped this case on its own. It is opt-in now, so a host that
+        // sets nothing gets the stock behaviour back.
+        dialog.open({ asset: makeFragment(), isFavorite: false, proxies: [makeOriginalProxy()] });
+        await elementUpdated(dialog);
 
-      dialog.open({
-        asset: makeFragment(),
-        isFavorite: false,
-        proxies: [makeOriginalProxy(), makeProxy({ extension: null, id: 'web', proxyName: 'WEB' })],
+        expect(getInnerDialog(dialog)).to.have.attribute('open');
+        expect(seen.count).to.equal(0);
       });
-      await elementUpdated(dialog);
-
-      expect(getInnerDialog(dialog)).to.have.attribute('open');
-      expect(confirms).to.equal(0);
     });
 
-    it('still opens when no format is on offer, rather than confirming nothing', async () => {
-      const dialog = await makeDialog(true);
-      let confirms = 0;
-      dialog.addEventListener('cx-content-browser-format-dialog-proxy-confirm', () => { confirms += 1; });
+    describe('true — take the first format', () => {
+      it('inserts with the first format without showing the dialog', async () => {
+        const dialog = await makeDialog(true);
+        const seen = countConfirms(dialog);
 
-      // Zero proxies would make handleProxyConfirm a silent no-op, so the click has to land somewhere.
-      dialog.open({ asset: makeFragment(), isFavorite: false, proxies: [] });
-      await elementUpdated(dialog);
+        dialog.open({
+          asset: makeFragment(),
+          isFavorite: false,
+          proxies: [makeOriginalProxy(), makeWebProxy()],
+        });
+        await elementUpdated(dialog);
 
-      expect(getInnerDialog(dialog)).to.have.attribute('open');
-      expect(confirms).to.equal(0);
-    });
-
-    it('opens as before unless the surface opts in', async () => {
-      const dialog = await makeDialog(false);
-      let confirms = 0;
-      dialog.addEventListener('cx-content-browser-format-dialog-proxy-confirm', () => { confirms += 1; });
-
-      dialog.open({
-        asset: makeFragment(),
-        isFavorite: false,
-        proxies: [makeOriginalProxy()],
+        expect(getInnerDialog(dialog)).to.not.have.attribute('open');
+        expect(seen.count).to.equal(1);
+        expect(seen.proxyName).to.equal('TRX');
       });
-      await elementUpdated(dialog);
 
-      expect(getInnerDialog(dialog)).to.have.attribute('open');
-      expect(confirms).to.equal(0);
-    });
+      it('skips the dialog for an asset that has a preview and several formats', async () => {
+        const dialog = await makeDialog(true);
+        const seen = countConfirms(dialog);
 
-    it('does not insert behind disabledConfirm, which exists to prevent exactly that', async () => {
-      const dialog = await fixture<CxContentBrowserFormatDialog>(html`
-        <cx-content-browser-format-dialog
-          .availableExtensions=${allEmptyExtensions()}
-          ?auto-confirm-single-option=${true}
-          ?can-use-proxies=${true}
-          ?disabled-confirm=${true}
-        ></cx-content-browser-format-dialog>
-      `);
-      await elementUpdated(dialog);
-      let confirms = 0;
-      dialog.addEventListener('cx-content-browser-format-dialog-proxy-confirm', () => { confirms += 1; });
+        // The flag is an explicit instruction, not a guess about the asset: unlike the heuristic it
+        // replaces, a preview or a second format no longer brings the dialog back.
+        dialog.open({
+          asset: makeFragment({ previewUrl: 'https://example.com/preview.jpg' } as Partial<Asset>),
+          isFavorite: false,
+          proxies: [makeOriginalProxy(), makeWebProxy()],
+        });
+        await elementUpdated(dialog);
 
-      dialog.open({
-        asset: makeFragment(),
-        isFavorite: false,
-        proxies: [makeOriginalProxy()],
+        expect(getInnerDialog(dialog)).to.not.have.attribute('open');
+        expect(seen.count).to.equal(1);
       });
-      await elementUpdated(dialog);
 
-      expect(getInnerDialog(dialog)).to.have.attribute('open');
-      expect(confirms).to.equal(0);
-    });
+      it('skips the dialog even when an ATS custom format is reachable', async () => {
+        const dialog = await fixture<CxContentBrowserFormatDialog>(html`
+          <cx-content-browser-format-dialog
+            .availableExtensions=${videoMp4Extensions()}
+            .supportedExtensions=${['mp4']}
+            .autoSelectFormat=${true}
+            ?can-custom-format=${true}
+            ?can-use-proxies=${true}
+          ></cx-content-browser-format-dialog>
+        `);
+        await elementUpdated(dialog);
+        const seen = countConfirms(dialog);
 
-    it('inserts straight away with tracking enabled, since there is no link to decorate', async () => {
-      const dialog = await fixture<CxContentBrowserFormatDialog>(html`
-        <cx-content-browser-format-dialog
-          .availableExtensions=${allEmptyExtensions()}
-          ?auto-confirm-single-option=${true}
-          ?can-track=${true}
-          ?can-use-proxies=${true}
-        ></cx-content-browser-format-dialog>
-      `);
-      await elementUpdated(dialog);
-      let confirms = 0;
-      dialog.addEventListener('cx-content-browser-format-dialog-proxy-confirm', () => { confirms += 1; });
+        dialog.open({
+          asset: makeFragment({ docType: MediaType.Video, extension: '.mp4' } as Partial<Asset>),
+          isFavorite: false,
+          proxies: [makeOriginalProxy()],
+        });
+        await elementUpdated(dialog);
 
-      dialog.open({
-        asset: makeFragment(),
-        isFavorite: false,
-        proxies: [makeOriginalProxy()],
+        expect(getInnerDialog(dialog)).to.not.have.attribute('open');
+        expect(seen.count).to.equal(1);
       });
-      await elementUpdated(dialog);
 
-      expect(getInnerDialog(dialog)).to.not.have.attribute('open');
-      expect(confirms).to.equal(1);
-    });
+      it('inserts straight away with tracking enabled, since there is no link to decorate', async () => {
+        const dialog = await fixture<CxContentBrowserFormatDialog>(html`
+          <cx-content-browser-format-dialog
+            .availableExtensions=${allEmptyExtensions()}
+            .autoSelectFormat=${true}
+            ?can-track=${true}
+            ?can-use-proxies=${true}
+          ></cx-content-browser-format-dialog>
+        `);
+        await elementUpdated(dialog);
+        const seen = countConfirms(dialog);
 
-    it('still opens for an asset that has a file but no preview yet', async () => {
-      const dialog = await makeDialog(true);
-      let confirms = 0;
-      dialog.addEventListener('cx-content-browser-format-dialog-proxy-confirm', () => { confirms += 1; });
+        dialog.open({ asset: makeFragment(), isFavorite: false, proxies: [makeOriginalProxy()] });
+        await elementUpdated(dialog);
 
-      // A PDF whose rendition has not been generated has no previewUrl either. An absent preview is
-      // not evidence of an absent file, so only the empty extension may trigger the shortcut.
-      dialog.open({
-        asset: makeFragment({ extension: '.pdf' } as Partial<Asset>),
-        isFavorite: false,
-        proxies: [makeOriginalProxy()],
+        expect(getInnerDialog(dialog)).to.not.have.attribute('open');
+        expect(seen.count).to.equal(1);
       });
-      await elementUpdated(dialog);
 
-      expect(getInnerDialog(dialog)).to.have.attribute('open');
-      expect(confirms).to.equal(0);
-    });
+      it('opens the dialog when no format is on offer, rather than confirming nothing', async () => {
+        const dialog = await makeDialog(true);
+        const seen = countConfirms(dialog);
 
-    it('still opens when the proxies call failed, for an asset that has a file', async () => {
-      const dialog = await fixture<CxContentBrowserFormatDialog>(html`
-        <cx-content-browser-format-dialog
-          .availableExtensions=${allEmptyExtensions()}
-          ?auto-confirm-single-option=${true}
-        ></cx-content-browser-format-dialog>
-      `);
-      await elementUpdated(dialog);
-      let confirms = 0;
-      dialog.addEventListener('cx-content-browser-format-dialog-proxy-confirm', () => { confirms += 1; });
+        // Zero proxies would make handleProxyConfirm a silent no-op, so the click has to land
+        // somewhere. This is also the shape apiGetAvailableProxies returns from its catch.
+        dialog.open({ asset: makeFragment(), isFavorite: false, proxies: [] });
+        await elementUpdated(dialog);
 
-      // apiGetAvailableProxies returns exactly this from its catch, with can-use-proxies off by
-      // default — the shape that would otherwise auto-insert every row after one 5xx.
-      dialog.open({
-        asset: makeFragment({ extension: '.jpg' } as Partial<Asset>),
-        isFavorite: false,
-        proxies: [],
+        expect(getInnerDialog(dialog)).to.have.attribute('open');
+        expect(seen.count).to.equal(0);
       });
-      await elementUpdated(dialog);
 
-      expect(getInnerDialog(dialog)).to.have.attribute('open');
-      expect(confirms).to.equal(0);
-    });
+      it('inserts with the proxy picker switched off, where the original is the only outcome', async () => {
+        const dialog = await fixture<CxContentBrowserFormatDialog>(html`
+          <cx-content-browser-format-dialog
+            .availableExtensions=${allEmptyExtensions()}
+            .autoSelectFormat=${true}
+          ></cx-content-browser-format-dialog>
+        `);
+        await elementUpdated(dialog);
+        const seen = countConfirms(dialog);
 
-    it('inserts a file-less asset straight away with the proxy picker switched off', async () => {
-      const dialog = await fixture<CxContentBrowserFormatDialog>(html`
-        <cx-content-browser-format-dialog
-          .availableExtensions=${allEmptyExtensions()}
-          ?auto-confirm-single-option=${true}
-        ></cx-content-browser-format-dialog>
-      `);
-      await elementUpdated(dialog);
-      let confirms = 0;
-      dialog.addEventListener('cx-content-browser-format-dialog-proxy-confirm', () => { confirms += 1; });
+        dialog.open({ asset: makeFragment(), isFavorite: false, proxies: [] });
+        await elementUpdated(dialog);
 
-      dialog.open({ asset: makeFragment(), isFavorite: false, proxies: [] });
-      await elementUpdated(dialog);
-
-      expect(getInnerDialog(dialog)).to.not.have.attribute('open');
-      expect(confirms).to.equal(1);
-    });
-
-    it('hands the asset over once when it is picked twice in quick succession', async () => {
-      const dialog = await makeDialog(true);
-      let confirms = 0;
-      dialog.addEventListener('cx-content-browser-format-dialog-proxy-confirm', () => { confirms += 1; });
-
-      // No dialog means no confirm button to disable, so open() has to serialise this itself.
-      dialog.open({ asset: makeFragment(), isFavorite: false, proxies: [makeOriginalProxy()] });
-      dialog.open({ asset: makeFragment(), isFavorite: false, proxies: [makeOriginalProxy()] });
-      await elementUpdated(dialog);
-
-      expect(confirms).to.equal(1);
-    });
-
-    it('reports that no dialog is on screen after an auto-confirm', async () => {
-      const dialog = await makeDialog(true);
-
-      dialog.open({ asset: makeFragment(), isFavorite: false, proxies: [makeOriginalProxy()] });
-      await elementUpdated(dialog);
-      expect(dialog.isDialogOpen).to.be.false;
-
-      // The host uses this to decide whether a failed insert has anywhere to report into.
-      dialog.open({
-        asset: makeFragment({ previewUrl: 'https://example.com/p.jpg' } as Partial<Asset>),
-        isFavorite: false,
-        proxies: [makeOriginalProxy()],
+        expect(getInnerDialog(dialog)).to.not.have.attribute('open');
+        expect(seen.count).to.equal(1);
       });
-      await elementUpdated(dialog);
-      expect(dialog.isDialogOpen).to.be.true;
     });
 
-    it('refuses to dismiss while an insert is in flight', async () => {
-      const dialog = await makeDialog(false);
-      dialog.open({
-        asset: makeFragment({ previewUrl: 'https://example.com/p.jpg' } as Partial<Asset>),
-        isFavorite: false,
-        proxies: [makeOriginalProxy()],
+    describe('a format name', () => {
+      it('inserts with the named format rather than the first one', async () => {
+        const dialog = await makeDialog('WEB');
+        const seen = countConfirms(dialog);
+
+        dialog.open({
+          asset: makeFragment(),
+          isFavorite: false,
+          proxies: [makeOriginalProxy(), makeWebProxy()],
+        });
+        await elementUpdated(dialog);
+
+        expect(getInnerDialog(dialog)).to.not.have.attribute('open');
+        expect(seen.count).to.equal(1);
+        expect(seen.proxyName).to.equal('WEB');
       });
-      await elementUpdated(dialog);
-      dialog.setLoadingConfirm(true);
-      await elementUpdated(dialog);
 
-      // The request is already out and its closure still holds the asset; dismissing here would
-      // hand over an asset the user cancelled, and the host blocks selections until it settles.
-      const prevented = !getInnerDialog(dialog).dispatchEvent(
-        new CustomEvent('cx-request-close', { bubbles: true, cancelable: true, composed: true, detail: { source: 'keyboard' } }),
-      );
+      it('matches the name case-insensitively', async () => {
+        const dialog = await makeDialog('web');
+        const seen = countConfirms(dialog);
 
-      expect(prevented).to.be.true;
+        dialog.open({
+          asset: makeFragment(),
+          isFavorite: false,
+          proxies: [makeOriginalProxy(), makeWebProxy()],
+        });
+        await elementUpdated(dialog);
 
-      // Without this the dialog could not have closed yet either way, so the assertion below would
-      // pass with the guard removed.
-      await elementUpdated(dialog);
-      expect(getInnerDialog(dialog)).to.have.attribute('open');
+        expect(seen.proxyName).to.equal('WEB');
+      });
+
+      it('matches the label the picker shows, not just the proxy name', async () => {
+        const dialog = await makeDialog('web ready');
+        const seen = countConfirms(dialog);
+
+        dialog.open({
+          asset: makeFragment(),
+          isFavorite: false,
+          proxies: [makeOriginalProxy(), makeWebProxy()],
+        });
+        await elementUpdated(dialog);
+
+        expect(seen.proxyName).to.equal('WEB');
+      });
+
+      it('opens the dialog when the named format is not on offer', async () => {
+        const dialog = await makeDialog('PRINT');
+        const seen = countConfirms(dialog);
+
+        // A stale or mistyped name degrades to the picker rather than inserting something the host
+        // did not ask for.
+        dialog.open({
+          asset: makeFragment(),
+          isFavorite: false,
+          proxies: [makeOriginalProxy(), makeWebProxy()],
+        });
+        await elementUpdated(dialog);
+
+        expect(getInnerDialog(dialog)).to.have.attribute('open');
+        expect(seen.count).to.equal(0);
+      });
+
+      it('opens the dialog when the named format was filtered out for this asset', async () => {
+        const dialog = await makeDialog('TRX');
+        const seen = countConfirms(dialog);
+
+        // filterProxies drops the original-file proxy when the asset's own extension is not
+        // supported, so a name can be valid in general and absent here.
+        dialog.open({
+          asset: makeFragment({ extension: '.xyz' } as Partial<Asset>),
+          isFavorite: false,
+          proxies: [makeOriginalProxy()],
+        });
+        await elementUpdated(dialog);
+
+        expect(getInnerDialog(dialog)).to.have.attribute('open');
+        expect(seen.count).to.equal(0);
+      });
+
+      it('treats a blank name as off rather than as a match', async () => {
+        const dialog = await makeDialog('   ');
+        const seen = countConfirms(dialog);
+
+        dialog.open({ asset: makeFragment(), isFavorite: false, proxies: [makeOriginalProxy()] });
+        await elementUpdated(dialog);
+
+        expect(getInnerDialog(dialog)).to.have.attribute('open');
+        expect(seen.count).to.equal(0);
+      });
     });
 
-    it('shows the insert as pending while the dialog is held open', async () => {
-      // With proxies off this is the button that renders, and it used to bind `loadingProxies`,
-      // which nothing in the SDK ever sets — so the dialog was held with no visible progress.
-      const dialog = await fixture<CxContentBrowserFormatDialog>(html`
-        <cx-content-browser-format-dialog
-          .availableExtensions=${allEmptyExtensions()}
-        ></cx-content-browser-format-dialog>
-      `);
-      await elementUpdated(dialog);
-      dialog.open({
-        asset: makeFragment({ previewUrl: 'https://example.com/p.jpg' } as Partial<Asset>),
-        isFavorite: false,
-        proxies: [makeOriginalProxy()],
+    describe('guards that hold whatever the flag says', () => {
+      it('does not insert behind disabledConfirm, which exists to prevent exactly that', async () => {
+        const dialog = await fixture<CxContentBrowserFormatDialog>(html`
+          <cx-content-browser-format-dialog
+            .availableExtensions=${allEmptyExtensions()}
+            .autoSelectFormat=${true}
+            ?can-use-proxies=${true}
+            ?disabled-confirm=${true}
+          ></cx-content-browser-format-dialog>
+        `);
+        await elementUpdated(dialog);
+        const seen = countConfirms(dialog);
+
+        dialog.open({ asset: makeFragment(), isFavorite: false, proxies: [makeOriginalProxy()] });
+        await elementUpdated(dialog);
+
+        expect(seen.count).to.equal(0);
       });
-      await elementUpdated(dialog);
 
-      // hasAttribute rather than the chai-dom matcher: a failing `to.have.attribute` on a design
-      // system element wedges the runner instead of reporting, which hides the regression.
-      const button = dialog.shadowRoot!.querySelector('.content-browser-format__footer__button')!;
-      expect(button.hasAttribute('loading')).to.be.false;
+      it('hands the asset over once when it is picked twice in quick succession', async () => {
+        const dialog = await makeDialog(true);
+        const seen = countConfirms(dialog);
 
-      dialog.setLoadingConfirm(true);
-      await elementUpdated(dialog);
-      expect(button.hasAttribute('loading')).to.be.true;
+        // No dialog means no confirm button to disable, so open() has to serialise this itself.
+        dialog.open({ asset: makeFragment(), isFavorite: false, proxies: [makeOriginalProxy()] });
+        dialog.open({ asset: makeFragment(), isFavorite: false, proxies: [makeOriginalProxy()] });
+        await elementUpdated(dialog);
 
-      dialog.setLoadingConfirm(false);
-      await elementUpdated(dialog);
-      expect(button.hasAttribute('loading')).to.be.false;
+        expect(seen.count).to.equal(1);
+      });
+
+      it('reports that no dialog is on screen after an auto-confirm', async () => {
+        const dialog = await makeDialog(true);
+
+        dialog.open({ asset: makeFragment(), isFavorite: false, proxies: [makeOriginalProxy()] });
+        await elementUpdated(dialog);
+        expect(dialog.isDialogOpen).to.be.false;
+
+        // The host uses this to decide whether a failed insert has anywhere to report into.
+        dialog.hide();
+        dialog.autoSelectFormat = false;
+        await elementUpdated(dialog);
+        dialog.open({ asset: makeFragment(), isFavorite: false, proxies: [makeOriginalProxy()] });
+        await elementUpdated(dialog);
+        expect(dialog.isDialogOpen).to.be.true;
+      });
+
+      it('refuses to dismiss while an insert is in flight', async () => {
+        const dialog = await makeDialog(false);
+        dialog.open({
+          asset: makeFragment({ previewUrl: 'https://example.com/p.jpg' } as Partial<Asset>),
+          isFavorite: false,
+          proxies: [makeOriginalProxy()],
+        });
+        await elementUpdated(dialog);
+        dialog.setLoadingConfirm(true);
+        await elementUpdated(dialog);
+
+        // The request is already out and its closure still holds the asset; dismissing here would
+        // hand over an asset the user cancelled, and the host blocks selections until it settles.
+        const prevented = !getInnerDialog(dialog).dispatchEvent(
+          new CustomEvent('cx-request-close', { bubbles: true, cancelable: true, composed: true, detail: { source: 'keyboard' } }),
+        );
+
+        expect(prevented).to.be.true;
+
+        // Without this the dialog could not have closed yet either way, so the assertion below
+        // would pass with the guard removed.
+        await elementUpdated(dialog);
+        expect(getInnerDialog(dialog)).to.have.attribute('open');
+      });
+
+      it('shows the insert as pending while the dialog is held open', async () => {
+        // With proxies off this is the button that renders, and it used to bind `loadingProxies`,
+        // which nothing in the SDK ever sets — so the dialog was held with no visible progress.
+        const dialog = await fixture<CxContentBrowserFormatDialog>(html`
+          <cx-content-browser-format-dialog
+            .availableExtensions=${allEmptyExtensions()}
+          ></cx-content-browser-format-dialog>
+        `);
+        await elementUpdated(dialog);
+        dialog.open({
+          asset: makeFragment({ previewUrl: 'https://example.com/p.jpg' } as Partial<Asset>),
+          isFavorite: false,
+          proxies: [makeOriginalProxy()],
+        });
+        await elementUpdated(dialog);
+
+        // hasAttribute rather than the chai-dom matcher: a failing `to.have.attribute` on a design
+        // system element wedges the runner instead of reporting, which hides the regression.
+        const button = dialog.shadowRoot!.querySelector('.content-browser-format__footer__button')!;
+        expect(button.hasAttribute('loading')).to.be.false;
+
+        dialog.setLoadingConfirm(true);
+        await elementUpdated(dialog);
+        expect(button.hasAttribute('loading')).to.be.true;
+
+        dialog.setLoadingConfirm(false);
+        await elementUpdated(dialog);
+        expect(button.hasAttribute('loading')).to.be.false;
+      });
+
+      it('allows dismissal once no insert is outstanding', async () => {
+        const dialog = await makeDialog(false);
+        dialog.open({
+          asset: makeFragment({ previewUrl: 'https://example.com/p.jpg' } as Partial<Asset>),
+          isFavorite: false,
+          proxies: [makeOriginalProxy()],
+        });
+        await elementUpdated(dialog);
+
+        const prevented = !getInnerDialog(dialog).dispatchEvent(
+          new CustomEvent('cx-request-close', { bubbles: true, cancelable: true, composed: true, detail: { source: 'keyboard' } }),
+        );
+
+        expect(prevented).to.be.false;
+      });
     });
 
-    it('allows dismissal once no insert is outstanding', async () => {
-      const dialog = await makeDialog(false);
-      dialog.open({
-        asset: makeFragment({ previewUrl: 'https://example.com/p.jpg' } as Partial<Asset>),
-        isFavorite: false,
-        proxies: [makeOriginalProxy()],
+    describe('the attribute form, which is how React 19 sets it', () => {
+      async function openWithAttribute(value: string | null) {
+        const dialog = await fixture<CxContentBrowserFormatDialog>(html`
+          <cx-content-browser-format-dialog
+            .availableExtensions=${allEmptyExtensions()}
+            ?can-use-proxies=${true}
+          ></cx-content-browser-format-dialog>
+        `);
+        if (value === null) {
+          dialog.removeAttribute('auto-select-format');
+        } else {
+          dialog.setAttribute('auto-select-format', value);
+        }
+        await elementUpdated(dialog);
+
+        return dialog;
+      }
+
+      it('reads "false" as off, not as a format named false', async () => {
+        const dialog = await openWithAttribute('false');
+
+        expect(dialog.autoSelectFormat).to.equal(false);
       });
-      await elementUpdated(dialog);
 
-      const prevented = !getInnerDialog(dialog).dispatchEvent(
-        new CustomEvent('cx-request-close', { bubbles: true, cancelable: true, composed: true, detail: { source: 'keyboard' } }),
-      );
+      it('reads "true" as the first-format shortcut', async () => {
+        const dialog = await openWithAttribute('true');
 
-      expect(prevented).to.be.false;
-    });
-
-    it('still opens when the asset extension makes an ATS custom format reachable', async () => {
-      const dialog = await fixture<CxContentBrowserFormatDialog>(html`
-        <cx-content-browser-format-dialog
-          .availableExtensions=${videoMp4Extensions()}
-          .supportedExtensions=${['mp4']}
-          ?auto-confirm-single-option=${true}
-          ?can-custom-format=${true}
-          ?can-use-proxies=${true}
-        ></cx-content-browser-format-dialog>
-      `);
-      await elementUpdated(dialog);
-      let confirms = 0;
-      dialog.addEventListener('cx-content-browser-format-dialog-proxy-confirm', () => { confirms += 1; });
-
-      dialog.open({
-        asset: makeFragment({ docType: MediaType.Video, extension: '.mp4' } as Partial<Asset>),
-        isFavorite: false,
-        proxies: [makeOriginalProxy()],
+        expect(dialog.autoSelectFormat).to.equal(true);
       });
-      await elementUpdated(dialog);
 
-      expect(getInnerDialog(dialog)).to.have.attribute('open');
-      expect(confirms).to.equal(0);
+      it('reads any other value as a format name', async () => {
+        const dialog = await openWithAttribute('WEB');
+
+        expect(dialog.autoSelectFormat).to.equal('WEB');
+      });
     });
   });
   it('renders cx-asset-link-format for an image asset by default', async () => {

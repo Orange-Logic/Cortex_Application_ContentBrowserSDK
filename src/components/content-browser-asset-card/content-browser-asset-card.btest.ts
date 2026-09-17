@@ -257,4 +257,82 @@ describe('content-browser-asset-card', () => {
       expect(updateProgressSpy).to.not.have.been.called;
     });
   });
+
+  describe('insert overlay', () => {
+    function getCta(card: ContentBrowserAssetCard) {
+      return card.shadowRoot!.querySelector('.content-browser-asset-card__cta');
+    }
+
+    it('is absent unless the host has asked to skip the format picker', async () => {
+      await elementUpdated(el);
+
+      expect(getCta(el)).to.not.exist;
+    });
+
+    it('appears when the card is told to show it', async () => {
+      el.showCta = true;
+      await elementUpdated(el);
+
+      expect(getCta(el)).to.exist;
+      expect(getCta(el)!.textContent).to.contain('Insert');
+    });
+
+    it('carries the host cta text when one is set', async () => {
+      el.showCta = true;
+      el.ctaText = 'Add';
+      await elementUpdated(el);
+
+      expect(getCta(el)!.textContent).to.contain('Add');
+      expect(getCta(el)!.textContent).to.not.contain('Insert');
+    });
+
+    it('stays away from a cold-storage asset, which cannot be picked at all', async () => {
+      el.showCta = true;
+      el.inColdStorage = true;
+      await elementUpdated(el);
+
+      expect(getCta(el)).to.not.exist;
+    });
+
+    it('is an affordance, not a second control', async () => {
+      el.showCta = true;
+      await elementUpdated(el);
+      const cta = getCta(el)!;
+
+      // The card beneath is the one interactive, announced, focusable thing; the overlay only says
+      // what clicking it will do, and the click has to reach the card to take the usual path.
+      expect(cta.getAttribute('aria-hidden')).to.equal('true');
+      expect(getComputedStyle(cta).pointerEvents).to.equal('none');
+      expect(cta.querySelector('cx-button')!.getAttribute('tabindex')).to.equal('-1');
+    });
+
+    it('is hidden until the card is hovered', async () => {
+      el.showCta = true;
+      await elementUpdated(el);
+
+      expect(getComputedStyle(getCta(el)!).opacity).to.equal('0');
+    });
+  });
+
+  describe('insert pending state', () => {
+    it('holds the overlay open and spins its button while busy', async () => {
+      el.showCta = true;
+      el.busy = true;
+      await elementUpdated(el);
+      const cta = el.shadowRoot!.querySelector('.content-browser-asset-card__cta')!;
+
+      // Hover-revealed otherwise, so the feedback would vanish the moment the pointer moved away.
+      expect(getComputedStyle(cta).opacity).to.equal('1');
+      expect(cta.querySelector('cx-button')!.hasAttribute('loading')).to.be.true;
+    });
+
+    it('does not spin a card that is not the one being inserted', async () => {
+      el.showCta = true;
+      await elementUpdated(el);
+      const cta = el.shadowRoot!.querySelector('.content-browser-asset-card__cta')!;
+
+      expect(getComputedStyle(cta).opacity).to.equal('0');
+      expect(cta.querySelector('cx-button')!.hasAttribute('loading')).to.be.false;
+    });
+  });
 });

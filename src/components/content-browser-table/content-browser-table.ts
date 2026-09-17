@@ -113,6 +113,13 @@ export default class CxContentBrowserTable extends CortexElement {
   @property({ attribute: 'selected-asset-id', reflect: true, type: String })
   selectedAssetId: string | undefined = undefined;
 
+  /**
+   * The asset whose insert is still running, so its row keeps the CTA on screen and spinning.
+   */
+  // Set by the host component as a property; an attribute round trip would turn undefined into null.
+  @property({ attribute: false })
+  busyAssetId: string | undefined = undefined;
+
   @state()
   assetMap: Map<string, Asset> = new Map();
 
@@ -262,17 +269,20 @@ export default class CxContentBrowserTable extends CortexElement {
    */
   private renderActionButton(assetId: string | undefined) {
     const isPlaceholder = assetId === undefined;
+    const isBusy = !isPlaceholder && assetId === this.busyAssetId;
 
     return html`
       <cx-button
         class=${classMap({
           'content-browser-table__action': true,
+          'content-browser-table__action--busy': isBusy,
           'content-browser-table__action--placeholder': isPlaceholder,
         })}
         data-id=${ifDefined(assetId)}
         size="small"
         variant="primary"
         tabindex="-1"
+        ?loading=${isBusy}
         aria-hidden=${isPlaceholder ? 'true' : 'false'}
         @click=${isPlaceholder ? nothing : this.handleActionClick}
       >

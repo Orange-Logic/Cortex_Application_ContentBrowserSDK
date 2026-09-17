@@ -1,21 +1,23 @@
 import { CSSResultGroup, html, nothing } from 'lit';
 import { property, query } from 'lit/decorators.js';
 import { classMap } from 'lit/directives/class-map.js';
+import { styleMap } from 'lit/directives/style-map.js';
 import { repeat } from 'lit/directives/repeat.js';
 import { when } from 'lit/directives/when.js';
 
 import CortexElement from '@/base/element';
 import componentStyles from '@/styles/component.styles';
 import { MediaType } from '@/types/asset';
-import { GridView } from '@/types/content-browser';
+import { type CtaTextTransform, GridView } from '@/types/content-browser';
 import CxArrayLineClamp from '@orangelogic/design-system/components/array-line-clamp';
+import CxButton from '@orangelogic/design-system/components/button';
 import CxCard from '@orangelogic/design-system/components/card';
 import CxCheckbox from '@orangelogic/design-system/components/checkbox';
 import CxLineClamp from '@orangelogic/design-system/components/line-clamp';
 import CxSpace from '@orangelogic/design-system/components/space';
 import CxTag from '@orangelogic/design-system/components/tag';
 import CxTypography from '@orangelogic/design-system/components/typography';
-import { customElement } from '@orangelogic/design-system/utils';
+import { customElement, LocalizeController } from '@orangelogic/design-system/utils';
 
 import CxContentBrowserAssetPreview from '../content-browser-asset-preview/content-browser-asset-preview';
 import styles from './content-browser-asset-card.styles';
@@ -26,6 +28,7 @@ export default class CxContentBrowserAssetCard extends CortexElement {
   
   static readonly dependencies = {
     'cx-array-line-clamp': CxArrayLineClamp,
+    'cx-button': CxButton,
     'cx-card': CxCard,
     'cx-checkbox': CxCheckbox,
     'cx-content-browser-asset-preview': CxContentBrowserAssetPreview,
@@ -34,6 +37,29 @@ export default class CxContentBrowserAssetCard extends CortexElement {
     'cx-tag': CxTag,
     'cx-typography': CxTypography,
   };
+
+  private readonly localize = new LocalizeController(this);
+
+  /**
+   * Show the hover overlay that says clicking this card inserts. Set when the host has asked to
+   * skip the format picker: without the dialog a click hands the asset over immediately, and the
+   * card would otherwise carry no sign of that.
+   */
+  @property({ attribute: 'show-cta', reflect: true, type: Boolean })
+  showCta: boolean = false;
+
+  @property({ attribute: 'cta-text', reflect: false, type: String })
+  ctaText: string = '';
+
+  @property({ attribute: 'cta-text-transform', reflect: false, type: String })
+  ctaTextTransform: CtaTextTransform = 'capitalize';
+
+  /**
+   * This card's insert is still running: hold the overlay open and spin its CTA, so the feedback
+   * does not vanish the moment the pointer leaves.
+   */
+  @property({ attribute: 'busy', reflect: true, type: Boolean })
+  busy: boolean = false;
 
   @property({ attribute: 'image-url', reflect: true, type: String })
   imageUrl: string = '';
@@ -157,6 +183,26 @@ export default class CxContentBrowserAssetCard extends CortexElement {
           ?thumbnail-only=${this.view === 'small'}
           ?in-cold-storage=${this.inColdStorage}
         ></cx-content-browser-asset-preview>
+        ${when(
+          this.showCta && !this.inColdStorage,
+          () => html`
+            <div
+              slot="image"
+              class=${classMap({
+                'content-browser-asset-card__cta': true,
+                'content-browser-asset-card__cta--busy': this.busy,
+              })}
+              aria-hidden="true"
+            >
+              <cx-button size="small" variant="primary" tabindex="-1" ?loading=${this.busy}>
+                <span style=${styleMap({ textTransform: this.ctaTextTransform })}>
+                  ${this.ctaText || this.localize.term('insert')}
+                </span>
+              </cx-button>
+            </div>
+          `,
+          () => nothing,
+        )}
         <cx-space spacing="small" align-items="center" wrap="nowrap" class="content-browser-asset-card__info">
           ${when(
             this.showTitle && this.assetName,

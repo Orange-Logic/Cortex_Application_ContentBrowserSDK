@@ -114,7 +114,8 @@ export default css`
   .content-browser-table__row:hover .content-browser-table__action,
   .content-browser-table__row:focus-visible .content-browser-table__action,
   .content-browser-table__row:focus-within .content-browser-table__action,
-  .content-browser-table__row--selected .content-browser-table__action {
+  .content-browser-table__row--selected .content-browser-table__action,
+  .content-browser-table__action--busy {
     visibility: visible;
   }
 

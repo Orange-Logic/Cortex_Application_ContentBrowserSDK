@@ -185,6 +185,54 @@ export type FocusMode = {
 
 export type DefaultFocusMode = 'manual' | 'center';
 
+/**
+ * Import behaviour when the host would rather not show the format picker.
+ *
+ * - `false` — the format dialog opens as usual.
+ * - `true` — insert with the first available format, without showing the dialog.
+ * - a format name — insert with that format, matched case-insensitively against a proxy's
+ *   `proxyName` or `proxyLabel`. A name matching nothing opens the dialog as usual.
+ */
+export type AutoSelectFormat = boolean | string;
+
+/**
+ * React 19 sets a hyphenated prop as an attribute rather than a property, so the union has to
+ * survive a round trip through a string: `"true"`/`"false"` are the booleans, anything else is a
+ * format name. A bare attribute means `true`, matching how a boolean attribute normally reads.
+ */
+export const autoSelectFormatConverter = {
+  fromAttribute: (value: string | null): AutoSelectFormat => {
+    if (value === null) {
+      return false;
+    }
+
+    const normalized = value.trim();
+
+    if (normalized === '' || normalized.toLowerCase() === 'true') {
+      return true;
+    }
+
+    if (normalized.toLowerCase() === 'false') {
+      return false;
+    }
+
+    return normalized;
+  },
+  toAttribute: (value: AutoSelectFormat): string | null => {
+    return value === false ? null : String(value);
+  },
+};
+
+/**
+ * Whether `autoSelectFormat` is switched on at all — a blank string is off, not a format named " ".
+ *
+ * Config-level, not per-asset: it says the host has asked to skip the picker, not that this
+ * particular asset will skip it. A named format that no proxy matches still opens the dialog.
+ */
+export function isAutoSelectFormatActive(value: AutoSelectFormat): boolean {
+  return value === true || (typeof value === 'string' && value.trim() !== '');
+}
+
 export type CtaTextTransform = 'none' | 'uppercase' | 'lowercase' | 'capitalize';
 
 export enum ContentBrowserFormatDialogVariant {

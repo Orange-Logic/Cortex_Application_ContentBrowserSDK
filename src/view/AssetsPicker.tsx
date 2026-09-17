@@ -159,6 +159,7 @@ const AssetsPicker = forwardRef<AssetsPickerHandle, Props>(function AssetsPicker
     showFavoriteFolder,
     showVersions,
     tableColumns,
+    autoSelectFormat,
   } = useContext(GlobalConfigContext);
   const {
     extraFields, getPinnedState, onAssetAction, onAssetSelected, onClose, onError, onPinAsset, onUnpinAsset,
@@ -402,6 +403,7 @@ const AssetsPicker = forwardRef<AssetsPickerHandle, Props>(function AssetsPicker
       available-representative-subtypes={availableRepresentativeSubtypes}
       default-grid-view={defaultSettings.view}
       table-columns={tableColumns ?? []}
+      auto-select-format={autoSelectFormat ?? false}
       default-sort-order-name={defaultSettings.sortOrder}
       default-sort-direction={defaultSettings.sortDirection}
       default-facets={defaultSettings.facets}

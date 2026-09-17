@@ -1500,7 +1500,7 @@ describe('content-browser', () => {
     it('shows the skipped dialog when an auto-confirmed insert fails', async () => {
       const asset = makeAsset({ extension: '', id: 'frag-1', imageUrl: '' });
       const { el, mock } = await fixtureWithMock(
-        html`<cx-content-browser .tableColumns=${TABLE_COLUMNS}></cx-content-browser>`,
+        html`<cx-content-browser .autoSelectFormat=${true} .tableColumns=${TABLE_COLUMNS}></cx-content-browser>`,
         {
           fetchAssetByIDResult: { asset, isFavorite: false, proxies: [] },
           items: [asset],
@@ -1530,7 +1530,7 @@ describe('content-browser', () => {
       const first = makeAsset({ extension: '', id: 'frag-1', imageUrl: '' });
       const second = makeAsset({ extension: '', id: 'frag-2', imageUrl: '' });
       const { el, mock } = await fixtureWithMock(
-        html`<cx-content-browser .tableColumns=${TABLE_COLUMNS}></cx-content-browser>`,
+        html`<cx-content-browser .autoSelectFormat=${true} .tableColumns=${TABLE_COLUMNS}></cx-content-browser>`,
         {
           fetchAssetByIDResult: { asset: first, isFavorite: false, proxies: [] },
           items: [first, second],
@@ -1790,4 +1790,188 @@ describe('content-browser', () => {
     expect(mock.getAssetLink).to.have.been.calledOnce;
   });
 
+
+  describe('insert overlay in grid view', () => {
+    /**
+     * Without the dialog a card click hands the asset over immediately, so the grid has to say so
+     * before it is clicked. The overlay follows the flag, not the view.
+     */
+    async function gridShowsCta(autoSelectFormat: boolean | string) {
+      const { el } = await fixtureWithMock(
+        html`<cx-content-browser .autoSelectFormat=${autoSelectFormat}></cx-content-browser>`,
+        { items: [makeAsset({ id: 'a-1' })], totalCount: 1 },
+      );
+      await elementUpdated(el);
+
+      return getGrid(el)!.showCta;
+    }
+
+    it('is off when the host has not asked to skip the picker', async () => {
+      expect(await gridShowsCta(false)).to.be.false;
+    });
+
+    it('is on when the flag takes the first format', async () => {
+      expect(await gridShowsCta(true)).to.be.true;
+    });
+
+    it('is on when the flag names a format', async () => {
+      expect(await gridShowsCta('TRX')).to.be.true;
+    });
+
+    it('is off for a blank name, which is off everywhere else too', async () => {
+      // Matches resolveAutoSelection: a blank string is not a format named " ".
+      expect(await gridShowsCta('   ')).to.be.false;
+    });
+  });
+
+  describe('insert pending state', () => {
+    /**
+     * With the dialog skipped there is no confirm button to spin, so the CTA the user clicked is the
+     * only place the wait can be shown. These assert the surface's own property rather than the
+     * private state behind it, since that is what actually reaches the button.
+     */
+    function activateRow(el: CxContentBrowser, id: string) {
+      getTable(el)!.dispatchEvent(
+        new CustomEvent('cx-content-browser-grid-click', {
+          bubbles: true,
+          composed: true,
+          detail: { id },
+        }),
+      );
+    }
+
+    it('marks the asset busy from the click until the dialog takes over', async () => {
+      const asset = makeAsset({ extension: '', id: 'frag-1', imageUrl: '' });
+      let releaseFetch: (value: unknown) => void = () => {};
+      const { el, mock } = await fixtureWithMock(
+        html`<cx-content-browser .tableColumns=${TABLE_COLUMNS}></cx-content-browser>`,
+        { items: [asset], totalCount: 1 },
+      );
+      mock.fetchAssetByID.returns(new Promise((resolve) => { releaseFetch = resolve; }));
+
+      selectTableView(el);
+      await elementUpdated(el);
+      activateRow(el, 'frag-1');
+      await elementUpdated(el);
+
+      expect(getTable(el)!.busyAssetId).to.equal('frag-1');
+
+      releaseFetch({ asset, isFavorite: false, proxies: [] });
+      await waitUntil(() => getFormatDialog(el).isDialogOpen, 'dialog never opened');
+      await elementUpdated(el);
+
+      // The dialog's own confirm button carries it from here; two spinners read as two operations.
+      expect(getTable(el)!.busyAssetId).to.be.undefined;
+    });
+
+    it('holds the asset busy through an insert that never opened a dialog', async () => {
+      const asset = makeAsset({ extension: '', id: 'frag-1', imageUrl: '' });
+      const { el, mock } = await fixtureWithMock(
+        html`<cx-content-browser .autoSelectFormat=${true} .tableColumns=${TABLE_COLUMNS}></cx-content-browser>`,
+        {
+          fetchAssetByIDResult: { asset, isFavorite: false, proxies: [] },
+          items: [asset],
+          totalCount: 1,
+        },
+      );
+      // Never settles, so the insert stays outstanding for the whole test.
+      mock.getAssetLink.returns(new Promise(() => {}));
+
+      selectTableView(el);
+      await elementUpdated(el);
+      activateRow(el, 'frag-1');
+      await waitUntil(() => mock.getAssetLink.calledOnce, 'insert never started');
+      await elementUpdated(el);
+
+      expect(getFormatDialog(el).isDialogOpen).to.be.false;
+      expect(getTable(el)!.busyAssetId).to.equal('frag-1');
+    });
+
+    it('releases the asset once the insert settles', async () => {
+      const asset = makeAsset({ extension: '', id: 'frag-1', imageUrl: '' });
+      const { el } = await fixtureWithMock(
+        html`<cx-content-browser .autoSelectFormat=${true} .tableColumns=${TABLE_COLUMNS}></cx-content-browser>`,
+        {
+          fetchAssetByIDResult: { asset, isFavorite: false, proxies: [] },
+          getAssetLinkResult: { data: [{ imageUrl: '' }], isError: false },
+          items: [asset],
+          totalCount: 1,
+        },
+      );
+
+      selectTableView(el);
+      await elementUpdated(el);
+      const handed = oneEvent(el, 'cx-content-browser-selected-asset');
+      activateRow(el, 'frag-1');
+
+      // Wait for the outcome, not for "not busy" — that is already true before the click renders.
+      await handed;
+      await elementUpdated(el);
+
+      expect(getTable(el)!.busyAssetId).to.be.undefined;
+    });
+
+    it('releases the asset when the insert fails, rather than spinning forever', async () => {
+      const asset = makeAsset({ extension: '', id: 'frag-1', imageUrl: '' });
+      const { el, mock } = await fixtureWithMock(
+        html`<cx-content-browser .autoSelectFormat=${true} .tableColumns=${TABLE_COLUMNS}></cx-content-browser>`,
+        {
+          fetchAssetByIDResult: { asset, isFavorite: false, proxies: [] },
+          items: [asset],
+          totalCount: 1,
+        },
+      );
+      mock.getAssetLink.rejects(new Error('link generation failed'));
+
+      selectTableView(el);
+      await elementUpdated(el);
+      activateRow(el, 'frag-1');
+
+      // Wait for the outcome, not for "not busy" — that is already true before the click renders.
+      await waitUntil(() => getFormatDialog(el).isDialogOpen, 'skipped dialog was never revealed');
+      await elementUpdated(el);
+
+      expect(getTable(el)!.busyAssetId).to.be.undefined;
+    });
+
+    it('releases the asset when it cannot be fetched at all', async () => {
+      const asset = makeAsset({ extension: '', id: 'frag-1', imageUrl: '' });
+      const { el, mock } = await fixtureWithMock(
+        html`<cx-content-browser .tableColumns=${TABLE_COLUMNS}></cx-content-browser>`,
+        { items: [asset], totalCount: 1 },
+      );
+      mock.fetchAssetByID.resolves(undefined);
+
+      selectTableView(el);
+      await elementUpdated(el);
+      activateRow(el, 'frag-1');
+      await waitUntil(() => getTable(el)!.busyAssetId === undefined, 'CTA span forever on a missing asset');
+
+      expect(getFormatDialog(el).isDialogOpen).to.be.false;
+      expect(getTable(el)!.busyAssetId).to.be.undefined;
+    });
+
+    it('tells the grid which card is busy too', async () => {
+      const asset = makeAsset({ extension: '', id: 'frag-1', imageUrl: '' });
+      let releaseFetch: (value: unknown) => void = () => {};
+      const { el, mock } = await fixtureWithMock(
+        html`<cx-content-browser .autoSelectFormat=${true}></cx-content-browser>`,
+        { items: [asset], totalCount: 1 },
+      );
+      mock.fetchAssetByID.returns(new Promise((resolve) => { releaseFetch = resolve; }));
+
+      getGrid(el)!.dispatchEvent(
+        new CustomEvent('cx-content-browser-grid-click', {
+          bubbles: true,
+          composed: true,
+          detail: { id: 'frag-1' },
+        }),
+      );
+      await elementUpdated(el);
+
+      expect(getGrid(el)!.busyAssetId).to.equal('frag-1');
+
+      releaseFetch(undefined);
+    });
+  });
 });

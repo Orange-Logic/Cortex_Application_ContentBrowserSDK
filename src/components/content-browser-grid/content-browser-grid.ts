@@ -9,7 +9,7 @@ import _debounce from 'lodash-es/debounce';
 import CortexElement from '@/base/element';
 import componentStyles from '@/styles/component.styles';
 import { Asset } from '@/types/asset';
-import { ASSET_SIZE, GridView } from '@/types/content-browser';
+import { ASSET_SIZE, GridView, type CtaTextTransform } from '@/types/content-browser';
 import { watch } from '@/utils/watch';
 import { grid } from '@lit-labs/virtualizer/layouts/grid.js';
 import CxProgressBar from '@orangelogic/design-system/components/progress-bar';
@@ -69,6 +69,19 @@ export default class CxContentBrowserGrid extends CortexElement {
 
   @property({ attribute: 'show-tags', reflect: true, type: Boolean })
   showTags: boolean = false;
+
+  @property({ attribute: 'show-cta', reflect: true, type: Boolean })
+  showCta: boolean = false;
+
+  @property({ attribute: 'cta-text', reflect: false, type: String })
+  ctaText: string = '';
+
+  @property({ attribute: 'cta-text-transform', reflect: false, type: String })
+  ctaTextTransform: CtaTextTransform = 'capitalize';
+
+  // Set by the host component as a property; an attribute round trip would turn undefined into null.
+  @property({ attribute: false })
+  busyAssetId: string | undefined = undefined;
 
   @property({ attribute: 'selected-asset-id', reflect: true, type: String })
   selectedAssetId: string | undefined = undefined;
@@ -225,6 +238,10 @@ export default class CxContentBrowserGrid extends CortexElement {
         ?show-size=${this.showSize}
         ?show-dimensions=${this.showDimensions}
         ?show-tags=${this.showTags}
+        ?show-cta=${this.showCta}
+        ?busy=${asset.id === this.busyAssetId}
+        cta-text=${this.ctaText}
+        cta-text-transform=${this.ctaTextTransform}
         ?in-cold-storage=${asset.inColdStorage}
         @click=${this.handleClick}
       ></cx-content-browser-asset-card>

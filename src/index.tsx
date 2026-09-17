@@ -15,7 +15,7 @@ import {
   ImageCardDisplayInfo,
 } from '@/GlobalConfigContext';
 import { store } from '@/store';
-import { TableColumn } from '@/types/content-browser';
+import { type AutoSelectFormat, TableColumn } from '@/types/content-browser';
 import {
   initAuthInfoFromCache,
   setUseHeaders,
@@ -270,6 +270,22 @@ type OrangeDAMContentBrowser = {
      * becomes browsable and selectable by its metadata.
      */
     tableColumns?: TableColumn[];
+
+    /**
+     * Import behaviour when picking an asset, for a host that would rather not show the format
+     * picker.
+     *
+     * - `false` (default) - the format dialog opens as usual.
+     * - `true` - insert with the first available format, without showing the dialog.
+     * - a format name - insert with that format. Matched case-insensitively against a proxy's
+     *   `proxyName` ("TRX") or the label the picker shows ("Original"). A name that matches no
+     *   available format opens the dialog as usual, so a stale value degrades rather than breaks.
+     *
+     * Skipping the dialog also skips everything else it offers for that asset: the preview, the
+     * ATS custom format, and the tracking-parameter panel. Assets are inserted with tracking off,
+     * which is the dialog's own default.
+     */
+    autoSelectFormat?: AutoSelectFormat;
   }) => Promise<void>;
   close: () => void;
   fetchAssets: (params: GetContentRequest) => Promise<GetContentResponse | undefined> | undefined;
@@ -427,6 +443,7 @@ const ContentBrowser: OrangeDAMContentBrowser = {
     useSiteSession = false,
     defaultGridView,
     tableColumns,
+    autoSelectFormat,
   }) => {
     const siteSessionUrl = useSiteSession ? resolveSiteSessionUrl(baseUrl) : undefined;
     // !! Always assign this first to make sure that storage functionality works
@@ -582,6 +599,7 @@ const ContentBrowser: OrangeDAMContentBrowser = {
             simplePick: !!simplePick,
             allowFavorites: !!allowFavorites,
             defaultGridView: defaultGridView ?? '',
+            autoSelectFormat: autoSelectFormat ?? false,
             tableColumns: tableColumns ?? [],
           }}
         >

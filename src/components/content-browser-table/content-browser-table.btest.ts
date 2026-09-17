@@ -641,4 +641,42 @@ describe('content-browser-table', () => {
       expect(readCellValue(makeAsset({ 'Dell.Object': { a: 1 } }), 'Dell.Object')).to.equal('');
     });
   });
+
+  describe('insert pending state', () => {
+    it('spins the action button of the busy row only', async () => {
+      el = await fixture<ContentBrowserTable>(html`
+        <cx-content-browser-table style="height: 400px"
+          .assets=${[makeAsset(), makeAsset({ id: 'asset-2' } as Partial<Asset>)]}
+          .columns=${COLUMNS}
+          .busyAssetId=${'asset-1'}
+        ></cx-content-browser-table>
+      `);
+      await elementUpdated(el);
+      await waitForRows(el, 2);
+
+      const buttons = getRows(el).map(
+        (row) => row.querySelector<HTMLElement>('.content-browser-table__action')!,
+      );
+
+      expect(buttons[0].hasAttribute('loading')).to.be.true;
+      expect(buttons[1].hasAttribute('loading')).to.be.false;
+    });
+
+    it('keeps the busy action button on screen without a hover', async () => {
+      el = await fixture<ContentBrowserTable>(html`
+        <cx-content-browser-table style="height: 400px"
+          .assets=${[makeAsset()]}
+          .columns=${COLUMNS}
+          .busyAssetId=${'asset-1'}
+        ></cx-content-browser-table>
+      `);
+      await elementUpdated(el);
+      await waitForRows(el, 1);
+
+      // Hover-revealed otherwise, so the feedback would vanish the moment the pointer moved away.
+      const button = getRows(el)[0].querySelector<HTMLElement>('.content-browser-table__action')!;
+
+      expect(getComputedStyle(button).visibility).to.equal('visible');
+    });
+  });
 });

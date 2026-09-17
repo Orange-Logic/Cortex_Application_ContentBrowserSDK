@@ -407,6 +407,28 @@ customStorage: {
               </small>
             </p>
           </li>
+          <li>
+            <b>autoSelectFormat</b> (default false)
+            <p>
+              Import behaviour when picking an asset, for a host that would rather not show the format picker.
+            </p>
+            <ul>
+              <li><code>false</code> - the format dialog opens as usual.</li>
+              <li><code>true</code> - insert with the first available format, without showing the dialog.</li>
+              <li>
+                a format name - insert with that format. Matched case-insensitively against a format's proxy name
+                ("TRX") or the label the picker shows ("Original").
+              </li>
+            </ul>
+            <p>
+              <small>
+                Note: a name that matches no available format opens the dialog as usual, so a stale value degrades
+                rather than breaks. Skipping the dialog also skips everything else it offers for that asset - the
+                preview, the ATS custom format and the tracking-parameter panel - so assets are inserted with
+                tracking off, which is the dialog's own default.
+              </small>
+            </p>
+          </li>
         </ul>
         <ul>
 

@@ -24,8 +24,9 @@ import {
 import componentStyles from '@/styles/component.styles';
 import { FetchAndMergeAssetsController } from '@/tools/fetch-and-merge-assets';
 import {
-  ChangeOption, ContentBrowserFormatDialogVariant, type ContentBrowserView, type CtaTextTransform,
-  GridView, OptionType, TABLE_VIEW, type TableColumn,
+  type AutoSelectFormat, autoSelectFormatConverter, ChangeOption, ContentBrowserFormatDialogVariant,
+  type ContentBrowserView, type CtaTextTransform, GridView, isAutoSelectFormatActive, OptionType,
+  TABLE_VIEW, type TableColumn,
 } from '@/types/content-browser';
 import { GetFolderRequest } from '@/types/folder';
 import { safeInteger } from '@/utils/number';
@@ -183,6 +184,12 @@ export default class CxContentBrowser extends CortexElement {
    * shows the asset's LargeSizePreview and confirming emits the asset straight to the host.
    * Implies `can-use-proxies=false`.
    */
+  /**
+   * Host-level import behaviour; forwarded to the format dialog. See `AutoSelectFormat`.
+   */
+  @property({ attribute: 'auto-select-format', converter: autoSelectFormatConverter, reflect: false })
+  autoSelectFormat: AutoSelectFormat = false;
+
   @property({ attribute: 'simple-pick', reflect: true, type: Boolean })
   simplePick = false;
 
@@ -426,6 +433,19 @@ export default class CxContentBrowser extends CortexElement {
     this.formatDialog.setIsAssetPinned(isAssetPinned);
   }
 
+  /**
+   * The asset a click is still working on, or undefined. The two private flags below drive the
+   * guards; this drives the UI, and is a separate field because they are plain fields rather than
+   * reactive state.
+   *
+   * Cleared the moment the format dialog actually opens: from there the dialog's own confirm button
+   * carries the pending state, and two spinners for one operation reads as two operations. It
+   * survives when no dialog opens, which is the auto-confirm path, where the CTA is the only thing
+   * the user can be told anything by.
+   */
+  @state()
+  private busyAssetId: string | undefined = undefined;
+
   #openingAsset = false;
 
   #insertInFlight = false;
@@ -442,6 +462,7 @@ export default class CxContentBrowser extends CortexElement {
 
     this.#openingAsset = true;
     this.selectedAssetId = id;
+    this.busyAssetId = id;
 
     try {
       const asset = await this.fetchAndMergeAssetsController.fetchAssetByID(id, {
@@ -451,6 +472,7 @@ export default class CxContentBrowser extends CortexElement {
 
       if (!asset) {
         this.selectedAssetId = undefined;
+        this.busyAssetId = undefined;
 
         return;
       }
@@ -466,8 +488,15 @@ export default class CxContentBrowser extends CortexElement {
       }
 
       this.formatDialog.open({ ...asset, isAssetPinned });
+
+      // open() returns without opening on the auto-confirm path, so ask what actually happened
+      // rather than assuming the dialog took over.
+      if (this.formatDialog.isDialogOpen) {
+        this.busyAssetId = undefined;
+      }
     } catch {
       this.selectedAssetId = undefined;
+      this.busyAssetId = undefined;
     } finally {
       this.#openingAsset = false;
     }
@@ -709,6 +738,7 @@ export default class CxContentBrowser extends CortexElement {
       });
 
       this.formatDialog.hide();
+      this.busyAssetId = undefined;
 
       return;
     }
@@ -744,6 +774,7 @@ export default class CxContentBrowser extends CortexElement {
       this.reportProxyConfirmFailure();
     } finally {
       this.#insertInFlight = false;
+      this.busyAssetId = undefined;
     }
   }
 
@@ -795,6 +826,7 @@ export default class CxContentBrowser extends CortexElement {
       this.formatDialog.setLoadingConfirm(false);
     } finally {
       this.#insertInFlight = false;
+      this.busyAssetId = undefined;
     }
   }
 
@@ -988,6 +1020,7 @@ export default class CxContentBrowser extends CortexElement {
           ${when(this.view === TABLE_VIEW && this.canUseTable,
             () => html`
               <cx-content-browser-table
+                .busyAssetId=${this.busyAssetId}
                 .assets=${items}
                 .columns=${this.tableColumnList}
                 ?empty=${!loading && items.length === 0}
@@ -1010,6 +1043,10 @@ export default class CxContentBrowser extends CortexElement {
                 ?show-size=${this.showSize}
                 ?show-dimensions=${this.showDimensions}
                 ?show-tags=${this.showTags}
+                ?show-cta=${isAutoSelectFormatActive(this.autoSelectFormat)}
+                .busyAssetId=${this.busyAssetId}
+                cta-text=${this.ctaText}
+                cta-text-transform=${this.ctaTextTransform}
                 selected-asset-id=${ifDefined(this.selectedAssetId || undefined)}
                 view=${this.view}
                 @cx-content-browser-grid-scroll-end=${this.handleScrollEnd}
@@ -1030,7 +1067,7 @@ export default class CxContentBrowser extends CortexElement {
           cta-text-transform=${this.ctaTextTransform}
           variant=${this.isMobile ? ContentBrowserFormatDialogVariant.Drawer : ContentBrowserFormatDialogVariant.Dialog}
           token=${this.useSiteSession ? '' : this.token}
-          ?auto-confirm-single-option=${this.view === TABLE_VIEW && this.canUseTable}
+          .autoSelectFormat=${this.autoSelectFormat}
           ?can-custom-format=${!!parameters?.ATSEnabled}
           ?can-favorite=${this.canFavorite}
           ?can-pin-asset=${this.canPinAsset}
