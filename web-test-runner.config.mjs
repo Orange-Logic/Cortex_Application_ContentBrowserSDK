@@ -114,6 +114,23 @@ export const getWebTestRunnerConfig = ({
         <body>
           <script>
             window.process = {env: { NODE_ENV: "production" }}
+
+            /*
+             * "ResizeObserver loop ..." is a notification, not a fault: the browser is telling us an
+             * observer callback resized something and the remaining notifications went to the next
+             * frame. Chrome raises it as an uncaught error, so @web/test-runner-mocha's
+             * window.onerror fails whichever test happens to be running when it lands -- which is
+             * why it appears on the CI agent and not on a developer machine. This listener is
+             * registered before the test framework module sets window.onerror, so it runs first and
+             * can stop it; it matches this one message and nothing else, so every other uncaught
+             * error still fails the run.
+             */
+            window.addEventListener('error', function (event) {
+              if (String(event.message || '').indexOf('ResizeObserver loop') === 0) {
+                event.stopImmediatePropagation();
+                event.preventDefault();
+              }
+            }, true);
           </script>
           <script type="module" src="${testFramework}"></script>
         </body>
