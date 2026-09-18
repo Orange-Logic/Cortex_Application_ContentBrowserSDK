@@ -101,6 +101,18 @@ describe('session restore and token refresh preserve a valid access key', () => 
       expect(accessKeyDiscarded()).to.equal(true);
     });
 
+    it('keeps the key when a well-formed response reports success but carries no token', async () => {
+      // GabAuthorizationService sets Success before reading the token node, so this
+      // shape reaches the client. It is an anomaly, not a verdict on the key.
+      sinon.stub(window, 'fetch').resolves(
+        new Response(JSON.stringify({ success: true }), { status: 200 }),
+      );
+
+      await store.dispatch(initAuthInfoFromCache());
+
+      expect(accessKeyDiscarded()).to.equal(false);
+    });
+
     it('authenticates and leaves the key in place when the server returns a token', async () => {
       sinon.stub(window, 'fetch').resolves(
         new Response(JSON.stringify({ success: true, accessToken: 'fresh-token' }), { status: 200 }),
@@ -156,6 +168,16 @@ describe('session restore and token refresh preserve a valid access key', () => 
       expect(await refreshAccessToken()).to.equal(null);
 
       expect(accessKeyDiscarded()).to.equal(true);
+    });
+
+    it('keeps the key when the refresh response reports success but carries no token', async () => {
+      sinon.stub(window, 'fetch').resolves(
+        new Response(JSON.stringify({ success: true }), { status: 200 }),
+      );
+
+      expect(await refreshAccessToken()).to.equal(null);
+
+      expect(accessKeyDiscarded()).to.equal(false);
     });
   });
 

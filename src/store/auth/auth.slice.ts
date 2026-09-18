@@ -322,22 +322,21 @@ export const initAuthInfoFromCache = createAsyncThunk(
               }),
             );
           } else {
-            const accessToken = (
-              await getAccessTokenService(accessKey)
-            ).accessToken;
+            const tokenRes = await getAccessTokenService(accessKey);
             if (usingSiteSession()) return true;
-            if (accessToken) {
+            if (tokenRes.accessToken) {
               dispatch(
                 // eslint-disable-next-line @typescript-eslint/no-use-before-define
                 authSlice.actions.updateAuthTokens({
                   accessKey,
-                  accessToken,
+                  accessToken: tokenRes.accessToken,
                 }),
               );
             } else {
-              // The server answered and produced no token: the key is unusable, so
-              // this is the one failure that justifies discarding it.
-              isCredentialRejected = true;
+              // Only an explicit `success: false` is a verdict on the key. The server
+              // sets Success before reading the token node, so a well-formed response
+              // can carry no token — an anomaly, not a rejection. (42AX2G)
+              isCredentialRejected = tokenRes.success === false;
               return false;
             }
           }

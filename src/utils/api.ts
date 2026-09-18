@@ -66,8 +66,10 @@ export const refreshAccessToken = async (): Promise<string | null> => {
         store.dispatch(setAccessToken(tokenResp.accessToken));
         return tokenResp.accessToken;
       }
-      // The server answered and produced no token: the key is unusable.
-      store.dispatch(logout());
+      // Only an explicit `success: false` condemns the key. A well-formed response
+      // carrying no token is a server anomaly, so keep the key and let the next
+      // refresh retry. (42AX2G)
+      store.dispatch(tokenResp.success === false ? logout() : endSession());
       return null;
     } catch {
       // Reached on a transport failure or a non-JSON error body. This runs on every
