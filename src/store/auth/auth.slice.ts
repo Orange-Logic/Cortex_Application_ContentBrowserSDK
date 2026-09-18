@@ -91,6 +91,22 @@ export const authSlice = createSlice({
       deleteData('lastLocation');
       deleteData('retryCount');
     },
+    /**
+     * Drop the in-memory session but keep the stored access key and site URL, so a
+     * restore or refresh that failed for a transient reason can reconnect on the
+     * next attempt instead of sending the user back to the authorization screen.
+     *
+     * Use this for every failure except the server explicitly declining the key —
+     * that one is `logout`. (42AX2G)
+     */
+    endSession: (state) => {
+      state.status = 'unauthenticated';
+      state.error = '';
+      state.accessKey = undefined;
+      state.accessToken = undefined;
+      state.oAuthUrl = undefined;
+      state.nonce = undefined;
+    },
     setAuthStatus: (state, action: PayloadAction<AuthState['status']>) => {
       state.status = action.payload;
     },
@@ -125,7 +141,10 @@ export const authSlice = createSlice({
         if (state.useSiteSession) return;
         state.error = action.payload as string;
         state.status = 'unauthenticated';
-        deleteData(AUTH_FEATURE_ACCESS_KEY_KEY);
+        // No stored-key delete here: this path authorizes a brand-new key and never
+        // validates the stored one, so it has no verdict to act on. `cancelAuth`
+        // also shares this action type, which made the delete fire on a plain
+        // cancel. (42AX2G)
       })
     // eslint-disable-next-line @typescript-eslint/no-use-before-define
       .addCase(oAuth.pending, (state) => {
@@ -136,7 +155,7 @@ export const authSlice = createSlice({
 });
 
 export default authSlice.reducer;
-export const { logout, setAccessToken, generateNonce, setSiteUrl, setUserConfigSiteUrl, setUseSession, setUseHeaders, setAuthStatus, setSiteSession } = authSlice.actions;
+export const { logout, endSession, setAccessToken, generateNonce, setSiteUrl, setUserConfigSiteUrl, setUseSession, setUseHeaders, setAuthStatus, setSiteSession } = authSlice.actions;
 // #endregion
 
 // #region Selector
@@ -253,6 +272,10 @@ export const initAuthInfoFromCache = createAsyncThunk(
     dispatch(authSlice.actions.setAuthStatus('restoreSession'));
     const useHeaders = applyHeadersSelector(getState() as RootState);
 
+    // Set by `execute` when the server itself declined the stored key, which is the
+    // only outcome that may discard it. (42AX2G)
+    let isCredentialRejected = false;
+
     const execute = async () => {
       if (useHeaders && window.OrangeDAMContentBrowser?._onRequestToken) {
         const result = await window.OrangeDAMContentBrowser?._onRequestToken();
@@ -316,7 +339,9 @@ export const initAuthInfoFromCache = createAsyncThunk(
                 }),
               );
             } else {
-              dispatch(logout());
+              // The server answered and produced no token: the key is unusable, so
+              // this is the one failure that justifies discarding it.
+              isCredentialRejected = true;
               return false;
             }
           }
@@ -337,7 +362,10 @@ export const initAuthInfoFromCache = createAsyncThunk(
       return rejectWithValue((exception as Error).message);
     } finally {
       if (!isSuccess && !usingSiteSession()) {
-        dispatch(logout());
+        // Only a declined key is discarded. A transport failure, a non-JSON error
+        // page or a slow host storage read must leave the stored key alone, so the
+        // next successful open reconnects without re-authorization. (42AX2G)
+        dispatch(isCredentialRejected ? logout() : endSession());
       }
     }
   },

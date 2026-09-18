@@ -3,7 +3,7 @@ import { Mutex } from 'async-mutex';
 import { store } from '@/store';
 import { getAccessTokenService } from '@/store/auth/auth.service';
 import {
-  AUTH_FEATURE_KEY, logout, setAccessToken,
+  AUTH_FEATURE_KEY, endSession, logout, setAccessToken,
 } from '@/store/auth/auth.slice';
 
 import { getRequestUrl } from './getRequestUrl';
@@ -26,7 +26,11 @@ const mutex = new Mutex();
 
 /**
  * Refresh the access token using the stored access key. De-duplicates concurrent calls via a shared mutex.
- * Returns the new access token on success, or null if refresh failed (in which case the user is also logged out).
+ * Returns the new access token on success, or null if the refresh failed.
+ *
+ * On failure the session is always dropped, but the stored access key is only
+ * discarded when the server itself declined it — a transport failure keeps the key
+ * so a later refresh can succeed. (42AX2G)
  */
 export const refreshAccessToken = async (): Promise<string | null> => {
   if (store.getState()[AUTH_FEATURE_KEY].useSiteSession) {
@@ -62,11 +66,16 @@ export const refreshAccessToken = async (): Promise<string | null> => {
         store.dispatch(setAccessToken(tokenResp.accessToken));
         return tokenResp.accessToken;
       }
+      // The server answered and produced no token: the key is unusable.
       store.dispatch(logout());
       return null;
     } catch {
+      // Reached on a transport failure or a non-JSON error body. This runs on every
+      // 401 during normal use, so discarding the key here cost users a valid
+      // credential on any passing network blip. Keep it and let the next refresh
+      // retry. (42AX2G)
       if (!store.getState()[AUTH_FEATURE_KEY].useSiteSession) {
-        store.dispatch(logout());
+        store.dispatch(endSession());
       }
       return null;
     }
