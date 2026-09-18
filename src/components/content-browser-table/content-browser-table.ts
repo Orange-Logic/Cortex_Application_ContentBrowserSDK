@@ -791,7 +791,7 @@ export default class CxContentBrowserTable extends CortexElement {
               role="row"
             >
               ${repeat(this.columns,
-                (column) => column.field,
+                (column, index) => `${column.field}:${index}`,
                 (column) => html`
                   <div
                     class=${classMap({

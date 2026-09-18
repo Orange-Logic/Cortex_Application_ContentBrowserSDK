@@ -387,6 +387,15 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
       return;
     }
 
+    // The proxies watcher has run since `open()` and reset `selectedProxy` to the first filtered
+    // proxy, so restore the format the host asked for. Without this a retry inserts a different
+    // format than the one the shortcut attempted.
+    const autoSelection = this.resolveAutoSelection();
+
+    if (autoSelection?.proxy) {
+      this.selectedProxy = autoSelection.proxy.id;
+    }
+
     this.loadingConfirm = false;
     this.isOpen = true;
   }

@@ -122,11 +122,17 @@ export const getWebTestRunnerConfig = ({
              * window.onerror fails whichever test happens to be running when it lands -- which is
              * why it appears on the CI agent and not on a developer machine. This listener is
              * registered before the test framework module sets window.onerror, so it runs first and
-             * can stop it; it matches this one message and nothing else, so every other uncaught
-             * error still fails the run.
+             * can stop it. Here it is raised by the column drag writing --table-columns from
+             * updated() while cx-resize-observer watches the same container.
+             *
+             * Matched on the full "completed" prefix, not "ResizeObserver loop": the other message
+             * the browser raises under that prefix is "limit exceeded", which means an observer
+             * genuinely did not converge. That one is a real defect signal and must still fail the
+             * run -- and this listener is shared by every test file in the repo, not just the
+             * table's.
              */
             window.addEventListener('error', function (event) {
-              if (String(event.message || '').indexOf('ResizeObserver loop') === 0) {
+              if (String(event.message || '').indexOf('ResizeObserver loop completed') === 0) {
                 event.stopImmediatePropagation();
                 event.preventDefault();
               }

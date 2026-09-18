@@ -1562,6 +1562,70 @@ describe('content-browser', () => {
     });
   });
 
+  describe('two columns on one field', () => {
+    /**
+     * The resize feature keys its widths, its DOM lookups and its host event on `field`, so a
+     * duplicate resizes both columns at once and reports a width the host cannot attribute.
+     * Case-insensitive because the search call sends one field per casing and keys the response
+     * under whichever it sent, which leaves the later column blank regardless.
+     */
+    /**
+     * Ordered first deliberately: it is the only one here that does not render the table, so a
+     * regression reports itself by name. Lit's `repeat` does not tolerate duplicate keys, and a
+     * duplicate-keyed render wedges the runner rather than failing cleanly.
+     */
+    it('asks the fetch controller for that field once', async () => {
+      const { el, mock } = await fixtureWithMock(html`
+        <cx-content-browser .tableColumns=${TABLE_COLUMNS}></cx-content-browser>
+      `);
+      mock.updateAdditionalFields.resetHistory();
+
+      el.tableColumns = [
+        { field: 'Dell.Snippet', title: 'Snippet' },
+        { field: 'dell.snippet', title: 'Snippet lowercased' },
+      ];
+      await elementUpdated(el);
+
+      expect(mock.updateAdditionalFields).to.have.been.calledOnceWith(['Dell.Snippet']);
+    });
+    it('renders the first column and drops the duplicate', async () => {
+      const { el } = await fixtureWithMock(html`
+        <cx-content-browser
+          .tableColumns=${[
+            { field: 'Dell.Snippet', title: 'Snippet', width: '100px' },
+            { field: 'Dell.Snippet', title: 'Snippet again', width: '200px' },
+          ]}
+        ></cx-content-browser>
+      `);
+      selectTableView(el);
+      await elementUpdated(el);
+
+      const columns = getTable(el)!.columns;
+
+      expect(columns).to.have.lengthOf(1);
+      expect(columns[0].title).to.equal('Snippet');
+    });
+
+    it('drops a column whose field differs from an earlier one only in case', async () => {
+      const { el } = await fixtureWithMock(html`
+        <cx-content-browser
+          .tableColumns=${[
+            { field: 'Dell.Snippet', title: 'Snippet' },
+            { field: 'dell.snippet', title: 'Snippet lowercased' },
+          ]}
+        ></cx-content-browser>
+      `);
+      selectTableView(el);
+      await elementUpdated(el);
+
+      const columns = getTable(el)!.columns;
+
+      expect(columns).to.have.lengthOf(1);
+      expect(columns[0].title).to.equal('Snippet');
+    });
+
+  });
+
   describe('table-columns reconfigured after mount', () => {
     /**
      * The controller takes its field list once, at construction. A host that reconfigures columns

@@ -180,16 +180,16 @@ export default class CxContentBrowser extends CortexElement {
   canUseProxies = false;
 
   /**
-   * Pick-only mode: no available-proxies lookup, no transformation on confirm. The preview popup
-   * shows the asset's LargeSizePreview and confirming emits the asset straight to the host.
-   * Implies `can-use-proxies=false`.
-   */
-  /**
    * Host-level import behaviour; forwarded to the format dialog. See `AutoSelectFormat`.
    */
   @property({ attribute: 'auto-select-format', converter: autoSelectFormatConverter, reflect: false })
   autoSelectFormat: AutoSelectFormat = false;
 
+  /**
+   * Pick-only mode: no available-proxies lookup, no transformation on confirm. The preview popup
+   * shows the asset's LargeSizePreview and confirming emits the asset straight to the host.
+   * Implies `can-use-proxies=false`.
+   */
   @property({ attribute: 'simple-pick', reflect: true, type: Boolean })
   simplePick = false;
 
@@ -365,10 +365,27 @@ export default class CxContentBrowser extends CortexElement {
       return [];
     }
 
+    // A second column on the same field cannot be told apart downstream: the resize feature keys
+    // its widths, its DOM lookups and its host event on `field`, so a duplicate would resize both
+    // columns at once and report a width the host cannot attribute to either. Matched
+    // case-insensitively because the search call sends one field per casing and keys the response
+    // under whichever casing it sent, which would leave the second column blank anyway.
+    const seen = new Set<string>();
+
     return columns.filter((column): column is TableColumn => {
-      return !!column && typeof column === 'object'
-        && typeof (column as TableColumn).field === 'string'
-        && (column as TableColumn).field.length > 0;
+      if (!column || typeof column !== 'object') {
+        return false;
+      }
+
+      const { field } = column as TableColumn;
+
+      if (typeof field !== 'string' || field.length === 0 || seen.has(field.toLowerCase())) {
+        return false;
+      }
+
+      seen.add(field.toLowerCase());
+
+      return true;
     });
   }
 

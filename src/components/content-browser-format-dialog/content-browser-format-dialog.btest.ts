@@ -1489,6 +1489,36 @@ describe('content-browser-format-dialog', () => {
       return seen;
     }
 
+    describe('revealed after a failed insert', () => {
+      /**
+       * `open()` resolves the host's format, but the proxies watcher runs on the next update and
+       * resets `selectedProxy` to the first filtered proxy. A revealed dialog would then offer TRX
+       * to a host that asked for WEB, and the retry would insert the wrong format.
+       */
+      it('retries with the format the host asked for, not the first one', async () => {
+        const dialog = await makeDialog('WEB');
+        const seen = countConfirms(dialog);
+
+        dialog.open({
+          asset: makeFragment(),
+          isFavorite: false,
+          proxies: [makeOriginalProxy(), makeWebProxy()],
+        });
+        // Let the proxies watcher run, which is what resets the selection.
+        await elementUpdated(dialog);
+
+        expect(seen.proxyName).to.equal('WEB');
+
+        dialog.revealAfterAutoConfirm();
+        await elementUpdated(dialog);
+        invokeHandleProxyConfirm(dialog);
+
+        expect(getInnerDialog(dialog)).to.have.attribute('open');
+        expect(seen.count).to.equal(2);
+        expect(seen.proxyName).to.equal('WEB');
+      });
+    });
+
     describe('false — the default', () => {
       it('opens the dialog as before', async () => {
         const dialog = await makeDialog(false);

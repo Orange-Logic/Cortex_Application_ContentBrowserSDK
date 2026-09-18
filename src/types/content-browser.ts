@@ -196,9 +196,13 @@ export type DefaultFocusMode = 'manual' | 'center';
 export type AutoSelectFormat = boolean | string;
 
 /**
- * React 19 sets a hyphenated prop as an attribute rather than a property, so the union has to
- * survive a round trip through a string: `"true"`/`"false"` are the booleans, anything else is a
- * format name. A bare attribute means `true`, matching how a boolean attribute normally reads.
+ * Serves markup hosts: `<cx-content-browser auto-select-format="WEB">`. The union has to survive a
+ * round trip through a string, so `"true"`/`"false"` are the booleans and anything else is a format
+ * name; a bare attribute means `true`, matching how a boolean attribute normally reads.
+ *
+ * React hosts bypass this entirely — `CortexElement.createProperty` aliases the attribute name onto
+ * the prototype, so react-dom finds `'auto-select-format' in element` and assigns the property with
+ * its real type rather than setting an attribute.
  */
 export const autoSelectFormatConverter = {
   fromAttribute: (value: string | null): AutoSelectFormat => {

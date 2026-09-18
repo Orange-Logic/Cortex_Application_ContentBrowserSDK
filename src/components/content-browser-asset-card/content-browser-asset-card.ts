@@ -22,6 +22,14 @@ import { customElement, LocalizeController } from '@orangelogic/design-system/ut
 import CxContentBrowserAssetPreview from '../content-browser-asset-preview/content-browser-asset-preview';
 import styles from './content-browser-asset-card.styles';
 
+/**
+ * Grid view is pointer-only by design: the card is not focusable, and its CTA overlay is
+ * `aria-hidden` with a `tabindex="-1"` button because the overlay only restates what clicking the
+ * card already does. This diverges deliberately from `cx-content-browser-table`, whose rows are
+ * focusable and announce their CTA — the grid's keyboard gap predates the table view and closing it
+ * would change focus and screen-reader behaviour for every existing host. Revisit together with the
+ * grid's own keyboard support rather than per-feature.
+ */
 @customElement('cx-content-browser-asset-card')
 export default class CxContentBrowserAssetCard extends CortexElement {
   static readonly styles: CSSResultGroup = [componentStyles, styles];
