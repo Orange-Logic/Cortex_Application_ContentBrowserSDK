@@ -141,10 +141,6 @@ export const authSlice = createSlice({
         if (state.useSiteSession) return;
         state.error = action.payload as string;
         state.status = 'unauthenticated';
-        // No stored-key delete here: this path authorizes a brand-new key and never
-        // validates the stored one, so it has no verdict to act on. `cancelAuth`
-        // also shares this action type, which made the delete fire on a plain
-        // cancel. (42AX2G)
       })
     // eslint-disable-next-line @typescript-eslint/no-use-before-define
       .addCase(oAuth.pending, (state) => {
