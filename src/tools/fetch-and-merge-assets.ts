@@ -12,6 +12,7 @@ import {
   apiRemoveAssetFromFavorite,
   DEFAULT_VIEW_SIZE,
   FIELD_ALLOW_ATS_LINK,
+  FIELD_DOC_TITLE,
   FIELD_DOC_TYPE,
   FIELD_EXTENSION,
   FIELD_FILE_SIZE,
@@ -19,12 +20,12 @@ import {
   FIELD_KEYWORDS,
   FIELD_MAX_HEIGHT,
   FIELD_MAX_WIDTH,
-  FIELD_ORIGINAL_FILE_NAME,
   FIELD_RECORD_ID,
   FIELD_SCRUB_URL,
   FIELD_SUBTYPE,
   FIELD_TITLE_WITH_FALLBACK,
   ORIGINAL_VIEW_SIZE,
+  resolveAssetCaption,
 } from '@/api/asset';
 import { GetAssetLinksRequest, GetAssetsByIDsResponse, GetAvailableExtensionsResponse, GetAvailableProxiesResponse } from '@/api/asset/asset.types';
 import { apiGetUserInfo } from '@/api/auth';
@@ -574,6 +575,7 @@ export class FetchAndMergeAssetsController implements ReactiveController {
       apiGetAssetsByIDs({
         extraFields: [
           DEFAULT_VIEW_SIZE,
+          FIELD_DOC_TITLE,
           FIELD_DOC_TYPE,
           FIELD_EXTENSION,
           FIELD_FILE_SIZE,
@@ -581,7 +583,6 @@ export class FetchAndMergeAssetsController implements ReactiveController {
           FIELD_KEYWORDS,
           FIELD_MAX_HEIGHT,
           FIELD_MAX_WIDTH,
-          FIELD_ORIGINAL_FILE_NAME,
           FIELD_RECORD_ID,
           FIELD_SUBTYPE,
           FIELD_TITLE_WITH_FALLBACK,
@@ -629,7 +630,7 @@ export class FetchAndMergeAssetsController implements ReactiveController {
         identifier: item[FIELD_IDENTIFIER] ?? '',
         imageUrl: item[DEFAULT_VIEW_SIZE] ?? '',
         inColdStorage: Boolean(item.inColdStorage),
-        name: item[FIELD_TITLE_WITH_FALLBACK] ?? '',
+        name: resolveAssetCaption(item),
         originalUrl: item[ORIGINAL_VIEW_SIZE] ?? '',
         previewUrl: proxyData?.previewUrl ?? item[DEFAULT_VIEW_SIZE] ?? '',
         recordId: item[FIELD_RECORD_ID] ?? '',
