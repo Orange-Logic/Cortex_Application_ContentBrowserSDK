@@ -13,7 +13,7 @@ import type { GetAssetLinksResponse } from '@/api/asset/asset.types';
 import type { Asset, AssetVersion, GetAssetsRequest } from '@/types/asset';
 import { MediaType } from '@/types/asset';
 import { GridView, OptionType, ContentBrowserFormatDialogVariant } from '@/types/content-browser';
-import type { GetFolderRequest } from '@/types/folder';
+import type { GetFolderRequest, GetFolderResponse } from '@/types/folder';
 
 import sinon from 'sinon';
 
@@ -929,7 +929,7 @@ describe('content-browser', () => {
   });
 
   it('handleViewChange refetches when isSeeThrough changes', async () => {
-    const { el, mock } = await fixtureWithMock(html`<cx-content-browser></cx-content-browser>`);
+    const { el, mock } = await fixtureWithMock(html`<cx-content-browser default-folder-id="library-id"></cx-content-browser>`);
     expect(el.lastRequest?.isSeeThrough).to.be.false;
 
     getControlBar(el)!.dispatchEvent(
@@ -1151,7 +1151,7 @@ describe('content-browser', () => {
   });
 
   it('handleSortOrderChange updates lastRequest, newlyChangedOption, and refetches', async () => {
-    const { el, mock } = await fixtureWithMock(html`<cx-content-browser></cx-content-browser>`);
+    const { el, mock } = await fixtureWithMock(html`<cx-content-browser default-folder-id="library-id"></cx-content-browser>`);
     const bar = getControlBar(el);
     expect(bar).to.exist;
 
@@ -1182,7 +1182,7 @@ describe('content-browser', () => {
   });
 
   it('handleFilterChange updates selectedFacets, resets start, and refetches', async () => {
-    const { el, mock } = await fixtureWithMock(html`<cx-content-browser></cx-content-browser>`);
+    const { el, mock } = await fixtureWithMock(html`<cx-content-browser default-folder-id="library-id"></cx-content-browser>`);
     const bar = getControlBar(el);
     expect(bar).to.exist;
 
@@ -1231,6 +1231,188 @@ describe('content-browser', () => {
       'folder-title',
       'New folder',
     );
+  });
+
+  describe('initial folder', () => {
+    let clock: sinon.SinonFakeTimers;
+
+    beforeEach(() => {
+      clock = sinon.useFakeTimers({ shouldClearNativeTimers: true, toFake: ['setTimeout', 'clearTimeout'] });
+    });
+
+    afterEach(() => {
+      clock.restore();
+    });
+
+    function dispatchGridResize(el: CxContentBrowser) {
+      getGrid(el)!.dispatchEvent(
+        new CustomEvent('cx-content-browser-grid-resize', {
+          bubbles: true,
+          composed: true,
+          detail: { columnCount: 5, rowCount: 2 },
+        }),
+      );
+    }
+
+    function selectFolder(el: CxContentBrowser, id: string, name: string) {
+      getBrowser(el)!.dispatchEvent(
+        new CustomEvent('cx-selection-change', {
+          bubbles: true,
+          composed: true,
+          detail: { selection: makeTreeItemSelection(id, name) },
+        }),
+      );
+    }
+
+    it('holds the first grid fetch until the initial folder is selected, then fetches once in it', async () => {
+      let resolveFolders!: (response: GetFolderResponse) => void;
+      const fetchFoldersResult = new Promise<GetFolderResponse>((resolve) => {
+        resolveFolders = resolve;
+      });
+      const fetchFolders = sinon.stub(customElements.get('cx-folder-select-tree')!.prototype, 'fetchFolders')
+        .returns(fetchFoldersResult);
+      const { el, mock } = await fixtureWithMock(html`<cx-content-browser></cx-content-browser>`, {
+        parameters: { collectionPath: '/collections' },
+      });
+
+      mock.fetchAndMergeAssets.resetHistory();
+      dispatchGridResize(el);
+      await clock.tickAsync(2999);
+      expect(mock.fetchAndMergeAssets.callCount).to.equal(0);
+      expect(el.lastRequest.pageSize).to.be.greaterThan(0);
+      expect(fetchFolders.callCount).to.be.greaterThan(0);
+
+      resolveFolders({
+        data: [{ docType: 'Folder', fullPath: '/Library', hasChildren: false, id: 'library-id', title: 'Library' }],
+        hasMore: false,
+        totalCount: 1,
+      });
+      await clock.tickAsync(0);
+      expect(mock.fetchAndMergeAssets.callCount).to.equal(1);
+      const req = mock.fetchAndMergeAssets.firstCall.args[0];
+      expect(req.folderId).to.equal('library-id');
+      expect(req.start).to.equal(0);
+      expect(req.pageSize).to.equal(el.lastRequest.pageSize);
+      await clock.tickAsync(3000);
+      expect(mock.fetchAndMergeAssets.callCount).to.equal(1);
+    });
+
+    it('resumes normal grid fetches once the initial folder is selected', async () => {
+      const { el, mock } = await fixtureWithMock(html`<cx-content-browser></cx-content-browser>`, {
+        parameters: { collectionPath: '/collections' },
+      });
+
+      selectFolder(el, 'library-id', 'Library');
+      expect(mock.fetchAndMergeAssets.callCount).to.equal(1);
+      mock.fetchAndMergeAssets.resetHistory();
+
+      dispatchGridResize(el);
+      expect(mock.fetchAndMergeAssets.callCount).to.equal(1);
+      expect(mock.fetchAndMergeAssets.firstCall.args[0].folderId).to.equal('library-id');
+    });
+
+    it('fetches on grid resize right away when a default folder is set', async () => {
+      const { el, mock } = await fixtureWithMock(
+        html`<cx-content-browser default-folder-id="external"></cx-content-browser>`,
+        { parameters: { collectionPath: '/collections' } },
+      );
+
+      mock.fetchAndMergeAssets.resetHistory();
+      dispatchGridResize(el);
+      expect(mock.fetchAndMergeAssets.callCount).to.equal(1);
+      expect(mock.fetchAndMergeAssets.firstCall.args[0].folderId).to.equal('external');
+    });
+
+    it('falls back to the held unscoped fetch when no folder is selected in time', async () => {
+      const { el, mock } = await fixtureWithMock(html`<cx-content-browser></cx-content-browser>`, {
+        parameters: { collectionPath: '/collections' },
+      });
+
+      mock.fetchAndMergeAssets.resetHistory();
+      dispatchGridResize(el);
+      await clock.tickAsync(2999);
+      expect(mock.fetchAndMergeAssets.callCount).to.equal(0);
+
+      await clock.tickAsync(1);
+      expect(mock.fetchAndMergeAssets.callCount).to.equal(1);
+      expect(mock.fetchAndMergeAssets.firstCall.args[0].folderId).to.not.be.ok;
+    });
+
+    ['selection', 'timeout'].forEach((resolution) => {
+      it(`holds control changes until folder ${resolution} and preserves their latest values`, async () => {
+        const { el, mock } = await fixtureWithMock(html`
+          <cx-content-browser default-search-text="old search" default-is-see-through></cx-content-browser>
+        `, { parameters: { collectionPath: '/collections' } });
+        mock.fetchAndMergeAssets.resetHistory();
+        dispatchGridResize(el);
+
+        for (const [type, detail] of [
+          ['cx-content-browser-control-bar-search-change', { searchText: '' }],
+          ['cx-content-browser-control-filter-change', { selection: {} }],
+          ['cx-content-browser-control-sort-order-change', { sortDirection: 'descending', sortOrderName: 'title' }],
+          ['cx-content-browser-control-view-change', { isSeeThrough: false, view: GridView.Medium }],
+        ] as const) {
+          getControlBar(el).dispatchEvent(new CustomEvent(type, { bubbles: true, composed: true, detail }));
+          expect(mock.fetchAndMergeAssets.callCount).to.equal(0);
+        }
+
+        await clock.tickAsync(2999);
+        expect(mock.fetchAndMergeAssets.callCount).to.equal(0);
+        if (resolution === 'selection') {
+          selectFolder(el, 'library-id', 'Library');
+        } else {
+          await clock.tickAsync(1);
+        }
+        expect(mock.fetchAndMergeAssets.callCount).to.equal(1);
+        expect(mock.fetchAndMergeAssets.firstCall.args[0]).to.include({
+          isSeeThrough: false,
+          searchText: '',
+          sortDirection: 'descending',
+          sortOrderName: 'title',
+          start: 0,
+        });
+        expect(mock.fetchAndMergeAssets.firstCall.args[0].selectedFacets).to.deep.equal({});
+      });
+    });
+
+    it('cancels the timer on disconnect and resumes an unresolved wait on reconnect', async () => {
+      const { el, mock } = await fixtureWithMock(html`<cx-content-browser></cx-content-browser>`, {
+        parameters: { collectionPath: '/collections' },
+      });
+      dispatchGridResize(el);
+      const parent = el.parentElement!;
+      await clock.tickAsync(1000);
+      el.remove();
+      await clock.tickAsync(3000);
+      expect(mock.fetchAndMergeAssets.callCount).to.equal(0);
+
+      parent.append(el);
+      dispatchGridResize(el);
+      await clock.tickAsync(2999);
+      expect(mock.fetchAndMergeAssets.callCount).to.equal(0);
+      await clock.tickAsync(1);
+      expect(mock.fetchAndMergeAssets.callCount).to.equal(1);
+    });
+
+    ['selection', 'timeout'].forEach((resolution) => {
+      it(`does not restart a resolved wait on reconnect after ${resolution}`, async () => {
+        const { el, mock } = await fixtureWithMock(html`<cx-content-browser></cx-content-browser>`, {
+          parameters: { collectionPath: '/collections' },
+        });
+        dispatchGridResize(el);
+        if (resolution === 'selection') {
+          selectFolder(el, 'library-id', 'Library');
+        } else {
+          await clock.tickAsync(3000);
+        }
+        expect(mock.fetchAndMergeAssets.callCount).to.equal(1);
+        const parent = el.parentElement!;
+        el.remove();
+        parent.append(el);
+        await clock.tickAsync(3000);
+        expect(mock.fetchAndMergeAssets.callCount).to.equal(1);
+      });
+    });
   });
 
   it('handleFolderSelectionChange is a no-op when the selected item has no dataset id', async () => {
@@ -1296,7 +1478,7 @@ describe('content-browser', () => {
   });
 
   it('handleSearchChange updates searchText, resets start, and refetches', async () => {
-    const { el, mock } = await fixtureWithMock(html`<cx-content-browser></cx-content-browser>`);
+    const { el, mock } = await fixtureWithMock(html`<cx-content-browser default-folder-id="library-id"></cx-content-browser>`);
     const bar = getControlBar(el);
     expect(bar).to.exist;
 

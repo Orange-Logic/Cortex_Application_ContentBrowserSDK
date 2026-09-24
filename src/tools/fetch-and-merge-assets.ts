@@ -506,23 +506,25 @@ export class FetchAndMergeAssetsController implements ReactiveController {
       if (!this.#hasFetchedOnce) {
         request = {
           ...request,
-          folderId: this.defaultFolderId,
-          isSeeThrough: this.defaultIsSeeThrough,
-          searchText: this.defaultSearchText,
-          selectedFacets: this.defaultSelectedFacets,
-          sortDirection: this.defaultSortDirection,
-          sortOrderName: this.defaultSortOrderName,
+          // Keep a folder the host already resolved (e.g. the auto-selected initial folder).
+          folderId: request.folderId || this.defaultFolderId,
+          isSeeThrough: request.isSeeThrough ?? this.defaultIsSeeThrough,
+          searchText: request.searchText ?? this.defaultSearchText,
+          selectedFacets: request.selectedFacets ?? this.defaultSelectedFacets,
+          sortDirection: request.sortDirection ?? this.defaultSortDirection,
+          sortOrderName: request.sortOrderName ?? this.defaultSortOrderName,
         };
       }
 
       let sortOrder;
 
       if (request.sortOrderName && request.sortDirection) {
-        sortOrder = this.sortOrders[request.sortOrderName]?.find((item) => item.sortDirection.toLowerCase() === request.sortDirection?.toLowerCase())?.id;
+        const sortOrders = this.sortOrders[request.sortOrderName];
+        sortOrder = sortOrders?.find((item) => item.sortDirection.toLowerCase() === request.sortDirection?.toLowerCase())?.id;
 
-        if (!sortOrder && this.sortOrders[request.sortOrderName][0]) {
-          sortOrder = this.sortOrders[request.sortOrderName][0].id;
-          request.sortDirection = this.sortOrders[request.sortOrderName][0].sortDirection;
+        if (!sortOrder && sortOrders?.[0]) {
+          sortOrder = sortOrders[0].id;
+          request.sortDirection = sortOrders[0].sortDirection;
         }
       }
 
