@@ -519,11 +519,12 @@ export class FetchAndMergeAssetsController implements ReactiveController {
       let sortOrder;
 
       if (request.sortOrderName && request.sortDirection) {
-        sortOrder = this.sortOrders[request.sortOrderName]?.find((item) => item.sortDirection.toLowerCase() === request.sortDirection?.toLowerCase())?.id;
+        const sortOrders = this.sortOrders[request.sortOrderName];
+        sortOrder = sortOrders?.find((item) => item.sortDirection.toLowerCase() === request.sortDirection?.toLowerCase())?.id;
 
-        if (!sortOrder && this.sortOrders[request.sortOrderName][0]) {
-          sortOrder = this.sortOrders[request.sortOrderName][0].id;
-          request.sortDirection = this.sortOrders[request.sortOrderName][0].sortDirection;
+        if (!sortOrder && sortOrders?.[0]) {
+          sortOrder = sortOrders[0].id;
+          request.sortDirection = sortOrders[0].sortDirection;
         }
       }
 

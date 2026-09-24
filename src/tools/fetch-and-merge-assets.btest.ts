@@ -132,6 +132,38 @@ describe('FetchAndMergeAssetsController', () => {
     { isSeeThrough: false, searchText: 'updated', selectedFacets: { category: ['new'] }, sortDirection: 'descending', sortOrderName: 'title' },
   ];
 
+  for (const sortOrderName of ['unknown', 'empty', 'title']) {
+    it(`completes a fetch with ${sortOrderName} sort order and an unavailable direction`, async () => {
+      const clock = sinon.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+      const searchBodies: Record<string, unknown>[] = [];
+      http.defaults.adapter = async (config) => {
+        if (config.method?.toLowerCase() === 'post') {
+          searchBodies.push(typeof config.data === 'string' ? JSON.parse(config.data) : config.data);
+        }
+        return {
+          config,
+          data: { contentItems: [], facets: [], totalCount: 0 },
+          headers: {},
+          status: 200,
+          statusText: 'OK',
+        };
+      };
+      const current = createController();
+      (current as unknown as { sortOrders: Record<string, unknown[]> }).sortOrders = {
+        empty: [],
+        title: [{ id: 'title-asc', sortDirection: 'ascending' }],
+      };
+
+      await current.fetchAndMergeAssets({ pageSize: 40, sortDirection: 'descending', sortOrderName, start: 0 });
+      await clock.tickAsync(200);
+
+      expect(searchBodies).to.have.length(1);
+      expect(searchBodies[0].OrderBy).to.equal(sortOrderName === 'title' ? 'title-asc' : undefined);
+      expect(current.getData().loading).to.equal(false);
+      expect(current.getData().request?.sortDirection).to.equal(sortOrderName === 'title' ? 'ascending' : 'descending');
+    });
+  }
+
   for (const supplied of firstFetchControls) {
     it(`preserves supplied first-fetch controls and defaults only missing values: ${JSON.stringify(supplied)}`, async () => {
       const clock = sinon.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
