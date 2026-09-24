@@ -1,4 +1,4 @@
-import { expect } from '@open-wc/testing';
+import { expect, waitUntil } from '@open-wc/testing';
 
 import http from '@/api/api';
 import type CortexElement from '@/base/element';
@@ -94,5 +94,30 @@ describe('FetchAndMergeAssetsController', () => {
     const result = await createController().fetchAssetByID(recordId, { simplePick: true });
 
     expect(result?.asset.name).to.not.contain('_MG_8632');
+  });
+
+  it('keeps the requested folder on the first fetch instead of resetting it to the default', async () => {
+    const searchBodies: Record<string, unknown>[] = [];
+
+    http.defaults.adapter = async (config) => {
+      if (config.method?.toLowerCase() === 'post') {
+        searchBodies.push(typeof config.data === 'string' ? JSON.parse(config.data) : config.data);
+      }
+
+      return {
+        config,
+        data: { contentItems: [], facets: [], totalCount: 0 },
+        headers: {},
+        status: 200,
+        statusText: 'OK',
+      };
+    };
+
+    // fetchAndMergeAssets debounces and does not return the pending fetch, so wait for the request.
+    await createController().fetchAndMergeAssets({ folderId: 'library-id', pageSize: 40, start: 0 });
+    await waitUntil(() => searchBodies.length > 0);
+
+    expect(searchBodies).to.have.length(1);
+    expect(searchBodies[0].ObjectRecordID).to.equal('library-id');
   });
 });

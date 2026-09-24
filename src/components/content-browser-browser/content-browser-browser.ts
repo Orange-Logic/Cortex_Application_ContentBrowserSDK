@@ -217,6 +217,11 @@ export default class CxContentBrowserBrowser extends CortexElement {
   }
 
   private handleFirstFetchCallback(data: Folder[]): void {
+    // A folder set from outside (default-folder-id, restored last location) wins over the auto-pick.
+    if (this.folderId) {
+      return;
+    }
+
     let first = null;
 
     if (this.allowedFolders.length) {

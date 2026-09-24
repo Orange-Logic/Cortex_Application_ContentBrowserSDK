@@ -440,5 +440,19 @@ describe('content-browser-browser', () => {
       const ev = await p;
       expect(ev.detail.selection[0].dataset.id).to.equal('first');
     });
+
+    it('does not override a folder id set from outside', async () => {
+      el = await fixture<CxContentBrowserBrowser>(html`
+        <cx-content-browser-browser folder-id="external">
+          <cx-button type="button" slot="trigger">Open</cx-button>
+        </cx-content-browser-browser>
+      `);
+      await elementUpdated(el);
+      const spy = sinon.spy();
+      el.addEventListener('cx-selection-change', spy);
+      getFolderSelect(el).firstFetchCallback!([makeFolder({ id: 'lib', title: 'Library' })]);
+      await elementUpdated(el);
+      expect(spy.called).to.be.false;
+    });
   });
 });

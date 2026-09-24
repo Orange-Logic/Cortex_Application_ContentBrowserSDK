@@ -506,7 +506,8 @@ export class FetchAndMergeAssetsController implements ReactiveController {
       if (!this.#hasFetchedOnce) {
         request = {
           ...request,
-          folderId: this.defaultFolderId,
+          // Keep a folder the host already resolved (e.g. the auto-selected initial folder).
+          folderId: request.folderId || this.defaultFolderId,
           isSeeThrough: this.defaultIsSeeThrough,
           searchText: this.defaultSearchText,
           selectedFacets: this.defaultSelectedFacets,
