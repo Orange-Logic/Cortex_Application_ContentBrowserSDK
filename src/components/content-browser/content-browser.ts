@@ -351,9 +351,17 @@ export default class CxContentBrowser extends CortexElement {
     });
   }
 
+  connectedCallback() {
+    super.connectedCallback();
+    if (this.initialFolderPending && this.initialFolderTimeout === undefined) {
+      this.initialFolderTimeout = setTimeout(() => this.releaseInitialFolder(), INITIAL_FOLDER_TIMEOUT_MS);
+    }
+  }
+
   disconnectedCallback() {
     super.disconnectedCallback();
-    this.clearInitialFolderPending();
+    clearTimeout(this.initialFolderTimeout);
+    this.initialFolderTimeout = undefined;
   }
 
   async fetchAssets(request: GetAssetsRequest) {
@@ -460,7 +468,9 @@ export default class CxContentBrowser extends CortexElement {
       start: 0,
     };
 
-    await this.fetchAndMergeAssetsController.fetchAndMergeAssets(this.lastRequest);
+    if (!this.initialFolderPending) {
+      await this.fetchAndMergeAssetsController.fetchAndMergeAssets(this.lastRequest);
+    }
   }
 
   private async handleFilterChange(event: CxContentBrowserControlFilterChangeEvent) {
@@ -469,7 +479,9 @@ export default class CxContentBrowser extends CortexElement {
       selectedFacets: event.detail.selection,
       start: 0,
     };
-    await this.fetchAndMergeAssetsController.fetchAndMergeAssets(this.lastRequest);
+    if (!this.initialFolderPending) {
+      await this.fetchAndMergeAssetsController.fetchAndMergeAssets(this.lastRequest);
+    }
   }
 
   private async handleViewChange(event: CxContentBrowserControlViewChangeEvent) {
@@ -479,7 +491,9 @@ export default class CxContentBrowser extends CortexElement {
         isSeeThrough: event.detail.isSeeThrough,
         start: 0,
       };
-      await this.fetchAndMergeAssetsController.fetchAndMergeAssets(this.lastRequest);
+      if (!this.initialFolderPending) {
+        await this.fetchAndMergeAssetsController.fetchAndMergeAssets(this.lastRequest);
+      }
     }
 
     switch (event.detail.view) {
@@ -542,7 +556,9 @@ export default class CxContentBrowser extends CortexElement {
       searchText: event.detail.searchText,
       start: 0,
     };
-    await this.fetchAndMergeAssetsController.fetchAndMergeAssets(this.lastRequest);
+    if (!this.initialFolderPending) {
+      await this.fetchAndMergeAssetsController.fetchAndMergeAssets(this.lastRequest);
+    }
   }
 
   private async handleGridResize(event: CxContentBrowserGridResizeEvent) {

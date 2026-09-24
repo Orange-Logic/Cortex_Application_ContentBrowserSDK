@@ -2,6 +2,9 @@ import { expect, waitUntil } from '@open-wc/testing';
 
 import http from '@/api/api';
 import type CortexElement from '@/base/element';
+import type { GetAssetsRequest } from '@/types/asset';
+
+import sinon from 'sinon';
 
 import { FetchAndMergeAssetsController } from './fetch-and-merge-assets';
 
@@ -11,6 +14,7 @@ describe('FetchAndMergeAssetsController', () => {
   let recordIdSeq = 0;
 
   afterEach(() => {
+    sinon.restore();
     controller?.hostDisconnected();
     controller = undefined;
     http.defaults.adapter = originalAdapter;
@@ -38,7 +42,7 @@ describe('FetchAndMergeAssetsController', () => {
     return recordId;
   };
 
-  const createController = () => {
+  const createController = (options: Partial<ConstructorParameters<typeof FetchAndMergeAssetsController>[1]> = {}) => {
     controller = new FetchAndMergeAssetsController(
       { addController() {}, requestUpdate() {} } as unknown as CortexElement,
       {
@@ -52,6 +56,7 @@ describe('FetchAndMergeAssetsController', () => {
         defaultSortOrderName: '',
         token: '',
         useSession: '',
+        ...options,
       } as unknown as ConstructorParameters<typeof FetchAndMergeAssetsController>[1],
     );
 
@@ -120,4 +125,45 @@ describe('FetchAndMergeAssetsController', () => {
     expect(searchBodies).to.have.length(1);
     expect(searchBodies[0].ObjectRecordID).to.equal('library-id');
   });
+
+  const firstFetchControls: GetAssetsRequest[] = [
+    {},
+    { isSeeThrough: false, searchText: '', selectedFacets: {}, sortDirection: '', sortOrderName: '' },
+    { isSeeThrough: false, searchText: 'updated', selectedFacets: { category: ['new'] }, sortDirection: 'descending', sortOrderName: 'title' },
+  ];
+
+  for (const supplied of firstFetchControls) {
+    it(`preserves supplied first-fetch controls and defaults only missing values: ${JSON.stringify(supplied)}`, async () => {
+      const clock = sinon.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+      http.defaults.adapter = async (config) => ({
+        config,
+        data: { contentItems: [], facets: [], totalCount: 0 },
+        headers: {},
+        status: 200,
+        statusText: 'OK',
+      });
+      const defaults = {
+        isSeeThrough: true,
+        searchText: 'default search',
+        selectedFacets: { category: ['default'] },
+        sortDirection: 'ascending',
+        sortOrderName: 'title',
+      };
+      const current = createController({
+        defaultIsSeeThrough: defaults.isSeeThrough,
+        defaultSearchText: defaults.searchText,
+        defaultSelectedFacets: defaults.selectedFacets,
+        defaultSortDirection: 'ascending',
+        defaultSortOrderName: defaults.sortOrderName,
+      });
+      // Avoid a metadata request so this test isolates the first asset request's defaults.
+      (current as unknown as { sortOrders: Record<string, unknown[]> }).sortOrders = {
+        title: [{ id: 'title-asc', sortDirection: 'ascending' }, { id: 'title-desc', sortDirection: 'descending' }],
+      };
+      await current.fetchAndMergeAssets({ pageSize: 40, start: 0, ...supplied });
+      await clock.tickAsync(200);
+      expect(current.getData().loading).to.equal(false);
+      expect(current.getData().request).to.deep.include({ ...defaults, ...supplied });
+    });
+  }
 });
