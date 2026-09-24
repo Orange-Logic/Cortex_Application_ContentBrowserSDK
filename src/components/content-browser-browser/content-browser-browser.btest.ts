@@ -441,6 +441,26 @@ describe('content-browser-browser', () => {
       expect(ev.detail.selection[0].dataset.id).to.equal('first');
     });
 
+    it('emits the existing folder id and title when it is in the root response', async () => {
+      el = await fixture<CxContentBrowserBrowser>(html`
+        <cx-content-browser-browser folder-id="external">
+          <cx-button type="button" slot="trigger">Open</cx-button>
+        </cx-content-browser-browser>
+      `);
+      await elementUpdated(el);
+      const spy = sinon.spy();
+      el.addEventListener('cx-selection-change', spy);
+      getFolderSelect(el).firstFetchCallback!([
+        makeFolder({ id: 'lib', title: 'Library' }),
+        makeFolder({ id: 'external', title: 'Existing folder' }),
+      ]);
+      expect(spy.callCount).to.equal(1);
+      expect(spy.firstCall.args[0].detail.selection[0].dataset).to.deep.equal({
+        id: 'external',
+        name: 'Existing folder',
+      });
+    });
+
     it('does not override a folder id set from outside', async () => {
       el = await fixture<CxContentBrowserBrowser>(html`
         <cx-content-browser-browser folder-id="external">
