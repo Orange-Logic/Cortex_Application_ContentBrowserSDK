@@ -330,6 +330,16 @@ describe('content-browser-browser', () => {
     expect(el.shadowRoot!.querySelector('.browser__collections')).to.be.null;
   });
 
+  it('makes the folder tree reload a folder on every expand', async () => {
+    el = await fixture<CxContentBrowserBrowser>(html`
+      <cx-content-browser-browser>
+        <cx-button type="button" slot="trigger">Open</cx-button>
+      </cx-content-browser-browser>
+    `);
+    await elementUpdated(el);
+    expect(getFolderSelect(el).hasAttribute('reload-on-expand')).to.be.true;
+  });
+
   it('forwards search term from folder select to the collections tree', async () => {
     el = await fixture<CxContentBrowserBrowser>(html`
       <cx-content-browser-browser collection-path="/col" ?show-collections=${true}>

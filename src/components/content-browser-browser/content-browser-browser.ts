@@ -327,6 +327,7 @@ export default class CxContentBrowserBrowser extends CortexElement {
                 value=${ifDefined(this.folderId || undefined)}
                 selected-label=${ifDefined(this.folderTitle || undefined)}
                 auto-page-size
+                reload-on-expand
                 .token=${this.token}
                 .api=${this.useSiteSession ? apiGetFolders : noChange}
                 .baseUrl=${this.baseUrl}

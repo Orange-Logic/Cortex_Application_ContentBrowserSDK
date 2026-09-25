@@ -40,6 +40,7 @@ export async function apiGetFolders({
   folderId,
   includeDirectChild,
   limit = FOLDER_PAGE_SIZE,
+  noCache,
   searchTerm,
   self,
   start = 0,
@@ -59,6 +60,7 @@ export async function apiGetFolders({
   try {
     const response = await http.request<GetFolderResponse, GetFolderRequest>({
       baseURL: baseUrl,
+      cache: noCache ? false : undefined,
       headers: {
         Authorization: `Bearer ${bearerToken}`,
       },
