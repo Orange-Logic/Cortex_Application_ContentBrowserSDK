@@ -3,11 +3,12 @@ import { Mutex } from 'async-mutex';
 import { store } from '@/store';
 import { getAccessTokenService } from '@/store/auth/auth.service';
 import {
-  AUTH_FEATURE_KEY, endSession, logout, setAccessToken,
+  AUTH_FEATURE_ACCESS_KEY_KEY, AUTH_FEATURE_KEY, endSession, logout, updateAuthTokens,
 } from '@/store/auth/auth.slice';
 
 import { getRequestUrl } from './getRequestUrl';
 import { getSiteSessionRequestUrl } from './site-session';
+import { getData } from './storage';
 
 type CortexFetchOptions = RequestInit & {
   /**
@@ -23,6 +24,22 @@ type CortexFetchOptions = RequestInit & {
 };
 
 const mutex = new Mutex();
+
+/**
+ * The access key the next token request should present: the live session's, or the stored
+ * one when an earlier failure ended the session without condemning the key. (42AX2G)
+ */
+const readAccessKey = async (inMemoryKey?: string): Promise<string | undefined> => {
+  if (inMemoryKey) {
+    return inMemoryKey;
+  }
+  try {
+    return await getData(AUTH_FEATURE_ACCESS_KEY_KEY) ?? undefined;
+  } catch {
+    // `getData` throws when the host exposes no storage at all.
+    return undefined;
+  }
+};
 
 /**
  * Refresh the access token using the stored access key. De-duplicates concurrent calls via a shared mutex.
@@ -52,18 +69,25 @@ export const refreshAccessToken = async (): Promise<string | null> => {
       return null;
     }
 
-    if (!authState.accessKey || !authState.siteUrl) {
+    const accessKey = await readAccessKey(authState.accessKey);
+
+    if (!accessKey) {
       store.dispatch(logout());
       return null;
     }
 
+    if (!authState.siteUrl) {
+      store.dispatch(endSession());
+      return null;
+    }
+
     try {
-      const tokenResp = await getAccessTokenService(authState.accessKey);
+      const tokenResp = await getAccessTokenService(accessKey);
       if (store.getState()[AUTH_FEATURE_KEY].useSiteSession) {
         return null;
       }
       if (tokenResp.accessToken) {
-        store.dispatch(setAccessToken(tokenResp.accessToken));
+        store.dispatch(updateAuthTokens({ accessKey, accessToken: tokenResp.accessToken }));
         return tokenResp.accessToken;
       }
       // Only an explicit `success: false` condemns the key. A well-formed response

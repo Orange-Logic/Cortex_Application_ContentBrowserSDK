@@ -151,7 +151,7 @@ export const authSlice = createSlice({
 });
 
 export default authSlice.reducer;
-export const { logout, endSession, setAccessToken, generateNonce, setSiteUrl, setUserConfigSiteUrl, setUseSession, setUseHeaders, setAuthStatus, setSiteSession } = authSlice.actions;
+export const { logout, endSession, setAccessToken, updateAuthTokens, generateNonce, setSiteUrl, setUserConfigSiteUrl, setUseSession, setUseHeaders, setAuthStatus, setSiteSession } = authSlice.actions;
 // #endregion
 
 // #region Selector

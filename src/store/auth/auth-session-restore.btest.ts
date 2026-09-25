@@ -179,6 +179,23 @@ describe('session restore and token refresh preserve a valid access key', () => 
 
       expect(accessKeyDiscarded()).to.equal(false);
     });
+
+    it('reconnects with the stored key after an earlier refresh failed in transit', async () => {
+      const fetchStub = sinon.stub(window, 'fetch');
+      fetchStub.onFirstCall().rejects(new TypeError('Failed to fetch'));
+      fetchStub.resolves(
+        new Response(JSON.stringify({ success: true, accessToken: 'fresh-token' }), { status: 200 }),
+      );
+
+      expect(await refreshAccessToken()).to.equal(null);
+      // The dropped session leaves no key in memory, so the next 401 has to read the
+      // stored one back rather than read its absence as a logout.
+      const recovered = await refreshAccessToken();
+
+      expect(accessKeyDiscarded()).to.equal(false);
+      expect(recovered).to.equal('fresh-token');
+      expect(store.getState()[AUTH_FEATURE_KEY].accessKey).to.equal(STORED_KEY);
+    });
   });
 
   describe('during interactive authorization', () => {
