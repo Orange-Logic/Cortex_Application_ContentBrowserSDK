@@ -46,6 +46,7 @@ export const COMPUTED_FIELDS = ['ScrubUrl', 'AllowATSLink'];
 const MOBILE_WIDTH_THRESHOLD = 480;
 const FORCE_OVERLAY_THRESHOLD = 650;
 const PERSISTENT_DRAWER_WIDTH = 400;
+const INITIAL_FOLDER_TIMEOUT_MS = 3000;
 
 /** How many items one screen of a view holds: small tiles and table rows both fit far more than a large tile. */
 function resolvePageSize(view: ContentBrowserView): number {
@@ -339,6 +340,16 @@ export default class CxContentBrowser extends CortexElement {
 
   private fetchAndMergeAssetsController: FetchAndMergeAssetsController;
 
+  /**
+   * Without a default folder, the folder browser auto-selects Library (or the first allowed folder)
+   * once its list loads. The first grid fetch waits for that pick so the grid doesn't show an
+   * unscoped search and then replace it. The timeout covers an empty or failed folder list.
+   */
+  @state()
+  private initialFolderPending = false;
+
+  private initialFolderTimeout: ReturnType<typeof setTimeout> | undefined;
+
   willUpdate(changedProperties: PropertyValues) {
     super.willUpdate(changedProperties);
 
@@ -422,6 +433,11 @@ export default class CxContentBrowser extends CortexElement {
       sortOrderName: this.defaultSortOrderName,
     };
 
+    if (!this.defaultFolderId) {
+      this.initialFolderPending = true;
+      this.initialFolderTimeout = setTimeout(() => this.releaseInitialFolder(), INITIAL_FOLDER_TIMEOUT_MS);
+    }
+
     this.updateComplete.then(() => {
       this.fetchAndMergeAssetsController = new FetchAndMergeAssetsController(this, {
         additionalFields: this.tableColumnList.map((column) => column.field),
@@ -440,6 +456,19 @@ export default class CxContentBrowser extends CortexElement {
 
       this.requestUpdate();
     });
+  }
+
+  connectedCallback() {
+    super.connectedCallback();
+    if (this.initialFolderPending && this.initialFolderTimeout === undefined) {
+      this.initialFolderTimeout = setTimeout(() => this.releaseInitialFolder(), INITIAL_FOLDER_TIMEOUT_MS);
+    }
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    clearTimeout(this.initialFolderTimeout);
+    this.initialFolderTimeout = undefined;
   }
 
   async fetchAssets(request: GetAssetsRequest) {
@@ -603,7 +632,9 @@ export default class CxContentBrowser extends CortexElement {
       start: 0,
     };
 
-    await this.fetchAndMergeAssetsController.fetchAndMergeAssets(this.lastRequest);
+    if (!this.initialFolderPending) {
+      await this.fetchAndMergeAssetsController.fetchAndMergeAssets(this.lastRequest);
+    }
   }
 
   private async handleFilterChange(event: CxContentBrowserControlFilterChangeEvent) {
@@ -612,7 +643,9 @@ export default class CxContentBrowser extends CortexElement {
       selectedFacets: event.detail.selection,
       start: 0,
     };
-    await this.fetchAndMergeAssetsController.fetchAndMergeAssets(this.lastRequest);
+    if (!this.initialFolderPending) {
+      await this.fetchAndMergeAssetsController.fetchAndMergeAssets(this.lastRequest);
+    }
   }
 
   private async handleViewChange(event: CxContentBrowserControlViewChangeEvent) {
@@ -622,7 +655,9 @@ export default class CxContentBrowser extends CortexElement {
         isSeeThrough: event.detail.isSeeThrough,
         start: 0,
       };
-      await this.fetchAndMergeAssetsController.fetchAndMergeAssets(this.lastRequest);
+      if (!this.initialFolderPending) {
+        await this.fetchAndMergeAssetsController.fetchAndMergeAssets(this.lastRequest);
+      }
     }
 
     this.defaultPageSize = resolvePageSize(event.detail.view);
@@ -658,6 +693,8 @@ export default class CxContentBrowser extends CortexElement {
       return;
     }
 
+    this.clearInitialFolderPending();
+
     this.lastRequest = {
       ...this.lastRequest,
       folderId,
@@ -673,12 +710,27 @@ export default class CxContentBrowser extends CortexElement {
       searchText: event.detail.searchText,
       start: 0,
     };
-    await this.fetchAndMergeAssetsController.fetchAndMergeAssets(this.lastRequest);
+    if (!this.initialFolderPending) {
+      await this.fetchAndMergeAssetsController.fetchAndMergeAssets(this.lastRequest);
+    }
   }
 
   private async handleGridResize(event: CxContentBrowserGridResizeEvent) {
     const { columnCount, rowCount } = event.detail;
     const newPageSize = Math.ceil((rowCount * columnCount) / this.defaultPageSize + 1) * this.defaultPageSize;
+
+    if (this.initialFolderPending) {
+      // Remember the page size; the initial folder pick (or the timeout) runs the first fetch.
+      if (!this.lastRequest.start && newPageSize > safeInteger(this.lastRequest.pageSize)) {
+        this.lastRequest = {
+          ...this.lastRequest,
+          pageSize: newPageSize,
+        };
+      }
+
+      return;
+    }
+
     const totalCount = this.fetchAndMergeAssetsController.getData().totalCount;
     const newStart = safeInteger(this.lastRequest.start) + safeInteger(this.lastRequest.pageSize);
 
@@ -693,6 +745,25 @@ export default class CxContentBrowser extends CortexElement {
     };
 
     await this.fetchAndMergeAssetsController.fetchAndMergeAssets(this.lastRequest);
+  }
+
+  private clearInitialFolderPending() {
+    this.initialFolderPending = false;
+    clearTimeout(this.initialFolderTimeout);
+    this.initialFolderTimeout = undefined;
+  }
+
+  private async releaseInitialFolder() {
+    if (!this.initialFolderPending) {
+      return;
+    }
+
+    this.clearInitialFolderPending();
+
+    // No folder was picked in time: fall back to the unscoped search the grid was holding.
+    if (this.lastRequest.pageSize) {
+      await this.fetchAndMergeAssetsController.fetchAndMergeAssets(this.lastRequest);
+    }
   }
 
   private async handleGridClick(event: CxContentBrowserGridClickEvent) {
@@ -1052,11 +1123,11 @@ export default class CxContentBrowser extends CortexElement {
                 .busyAssetId=${this.busyAssetId}
                 .assets=${items}
                 .columns=${this.tableColumnList}
-                ?empty=${!loading && items.length === 0}
+                ?empty=${!loading && !this.initialFolderPending && items.length === 0}
                 cta-text=${this.ctaText}
                 cta-text-transform=${this.ctaTextTransform}
                 ?has-more=${items.length < totalCount}
-                ?loading=${loading}
+                ?loading=${loading || this.initialFolderPending}
                 selected-asset-id=${ifDefined(this.selectedAssetId || undefined)}
                 @cx-content-browser-grid-scroll-end=${this.handleScrollEnd}
                 @cx-content-browser-grid-resize=${this.handleGridResize}
@@ -1066,8 +1137,9 @@ export default class CxContentBrowser extends CortexElement {
             () => html`
               <cx-content-browser-grid
                 .assets=${items}
+                ?empty=${!loading && !this.initialFolderPending && items.length === 0}
                 ?has-more=${items.length < totalCount}
-                ?loading=${loading}
+                ?loading=${loading || this.initialFolderPending}
                 ?show-title=${this.showTitle}
                 ?show-size=${this.showSize}
                 ?show-dimensions=${this.showDimensions}

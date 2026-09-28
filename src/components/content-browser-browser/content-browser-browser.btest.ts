@@ -330,6 +330,16 @@ describe('content-browser-browser', () => {
     expect(el.shadowRoot!.querySelector('.browser__collections')).to.be.null;
   });
 
+  it('makes the folder tree reload a folder on every expand', async () => {
+    el = await fixture<CxContentBrowserBrowser>(html`
+      <cx-content-browser-browser>
+        <cx-button type="button" slot="trigger">Open</cx-button>
+      </cx-content-browser-browser>
+    `);
+    await elementUpdated(el);
+    expect(getFolderSelect(el).hasAttribute('reload-on-expand')).to.be.true;
+  });
+
   it('forwards search term from folder select to the collections tree', async () => {
     el = await fixture<CxContentBrowserBrowser>(html`
       <cx-content-browser-browser collection-path="/col" ?show-collections=${true}>
@@ -439,6 +449,40 @@ describe('content-browser-browser', () => {
       fs.firstFetchCallback!([makeFolder({ id: 'first', title: 'Archive' })]);
       const ev = await p;
       expect(ev.detail.selection[0].dataset.id).to.equal('first');
+    });
+
+    it('emits the existing folder id and title when it is in the root response', async () => {
+      el = await fixture<CxContentBrowserBrowser>(html`
+        <cx-content-browser-browser folder-id="external">
+          <cx-button type="button" slot="trigger">Open</cx-button>
+        </cx-content-browser-browser>
+      `);
+      await elementUpdated(el);
+      const spy = sinon.spy();
+      el.addEventListener('cx-selection-change', spy);
+      getFolderSelect(el).firstFetchCallback!([
+        makeFolder({ id: 'lib', title: 'Library' }),
+        makeFolder({ id: 'external', title: 'Existing folder' }),
+      ]);
+      expect(spy.callCount).to.equal(1);
+      expect(spy.firstCall.args[0].detail.selection[0].dataset).to.deep.equal({
+        id: 'external',
+        name: 'Existing folder',
+      });
+    });
+
+    it('does not override a folder id set from outside', async () => {
+      el = await fixture<CxContentBrowserBrowser>(html`
+        <cx-content-browser-browser folder-id="external">
+          <cx-button type="button" slot="trigger">Open</cx-button>
+        </cx-content-browser-browser>
+      `);
+      await elementUpdated(el);
+      const spy = sinon.spy();
+      el.addEventListener('cx-selection-change', spy);
+      getFolderSelect(el).firstFetchCallback!([makeFolder({ id: 'lib', title: 'Library' })]);
+      await elementUpdated(el);
+      expect(spy.called).to.be.false;
     });
   });
 });

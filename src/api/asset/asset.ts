@@ -45,6 +45,15 @@ export const LIBRARY_NAME = 'Library';
 export const MESSAGE_NEW_LINE = '\n';
 export const ORIGINAL_VIEW_SIZE = 'CoreField.OriginalPreview';
 
+/**
+ * The caption shown under an asset. Falls back to the identifier rather than the original file name:
+ * file names can carry private information (model names, shoot details) that must never reach a host
+ * application, and there is no way for a customer to turn the caption off. See L-42B0OO.
+ */
+export function resolveAssetCaption(fields: Record<string, string>) {
+  return fields[FIELD_DOC_TITLE] || fields[FIELD_IDENTIFIER] || '';
+}
+
 export function resolveAssetExtraFilters(
   selectedFacets?: Record<string, string[]>,
 ) {
@@ -513,6 +522,7 @@ export async function apiGetAssetsByIDs({
 
 export const ASSET_LIST_FIELDS = [
   DEFAULT_VIEW_SIZE,
+  FIELD_DOC_TITLE,
   FIELD_DOC_TYPE,
   FIELD_EXTENSION,
   FIELD_FILE_SIZE,
@@ -520,7 +530,6 @@ export const ASSET_LIST_FIELDS = [
   FIELD_KEYWORDS,
   FIELD_MAX_HEIGHT,
   FIELD_MAX_WIDTH,
-  FIELD_ORIGINAL_FILE_NAME,
   FIELD_RECORD_ID,
   FIELD_SUBTYPE,
   FIELD_TITLE_WITH_FALLBACK,
@@ -574,7 +583,7 @@ export async function apiGetAssets({
           const mappedItems =
             rawResponse.contentItems?.map((item) => {
               let extension = item.fields[FIELD_EXTENSION] ?? '';
-              const name = item.fields[FIELD_TITLE_WITH_FALLBACK];
+              const name = resolveAssetCaption(item.fields);
 
               if (extension && !extension.startsWith('.')) {
                 extension = '.' + extension;

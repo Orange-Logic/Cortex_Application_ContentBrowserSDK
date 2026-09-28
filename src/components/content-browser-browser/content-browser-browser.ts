@@ -219,7 +219,10 @@ export default class CxContentBrowserBrowser extends CortexElement {
   private handleFirstFetchCallback(data: Folder[]): void {
     let first = null;
 
-    if (this.allowedFolders.length) {
+    // A folder set from outside (default-folder-id, restored last location) wins over the auto-pick.
+    if (this.folderId) {
+      first = data.find((item) => item.id === this.folderId);
+    } else if (this.allowedFolders.length) {
       first = data.find((item) => this.allowedFolders.includes(item.id)) ?? data[0];
     } else {
       first = data.find((item) => item.title === LIBRARY_FOLDER_TITLE) ?? data[0];
@@ -324,6 +327,7 @@ export default class CxContentBrowserBrowser extends CortexElement {
                 value=${ifDefined(this.folderId || undefined)}
                 selected-label=${ifDefined(this.folderTitle || undefined)}
                 auto-page-size
+                reload-on-expand
                 .token=${this.token}
                 .api=${this.useSiteSession ? apiGetFolders : noChange}
                 .baseUrl=${this.baseUrl}

@@ -28,6 +28,7 @@ export type GetFolderRequest = {
   folderId: string;
   includeDirectChild?: boolean;
   limit?: number;
+  noCache?: boolean;
   searchTerm?: string;
   seeThru?: boolean;
   self?: boolean;
