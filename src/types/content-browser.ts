@@ -66,7 +66,8 @@ export type TableColumn = {
   /**
    * Cortex field the column reads, e.g. `CoreField.Identifier` or `Dell.Snippet`. It is appended to
    * the field list of the same search call the grid uses, so what a given caller gets back is decided
-   * server-side — the SDK neither filters nor resolves fields of its own.
+   * server-side — the SDK neither filters nor resolves fields of its own. Surrounding whitespace
+   * is trimmed, and the trimmed name is what the duplicate-column check compares.
    */
   field: string;
   /** Lines a cell shows before the text is clamped. Default 1. */

@@ -372,20 +372,32 @@ export default class CxContentBrowser extends CortexElement {
     // under whichever casing it sent, which would leave the second column blank anyway.
     const seen = new Set<string>();
 
-    return columns.filter((column): column is TableColumn => {
+    return columns.flatMap((column): TableColumn[] => {
       if (!column || typeof column !== 'object') {
-        return false;
+        return [];
       }
 
       const { field } = column as TableColumn;
 
-      if (typeof field !== 'string' || field.length === 0 || seen.has(field.toLowerCase())) {
-        return false;
+      if (typeof field !== 'string') {
+        return [];
       }
 
-      seen.add(field.toLowerCase());
+      // One string is both sent as a search field and used as the key the response is read back
+      // under, so a field padded with whitespace matches nothing server-side and renders an empty
+      // column. The trim runs before the duplicate check below, since trimming is what makes two
+      // fields that differ only in padding the same field.
+      const trimmed = field.trim();
 
-      return true;
+      if (trimmed.length === 0 || seen.has(trimmed.toLowerCase())) {
+        return [];
+      }
+
+      seen.add(trimmed.toLowerCase());
+
+      return [trimmed === field
+        ? column as TableColumn
+        : { ...column as TableColumn, field: trimmed }];
     });
   }
 

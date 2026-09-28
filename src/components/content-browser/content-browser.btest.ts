@@ -1626,6 +1626,119 @@ describe('content-browser', () => {
 
   });
 
+  describe('a column field padded with whitespace', () => {
+    /**
+     * A padded name travels as one string to the search call and to the cell lookup, so it matches
+     * no Cortex field and the column renders empty. It is trimmed at the boundary that drops
+     * duplicates, and before that check, so that two fields differing only in padding still
+     * collapse to one column.
+     */
+    it('asks the fetch controller for the trimmed field name', async () => {
+      const { el, mock } = await fixtureWithMock(html`
+        <cx-content-browser .tableColumns=${TABLE_COLUMNS}></cx-content-browser>
+      `);
+      mock.updateAdditionalFields.resetHistory();
+
+      el.tableColumns = [{ field: 'CoreField.CaptionLong ', title: 'Description' }];
+      await elementUpdated(el);
+
+      expect(mock.updateAdditionalFields).to.have.been.calledOnceWith(['CoreField.CaptionLong']);
+    });
+
+    it('renders the cell the response carries under the trimmed field name', async () => {
+      const { el } = await fixtureWithMock(
+        html`
+          <cx-content-browser
+            .tableColumns=${[{ field: 'CoreField.CaptionLong ', title: 'Description' }]}
+          ></cx-content-browser>
+        `,
+        {
+          items: [makeAsset({ 'CoreField.CaptionLong': 'A caption' } as unknown as Partial<Asset>)],
+          totalCount: 1,
+        },
+      );
+      selectTableView(el);
+      await elementUpdated(el);
+
+      const table = getTable(el)!;
+      await waitUntil(
+        () => table.shadowRoot!.querySelectorAll('.content-browser-table__row').length > 0,
+        'the table rendered no rows',
+        { interval: 50, timeout: 5000 },
+      );
+      const cell = table.shadowRoot!.querySelector(
+        '.content-browser-table__row .content-browser-table__cell cx-typography',
+      );
+
+      expect(cell?.textContent?.trim()).to.equal('A caption');
+    });
+
+    it('drops a column that repeats an earlier field once both are trimmed', async () => {
+      const { el } = await fixtureWithMock(html`
+        <cx-content-browser
+          .tableColumns=${[
+            { field: 'Dell.Snippet', title: 'Snippet' },
+            { field: 'Dell.Snippet ', title: 'Snippet padded' },
+          ]}
+        ></cx-content-browser>
+      `);
+      selectTableView(el);
+      await elementUpdated(el);
+
+      const columns = getTable(el)!.columns;
+
+      expect(columns).to.have.lengthOf(1);
+      expect(columns[0].title).to.equal('Snippet');
+    });
+
+    it('trims a leading pad too, which fails the same way', async () => {
+      const { el, mock } = await fixtureWithMock(html`
+        <cx-content-browser .tableColumns=${TABLE_COLUMNS}></cx-content-browser>
+      `);
+      mock.updateAdditionalFields.resetHistory();
+
+      el.tableColumns = [{ field: ' CoreField.CaptionLong', title: 'Description' }];
+      await elementUpdated(el);
+
+      expect(mock.updateAdditionalFields).to.have.been.calledOnceWith(['CoreField.CaptionLong']);
+    });
+
+    it('offers no table when a column field is nothing but whitespace', async () => {
+      const { el } = await fixtureWithMock(html`
+        <cx-content-browser .tableColumns=${[{ field: '  ', title: 'Blank' }]}></cx-content-browser>
+      `);
+      await elementUpdated(el);
+
+      selectTableView(el);
+      await elementUpdated(el);
+
+      expect(getTable(el)).to.not.exist;
+      expect(getGrid(el)).to.exist;
+    });
+
+    it('reports the trimmed field name when the padded column is resized', async () => {
+      const { el } = await fixtureWithMock(html`
+        <cx-content-browser
+          .tableColumns=${[
+            { field: 'CoreField.CaptionLong ', title: 'Description', width: '200px' },
+            { field: 'Dell.Snippet', title: 'Snippet' },
+          ]}
+        ></cx-content-browser>
+      `);
+      selectTableView(el);
+      await elementUpdated(el);
+
+      const table = getTable(el)!;
+      await elementUpdated(table);
+      const handle = table.shadowRoot!.querySelector<HTMLElement>('.content-browser-table__resize')!;
+      const resized = oneEvent(table, 'cx-content-browser-table-column-resize');
+
+      handle.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+
+      expect((await resized).detail.field).to.equal('CoreField.CaptionLong');
+    });
+  });
+
   describe('table-columns reconfigured after mount', () => {
     /**
      * The controller takes its field list once, at construction. A host that reconfigures columns
