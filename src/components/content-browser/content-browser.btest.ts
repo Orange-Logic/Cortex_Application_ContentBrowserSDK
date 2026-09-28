@@ -1365,6 +1365,39 @@ describe('content-browser', () => {
       expect(mock.fetchAndMergeAssets.firstCall.args[0].folderId).to.equal('external');
     });
 
+    it('shows the table as loading, not empty, until the initial folder is selected', async () => {
+      const { el } = await fixtureWithMock(html`
+        <cx-content-browser default-grid-view=${TABLE_VIEW} .tableColumns=${TABLE_COLUMNS}></cx-content-browser>
+      `, { parameters: { collectionPath: '/collections' } });
+
+      expect(getTable(el)!.hasAttribute('loading')).to.be.true;
+      expect(getTable(el)!.hasAttribute('empty')).to.be.false;
+
+      selectFolder(el, 'library-id', 'Library');
+      await elementUpdated(el);
+
+      expect(getTable(el)!.hasAttribute('loading')).to.be.false;
+      expect(getTable(el)!.hasAttribute('empty')).to.be.true;
+    });
+
+    it('holds the table-columns refetch until the initial folder is selected, then fetches once in it', async () => {
+      const { el, mock } = await fixtureWithMock(html`
+        <cx-content-browser .tableColumns=${TABLE_COLUMNS}></cx-content-browser>
+      `, { parameters: { collectionPath: '/collections' } });
+      mock.fetchAndMergeAssets.resetHistory();
+
+      el.tableColumns = [{ field: 'Dell.Snippet', title: 'Snippet' }];
+      await elementUpdated(el);
+
+      expect(mock.updateAdditionalFields.calledWith(['Dell.Snippet'])).to.be.true;
+      expect(mock.fetchAndMergeAssets.callCount).to.equal(0);
+
+      selectFolder(el, 'library-id', 'Library');
+      expect(mock.fetchAndMergeAssets.callCount).to.equal(1);
+      expect(mock.fetchAndMergeAssets.firstCall.args[0].folderId).to.equal('library-id');
+      expect(mock.fetchAndMergeAssets.firstCall.args[0].start).to.equal(0);
+    });
+
     it('falls back to the held unscoped fetch when no folder is selected in time', async () => {
       const { el, mock } = await fixtureWithMock(html`<cx-content-browser></cx-content-browser>`, {
         parameters: { collectionPath: '/collections' },
@@ -1966,7 +1999,7 @@ describe('content-browser', () => {
 
     it('restarts the refetch from the first page so scrolled-in rows are replaced', async () => {
       const { el, mock } = await fixtureWithMock(html`
-        <cx-content-browser .tableColumns=${TABLE_COLUMNS}></cx-content-browser>
+        <cx-content-browser default-folder-id="library-id" .tableColumns=${TABLE_COLUMNS}></cx-content-browser>
       `);
       el.lastRequest = { ...el.lastRequest, start: 30 };
       await elementUpdated(el);
@@ -1983,7 +2016,7 @@ describe('content-browser', () => {
 
     it('refetches through the stateful path so the rows on screen are replaced', async () => {
       const { el, mock } = await fixtureWithMock(html`
-        <cx-content-browser .tableColumns=${TABLE_COLUMNS}></cx-content-browser>
+        <cx-content-browser default-folder-id="library-id" .tableColumns=${TABLE_COLUMNS}></cx-content-browser>
       `);
       mock.fetchAndMergeAssets.resetHistory();
       mock.fetchAssets.resetHistory();

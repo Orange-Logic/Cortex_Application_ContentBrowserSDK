@@ -586,7 +586,11 @@ export default class CxContentBrowser extends CortexElement {
     // de-duplicates by recordId, which keeps the field-less rows it already had.
     this.lastRequest = { ...this.lastRequest, start: 0 };
 
-    void this.fetchAndMergeAssetsController.fetchAndMergeAssets(this.lastRequest);
+    // While the initial folder is pending, fetching here would show an unscoped search that the
+    // folder pick then replaces. The held first fetch already carries the new fields.
+    if (!this.initialFolderPending) {
+      void this.fetchAndMergeAssetsController.fetchAndMergeAssets(this.lastRequest);
+    }
   }
 
   @watch(['token', 'useSession'], { waitUntilFirstUpdate: true })
