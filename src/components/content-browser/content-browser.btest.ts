@@ -66,6 +66,7 @@ function createMockFetchController(
     getAssetLinkResult?: GetAssetLinksResponse;
     isLoggedIn?: boolean;
     items?: Asset[];
+    loading?: boolean;
     parameters?: Record<string, unknown> | null;
     totalCount?: number;
   } = {},
@@ -94,7 +95,7 @@ function createMockFetchController(
       facets: [],
       isLoggedIn: options.isLoggedIn ?? true,
       items,
-      loading: false,
+      loading: options.loading ?? false,
       parameters:
         options.parameters === undefined
           ? null
@@ -234,6 +235,25 @@ describe('content-browser', () => {
     expect(el.shadowRoot!.querySelector('cx-content-browser-control-bar')).to.exist;
     expect(getGrid(el)).to.exist;
     expect(getFormatDialog(el)).to.exist;
+  });
+
+  it('shows the grid empty state only after an empty asset request finishes', async () => {
+    const { el: emptyEl } = await fixtureWithMock(
+      html`<cx-content-browser default-folder-id="folder-empty"></cx-content-browser>`,
+    );
+    expect(getGrid(emptyEl)).to.have.attribute('empty');
+
+    const { el: loadingEl } = await fixtureWithMock(
+      html`<cx-content-browser default-folder-id="folder-loading"></cx-content-browser>`,
+      { loading: true },
+    );
+    expect(getGrid(loadingEl)).not.to.have.attribute('empty');
+
+    const { el: populatedEl } = await fixtureWithMock(
+      html`<cx-content-browser default-folder-id="folder-populated"></cx-content-browser>`,
+      { items: [makeAsset()] },
+    );
+    expect(getGrid(populatedEl)).not.to.have.attribute('empty');
   });
 
   it('sets isMobile from content width, passes is-mobile to control bar, and switches format dialog to drawer', async () => {

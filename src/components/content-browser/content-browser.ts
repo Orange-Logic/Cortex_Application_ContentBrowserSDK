@@ -936,6 +936,7 @@ export default class CxContentBrowser extends CortexElement {
           ></cx-content-browser-control-bar>
           <cx-content-browser-grid
             .assets=${items}
+            ?empty=${!loading && !this.initialFolderPending && items.length === 0}
             ?has-more=${items.length < totalCount}
             ?loading=${loading || this.initialFolderPending}
             ?show-title=${this.showTitle}
