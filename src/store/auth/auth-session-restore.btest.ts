@@ -196,6 +196,21 @@ describe('session restore and token refresh preserve a valid access key', () => 
       expect(recovered).to.equal('fresh-token');
       expect(store.getState()[AUTH_FEATURE_KEY].accessKey).to.equal(STORED_KEY);
     });
+
+    it('keeps the key when reading it back from host storage fails', async () => {
+      sinon.stub(window, 'fetch').rejects(new TypeError('Failed to fetch'));
+      expect(await refreshAccessToken()).to.equal(null);
+      storage.get.callsFake(async (key: string) => {
+        if (key === AUTH_FEATURE_ACCESS_KEY_KEY) {
+          throw new Error('Timed out reading "auth_access_key_key" from Figma storage');
+        }
+        return storedValues(key);
+      });
+
+      expect(await refreshAccessToken()).to.equal(null);
+
+      expect(accessKeyDiscarded()).to.equal(false);
+    });
   });
 
   describe('during interactive authorization', () => {

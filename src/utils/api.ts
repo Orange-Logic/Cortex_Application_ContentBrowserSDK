@@ -27,18 +27,14 @@ const mutex = new Mutex();
 
 /**
  * The access key the next token request should present: the live session's, or the stored
- * one when an earlier failure ended the session without condemning the key. (42AX2G)
+ * one when an earlier failure ended the session without condemning the key. Throws when
+ * host storage cannot be read, which is not the same as finding no key. (42AX2G)
  */
 const readAccessKey = async (inMemoryKey?: string): Promise<string | undefined> => {
   if (inMemoryKey) {
     return inMemoryKey;
   }
-  try {
-    return await getData(AUTH_FEATURE_ACCESS_KEY_KEY) ?? undefined;
-  } catch {
-    // `getData` throws when the host exposes no storage at all.
-    return undefined;
-  }
+  return await getData(AUTH_FEATURE_ACCESS_KEY_KEY) ?? undefined;
 };
 
 /**
@@ -69,7 +65,15 @@ export const refreshAccessToken = async (): Promise<string | null> => {
       return null;
     }
 
-    const accessKey = await readAccessKey(authState.accessKey);
+    let accessKey: string | undefined;
+    try {
+      accessKey = await readAccessKey(authState.accessKey);
+    } catch {
+      // A failed read says nothing about the key, and `logout` would delete it —
+      // a host storage bridge can time out while the key is still stored. (42AX2G)
+      store.dispatch(endSession());
+      return null;
+    }
 
     if (!accessKey) {
       store.dispatch(logout());
