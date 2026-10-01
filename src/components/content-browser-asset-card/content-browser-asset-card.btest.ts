@@ -55,6 +55,24 @@ describe('content-browser-asset-card', () => {
       expect(card.classList.contains('content-browser-asset-card--selected')).to.be.false;
     });
 
+    it('does not opt into interactive card styling', () => {
+      expect(getCard(el)).not.to.have.attribute('interactive');
+    });
+
+    it('uses the local square card and rounded thumbnail styling', () => {
+      el.style.setProperty('--cx-border-radius-medium', '8px');
+      const card = getCard(el);
+      const cardStyle = getComputedStyle(card);
+      const base = card.shadowRoot!.querySelector<HTMLElement>('[part~="base"]')!;
+      const image = card.shadowRoot!.querySelector<HTMLElement>('[part~="image"]')!;
+
+      expect(cardStyle.getPropertyValue('--border-radius').trim()).to.equal('0');
+      expect(cardStyle.getPropertyValue('--image-border-radius').trim()).to.equal('0');
+      expect(getComputedStyle(base).borderRadius).to.equal('0px');
+      expect(getComputedStyle(base).boxShadow).to.equal('none');
+      expect(getComputedStyle(image).borderRadius).to.equal('0px');
+    });
+
     it('applies selected class on cx-card when selected is true', async () => {
       el.selected = true;
       await elementUpdated(el);
