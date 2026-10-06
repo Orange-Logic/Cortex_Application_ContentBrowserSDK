@@ -397,7 +397,15 @@ customStorage: {
             <ul>
               <li><code>title</code> - the header text</li>
               <li><code>field</code> - the Orange Logic field the column reads, e.g. "CoreField.Identifier"</li>
-              <li><code>width</code> (optional) - a CSS grid track, e.g. "160px", "2fr", "minmax(120px, 1fr)"</li>
+              <li>
+                <code>width</code> (optional) - pixels ("160px") are a fixed width, a percentage ("20%") is a fixed
+                share of the table width in whole percents ("12.5%" is 12%), "2fr" is a share of the width left over,
+                and a minmax() keeps a pixel minimum above 48px ("minmax(120px, 1fr)"). Any other form ("10rem",
+                "auto", "max-content") takes an equal flexible share. No column narrows below 48px, in the layout or
+                in a drag, so a percentage share narrower than 48px renders at 48px. The one exception is a pixel
+                width above 0 and below 48px, which renders as set. A width of 0 ("0px", or a "0fr" share) renders at
+                48px. A column has no maximum width
+              </li>
               <li><code>align</code> (optional) - left (default), center or right</li>
               <li><code>lines</code> (optional) - lines shown before the cell text is clamped (default 1)</li>
             </ul>
@@ -563,10 +571,15 @@ customStorage: {
         ctaTextTransform: 'capitalize', // 'none', 'uppercase', 'lowercase', 'capitalize' (default: 'capitalize')
         // extra asset fields to get
         extraFields: ['coreField.OriginalFileName', 'document.CortexPath'],
-        // tableColumns: [
-        //   { title: 'Identifier', field: 'CoreField.Identifier', width: '160px' },
-        //   { title: 'Title', field: 'CoreField.TitleWithFallback', width: 'minmax(0, 2fr)' },
-        // ],
+        // columns of the table view; omit to offer grid views only
+        tableColumns: [
+          { title: 'Identifier', field: 'CoreField.Identifier', width: '160px' },
+          { title: 'Title', field: 'CoreField.TitleWithFallback', width: 'minmax(0, 2fr)' },
+          { title: 'Description', field: 'Document.CaptionLong', lines: 2 },
+        ],
+        defaultGridView: 'table', // 'small', 'medium', 'large', 'table' (default: 'medium')
+        // insert with the first available format instead of opening the format dialog
+        autoSelectFormat: true,
         // default base url to pre-filled
         baseUrl: 'https://qa-latest.orangelogic.com',
         displayInfo: {

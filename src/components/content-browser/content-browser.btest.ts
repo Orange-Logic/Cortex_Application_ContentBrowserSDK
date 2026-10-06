@@ -8,8 +8,12 @@ import {
   oneEvent,
   waitUntil,
 } from '@open-wc/testing';
+import { setViewport } from '@web/test-runner-commands';
+import { AxiosError } from 'axios';
 
+import http from '@/api/api';
 import type { GetAssetLinksResponse } from '@/api/asset/asset.types';
+import { AssetApiEndpoint, MetadataApiEndpoint } from '@/api/endpoints';
 import type { Asset, AssetVersion, GetAssetsRequest } from '@/types/asset';
 import { MediaType } from '@/types/asset';
 import {
@@ -19,6 +23,7 @@ import type { GetFolderRequest, GetFolderResponse } from '@/types/folder';
 
 import sinon from 'sinon';
 
+import { ROW_HEIGHT } from '../content-browser-table/content-browser-table';
 import type CxContentBrowserControlBar from '../content-browser-control-bar/content-browser-control-bar';
 import type CxContentBrowserFormatDialog from '../content-browser-format-dialog/content-browser-format-dialog';
 import type CxContentBrowser from './content-browser';
@@ -150,6 +155,33 @@ function getGrid(el: CxContentBrowser) {
 
 function getTable(el: CxContentBrowser) {
   return el.shadowRoot!.querySelector('cx-content-browser-table');
+}
+
+/** The design-system table the table view renders its rows with. */
+function getCxTable(el: CxContentBrowser) {
+  return getTable(el)?.shadowRoot?.querySelector('cx-table') ?? null;
+}
+
+function getTableRowElements(el: CxContentBrowser) {
+  return [...(getCxTable(el)?.shadowRoot?.querySelectorAll<HTMLElement>('.tabulator-row') ?? [])];
+}
+
+/** A row's CTA button, once it has rendered its own shadow root. */
+async function getTableRowAction(row: HTMLElement) {
+  const cta = row.querySelector<HTMLElement & { updateComplete: Promise<unknown> }>('.content-browser-table__cta');
+
+  await cta?.updateComplete;
+
+  return cta ?? undefined;
+}
+
+/** `cx-table` builds Tabulator asynchronously, and the rows arrive only once it has. */
+async function waitForTableRows(el: CxContentBrowser, count = 1) {
+  await waitUntil(
+    () => (getCxTable(el)?.tabulatorInstance?.getRows().length ?? 0) >= count && getTableRowElements(el).length > 0,
+    `the table never held ${count} rows`,
+    { interval: 20, timeout: 5000 },
+  );
 }
 
 function getControlBar(el: CxContentBrowser) {
@@ -1795,6 +1827,66 @@ describe('content-browser', () => {
       expect(mock.getAssetLink).to.have.been.calledOnce;
       expect(el.selectedAssetId).to.equal('frag-1');
     });
+
+    it('opens the format dialog from a row\'s CTA in the rendered table, never from a click on the row', async () => {
+      const asset = makeAsset({ extension: '', id: 'frag-click', imageUrl: '', recordId: 'rec-click' });
+      const { el, mock } = await fixtureWithMock(
+        html`<cx-content-browser default-grid-view=${TABLE_VIEW} .tableColumns=${TABLE_COLUMNS}></cx-content-browser>`,
+        {
+          fetchAssetByIDResult: { asset, isFavorite: false, proxies: [] },
+          items: [asset],
+          totalCount: 1,
+        },
+      );
+
+      await waitForTableRows(el);
+      getTableRowElements(el)[0].querySelector<HTMLElement>('.tabulator-cell')!.click();
+
+      // The host asks for the asset in the same task as the hand-over, so a row click that reached it
+      // has asked by now.
+      expect(mock.fetchAssetByID.called, 'the row click reached the host').to.equal(false);
+
+      (await getTableRowAction(getTableRowElements(el)[0]))!.click();
+
+      await waitUntil(() => mock.fetchAssetByID.calledOnce, 'the CTA never reached the host');
+      expect(mock.fetchAssetByID.firstCall.args[0]).to.equal('frag-click');
+      await waitUntil(() => getFormatDialog(el).isDialogOpen, 'the CTA never opened the format dialog');
+    });
+
+    it('starts the table 18px below the control bar: the shared 2px spacing, then its own 16px gap', async () => {
+      // The themed value of the shared spacing, which the unthemed test page leaves empty.
+      const { el } = await fixtureWithMock(
+        html`<cx-content-browser
+          style="--cx-spacing-3x-small: 2px"
+          default-grid-view=${TABLE_VIEW}
+          .tableColumns=${TABLE_COLUMNS}
+        ></cx-content-browser>`,
+        { items: [makeAsset({ extension: '', id: 'frag-gap', imageUrl: '' })], totalCount: 1 },
+      );
+
+      await waitForTableRows(el);
+
+      const gap = getCxTable(el)!.getBoundingClientRect().top - getControlBar(el).getBoundingClientRect().bottom;
+
+      expect(Math.round(gap)).to.equal(18);
+    });
+
+    it('marks the row the host is working on in the rendered table', async () => {
+      const asset = makeAsset({ extension: '', id: 'frag-busy', imageUrl: '', recordId: 'rec-busy' });
+      const { el, mock } = await fixtureWithMock(
+        html`<cx-content-browser default-grid-view=${TABLE_VIEW} .autoSelectFormat=${true} .tableColumns=${TABLE_COLUMNS}></cx-content-browser>`,
+        { items: [asset], totalCount: 1 },
+      );
+      mock.fetchAssetByID.returns(new Promise(() => {}));
+
+      await waitForTableRows(el);
+      (await getTableRowAction(getTableRowElements(el)[0]))!.click();
+
+      await waitUntil(() => getTableRowElements(el)[0].getAttribute('aria-current') === 'true',
+        'the in-flight row was never marked', { interval: 20, timeout: 3000 });
+      await waitUntil(async () => Boolean((await getTableRowAction(getTableRowElements(el)[0]))?.hasAttribute('loading')),
+        'the in-flight row never spun its CTA', { interval: 20, timeout: 3000 });
+    });
   });
 
   describe('two columns on one field', () => {
@@ -1821,7 +1913,7 @@ describe('content-browser', () => {
       ];
       await elementUpdated(el);
 
-      expect(mock.updateAdditionalFields).to.have.been.calledOnceWith(['Dell.Snippet']);
+      expect(mock.updateAdditionalFields.args).to.deep.equal([[['Dell.Snippet']]]);
     });
     it('renders the first column and drops the duplicate', async () => {
       const { el } = await fixtureWithMock(html`
@@ -1877,7 +1969,7 @@ describe('content-browser', () => {
       el.tableColumns = [{ field: 'CoreField.CaptionLong ', title: 'Description' }];
       await elementUpdated(el);
 
-      expect(mock.updateAdditionalFields).to.have.been.calledOnceWith(['CoreField.CaptionLong']);
+      expect(mock.updateAdditionalFields.args).to.deep.equal([[['CoreField.CaptionLong']]]);
     });
 
     it('renders the cell the response carries under the trimmed field name', async () => {
@@ -1895,15 +1987,8 @@ describe('content-browser', () => {
       selectTableView(el);
       await elementUpdated(el);
 
-      const table = getTable(el)!;
-      await waitUntil(
-        () => table.shadowRoot!.querySelectorAll('.content-browser-table__row').length > 0,
-        'the table rendered no rows',
-        { interval: 50, timeout: 5000 },
-      );
-      const cell = table.shadowRoot!.querySelector(
-        '.content-browser-table__row .content-browser-table__cell cx-typography',
-      );
+      await waitForTableRows(el);
+      const cell = getTableRowElements(el)[0].querySelector('.tabulator-cell');
 
       expect(cell?.textContent?.trim()).to.equal('A caption');
     });
@@ -1935,7 +2020,7 @@ describe('content-browser', () => {
       el.tableColumns = [{ field: ' CoreField.CaptionLong', title: 'Description' }];
       await elementUpdated(el);
 
-      expect(mock.updateAdditionalFields).to.have.been.calledOnceWith(['CoreField.CaptionLong']);
+      expect(mock.updateAdditionalFields.args).to.deep.equal([[['CoreField.CaptionLong']]]);
     });
 
     it('offers no table when a column field is nothing but whitespace', async () => {
@@ -1959,16 +2044,21 @@ describe('content-browser', () => {
             { field: 'Dell.Snippet', title: 'Snippet' },
           ]}
         ></cx-content-browser>
-      `);
+      `, { items: [makeAsset({ id: 'frag-padded', recordId: 'rec-padded' })], totalCount: 1 });
       selectTableView(el);
       await elementUpdated(el);
 
+      await waitForTableRows(el);
       const table = getTable(el)!;
-      await elementUpdated(table);
-      const handle = table.shadowRoot!.querySelector<HTMLElement>('.content-browser-table__resize')!;
+      const handle = getCxTable(el)!.shadowRoot!.querySelector<HTMLElement>('.tabulator-col-resize-handle')!;
       const resized = oneEvent(table, 'cx-content-browser-table-column-resize');
+      const { left, top, width } = handle.getBoundingClientRect();
+      const init = { bubbles: true, button: 0, clientY: top + 1, composed: true };
 
-      handle.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+      // Tabulator drags with the press on the handle and the move and release on the document body.
+      handle.dispatchEvent(new MouseEvent('mousedown', { ...init, clientX: left + width / 2 }));
+      document.body.dispatchEvent(new MouseEvent('mousemove', { ...init, clientX: left + width / 2 + 30 }));
+      document.body.dispatchEvent(new MouseEvent('mouseup', { ...init, clientX: left + width / 2 + 30 }));
 
       expect((await resized).detail.field).to.equal('CoreField.CaptionLong');
     });
@@ -2384,6 +2474,210 @@ describe('content-browser', () => {
       expect(getGrid(el)!.busyAssetId).to.equal('frag-1');
 
       releaseFetch(undefined);
+    });
+  });
+
+  describe('table view in the host shapes of L-42BBKC', () => {
+    /**
+     * In every shape a host gives the picker, the rows have to scroll inside the table's own
+     * scrollport, that scrollport has to keep a height of its own, and nothing may paint past the
+     * picker over the page below it.
+     */
+    const shapes = [
+      {
+        name: 'a container with a definite height',
+        outer: 'height: 500px; width: 800px',
+        picker: '--content-browser-height: 100%',
+        slot: 'height: 460px',
+      },
+      {
+        name: 'a slot that takes its height from a flex line, as CBSDKdemo.html does',
+        outer: 'display: flex; flex-direction: column; height: 500px; width: 800px',
+        picker: '--content-browser-height: 100%',
+        slot: 'flex: 1',
+      },
+      {
+        name: 'a container with no height',
+        outer: 'width: 800px',
+        picker: '',
+        slot: '',
+      },
+      {
+        name: 'a container with no height and the picker at height auto',
+        outer: 'width: 800px',
+        picker: '--content-browser-height: auto',
+        slot: '',
+      },
+    ];
+
+    shapes.forEach(({ name, outer, picker, slot }) => {
+      it(`scrolls the rows inside the table in ${name}`, async () => {
+        const items = Array.from({ length: 200 }, (_, index) => makeAsset({
+          id: `frag-shape-${index}`,
+          identifier: `FRAG-${index}`,
+          recordId: `rec-shape-${index}`,
+        }));
+        const page = await fixture<HTMLDivElement>(html`
+          <div>
+            <div style=${outer}>
+              <div style="flex: none; height: 40px">host header</div>
+              <div style=${slot}>
+                <cx-content-browser
+                  style=${picker}
+                  default-grid-view=${TABLE_VIEW}
+                  .tableColumns=${TABLE_COLUMNS}
+                ></cx-content-browser>
+              </div>
+            </div>
+            <div class="below">the page below</div>
+          </div>
+        `);
+        const el = page.querySelector<CxContentBrowser>('cx-content-browser')!;
+
+        await elementUpdated(el);
+        installMockController(el, createMockFetchController(el, { items }));
+        await elementUpdated(el);
+        await waitForTableRows(el, 200);
+
+        const scrollport = getCxTable(el)!.shadowRoot!.querySelector<HTMLElement>('.tabulator-tableholder')!;
+        const pickerBottom = el.getBoundingClientRect().bottom;
+        const tableBottom = getTable(el)!.getBoundingClientRect().bottom;
+        const belowTop = page.querySelector('.below')!.getBoundingClientRect().top;
+
+        expect(scrollport.clientHeight > 0, 'the scrollport collapsed to nothing').to.equal(true);
+        expect(scrollport.scrollHeight > scrollport.clientHeight,
+          `the scrollport is ${scrollport.clientHeight}px tall and holds ${scrollport.scrollHeight}px`).to.equal(true);
+        expect(tableBottom <= pickerBottom + 1,
+          `the table ends at ${tableBottom}px, past the picker at ${pickerBottom}px`).to.equal(true);
+        expect(pickerBottom <= belowTop + 1,
+          `the picker ends at ${pickerBottom}px, over the page below at ${belowTop}px`).to.equal(true);
+      });
+    });
+  });
+
+  describe('table view page size in a host slot its rows could size', () => {
+    /**
+     * L-42BFJC: a row count read off a box that grows with its own rows asks for a larger page with
+     * every page it loads. Run against the real fetch controller, because the page size the host
+     * sends is what has to stay bounded, not only the event.
+     */
+    const TOTAL_COUNT = 213116;
+    const HOST_PAGE = 30;
+    const originalAdapter = http.defaults.adapter;
+    let requests: Array<{ limit: number; orderBy?: string; start: number }> = [];
+
+    const stubServer = () => {
+      requests = [];
+      http.defaults.adapter = async (config) => {
+        const url = (config.url ?? '').split('?')[0];
+        const answer = (data: unknown) => ({ config, data, headers: {}, status: 200, statusText: 'OK' });
+
+        if (url === MetadataApiEndpoint.GET_SORT_ORDERS) {
+          return answer({
+            sortOrders: [
+              { id: 'relevancy-id', name: 'Relevancy', sortDirection: 'Descending', sortDirectionGroupKey: 'relevancy' },
+              { id: 'newest-id', name: 'Date Created', sortDirection: 'Descending', sortDirectionGroupKey: 'datecreated' },
+            ],
+          });
+        }
+
+        if (url !== AssetApiEndpoint.GET_CONTENT_V3) {
+          throw new AxiosError('not stubbed', AxiosError.ERR_BAD_RESPONSE, config);
+        }
+
+        const body = JSON.parse(config.data as string) as { Limit?: number; OrderBy?: string; Start?: number };
+        const start = body.Start ?? 0;
+        const limit = body.Limit ?? 0;
+
+        requests.push({ limit, orderBy: body.OrderBy, start });
+
+        // Past a handful of pages a runaway is already proven, and answering it would build rows without end.
+        if (requests.length > 6) {
+          return new Promise<never>(() => {});
+        }
+
+        return answer({
+          contentItems: Array.from({ length: limit }, (_, index) => ({
+            fields: { 'CoreField.Identifier': `ID-${start + index}`, 'Document.RecordID': `rec-${start + index}` },
+            recordID: `rec-${start + index}`,
+          })),
+          facets: [],
+          totalCount: TOTAL_COUNT,
+        });
+      };
+    };
+
+    const viewportRows = () => Math.ceil(window.innerHeight / ROW_HEIGHT);
+
+    // The host rounds a count up past one spare page, and measures the next count against the last
+    // page it asked for rather than the rows it holds, so a settled table carries up to three pages
+    // past the screen. A count that grows with the rows has no ceiling at all.
+    const rowBound = () => viewportRows() + 3 * HOST_PAGE;
+
+    const highestRow = () => Math.max(0, ...requests.map(({ limit, start }) => start + limit));
+
+    const describeRequests = () => requests
+      .map(({ limit, orderBy, start }) => `${orderBy ?? '-'} ${start}+${limit}`)
+      .join(', ');
+
+    // Each fetch the rows cause is debounced twice, in the table and in the controller. A request past
+    // the bound already proves a runaway, so the wait ends there and the assertion names it.
+    const waitForQuiet = async (message: string) => {
+      let seen = -1;
+      let quietFor = 0;
+
+      await waitUntil(() => {
+        quietFor = requests.length === seen ? quietFor + 1 : 0;
+        seen = requests.length;
+
+        return quietFor >= 8 || highestRow() > rowBound();
+      }, message, { interval: 100, timeout: 8000 });
+    };
+
+    afterEach(async () => {
+      http.defaults.adapter = originalAdapter;
+      await setViewport({ height: 600, width: 800 });
+    });
+
+    it('stays within the viewport before and after a sort change', async () => {
+      // Tall enough that the viewport's rows round to a larger page than the slot's first
+      // measurement: the shape in which a repeated row count fetches one more page per resize.
+      await setViewport({ height: 1600, width: 800 });
+      stubServer();
+
+      const page = await fixture<HTMLDivElement>(html`
+        <div style="display: flex; flex-direction: column; height: 500px; width: 800px">
+          <div style="flex: none; height: 40px">host header</div>
+          <div style="flex: 1; --content-browser-height: 100%">
+            <cx-content-browser
+              default-grid-view=${TABLE_VIEW}
+              .tableColumns=${TABLE_COLUMNS}
+            ></cx-content-browser>
+          </div>
+        </div>
+      `);
+      const el = page.querySelector<CxContentBrowser>('cx-content-browser')!;
+
+      await waitForTableRows(el);
+      await waitForQuiet('the table never stopped fetching');
+
+      expect(highestRow() <= rowBound(),
+        `requested ${describeRequests()} for a ${viewportRows()}-row viewport`).to.equal(true);
+
+      getControlBar(el).dispatchEvent(new CustomEvent('cx-content-browser-control-sort-order-change', {
+        bubbles: true,
+        composed: true,
+        detail: { sortDirection: 'Descending', sortOrderName: 'datecreated' },
+      }));
+      await waitUntil(() => requests.some(({ orderBy }) => orderBy === 'newest-id'), 'the sort change never fetched');
+      await waitForQuiet('the table never stopped fetching after the sort change');
+
+      const sorted = requests.find(({ orderBy }) => orderBy === 'newest-id')!;
+
+      expect(highestRow() <= rowBound(),
+        `requested ${describeRequests()} for a ${viewportRows()}-row viewport`).to.equal(true);
+      expect(sorted.start === 0 && sorted.limit <= viewportRows() + 2 * HOST_PAGE,
+        `the sort change asked for ${sorted.start}+${sorted.limit}`).to.equal(true);
     });
   });
 });

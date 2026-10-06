@@ -9,25 +9,13 @@ type ScrollAnchorElement = HTMLElement & {
   assetId?: string;
 };
 
-type ScrollAnchorLayoutSource = {
+type ScrollAnchorContainer = HTMLElement & {
   layoutComplete?: Promise<unknown>;
 };
 
-type ScrollAnchorContainer = HTMLElement & ScrollAnchorLayoutSource;
-
 type ScrollAnchorControllerOptions = {
   getContainer: () => ScrollAnchorContainer | undefined;
-  /**
-   * Distance from the scroller's content origin down to the top of row 0 -- the height of whatever
-   * leads the content, such as a sticky header. Defaults to 0: the rows start at the origin.
-   */
-  getContentOffset?: () => number;
   getItemIndexById: (id: string) => number;
-  /**
-   * The object whose `layoutComplete` a restore waits on. Defaults to the container, which carries
-   * it when the virtualizer is itself the scroller.
-   */
-  getLayoutSource?: () => ScrollAnchorLayoutSource | undefined;
   itemSelector: string;
 };
 
@@ -38,11 +26,7 @@ export default class ScrollAnchorController implements ReactiveController {
 
   readonly #getContainer: ScrollAnchorControllerOptions['getContainer'];
 
-  readonly #getContentOffset: () => number;
-
   readonly #getItemIndexById: ScrollAnchorControllerOptions['getItemIndexById'];
-
-  readonly #getLayoutSource: () => ScrollAnchorLayoutSource | undefined;
 
   readonly #itemSelector: string;
 
@@ -64,9 +48,7 @@ export default class ScrollAnchorController implements ReactiveController {
   ) {
     this.#host = host;
     this.#getContainer = options.getContainer;
-    this.#getContentOffset = options.getContentOffset ?? (() => 0);
     this.#getItemIndexById = options.getItemIndexById;
-    this.#getLayoutSource = options.getLayoutSource ?? options.getContainer;
     this.#itemSelector = options.itemSelector;
 
     host.addController?.(this);
@@ -81,15 +63,12 @@ export default class ScrollAnchorController implements ReactiveController {
       container.querySelectorAll<ScrollAnchorElement>(this.#itemSelector),
     );
     const containerTop = container.getBoundingClientRect().top;
-    // A row scrolled in behind whatever leads the content -- a sticky header -- is one the user
-    // cannot see, so it is not one to anchor on.
-    const contentTop = containerTop + this.#getContentOffset();
 
     for (const el of children) {
       const rect = el.getBoundingClientRect();
       const id = el.assetId || el.dataset.id;
 
-      if (rect.bottom > contentTop && id) {
+      if (rect.bottom > containerTop && id) {
         this.#anchor = {
           id,
           offset: rect.top - containerTop,
@@ -118,7 +97,7 @@ export default class ScrollAnchorController implements ReactiveController {
     void this.#host.updateComplete.then(async () => {
       // A virtualizer torn down mid-restore rejects layoutComplete with 'disconnected'. There is then
       // nothing left to scroll, so swallow it rather than surface an unhandled rejection.
-      await this.#getLayoutSource()?.layoutComplete?.catch(() => undefined);
+      await this.#getContainer()?.layoutComplete?.catch(() => undefined);
 
       if (sequence !== this.#restoreSequence) {
         return;
@@ -180,12 +159,7 @@ export default class ScrollAnchorController implements ReactiveController {
 
     const rowIndex = Math.floor(assetIndex / this.#columnCount);
 
-    // `offset` is measured from the container's top edge, so the row's position has to be measured
-    // from there too: row 0 starts after whatever leads the content, not at the content origin.
-    return Math.max(
-      0,
-      this.#getContentOffset() + rowIndex * this.#itemHeight - this.#anchor.offset,
-    );
+    return Math.max(0, rowIndex * this.#itemHeight - this.#anchor.offset);
   }
 
   hostDisconnected() {

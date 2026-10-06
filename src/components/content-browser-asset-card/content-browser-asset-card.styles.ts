@@ -52,6 +52,12 @@ export default css`
     inset: var(--cx-spacing-x-small);
     bottom: auto;
     aspect-ratio: 246 / 180;
+    /*
+     * The image slot's overflow clip does not reach an overlay positioned against the base, so the
+     * rounding is restated. Inherited, not a token: the overlay is slotted into that image slot, so
+     * it takes whatever radius the thumbnail is clipped to, overrides of ::part(image) included.
+     */
+    border-radius: inherit;
     z-index: 1;
     display: flex;
     align-items: center;

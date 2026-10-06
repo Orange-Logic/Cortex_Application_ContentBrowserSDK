@@ -263,7 +263,14 @@ type OrangeDAMContentBrowser = {
     /**
      * The columns of the table view. Each column carries a `title` (the header text), a `field`
      * (the Cortex field it reads, e.g. "CoreField.Identifier") and optional
-     * styling: `width` (a CSS grid track), `align` and `lines`.
+     * styling: `width`, `align` and `lines`. `width` is a CSS grid track: pixels (`"160px"`) are a
+     * fixed width, a percentage (`"20%"`) is a fixed share of the table width in whole percents
+     * (`"12.5%"` is 12%), `"2fr"` is a share of the width left over, and a `minmax()` keeps a pixel
+     * minimum above 48px (`"minmax(120px, 1fr)"`). Any other form takes an equal flexible share. No
+     * column narrows below 48px, in the layout or in a drag, so a percentage share narrower than
+     * 48px renders at 48px. The one exception is a pixel width above 0 and below 48px, which renders
+     * as set. A width of 0 (`"0px"`, or a `"0fr"` share) renders at 48px. A column has no maximum
+     * width.
      *
      * The table view is offered in the view menu only when this is set, and the fields listed here
      * are requested on every search — so an asset with no thumbnail, such as a text fragment,

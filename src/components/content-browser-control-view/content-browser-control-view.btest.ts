@@ -217,21 +217,6 @@ describe('content-browser-control-view', () => {
       expect(evt.detail.isSeeThrough).to.be.false;
     });
 
-    it('checks table or grid, never both', async () => {
-      el.canUseTable = true;
-      await setViewsAndView(el, sampleViews, 'medium');
-
-      const grid = getMenuItems(el)[0];
-      expect(grid.checked).to.be.true;
-      expect(findMenuItem(el, (item) => item.value === TABLE_VIEW).checked).to.be.false;
-
-      el.view = TABLE_VIEW;
-      await elementUpdated(el);
-
-      expect(getMenuItems(el)[0].checked).to.be.false;
-      expect(findMenuItem(el, (item) => item.value === TABLE_VIEW).checked).to.be.true;
-    });
-
     it('returns to the grid when a size is picked from table view', async () => {
       el.canUseTable = true;
       await setViewsAndView(el, sampleViews, 'medium');
@@ -243,6 +228,43 @@ describe('content-browser-control-view', () => {
       await dispatchSelectOnDropdown(el, small);
 
       expect((await evtPromise).detail.view).to.equal(GridView.Small);
+    });
+  });
+
+  describe('desktop checked state', () => {
+    /** The Grid item is the one that opens the grid-size submenu. */
+    function getGridItem(control: CxContentBrowserControlView) {
+      return findMenuItem(control, (item) => item.querySelector(':scope > cx-menu[slot="submenu"]') !== null);
+    }
+
+    /** Labels, not nodes, so a failure reads as the list of marked items. */
+    function checkedItems(control: CxContentBrowserControlView) {
+      return getMenuItems(control)
+        .filter((item) => item.hasAttribute('checked'))
+        .map((item) => (getGridItem(control) === item ? 'grid' : item.value));
+    }
+
+    it('leaves the Grid item unmarked for a host without table columns', async () => {
+      await setViewsAndView(el, sampleViews, 'medium');
+
+      expect(getGridItem(el).hasAttribute('checked')).to.be.false;
+      expect(checkedItems(el)).to.deep.equal(['medium']);
+    });
+
+    it('marks the active grid size alone, never the Grid item, once the table is offered', async () => {
+      el.canUseTable = true;
+      await setViewsAndView(el, sampleViews, 'medium');
+
+      expect(checkedItems(el)).to.deep.equal(['medium']);
+    });
+
+    it('marks the Table item alone while the table is active', async () => {
+      el.canUseTable = true;
+      await setViewsAndView(el, sampleViews, 'medium');
+      el.view = TABLE_VIEW;
+      await elementUpdated(el);
+
+      expect(checkedItems(el)).to.deep.equal([TABLE_VIEW]);
     });
   });
 });

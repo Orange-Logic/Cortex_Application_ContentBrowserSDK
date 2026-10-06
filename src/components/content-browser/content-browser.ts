@@ -509,11 +509,11 @@ export default class CxContentBrowser extends CortexElement {
   #insertInFlight = false;
 
   private async openFormatDialog(id: string) {
-    // A row click and its CTA button can both land before the fetch resolves, and each one would
-    // otherwise open its own dialog — or, on the auto-confirm path, insert the asset again. The
-    // second guard covers the rest of an auto-confirmed insert, which outlives the fetch and has no
-    // dialog of its own: without it the next asset's dialog inherits that insert and is torn down
-    // when it settles.
+    // A second activation, such as the second click of a double click, can land before the fetch
+    // resolves, and would otherwise open its own dialog — or, on the auto-confirm path, insert the
+    // asset again. The second guard covers the rest of an auto-confirmed insert, which outlives the
+    // fetch and has no dialog of its own: without it the next asset's dialog inherits that insert and
+    // is torn down when it settles.
     if (this.#openingAsset || this.#insertInFlight) {
       return;
     }

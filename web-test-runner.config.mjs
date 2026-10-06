@@ -146,5 +146,5 @@ export const getWebTestRunnerConfig = ({
 };
 
 export default getWebTestRunnerConfig({
-  excludeCoverage: ['**/src/**/base/**', '**/src/**/utils/**'],
+  excludeCoverage: ['**/src/**/base/**', '**/src/**/utils/**', '**/*.test-helpers.ts'],
 });

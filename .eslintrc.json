@@ -78,7 +78,7 @@
       }
     },
     {
-      "files": ["**/*.test.ts", "**/*.btest.ts"],
+      "files": ["**/*.test.ts", "**/*.btest.ts", "**/*.test-helpers.ts"],
       "rules": {
         "no-unused-expressions": "off",
         "@typescript-eslint/no-unused-expressions": "off",

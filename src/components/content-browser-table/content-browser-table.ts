@@ -1,10 +1,5 @@
-import '@lit-labs/virtualizer';
-
-import { html, nothing } from 'lit';
-import { property, query, state } from 'lit/decorators.js';
-import { classMap } from 'lit/directives/class-map.js';
-import { ifDefined } from 'lit/directives/if-defined.js';
-import { repeat } from 'lit/directives/repeat.js';
+import { html, type PropertyValues } from 'lit';
+import { property, query } from 'lit/decorators.js';
 import { styleMap } from 'lit/directives/style-map.js';
 import { when } from 'lit/directives/when.js';
 import _debounce from 'lodash-es/debounce';
@@ -14,107 +9,205 @@ import componentStyles from '@/styles/component.styles';
 import { Asset } from '@/types/asset';
 import { type CtaTextTransform, TableColumn } from '@/types/content-browser';
 import { watch } from '@/utils/watch';
+/*
+ * No published design-system version has a `components/table` entry. `cx-table` is defined by the
+ * shared chunk this entry loads, so the import is what registers it (L-42BGNS 1a). Swap it for a
+ * table entry once the design system publishes one.
+ */
 import CxButton from '@orangelogic/design-system/components/button';
+import CxColorSwatchGroup from '@orangelogic/design-system/components/color-swatch-group';
 import CxLineClamp from '@orangelogic/design-system/components/line-clamp';
 import CxProgressBar from '@orangelogic/design-system/components/progress-bar';
 import CxResizeObserver from '@orangelogic/design-system/components/resize-observer';
-import CxTypography from '@orangelogic/design-system/components/typography';
 import { customElement, LocalizeController } from '@orangelogic/design-system/utils';
 
-import ScrollAnchorController from '../content-browser-grid/scroll-anchor-controller';
 import CxContentBrowserNoResult from '../content-browser-no-result/content-browser-no-result';
 import styles from './content-browser-table.styles';
 
 import type { CxResizeEvent } from '@/events';
 import type { CSSResultGroup } from 'lit';
 
-export const ROW_HEIGHT = 40;
+const CxTable = CxColorSwatchGroup.dependencies['cx-table'];
 
-/**
- * The action column is an explicit track, not an implicit one. Left implicit, the grid sizes it
- * from content *after* distributing free space, so a host's fractional track (`minmax(0, 2fr)` on
- * Title) is computed against a width the button then eats into and the last text column is clipped.
- * `max-content` is stable across rows because every row's button carries the same label.
- */
-export const ACTION_COLUMN_TRACK = 'max-content';
+type CxButtonElement = InstanceType<typeof CxButton>;
+type CxTableElement = InstanceType<typeof CxTable>;
+type Tabulator = NonNullable<CxTableElement['tabulatorInstance']>;
+type TableColumnDefinition = NonNullable<CxTableElement['columns']>[number];
+
+/** `cx-table` re-emits a Tabulator event as `cx-table.<name>`, carrying the listener's arguments. */
+type TabulatorEvent<T extends unknown[]> = CustomEvent<{ args: T }>;
+
+type TabulatorCell = {
+  getElement(): HTMLElement | null;
+  getRow(): { getData(): Record<string, unknown>; getElement(): HTMLElement; normalizeHeight(): void };
+  getValue(): unknown;
+};
+
+type TabulatorColumn = {
+  getDefinition(): TableColumnDefinition;
+  getElement(): HTMLElement;
+  getField(): string;
+  getWidth(): number;
+  setWidth(width: number): Promise<unknown>;
+};
+
+/** What a title formatter receives in place of a cell. */
+type TabulatorHeaderCell = {
+  getColumn(): TabulatorColumn;
+};
+
+type TabulatorRow = {
+  getData(): Record<string, unknown>;
+  getElement(): HTMLElement;
+};
+
+/** A row's CTA button and what it is painted from. */
+type RowCta = {
+  assetId: string;
+  button: CxButtonElement;
+  label: HTMLSpanElement;
+  rowElement: HTMLElement;
+};
+
+/** `cx-table`'s own row height, the one every other Cortex table renders at. */
+export const ROW_HEIGHT = 48;
 
 /** Narrow enough to be a deliberate choice, wide enough that a column never becomes a sliver. */
 export const MIN_COLUMN_WIDTH = 48;
 
+/** The trailing column that holds each row's CTA, keyed apart from every `column<n>` data column. */
+export const CTA_FIELD = 'cta';
+
+/** The empty column before the CTA column that takes the width no other column takes. */
+export const FILLER_FIELD = 'filler';
+
+/** The CTA column's width until a rendered button is measured. */
+const INITIAL_CTA_COLUMN_WIDTH = 96;
+
+/** The filler's share of the free space: above 0, which Tabulator reads as 1, and far below any data column's. */
+const FILLER_GROW = 0.001;
+
 /**
- * The widest a column may be dragged. The table scrolls horizontally, so there is no layout-derived
- * maximum any more, but a bound is still needed twice over: a stray pointer event must not be able
- * to produce an absurd track, and the separator has to report a real `aria-valuemax`. Fixed rather
- * than measured, so the range is a constant and render costs no layout read.
+ * `(hover: none)` reads only the primary input, so a touch laptop or a tablet with a mouse matches
+ * `(hover: hover)`, yet a finger on its touch screen has no hover either.
  */
-export const MAX_COLUMN_WIDTH = 2000;
+const NO_HOVER_QUERIES = ['(hover: none)', '(any-pointer: coarse)'];
 
-/** Keyboard resize step, in pixels; Shift takes the larger one. */
-export const COLUMN_RESIZE_STEP = 8;
-export const COLUMN_RESIZE_STEP_LARGE = 32;
-
-/**
- * The header and the virtualized rows are separate grids that must always resolve the same track
- * list. Publishing it as one custom property on the host keeps them in step, and lets a drag
- * repaint by writing a single property instead of re-rendering every visible row.
- */
-export const TABLE_COLUMNS_PROPERTY = '--cx-content-browser-table-columns';
-
-/** A track that takes a share of the free space: a bare `<flex>`, or a `minmax()` whose max is one. */
-const FLEX_TRACK = /^\d*\.?\d+fr$/i;
+const FLEX_TRACK = /^(\d*\.?\d+)fr$/i;
 const MINMAX_TRACK = /^minmax\(\s*(.+?)\s*,\s*(.+?)\s*\)$/i;
-/** Minimums that measure cells which clip to nothing, so they are floors in name only. */
-const COLLAPSIBLE_MINIMUM = /^(auto|min-content)$/i;
-const PIXEL_MINIMUM = /^(\d*\.?\d+)(px)?$/i;
+const PIXEL_LENGTH = /^(\d*\.?\d+)(px)?$/i;
+const PERCENT_LENGTH = /^\d*\.?\d+%$/;
 
-/**
- * Raises a flexible track's base size to `MIN_COLUMN_WIDTH`.
- *
- * `min-width: min-content` on the grids is what carries the table past its scrollport, but it also
- * means the grid is sized under a min-content constraint, and a flexible track resolves to its
- * *base* size under one. `minmax(0, 1fr)` has a base size of 0, so every flexible column collapsed
- * the moment the table overflowed: its title and cells clipped away and its resize handle trapped
- * inside a zero-width clipping cell, where the pointer cannot reach it to drag the column back.
- * Flooring the base at the width a drag already refuses to go below keeps the column reachable, and
- * covers a host-authored `minmax(0, 2fr)` or bare `2fr` the same way it covers the default.
+/*
+ * Constants rather than literals in the template: `cx-table` rebuilds its whole Tabulator instance
+ * whenever `columnDefaults` changes identity, and a literal is a new object on every render.
  */
-export function floorFlexibleTrack(track: string): string {
-  const authored = track.trim();
-  const minmax = MINMAX_TRACK.exec(authored);
+const COLUMN_DEFAULTS: Partial<TableColumnDefinition> = {
+  headerSort: false,
+  resizable: true,
+};
 
-  if (!minmax) {
-    return FLEX_TRACK.test(authored) ? `minmax(${MIN_COLUMN_WIDTH}px, ${authored})` : authored;
-  }
+type ColumnSizing = Pick<TableColumnDefinition, 'minWidth' | 'width' | 'widthGrow'>;
 
-  const [, minimum, maximum] = minmax;
+const FLEXIBLE: ColumnSizing = { minWidth: MIN_COLUMN_WIDTH, widthGrow: 1 };
 
-  if (!FLEX_TRACK.test(maximum)) {
-    return authored;
-  }
+function parsePixels(value: string): number | undefined {
+  const match = PIXEL_LENGTH.exec(value.trim());
 
-  const pixels = PIXEL_MINIMUM.exec(minimum);
-  // A minimum the host authored for itself stands, unless it is one the grid can still collapse.
-  const collapsible = COLLAPSIBLE_MINIMUM.test(minimum)
-    || (pixels !== null && Number.parseFloat(pixels[1]) < MIN_COLUMN_WIDTH);
+  return match ? Number.parseFloat(match[1]) : undefined;
+}
 
-  return collapsible ? `minmax(${MIN_COLUMN_WIDTH}px, ${maximum})` : authored;
+/** A host-authored minimum stands, unless it is one a flexible column could still collapse below. */
+function flexibleMinimum(minimum: string): number {
+  return Math.max(MIN_COLUMN_WIDTH, parsePixels(minimum) ?? 0);
 }
 
 /**
- * A column's `field` is the host's own string. In a plain object literal one named after an
- * `Object.prototype` member (`toString`, `constructor`) reads back the inherited function instead of
- * `undefined`, and a stringified function in the track list invalidates `grid-template-columns` for
- * the header and every row.
+ * A drag stops only at a column's minimum, and Tabulator's own is 40px: a fixed column takes the
+ * table's floor, or its authored width where that is narrower. Tabulator reads a width of 0 as no
+ * width and gives the column a flexible share, so a column set to 0 floors at the table's floor.
  */
-function createColumnWidths(entries: readonly (readonly [string, number])[] = []): Record<string, number> {
-  return Object.assign(Object.create(null) as Record<string, number>, Object.fromEntries(entries));
+function fixedSizing(width: number, minimum = 0): ColumnSizing {
+  if (width <= 0) {
+    return { minWidth: MIN_COLUMN_WIDTH, width: MIN_COLUMN_WIDTH };
+  }
+
+  return { minWidth: Math.min(Math.max(MIN_COLUMN_WIDTH, minimum), width), width };
+}
+
+/** Tabulator reads a `widthGrow` of 0 as 1, so a share of 0 is laid out as a fixed width at its floor. */
+function flexibleSizing(minimum: number, grow: number): ColumnSizing {
+  return grow > 0 ? { minWidth: minimum, widthGrow: grow } : { minWidth: minimum, width: minimum };
+}
+
+/**
+ * Maps a host column's `width`, authored as a CSS grid track, onto Tabulator column sizing under the
+ * `fitColumns` layout: a pixel length is a fixed width, a percentage is a fixed share of the table
+ * width in whole percents (`12.5%` is 12%), converted to pixels once when the table builds its
+ * columns, or once it is shown if it built them hidden, and not resized afterward, a `<flex>` share
+ * is `widthGrow`, and a `minmax()` keeps a pixel minimum above `MIN_COLUMN_WIDTH`. Any other track
+ * takes an equal share of the free space.
+ * Every column floors at `MIN_COLUMN_WIDTH` (48px). The one exception is a pixel width above 0 and
+ * below 48px, which renders as set. A width of 0 (`0px`, or a `0fr` share) renders at 48px.
+ */
+export function toColumnSizing(track: string | undefined): ColumnSizing {
+  const authored = track?.trim() ?? '';
+
+  if (!authored) {
+    return FLEXIBLE;
+  }
+
+  const pixels = parsePixels(authored);
+
+  if (pixels !== undefined) {
+    return fixedSizing(pixels);
+  }
+
+  if (PERCENT_LENGTH.test(authored)) {
+    // Tabulator reads a floor only as it builds the column, before the percentage becomes pixels, so a
+    // share narrower than the floor cannot keep its own width as a pixel track does.
+    return { minWidth: MIN_COLUMN_WIDTH, width: authored };
+  }
+
+  const flex = FLEX_TRACK.exec(authored);
+
+  if (flex) {
+    return flexibleSizing(MIN_COLUMN_WIDTH, Number.parseFloat(flex[1]));
+  }
+
+  const minmax = MINMAX_TRACK.exec(authored);
+
+  if (!minmax) {
+    return FLEXIBLE;
+  }
+
+  const [, minimum, maximum] = minmax;
+  const maximumFlex = FLEX_TRACK.exec(maximum);
+
+  if (maximumFlex) {
+    return flexibleSizing(flexibleMinimum(minimum), Number.parseFloat(maximumFlex[1]));
+  }
+
+  const maximumPixels = parsePixels(maximum);
+
+  if (maximumPixels !== undefined) {
+    return fixedSizing(maximumPixels, parsePixels(minimum));
+  }
+
+  return { ...FLEXIBLE, minWidth: flexibleMinimum(minimum) };
 }
 
 /**
  * Column values ride on the asset under the Cortex field name as requested (see `apiGetAssets`),
- * which `Asset` cannot declare because the field set is the host's, not the SDK's.
+ * which `Asset` cannot declare because the field set is the host's, not the SDK's. Read as an own
+ * property: a field named after an `Object.prototype` member (`toString`, `constructor`) would
+ * otherwise read back the inherited function.
  */
 export function readCellValue(asset: Asset, field: string): string {
+  if (!Object.prototype.hasOwnProperty.call(asset, field)) {
+    return '';
+  }
+
   const value = (asset as unknown as Record<string, unknown>)[field];
 
   if (value === undefined || value === null || typeof value === 'object') {
@@ -124,21 +217,76 @@ export function readCellValue(asset: Asset, field: string): string {
   return String(value);
 }
 
+/** A value the column definitions depend on, so they are rebuilt only when the host's columns change. */
+function columnsSignature(columns: TableColumn[]): string {
+  return JSON.stringify(columns.map(({ align, field, lines, title, width }) => [align, field, lines, title, width]));
+}
+
+/**
+ * A page appended to a list: `next` starts with every asset of a non-empty `previous`, as the same
+ * objects in the same order, and holds more. A refetch brings new objects, which can carry new values.
+ */
+function isAppendOf(previous: Asset[], next: Asset[]): boolean {
+  return previous.length > 0
+    && next.length > previous.length
+    && previous.every((asset, index) => next[index] === asset);
+}
+
+function renderCellContent(value: string, lines: number, inColdStorage: boolean): HTMLElement {
+  // Built as an element with text content, never as a string: Tabulator inserts a formatter's string
+  // as HTML, and these values are the DAM's own metadata. A clamp at one line too, as `cx-table`
+  // clamps its own cells and headers: a Tabulator cell neither clips nor ellipsizes what overflows it.
+  const content = document.createElement('cx-line-clamp');
+
+  content.setAttribute('lines', String(lines));
+
+  if (lines > 1) {
+    content.style.whiteSpace = 'normal';
+  }
+
+  if (inColdStorage) {
+    content.style.opacity = '0.5';
+  }
+
+  content.textContent = value;
+
+  return content;
+}
+
+/**
+ * Tabulator sizes a row as it renders it, before the clamp has rendered its lines, and keeps that
+ * height: the row is sized again once the clamp has, and never below a single-line row.
+ */
+async function fitRowToClamp(cell: TabulatorCell, clamp: InstanceType<typeof CxLineClamp>) {
+  cell.getElement()?.style.setProperty('min-height', `${ROW_HEIGHT}px`);
+  await clamp.updateComplete;
+
+  if (clamp.isConnected) {
+    cell.getRow().normalizeHeight();
+  }
+}
+
 /**
  * @summary Table layout for the Content Browser: one row per asset, host-configured metadata columns
- * instead of a thumbnail.
+ * instead of a thumbnail, rendered by the design system's `cx-table`.
  *
  * @description Renders the same asset list the grid does and emits the same item events, so an asset
  * with no rendition — a text fragment, `digitized = 0` — is browsable and selectable by its
  * identifying fields. It fetches nothing of its own: a row exists, and a cell has a value, only
  * because the search response the grid also consumes carried it.
  *
- * @event cx-content-browser-grid-click - Emitted when a row is activated by click or keyboard.
- * @event cx-content-browser-grid-resize - Emitted with the visible row count so the host can grow the page size.
- * @event cx-content-browser-grid-scroll-end - Emitted when the row list is scrolled to the end.
- * @event cx-content-browser-table-column-resize - Emitted when a column settles on a new width: a
- * drag released, a keyboard step, or a reset by double click or Home. `detail.width` is the pixel
- * width, or `undefined` when the column was reset to the track the host configured. Resized widths
+ * @event cx-content-browser-grid-click - Emitted when a row's CTA button is activated, by a click or
+ * from the keyboard: once for a double click on it, and never for a click or a double click on the
+ * row itself.
+ * @event cx-content-browser-grid-resize - Emitted when the number of rows the visible scrollport can
+ * show changes, and again once a restarted list's rows are in, so the host can grow the page size.
+ * @event cx-content-browser-grid-scroll-end - Emitted while `has-more` is set, no page is loading, and
+ * the last row comes into view: by scrolling the table's own scrollport, or by scrolling the page when
+ * a table taller than the viewport holds its rows without overflowing and so never scrolls itself.
+ * @event cx-content-browser-table-column-resize - Emitted when a host-configured column settles on a
+ * new width: a drag of its divider released, or a double click on the divider that fits the column to
+ * its content. Never emitted for the empty filler column or the CTA column, which have no divider.
+ * `detail.width` is the column's width in whole pixels; `undefined` is never emitted. Resized widths
  * are session-only -- the SDK has no storage that survives a reload -- so this event is the host's
  * only chance to persist them.
  */
@@ -152,7 +300,7 @@ export default class CxContentBrowserTable extends CortexElement {
     'cx-line-clamp': CxLineClamp,
     'cx-progress-bar': CxProgressBar,
     'cx-resize-observer': CxResizeObserver,
-    'cx-typography': CxTypography,
+    'cx-table': CxTable,
   };
 
   private readonly localize = new LocalizeController(this);
@@ -160,11 +308,8 @@ export default class CxContentBrowserTable extends CortexElement {
   @query('.content-browser-table')
   private readonly containerEl: HTMLDivElement;
 
-  @query('.content-browser-table__head')
-  private readonly headEl: HTMLElement;
-
-  @query('lit-virtualizer')
-  private readonly bodyEl: HTMLElement & { layoutComplete?: Promise<unknown> };
+  @query('cx-table')
+  private readonly tableEl: CxTableElement | null;
 
   @property({ attribute: 'assets', reflect: false, type: Array })
   assets: Asset[] = [];
@@ -197,396 +342,797 @@ export default class CxContentBrowserTable extends CortexElement {
   @property({ attribute: false })
   busyAssetId: string | undefined = undefined;
 
-  @state()
   assetMap: Map<string, Asset> = new Map();
 
-  /** Widths the user has dragged, in pixels, keyed by the column's Cortex field. */
-  @state()
-  private columnWidths: Record<string, number> = createColumnWidths();
+  #columnDefinitions: TableColumnDefinition[] = [];
+
+  #columnsSignature = '';
+
+  /**
+   * Tabulator reads a dotted `field` as a nested path, and every Cortex field name is dotted
+   * (`CoreField.Identifier`), so a row stores each value under a key of its own. A key stays with its
+   * host column across column changes: `cx-table` lays the rows it holds out under the new columns at
+   * once, and the rebuilt rows land only once `setData` has waited out its debounce.
+   */
+  #columnKeys = new Map<string, string>();
+
+  /** A new column set can bring a field the rows hold no value for, so every row is rebuilt. */
+  #rowsNeedRebuild = false;
+
+  /** The row keys every row the built table holds carries a value under. */
+  #heldRowKeys = new Set<string>();
+
+  /**
+   * Widths the user has settled a column on, in pixels, keyed by the host's field: new definitions
+   * reach Tabulator through `setColumns`, which forgets every width a column was resized to.
+   */
+  #resizedWidths = new Map<string, number>();
+
+  /** Set while the percentage columns hold the floor of a table built with no width (see `pinPercentWidths`). */
+  #percentWidthsPending = false;
+
+  /** Keyed by the row's element, which a row event and a host change can both reach. */
+  #ctas = new WeakMap<HTMLElement, RowCta>();
+
+  /**
+   * The CTA each current row rendered last, on the page or taken off it: a relabel reaches every one
+   * of them without building an element for a row that never rendered.
+   */
+  #renderedCtas = new Set<RowCta>();
+
+  /** Tabulator formats a row's cells again on a column change, into the same row element. */
+  #pointerTrackedRows = new WeakSet<HTMLElement>();
+
+  #hoveredRow: HTMLElement | undefined;
+
+  #focusedCta: RowCta | undefined;
+
+  /** The CTA that held the keyboard focus as Tabulator began to render the rows again. */
+  #ctaFocusedAtRender: CxButtonElement | undefined;
+
+  /** Followed while the table is on the page: a mouse or a touch screen that is attached or removed changes them. */
+  #noHoverQueries: MediaQueryList[] = [];
+
+  /**
+   * A device with no hover, or with a touch screen beside its mouse, has no row hover to show a CTA
+   * to a finger, so a tap would press a CTA that the user cannot see. There every CTA stays on
+   * screen, and one tap hands its asset over.
+   */
+  #hasNoHover = false;
+
+  /** Carried into every rebuilt column set, so a new table starts at the width its button needs. */
+  #ctaColumnWidth = INITIAL_CTA_COLUMN_WIDTH;
+
+  /**
+   * The label the CTA column was fitted to since the rows were last replaced. Every CTA shares it, so
+   * one that renders with it measures nothing, however often Tabulator formats its row again.
+   */
+  #ctaFittedLabel: string | undefined;
+
+  /** The Tabulator instance whose `tableBuilt` has fired: the only one rows may be handed to. */
+  #builtTable: Tabulator | undefined;
+
+  /**
+   * The assets the built table holds rows for, in order, to tell an appended page from a new list: an
+   * appended page keeps these objects, and a refetch brings new ones, which can carry new values.
+   */
+  #syncedAssets: Asset[] = [];
+
+  /**
+   * `setData` applies the list it was last given only once Tabulator's debounce runs out, and then
+   * replaces every row: a page appended while one waits would go with the rows it joined.
+   */
+  #pendingReplaces = 0;
 
   #lastHeight = 0;
 
-  #lastScrollTop = 0;
+  /** The container's last observed size, as `<width>x<height>` in whole pixels. */
+  #containerSize: string | undefined;
 
-  private readonly scrollAnchorController = new ScrollAnchorController(this, {
-    // The rows scroll inside the table container, not inside the virtualizer, so that is the
-    // element whose scroll offset an anchor has to be captured against and restored on.
-    getContainer: () => this.containerEl,
-    // The sticky header is the container's first in-flow child, so row 0 starts below it rather
-    // than at the content origin. Measured rather than a constant: the height is whatever the
-    // host's tokens and column titles resolve to.
-    getContentOffset: () => this.headEl?.getBoundingClientRect().height ?? 0,
-    getItemIndexById: (id) => this.assets.findIndex((asset) => asset.id === id),
-    // The container is a plain div, so it has no `layoutComplete` of its own; the virtualizer still
-    // has to have laid the rows out before a restore can land on one.
-    getLayoutSource: () => this.bodyEl,
-    itemSelector: '.content-browser-table__row',
-  });
+  #lastRowCount: number | undefined;
 
-  constructor() {
-    super();
+  #lastRowObserver: IntersectionObserver | undefined;
 
-    // Rows are rendered by lit-virtualizer, not by this element's own template, so Lit does not bind
-    // these to the host for us.
-    this.handleRowClick = this.handleRowClick.bind(this);
-    this.handleActionClick = this.handleActionClick.bind(this);
-    this.handleRowKeyDown = this.handleRowKeyDown.bind(this);
+  private get tabulator(): Tabulator | undefined {
+    const instance = this.tableEl?.tabulatorInstance ?? undefined;
+
+    // `cx-table` destroys its instance on disconnect but keeps the reference.
+    return instance !== undefined && instance === this.#builtTable && !instance.destroyed ? instance : undefined;
   }
 
-  /** One authored track per configured column, in order. The action track is not one of them. */
-  private buildColumnTracks(widths: Record<string, number>): string[] {
-    return this.columns.map((column) => {
-      const resized = widths[column.field];
+  /** Tabulator's row holder: the one element that scrolls the rows. */
+  private get scrollport(): HTMLElement | undefined {
+    return this.tabulator?.rowManager?.element ?? undefined;
+  }
 
-      return resized === undefined ? floorFlexibleTrack(column.width ?? 'minmax(0, 1fr)') : `${resized}px`;
+  private get hasMultilineColumn(): boolean {
+    return this.columns.some((column) => (column.lines ?? 1) > 1);
+  }
+
+  private resolveColumnSizing(column: TableColumn): ColumnSizing {
+    const sizing = toColumnSizing(column.width);
+    const resized = this.#resizedWidths.get(column.field);
+
+    if (resized === undefined) {
+      return sizing;
+    }
+
+    // Pinned at the dragged width, keeping its floor but no share of the free space, as the live
+    // column is pinned once its drag settles (see `handleColumnResized`).
+    return { minWidth: sizing.minWidth, width: resized };
+  }
+
+  /** Each host column's row key, in order: a field the host repeats takes a key per occurrence. */
+  private resolveColumnKeys(): string[] {
+    const occurrences = new Map<string, number>();
+
+    return this.columns.map(({ field }) => {
+      const occurrence = occurrences.get(field) ?? 0;
+      const identity = `${field}\u0000${occurrence}`;
+      const key = this.#columnKeys.get(identity) ?? `column${this.#columnKeys.size}`;
+
+      occurrences.set(field, occurrence + 1);
+      this.#columnKeys.set(identity, key);
+
+      return key;
     });
   }
 
-  private buildTemplateColumns(widths: Record<string, number>): string {
-    return [...this.buildColumnTracks(widths), ACTION_COLUMN_TRACK].join(' ');
+  private buildColumnDefinitions(): TableColumnDefinition[] {
+    return [...this.buildDataColumnDefinitions(), this.buildFillerColumnDefinition(), this.buildCtaColumnDefinition()];
   }
 
-  private get templateColumns(): string {
-    return this.buildTemplateColumns(this.columnWidths);
-  }
+  private buildDataColumnDefinitions(): TableColumnDefinition[] {
+    const keys = this.resolveColumnKeys();
 
-  /** Live drag state. Not reactive: a drag repaints by writing the custom property directly. */
-  #resize:
-    | { field: string; pointerId: number; startWidth: number; startX: number; width: number }
-    | undefined;
+    return this.columns.map((column, index) => {
+      const lines = Math.max(1, column.lines ?? 1);
 
-  /** Bound only when a browser refuses pointer capture; with capture the handle sees the whole drag. */
-  #fallbackListeners:
-    | {
-      onCancel: (event: PointerEvent) => void;
-      onMove: (event: PointerEvent) => void;
-      onUp: (event: PointerEvent) => void;
-      target: Document;
-    }
-    | undefined;
+      return {
+        field: keys[index],
+        formatter: (cell: TabulatorCell, _params: unknown, onRendered: (callback: () => void) => void) => {
+          const row = cell.getRow();
+          const inColdStorage = Boolean(row.getData().inColdStorage);
+          const content = renderCellContent(String(cell.getValue() ?? ''), lines, inColdStorage);
 
-  private resolveColumnWidth(field: string): number {
-    const configured = this.columnWidths[field];
+          if (inColdStorage) {
+            // No click or insert reaches the host from this row, so it takes no pointer: `cx-table`
+            // would otherwise give it the hover highlight and pointer cursor of a clickable row.
+            row.getElement().style.pointerEvents = 'none';
+          }
 
-    if (configured !== undefined) {
-      return configured;
-    }
+          if (lines > 1) {
+            onRendered(() => void fitRowToClamp(cell, content as InstanceType<typeof CxLineClamp>));
+          }
 
-    // Nothing dragged yet, so the starting point is whatever the configured track resolved to. The
-    // handle nested in the cell carries the same data-field, so the columnheader has to be named.
-    const cell = this.renderRoot.querySelector<HTMLElement>(
-      `.content-browser-table__header [role="columnheader"][data-field="${CSS.escape(field)}"]`,
-    );
-
-    // Clamped, not merely rounded: an fr track on a wide viewport resolves wider than the maximum a
-    // width may be pinned to, and an unclamped start inverts every gesture made from it -- a 2px
-    // nudge, or one ArrowRight, would clamp back to the maximum and persist a column hundreds of
-    // pixels narrower than the one the user was pointing at. Rounding is the clamp's job too: an fr
-    // track measures fractional, and a keyboard step would compound the fraction on every press.
-    return this.clampColumnWidth(cell?.getBoundingClientRect().width ?? MIN_COLUMN_WIDTH);
-  }
-
-  private clampColumnWidth(width: number): number {
-    // `clientX` is a double, and fractional whenever `devicePixelRatio` is, so the drag delta arrives
-    // fractional too -- and this width is both the published track and the number the host persists.
-    return Math.round(Math.min(MAX_COLUMN_WIDTH, Math.max(MIN_COLUMN_WIDTH, width)));
-  }
-
-  private commitColumnWidth(field: string, width: number | undefined) {
-    // The event is the host's persistence trigger, so a width that changes nothing -- a reset of a
-    // column that was never resized, a step already at the minimum, a press that never moved -- must
-    // not ask it to write.
-    if (this.columnWidths[field] === width) {
-      return;
-    }
-
-    const next = createColumnWidths(Object.entries(this.columnWidths));
-
-    if (width === undefined) {
-      delete next[field];
-    } else {
-      next[field] = width;
-    }
-
-    this.columnWidths = next;
-    this.emit('cx-content-browser-table-column-resize', { detail: { field, width } });
+          return content;
+        },
+        headerHozAlign: column.align,
+        hozAlign: column.align,
+        title: column.title,
+        // A node, as for a cell: `cx-table` parses a title string as HTML.
+        titleFormatter: (cell: TabulatorCell) => renderCellContent(String(cell.getValue() ?? ''), 1, false),
+        variableHeight: lines > 1,
+        ...this.resolveColumnSizing(column),
+      };
+    });
   }
 
   /**
-   * Kept off the reactive path: its only effect is the cursor, the text selection and the handle
-   * colour, while a reactive toggle would rebind `renderItem` and re-render every visible row twice
-   * per drag.
+   * `fitColumns` gives the free space only to columns with no fixed width, and a drag fixes the width
+   * of the column it resizes. Once every data column has one, this column takes the space they leave,
+   * which would otherwise show blank, and keeps the CTA at the right edge. The CTA column cannot do it
+   * itself: its floor is the button's measured width, and Tabulator reads a floor only as it builds the
+   * column.
    */
-  private setResizingClass(active: boolean) {
-    this.containerEl?.classList.toggle('content-browser-table--resizing', active);
-  }
+  private buildFillerColumnDefinition(): TableColumnDefinition {
+    return {
+      field: FILLER_FIELD,
+      formatter: (cell: TabulatorCell) => {
+        const element = cell.getElement();
 
-  private bindFallbackListeners(target: Document) {
-    const onMove = (event: PointerEvent) => this.handleResizeMove(event);
-    const onUp = (event: PointerEvent) => this.handleResizeEnd(event);
-    const onCancel = (event: PointerEvent) => this.handleResizeCancel(event);
+        if (element) {
+          // `cx-table` pads every cell, which would render the 1px column far wider than it is laid out.
+          element.style.padding = '0';
+          // The pointer lands on the row itself, so the filler has no hover or click of its own.
+          element.style.pointerEvents = 'none';
+          element.setAttribute('aria-hidden', 'true');
+        }
 
-    this.#fallbackListeners = { onCancel, onMove, onUp, target };
-    target.addEventListener('pointermove', onMove);
-    target.addEventListener('pointerup', onUp);
-    target.addEventListener('pointercancel', onCancel);
-  }
+        return '';
+      },
+      headerSort: false,
+      // A column laid out at 0 loses its width style, and renders as wide as its content.
+      minWidth: 1,
+      resizable: false,
+      title: '',
+      titleFormatter: (cell: TabulatorHeaderCell) => {
+        const header = cell.getColumn().getElement();
 
-  private releaseFallbackListeners() {
-    if (!this.#fallbackListeners) {
-      return;
-    }
+        // No divider of its own: at 1px it doubles the one before it, and wide it splits the empty
+        // area over the CTA column.
+        header.style.borderRight = 'none';
+        header.style.pointerEvents = 'none';
+        header.setAttribute('aria-hidden', 'true');
 
-    const { onCancel, onMove, onUp, target } = this.#fallbackListeners;
-
-    target.removeEventListener('pointermove', onMove);
-    target.removeEventListener('pointerup', onUp);
-    target.removeEventListener('pointercancel', onCancel);
-    this.#fallbackListeners = undefined;
-  }
-
-  /**
-   * With the fallback bound, an event dispatched at the handle reaches the handle's own binding and
-   * then the document one, running every terminal handler twice. The fallback owns the whole drag on
-   * that path, so the element-level delivery is dropped.
-   */
-  private isHandledByFallback(event: Event): boolean {
-    return this.#fallbackListeners !== undefined && event.currentTarget !== this.#fallbackListeners.target;
-  }
-
-  /** Every trace of a drag: the state the track-list publish is gated on, the cursor, the fallback. */
-  private endResize() {
-    this.#resize = undefined;
-    this.releaseFallbackListeners();
-    this.setResizingClass(false);
-  }
-
-  private handleResizeStart(event: PointerEvent) {
-    const handle = event.currentTarget as HTMLElement;
-    const field = handle.dataset.field;
-
-    // A secondary pointer, a button other than the primary one, or a second press while a drag is
-    // already running would take that drag over and orphan the first pointer's release.
-    if (!field || !event.isPrimary || event.button !== 0 || this.#resize) {
-      return;
-    }
-
-    // Without this the drag selects the header text instead of moving the divider.
-    event.preventDefault();
-
-    // preventDefault also suppresses the compatibility mousedown, and with it the focus the press
-    // would have given the handle, leaving the arrow keys dead straight after a drag.
-    handle.focus();
-
-    const startWidth = this.resolveColumnWidth(field);
-
-    this.#resize = {
-      field,
-      pointerId: event.pointerId,
-      startWidth,
-      startX: event.clientX,
-      width: startWidth,
+        return '';
+      },
+      widthGrow: FILLER_GROW,
     };
-    this.setResizingClass(true);
+  }
 
-    try {
-      // Lets the pointer leave the handle mid-drag. A browser that refuses must not abort the drag.
-      handle.setPointerCapture(event.pointerId);
-    } catch {
-      // Without capture a release off the handle never reaches the handle's own listeners, and the
-      // drag would latch: `#resize` set for good, the track-list publish gated on it, the resize
-      // cursor and `user-select: none` stuck on.
-      this.bindFallbackListeners(handle.ownerDocument);
+  /**
+   * A button of our own in a formatter cell rather than a `cx-table` hover-menu action: a row action
+   * renders an icon, with its label only as a tooltip.
+   */
+  private buildCtaColumnDefinition(): TableColumnDefinition {
+    return {
+      field: CTA_FIELD,
+      formatter: (cell: TabulatorCell) => this.renderCta(cell),
+      // Held at the right edge of a table wider than the picker: a click on the row hands nothing
+      // over, so the CTA is the only insert a row has.
+      frozen: true,
+      headerSort: false,
+      hozAlign: 'right',
+      // Tabulator's default floor would hold a narrower button's column wider than it is measured.
+      minWidth: 0,
+      resizable: false,
+      title: '',
+      // Untitled on screen, but a header a screen reader reads needs a name.
+      titleFormatter: (cell: TabulatorHeaderCell) => {
+        cell.getColumn().getElement().setAttribute('aria-label', this.ctaLabel);
+
+        return '';
+      },
+      width: this.#ctaColumnWidth,
+    };
+  }
+
+  private get ctaLabel(): string {
+    return this.ctaText || this.localize.term('insert');
+  }
+
+  private renderCta(cell: TabulatorCell): HTMLElement | string {
+    const row = cell.getRow();
+    const data = row.getData();
+
+    if (data.inColdStorage) {
+      return '';
+    }
+
+    const rowElement = row.getElement();
+    const button = document.createElement('cx-button');
+    const label = document.createElement('span');
+    const cta: RowCta = { assetId: String(data.id ?? ''), button, label, rowElement };
+
+    // A click on the row hands nothing over, so the row takes no pointer cursor, which `cx-table`
+    // gives every selectable row. The CTA keeps a pointer cursor of its own.
+    rowElement.style.cursor = 'default';
+    button.classList.add('content-browser-table__cta');
+    button.setAttribute('size', 'small');
+    button.setAttribute('variant', 'primary');
+    // Its own label's width in any column, so the column can be measured against it: `cx-button`
+    // caps itself at its container's width.
+    button.style.width = 'max-content';
+    button.style.maxWidth = 'none';
+    label.style.whiteSpace = 'nowrap';
+    button.append(label);
+
+    button.addEventListener('click', (event) => {
+      // The second click of a double click repeats the activation the first one made.
+      if (event.detail <= 1) {
+        this.insertAsset(cta.assetId);
+      }
+    });
+    button.addEventListener('focusin', () => {
+      this.#focusedCta = cta;
+      this.paintCta(cta);
+    });
+    button.addEventListener('focusout', () => {
+      if (this.#focusedCta === cta) {
+        this.#focusedCta = undefined;
+      }
+
+      this.paintCta(cta);
+    });
+
+    const previous = this.#ctas.get(rowElement);
+
+    // Tabulator formats a row again into the same element, which takes the CTA it held off the page for good.
+    if (previous) {
+      this.#renderedCtas.delete(previous);
+    }
+
+    this.#ctas.set(rowElement, cta);
+    this.#renderedCtas.add(cta);
+    this.trackPointer(rowElement);
+    this.paintCta(cta);
+    void this.fitCtaColumn(cta);
+
+    return button;
+  }
+
+  private isCtaShown(cta: RowCta): boolean {
+    return this.#hasNoHover
+      || cta.assetId === this.busyAssetId
+      || cta.assetId === this.selectedAssetId
+      || cta.rowElement === this.#hoveredRow
+      // Focus dropped by taking the button off the page need not fire a `focusout`.
+      || (cta === this.#focusedCta && cta.button.matches(':focus-within'));
+  }
+
+  /** In place, never rebuilt: a new button would drop the keyboard focus the old one held. */
+  private paintCta(cta: RowCta) {
+    const text = this.ctaLabel;
+
+    if (cta.label.textContent !== text) {
+      cta.label.textContent = text;
+    }
+
+    cta.label.style.textTransform = this.ctaTextTransform;
+    cta.button.loading = cta.assetId === this.busyAssetId;
+    // Opacity rather than visibility: a hidden CTA stays in the tab order, where focus reaching it
+    // shows it.
+    cta.button.style.opacity = this.isCtaShown(cta) ? '1' : '0';
+  }
+
+  private paintRowCta(rowElement: HTMLElement | undefined) {
+    const cta = rowElement ? this.#ctas.get(rowElement) : undefined;
+
+    if (cta) {
+      this.paintCta(cta);
+    }
+  }
+
+  private paintAssetCta(assetId: string | undefined) {
+    this.paintRowCta(this.findRow(assetId)?.getElement());
+  }
+
+  private trackPointer(rowElement: HTMLElement) {
+    if (this.#pointerTrackedRows.has(rowElement)) {
+      return;
+    }
+
+    this.#pointerTrackedRows.add(rowElement);
+    rowElement.addEventListener('mouseenter', () => this.setHoveredRow(rowElement));
+    rowElement.addEventListener('mouseleave', () => {
+      if (this.#hoveredRow === rowElement) {
+        this.setHoveredRow(undefined);
+      }
+    });
+  }
+
+  private setHoveredRow(rowElement: HTMLElement | undefined) {
+    const previous = this.#hoveredRow;
+
+    this.#hoveredRow = rowElement;
+    this.paintRowCta(previous);
+    this.paintRowCta(rowElement);
+  }
+
+  /**
+   * Tabulator takes a row that scrolls out of its render window off the page, and a row taken off
+   * the page gets no `mouseleave` to hide its CTA, nor need its button get a `focusout` for the
+   * focus it drops.
+   */
+  private releaseDetachedCta() {
+    if (this.#hoveredRow?.isConnected === false) {
+      this.setHoveredRow(undefined);
+    }
+
+    const focused = this.#focusedCta;
+
+    if (focused?.button.isConnected === false) {
+      this.#focusedCta = undefined;
+      this.paintCta(focused);
     }
   }
 
   /**
-   * The track list a running drag owns, built against the columns rendering right now: the committed
-   * widths with the drag's own preview over the top. Falls back to the committed list when no drag is
-   * running, so one expression covers both.
+   * The label is the host's, so no fixed width fits it: the column takes the rendered button's
+   * width plus whatever its cell puts around the button.
    */
-  private get previewTemplateColumns(): string {
-    if (!this.#resize) {
-      return this.templateColumns;
+  private async fitCtaColumn(cta: RowCta) {
+    await cta.button.updateComplete;
+
+    const tabulator = this.tabulator;
+    const column = (tabulator?.getColumn(CTA_FIELD) || undefined) as TabulatorColumn | undefined;
+    const container = cta.button.parentElement;
+
+    if (!tabulator || !column || !container || !cta.button.isConnected) {
+      return;
     }
 
-    const preview = createColumnWidths(Object.entries(this.columnWidths));
+    const labelKey = `${this.ctaLabel}\u0000${this.ctaTextTransform}`;
 
-    preview[this.#resize.field] = this.#resize.width;
+    if (labelKey === this.#ctaFittedLabel) {
+      return;
+    }
 
-    return this.buildTemplateColumns(preview);
+    const header = column.getElement().getBoundingClientRect().width;
+
+    // A table that CSS hides lays out no cell and no button to measure: the column is fitted once the
+    // table is shown again (see `handleResize`).
+    if (container.clientWidth === 0 || header === 0) {
+      return;
+    }
+
+    this.#ctaFittedLabel = labelKey;
+
+    const style = getComputedStyle(container);
+    const content = container.clientWidth - Number.parseFloat(style.paddingLeft) - Number.parseFloat(style.paddingRight);
+    // A scaled ancestor scales what `getBoundingClientRect` reports, never a layout width: the button is
+    // taken back to the column's own pixels by the scale its header renders at.
+    const scale = column.getWidth() > 0 ? header / column.getWidth() : 1;
+    const width = Math.ceil(column.getWidth() - content + cta.button.getBoundingClientRect().width / scale);
+
+    if (width === Math.round(column.getWidth())) {
+      return;
+    }
+
+    this.#ctaColumnWidth = width;
+    // `fitColumns` sizes a column by its definition on every layout, not by its live width.
+    column.getDefinition().width = width;
+    await column.setWidth(width);
+    // Lays the other columns out around the new width.
+    this.redrawTable();
   }
 
-  /** Repaints the drag with one property write: no re-render, no layout read. */
-  private previewColumnWidth(width: number) {
-    if (!this.#resize) {
-      return;
-    }
-
-    this.#resize.width = width;
-    this.style.setProperty(TABLE_COLUMNS_PROPERTY, this.previewTemplateColumns);
-  }
-
-  private handleResizeMove(event: PointerEvent) {
-    if (this.isHandledByFallback(event) || !this.#resize || this.#resize.pointerId !== event.pointerId) {
-      return;
-    }
-
-    this.previewColumnWidth(this.clampColumnWidth(
-      this.#resize.startWidth + (event.clientX - this.#resize.startX),
-    ));
-  }
-
-  private handleResizeEnd(event: PointerEvent) {
-    if (this.isHandledByFallback(event) || !this.#resize || this.#resize.pointerId !== event.pointerId) {
-      return;
-    }
-
-    const { field, startWidth, width } = this.#resize;
-
-    this.endResize();
-
-    // `handleColumnsChange` can drop the dragged column mid-drag, and committing would write its
-    // width straight back in. The drag's preview is still on the host, so put the committed list back.
-    if (!this.columns.some((column) => column.field === field)) {
-      this.style.setProperty(TABLE_COLUMNS_PROPERTY, this.templateColumns);
-
-      return;
-    }
-
-    if (width !== startWidth) {
-      this.commitColumnWidth(field, width);
-
-      return;
-    }
-
-    // A drag that ended where it began commits nothing, but `handleResizeMove` has already published
-    // a fixed px track. Left there the column is pinned with no state behind it: it stops flexing,
-    // announces no value, and `Home` and double click are inert because there is nothing to reset.
-    this.style.setProperty(TABLE_COLUMNS_PROPERTY, this.templateColumns);
+  /** Lays the columns and the rendered rows out again. */
+  private redrawTable() {
+    this.tabulator?.redraw();
   }
 
   /**
-   * A gesture the user agent took away was never a decision: restore the committed track list and
-   * tell the host nothing.
+   * Tabulator renders the rows again -- for an appended page, a redraw of its own or one of ours --
+   * by taking every rendered row off the page and back, which drops the keyboard focus, so the CTA
+   * that held it gets it back.
    */
-  private handleResizeCancel(event: PointerEvent) {
-    if (this.isHandledByFallback(event) || !this.#resize || this.#resize.pointerId !== event.pointerId) {
-      return;
-    }
+  private handleRenderStarted(event: Event) {
+    event.stopPropagation();
 
-    this.endResize();
-    this.style.setProperty(TABLE_COLUMNS_PROPERTY, this.templateColumns);
+    const button = this.#focusedCta?.button;
+
+    this.#ctaFocusedAtRender = button?.matches(':focus-within') ? button : undefined;
   }
 
-  private handleResizeKeyDown(event: KeyboardEvent) {
-    const handle = event.currentTarget as HTMLElement;
-    const field = handle.dataset.field;
+  private handleRenderComplete(event: Event) {
+    event.stopPropagation();
 
-    if (!field) {
-      return;
-    }
+    const button = this.#ctaFocusedAtRender;
 
-    if (event.key === 'Home') {
-      event.preventDefault();
-      this.commitColumnWidth(field, undefined);
+    this.#ctaFocusedAtRender = undefined;
 
-      return;
-    }
-
-    const step = event.shiftKey ? COLUMN_RESIZE_STEP_LARGE : COLUMN_RESIZE_STEP;
-    const delta = event.key === 'ArrowLeft' ? -step : event.key === 'ArrowRight' ? step : 0;
-
-    if (!delta) {
-      return;
-    }
-
-    event.preventDefault();
-
-    const startWidth = this.resolveColumnWidth(field);
-    const width = this.clampColumnWidth(startWidth + delta);
-
-    // A step with nowhere to go is not a decision to pin the column where it already stands. Pinning
-    // it would take a column that resolves wider than the maximum down to it -- for a press asking
-    // to widen -- and ask the host to persist that.
-    if (width === startWidth) {
-      return;
-    }
-
-    this.commitColumnWidth(field, width);
-  }
-
-  private handleResizeReset(event: MouseEvent) {
-    const field = (event.currentTarget as HTMLElement).dataset.field;
-
-    if (field) {
-      this.commitColumnWidth(field, undefined);
+    if (button?.isConnected && !button.matches(':focus-within')) {
+      // Tabulator renders the rows again in place, and its render buffer holds rows off screen: the
+      // scroll stays where the user put it.
+      button.focus({ preventScroll: true });
     }
   }
 
-  private renderResizeHandle(column: TableColumn) {
-    // The range is the two constants the drag and the keyboard step clamp to -- ARIA defaults a
-    // missing maximum to 100, so a value of 200 without one reads as out of range. Only a committed
-    // width is announced: resolving one here would cost a layout read per handle on every render,
-    // and a column still on its configured track has no value of its own to report.
-    const pinned = this.columnWidths[column.field];
+  private toRow(asset: Asset, keys: string[]): Record<string, unknown> {
+    const row: Record<string, unknown> = {
+      id: asset.id,
+      inColdStorage: Boolean(asset.inColdStorage),
+    };
 
-    // The handle is a descendant of the columnheader, so the column's own name is already in the
-    // accessible context; repeating it as the label announces "Identifier Identifier".
-    return html`
-      <div
-        class="content-browser-table__resize"
-        role="separator"
-        aria-orientation="vertical"
-        aria-label=${this.localize.term('resize')}
-        aria-valuemin=${MIN_COLUMN_WIDTH}
-        aria-valuemax=${MAX_COLUMN_WIDTH}
-        aria-valuenow=${ifDefined(pinned)}
-        tabindex="0"
-        data-field=${column.field}
-        @pointerdown=${this.handleResizeStart}
-        @pointermove=${this.handleResizeMove}
-        @pointerup=${this.handleResizeEnd}
-        @pointercancel=${this.handleResizeCancel}
-        @lostpointercapture=${this.handleResizeEnd}
-        @dblclick=${this.handleResizeReset}
-        @keydown=${this.handleResizeKeyDown}
-      ></div>
-    `;
+    this.columns.forEach((column, index) => {
+      row[keys[index]] = readCellValue(asset, column.field);
+    });
+
+    return row;
   }
 
-  @watch('columns', { waitUntilFirstUpdate: true })
-  handleColumnsChange() {
-    // A reconfigured column set must not keep dragging widths onto fields that are gone: a rotating
-    // column set would otherwise leave one entry behind per field it has ever configured.
+  private findRow(assetId: string | undefined): TabulatorRow | undefined {
+    if (!assetId) {
+      return undefined;
+    }
+
+    return (this.tabulator?.getRow(assetId) || undefined) as TabulatorRow | undefined;
+  }
+
+  /**
+   * `aria-current`, not `aria-selected`: this is a `grid` with no selection model of its own. The
+   * Tabulator selection is there only for `cx-table`'s selected-row style: `selectableRows` stays at
+   * its `highlight` default, so a click never selects a row by itself.
+   */
+  private markCurrentRow(assetId: string | undefined, current: boolean) {
+    const row = this.findRow(assetId);
+
+    if (!row) {
+      return;
+    }
+
+    row.getElement().setAttribute('aria-current', current ? 'true' : 'false');
+
+    if (current) {
+      this.tabulator?.selectRow(assetId);
+    } else {
+      this.tabulator?.deselectRow(assetId);
+    }
+  }
+
+  private getPercentColumns(tabulator: Tabulator): TabulatorColumn[] {
+    return (tabulator.getColumns() as TabulatorColumn[]).filter((column) => {
+      const { width } = column.getDefinition();
+
+      return typeof width === 'string' && PERCENT_LENGTH.test(width);
+    });
+  }
+
+  /**
+   * Tabulator converts a percentage to pixels once, as it builds the column, but `fitColumns` goes on
+   * budgeting the column at that share of the table's current width, which leaves the flexible columns
+   * a gap or an overflow at any other width: the column is budgeted at the width it was built at. A
+   * table hidden as it builds its columns has no width to take a share of, and Tabulator floors every
+   * share at the column's minimum: those shares are converted once the table is shown.
+   */
+  private pinPercentWidths(tabulator: Tabulator) {
+    const columns = this.getPercentColumns(tabulator);
+
+    this.#percentWidthsPending = columns.length > 0 && tabulator.element.clientWidth === 0;
+
+    if (this.#percentWidthsPending) {
+      return;
+    }
+
+    columns.forEach((column) => {
+      column.getDefinition().width = column.getWidth();
+    });
+  }
+
+  /** At the first width the table has, as Tabulator converts a share when it builds the column. */
+  private async convertPendingPercentWidths() {
+    const tabulator = this.tabulator;
+
+    if (!this.#percentWidthsPending || !tabulator || tabulator.element.clientWidth === 0) {
+      return;
+    }
+
+    this.#percentWidthsPending = false;
+
+    const tableWidth = tabulator.element.clientWidth;
+
+    await Promise.all(this.getPercentColumns(tabulator).map(async (column) => {
+      const definition = column.getDefinition();
+
+      // `setWidth` floors the width at the column's minimum, as the build does.
+      await column.setWidth(Math.floor(tableWidth / 100 * Number.parseInt(String(definition.width), 10)));
+      definition.width = column.getWidth();
+    }));
+    // Lays the other columns out around the converted widths.
+    this.redrawTable();
+  }
+
+  /**
+   * `content-browser` hands over the whole list on every page, so a list that only grows by a page
+   * is appended: reassigning it would call `setData`, which scrolls the table back to the top. Any
+   * other list -- a new search, sort, filter or folder, or a refetch that brings the assets the rows
+   * show as new objects -- replaces the rows.
+   */
+  private async syncRows(replace = false) {
+    const tabulator = this.tabulator;
+
+    if (!tabulator) {
+      return;
+    }
+
+    const columnKeys = this.resolveColumnKeys();
+    const synced = this.#syncedAssets;
+    const isNextPage = !replace && this.#pendingReplaces === 0 && isAppendOf(synced, this.assets);
+
+    this.#syncedAssets = [...this.assets];
+
+    if (isNextPage) {
+      // An appended row carries the keys of the current columns only.
+      this.#heldRowKeys = new Set(columnKeys.filter((key) => this.#heldRowKeys.has(key)));
+      await tabulator.addData(this.assets.slice(synced.length).map((asset) => this.toRow(asset, columnKeys)));
+    } else {
+      this.#heldRowKeys = new Set(columnKeys);
+      this.#pendingReplaces += 1;
+
+      try {
+        await tabulator.setData(this.assets.map((asset) => this.toRow(asset, columnKeys)));
+      } finally {
+        this.#pendingReplaces -= 1;
+      }
+    }
+
+    this.markCurrentRow(this.selectedAssetId, true);
+    this.observeLastRow();
+    this.reportRestartedRowCount();
+  }
+
+  private handleTableBuilt(event: Event) {
+    event.stopPropagation();
+
+    this.#builtTable = this.tableEl?.tabulatorInstance ?? undefined;
+    this.#syncedAssets = [];
+    void this.syncRows();
+  }
+
+  /**
+   * `setData` replaces the rows only once its debounce runs out, and Tabulator emits `dataLoaded` just
+   * before it does. Until then, the old rows stay on the page with their hover and focus.
+   */
+  private handleDataLoaded(event: Event) {
+    event.stopPropagation();
+
+    // Every row gets a new element, which neither the pointer nor the focus has reached yet.
+    this.#hoveredRow = undefined;
+    this.#focusedCta = undefined;
+    this.#renderedCtas.clear();
+    // Fitted once per list: a new table or column set starts the CTA column at its definitions' width.
+    this.#ctaFittedLabel = undefined;
+  }
+
+  /**
+   * Every `setColumns` builds the columns again from the host definitions, which keep the
+   * percentage: `cx-table` calls it from its own `tableBuilt` handler, after this component's has
+   * run, and again for every new column set.
+   */
+  private handleColumnsLoaded(event: Event) {
+    event.stopPropagation();
+
+    const tabulator = this.tableEl?.tabulatorInstance;
+
+    if (tabulator && !tabulator.destroyed) {
+      this.pinPercentWidths(tabulator);
+    }
+  }
+
+  willUpdate(changedProperties: PropertyValues<this>) {
+    super.willUpdate(changedProperties);
+
+    const signature = columnsSignature(this.columns);
+    // `content-browser` builds a new array on every render, and a new `columns` array makes
+    // `cx-table` call `setColumns`, which drops every width the user has dragged.
+    const columnsChanged = signature !== this.#columnsSignature;
+    // The no-result block unmounts `cx-table`, and the one that replaces it builds from these
+    // definitions, which predate every drag since the columns last changed.
+    const tableRemounts = changedProperties.get('empty') === true && !this.empty;
+
+    if (columnsChanged) {
+      this.#columnsSignature = signature;
+      // The first render builds the table, which takes its rows once it is built. `setColumns` lays the
+      // rows the table holds out under the new columns, so they are built again only for a key one of
+      // them carries no value under.
+      this.#rowsNeedRebuild = this.hasUpdated && this.resolveColumnKeys().some((key) => !this.#heldRowKeys.has(key));
+      this.forgetRemovedColumnWidths();
+    }
+
+    if (columnsChanged || tableRemounts) {
+      this.#columnDefinitions = this.buildColumnDefinitions();
+    }
+  }
+
+  updated(changedProperties: PropertyValues<this>) {
+    super.updated(changedProperties);
+
+    if (this.#rowsNeedRebuild) {
+      this.#rowsNeedRebuild = false;
+      void this.rebuildRows();
+    }
+  }
+
+  /** A column the host stops configuring starts again from the host's width if it comes back. */
+  private forgetRemovedColumnWidths() {
     const fields = new Set(this.columns.map((column) => column.field));
-    const kept = Object.entries(this.columnWidths).filter(([field]) => fields.has(field));
 
-    if (kept.length !== Object.keys(this.columnWidths).length) {
-      this.columnWidths = createColumnWidths(kept);
+    [...this.#resizedWidths.keys()]
+      .filter((field) => !fields.has(field))
+      .forEach((field) => this.#resizedWidths.delete(field));
+  }
+
+  /** Once `cx-table` has taken the new column definitions. */
+  private async rebuildRows() {
+    await this.tableEl?.updateComplete;
+    await this.syncRows(true);
+  }
+
+  @watch('assets')
+  handleAssetsChange(previous?: unknown) {
+    const previousAssets = (previous as Asset[] | undefined) ?? [];
+
+    // A page of records the list already holds comes back as a new array of the same assets, which
+    // the rows already show: `setData` would scroll back to the top, and the new last row would report
+    // itself in view and ask for yet another page.
+    if (this.assets.length === previousAssets.length && this.assets.every((asset, index) => asset === previousAssets[index])) {
+      return;
+    }
+
+    this.assetMap.clear();
+    this.assets.forEach((item) => this.assetMap.set(item.id, item));
+
+    // A new sort, search, filter or folder restarts the list at whatever page size the host last
+    // asked for, not one sized to this scrollport, so the count has to reach the host again even when
+    // it is unchanged. The rows never size the container, so no resize follows to measure it. A
+    // restarted list can keep the first asset and grow, as one does when a filter is removed: only a
+    // page appended to the same assets, as `syncRows` tells one, keeps the count. `syncRows` also
+    // replaces the rows for a new table, new columns or a page that lands while a replace waits. None
+    // of these restarts the list, so the count compares against the previous list, not the rows.
+    if (!isAppendOf(previousAssets, this.assets)) {
+      // Reported once the new rows are in (see `reportRestartedRowCount`).
+      this.#lastRowCount = undefined;
+    }
+
+    void this.syncRows();
+  }
+
+  @watch('selectedAssetId', { waitUntilFirstUpdate: true })
+  handleSelectedAssetIdChange(previous?: unknown) {
+    this.markCurrentRow(previous as string | undefined, false);
+    this.markCurrentRow(this.selectedAssetId, true);
+    this.paintAssetCta(previous as string | undefined);
+    this.paintAssetCta(this.selectedAssetId);
+  }
+
+  @watch('busyAssetId', { waitUntilFirstUpdate: true })
+  handleBusyAssetIdChange(previous?: unknown) {
+    this.paintAssetCta(previous as string | undefined);
+    this.paintAssetCta(this.busyAssetId);
+  }
+
+  @watch(['ctaText', 'ctaTextTransform'], { waitUntilFirstUpdate: true })
+  handleCtaTextChange() {
+    // A new label builds no new columns, so the header keeps the name its title formatter gave it.
+    ((this.tabulator?.getColumn(CTA_FIELD) || undefined) as TabulatorColumn | undefined)
+      ?.getElement().setAttribute('aria-label', this.ctaLabel);
+
+    // A row not rendered yet has no CTA, and takes the new label when it renders one.
+    this.#renderedCtas.forEach((cta) => this.paintCta(cta));
+    this.fitRenderedCta();
+  }
+
+  /** Every CTA shares the label, so one on the page measures the column for all of them. */
+  private fitRenderedCta() {
+    const rendered = [...this.#renderedCtas].find((cta) => cta.button.isConnected);
+
+    if (rendered) {
+      void this.fitCtaColumn(rendered);
     }
   }
 
-  updated() {
-    // A drag owns the property while it runs, so an unrelated re-render must not reset it to the
-    // committed widths -- but it must not leave a stale track list behind either: `columns` can
-    // change mid-drag, and the grid would resolve the previous track count against the new cell set.
-    this.style.setProperty(TABLE_COLUMNS_PROPERTY, this.previewTemplateColumns);
+  private readonly handleNoHoverChange = () => {
+    this.setNoHover(this.#noHoverQueries.some((list) => list.matches));
+  };
+
+  /** In place, as a relabel is: a CTA built again would drop the keyboard focus the old one held. */
+  private setNoHover(noHover: boolean) {
+    if (noHover === this.#hasNoHover) {
+      return;
+    }
+
+    this.#hasNoHover = noHover;
+    this.#renderedCtas.forEach((cta) => this.paintCta(cta));
+  }
+
+  connectedCallback() {
+    super.connectedCallback();
+
+    this.#noHoverQueries = NO_HOVER_QUERIES.map((media) => window.matchMedia(media));
+    this.#noHoverQueries.forEach((list) => list.addEventListener('change', this.handleNoHoverChange));
+    this.handleNoHoverChange();
+
+    // A reconnect, which a move of the picker is, makes `cx-table` build a new Tabulator instance
+    // from definitions that predate every drag and every fit of the CTA column since the columns
+    // last changed.
+    if (this.hasUpdated) {
+      this.#columnDefinitions = this.buildColumnDefinitions();
+      this.requestUpdate();
+    }
   }
 
   disconnectedCallback() {
     super.disconnectedCallback();
 
-    // A teardown mid-drag would otherwise keep `#resize` set, which gates the track-list publish for
-    // good, with the resize cursor latched on and the fallback listeners still on the document.
-    this.endResize();
-  }
-
-  @watch('assets')
-  handleAssetsChange() {
-    this.assetMap.clear();
-    this.assets.forEach((item) => this.assetMap.set(item.id, item));
-    this.scrollAnchorController.scheduleRestore();
+    this.#noHoverQueries.forEach((list) => list.removeEventListener('change', this.handleNoHoverChange));
+    this.#noHoverQueries = [];
+    this.#lastRowObserver?.disconnect();
+    this.debouncedCalculatePageSize.cancel();
+    this.debouncedHandleScrollEnd.cancel();
+    this.debouncedHandleLastRowVisible.cancel();
+    this.debouncedRedrawTable.cancel();
   }
 
   private handleResize(event: CxResizeEvent) {
@@ -598,9 +1144,33 @@ export default class CxContentBrowserTable extends CortexElement {
       return;
     }
 
-    this.scrollAnchorController.capture();
-    this.debouncedCalculatePageSize(entries[0].contentRect.height);
+    const { height, width } = entries[0].contentRect;
+
+    this.debouncedCalculatePageSize(height);
+    this.refitToContainer(width, height);
+    void this.convertPendingPercentWidths();
+    // A CTA that rendered or took a new label while the table was hidden is measured once it is shown.
+    this.fitRenderedCta();
   }
+
+  /**
+   * `cx-table` lays its columns and rows out again for a new container size only until the first
+   * drag of a column divider. After it, the columns keep the old width and the rows fill only the old
+   * height, which leaves a blank area right of the columns or under the rows.
+   */
+  private refitToContainer(width: number, height: number) {
+    const size = `${Math.round(width)}x${Math.round(height)}`;
+    const previous = this.#containerSize;
+
+    this.#containerSize = size;
+
+    // The first size observed is the one the table is built at.
+    if (previous !== undefined && previous !== size) {
+      this.debouncedRedrawTable();
+    }
+  }
+
+  private readonly debouncedRedrawTable = _debounce(this.redrawTable, 100);
 
   private readonly debouncedCalculatePageSize = _debounce(this.calculatePageSize, 200);
 
@@ -610,25 +1180,104 @@ export default class CxContentBrowserTable extends CortexElement {
     }
 
     this.#lastHeight = height;
+    this.reportRowCount();
+  }
+
+  /** Counts the rows the last measured height shows, and tells the host when the count changes. */
+  private reportRowCount() {
+    const rowCount = Math.ceil(this.resolveVisibleHeight(this.#lastHeight) / ROW_HEIGHT);
+
+    // The host sizes the next page against the last page it asked for, not against the rows it
+    // holds, so an unchanged count still fetches -- and where the rows size the table, every fetch
+    // resizes it again.
+    if (rowCount === this.#lastRowCount) {
+      return;
+    }
+
+    this.#lastRowCount = rowCount;
 
     // One asset per row, so the grid's column/row contract degenerates to a single column and the
     // host's page-size maths stays the same in both views.
-    this.scrollAnchorController.setLayoutMetrics({
-      columnCount: 1,
-      itemHeight: ROW_HEIGHT,
-    });
-
     this.emit('cx-content-browser-grid-resize', {
       detail: {
         columnCount: 1,
-        rowCount: Math.ceil(height / ROW_HEIGHT),
+        rowCount,
       },
     });
-
-    this.scrollAnchorController.scheduleRestore();
   }
 
-  private selectRow(assetId: string) {
+  /**
+   * Only once the restarted rows are in: the host asks for the next page at once, and a page that
+   * lands while `setData` waits replaces the rows again and holds them back for another half second.
+   * A measurement still in its debounce reports in the same count, because a second count inside the
+   * host's 200 ms fetch debounce cancels the page the first count asked for.
+   */
+  private reportRestartedRowCount() {
+    // Until the container is first measured, that measurement reports the count.
+    if (!this.isConnected || this.#lastRowCount !== undefined || this.#lastHeight === 0) {
+      return;
+    }
+
+    this.debouncedCalculatePageSize.flush();
+    this.reportRowCount();
+  }
+
+  /**
+   * The rows never size the container (see the styles), so this is the height the host gives the
+   * picker, and it can run past the viewport. No scrollport shows more rows than the viewport, so
+   * while the rows do not overflow the scrollport the count stops there, and the page scrolls to the
+   * rest, where the last row coming into view asks for more (`observeLastRow`). One that overflows,
+   * or holds no rows yet, measures the space its container gives it and is used as is.
+   */
+  private resolveVisibleHeight(height: number): number {
+    return this.isSizedByRows() ? Math.min(height, window.innerHeight) : height;
+  }
+
+  private isSizedByRows(): boolean {
+    const scrollport = this.scrollport;
+
+    // The rows the table holds, not the assets: `setData` holds a new list back for half a second, and
+    // a table built with no rows keeps none until then.
+    return (this.tabulator?.getDataCount() ?? 0) > 0
+      && scrollport !== undefined
+      && scrollport.scrollHeight <= scrollport.clientHeight + 1;
+  }
+
+  /**
+   * A scrollport that holds its rows without overflowing never scrolls, so its own scroll never
+   * reaches the end: the page scrolls instead. Once the table is taller than the viewport its count
+   * is capped and stops fetching, which leaves the last row coming into view as the only sign the
+   * user wants more.
+   */
+  private observeLastRow() {
+    this.#lastRowObserver?.disconnect();
+
+    const rows = (this.tabulator?.getRows() ?? []) as TabulatorRow[];
+    const lastRow = rows[rows.length - 1];
+
+    if (!lastRow) {
+      return;
+    }
+
+    this.#lastRowObserver ??= new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) {
+        this.debouncedHandleLastRowVisible();
+      }
+    });
+    this.#lastRowObserver.observe(lastRow.getElement());
+  }
+
+  private readonly debouncedHandleLastRowVisible = _debounce(this.handleLastRowVisible, 200);
+
+  private handleLastRowVisible() {
+    if (this.isSizedByRows() && this.containerEl.clientHeight > window.innerHeight) {
+      this.handleScrollEnd();
+    }
+  }
+
+  private insertAsset(assetId: string) {
+    // A new list replaces the rows only once `setData` has waited out its debounce, so a CTA can
+    // outlive its asset's move to cold storage.
     if (!assetId || this.assetMap.get(assetId)?.inColdStorage) {
       return;
     }
@@ -640,123 +1289,43 @@ export default class CxContentBrowserTable extends CortexElement {
     });
   }
 
-  private handleRowClick(event: MouseEvent) {
-    this.selectRow((event.currentTarget as HTMLElement).dataset.id ?? '');
-  }
-
-  private handleActionClick(event: MouseEvent) {
-    // The row is also clickable, so let the button own the activation rather than firing twice.
+  private handleColumnResized(event: TabulatorEvent<[TabulatorColumn]>) {
     event.stopPropagation();
-    this.selectRow((event.currentTarget as HTMLElement).dataset.id ?? '');
-  }
 
-  private handleRowKeyDown(event: KeyboardEvent) {
-    if (event.key !== 'Enter' && event.key !== ' ') {
+    const [column] = event.detail.args;
+    const field = this.columns[this.resolveColumnKeys().indexOf(column.getField())]?.field;
+
+    if (field === undefined) {
       return;
     }
 
-    event.preventDefault();
-    this.selectRow((event.currentTarget as HTMLElement).dataset.id ?? '');
+    const width = Math.round(column.getWidth());
+
+    // `fitColumns` sizes each column by its definition on every layout, which every new list runs:
+    // a flexible one would snap back to its share, and a fixed one would be budgeted at its old width.
+    column.getDefinition().width = width;
+    this.#resizedWidths.set(field, width);
+    this.emit('cx-content-browser-table-column-resize', {
+      detail: {
+        field,
+        width,
+      },
+    });
+    // A drag resizes the dragged column only: the width it frees or takes goes to the flexible
+    // columns, the filler among them, only on the next layout.
+    this.redrawTable();
   }
 
-  /**
-   * @param assetId - omitted for the header's sizing twin, which is inert and never announced.
-   */
-  private renderActionButton(assetId: string | undefined) {
-    const isPlaceholder = assetId === undefined;
-    const isBusy = !isPlaceholder && assetId === this.busyAssetId;
+  private handleScrollVertical(event: Event) {
+    event.stopPropagation();
 
-    return html`
-      <cx-button
-        class=${classMap({
-          'content-browser-table__action': true,
-          'content-browser-table__action--busy': isBusy,
-          'content-browser-table__action--placeholder': isPlaceholder,
-        })}
-        data-id=${ifDefined(assetId)}
-        size="small"
-        variant="primary"
-        tabindex="-1"
-        ?loading=${isBusy}
-        aria-hidden=${isPlaceholder ? 'true' : 'false'}
-        @click=${isPlaceholder ? nothing : this.handleActionClick}
-      >
-        <span style=${styleMap({ textTransform: this.ctaTextTransform })}>
-          ${this.ctaText || this.localize.term('insert')}
-        </span>
-      </cx-button>
-    `;
-  }
+    this.releaseDetachedCta();
 
-  /**
-   * Bound fresh on every render at the call site, deliberately. `lit-virtualizer` re-runs this only
-   * when `items` or `renderItem` change identity, and the selected id lives on neither — with a
-   * stable reference the rows keep their first render and the selected row is never marked. A new
-   * `items` array alone does not do it; the function identity is what the virtualizer acts on.
-   */
-  private renderRow(asset: Asset) {
-    // The virtualizer can still ask for an index the shrunken item list no longer has.
-    if (!asset) {
-      return nothing;
-    }
+    const scrollport = this.scrollport;
 
-    return html`
-      <div
-        class=${classMap({
-          'content-browser-table__row': true,
-          'content-browser-table__row--disabled': Boolean(asset.inColdStorage),
-          'content-browser-table__row--selected': asset.id === this.selectedAssetId,
-        })}
-        data-id=${asset.id}
-        role="row"
-        tabindex=${asset.inColdStorage ? -1 : 0}
-        aria-current=${asset.id === this.selectedAssetId ? 'true' : 'false'}
-        style=${styleMap({
-          'min-height': `${ROW_HEIGHT}px`,
-        })}
-        @click=${this.handleRowClick}
-        @keydown=${this.handleRowKeyDown}
-      >
-        ${repeat(this.columns,
-          (column, index) => `${column.field}:${index}`,
-          (column) => html`
-            <div
-              class=${classMap({
-                'content-browser-table__cell': true,
-                [`content-browser-table__cell--${column.align}`]: Boolean(column.align),
-              })}
-              role="cell"
-            >
-              <cx-line-clamp lines=${column.lines ?? 1}>
-                <cx-typography variant="body3">${readCellValue(asset, column.field)}</cx-typography>
-              </cx-line-clamp>
-            </div>
-          `,
-        )}
-        <div class="content-browser-table__cell content-browser-table__cell--action" role="cell">
-          ${this.renderActionButton(asset.id)}
-        </div>
-      </div>
-    `;
-  }
-
-  private handleScroll(event: Event) {
-    const container = event.target as HTMLDivElement;
-
-    this.scrollAnchorController.capture(container);
-
-    // The container scrolls both axes now. Scrolling sideways to reach a widened column leaves every
-    // vertical metric exactly where it was, so an unguarded end test stays true and asks the host for
-    // another page on a gesture that revealed no rows.
-    const scrolledVertically = container.scrollTop !== this.#lastScrollTop;
-
-    this.#lastScrollTop = container.scrollTop;
-
-    if (!scrolledVertically) {
-      return;
-    }
-
-    if (container.scrollTop + container.clientHeight >= container.scrollHeight - 10) {
+    // Within a row of the end, not a few pixels: Tabulator re-pads its virtual rows as they scroll in,
+    // so the scroll height it reports at the bottom can sit past the furthest offset a scroll reaches.
+    if (scrollport && scrollport.scrollTop + scrollport.clientHeight >= scrollport.scrollHeight - ROW_HEIGHT) {
       this.debouncedHandleScrollEnd();
     }
   }
@@ -764,7 +1333,10 @@ export default class CxContentBrowserTable extends CortexElement {
   private readonly debouncedHandleScrollEnd = _debounce(this.handleScrollEnd, 200);
 
   private handleScrollEnd() {
-    if (this.hasMore) {
+    // A page asked for while another loads would be in flight with it, and pages append in the order
+    // they arrive. Once the loading page lands, the last row is observed again (`syncRows`), and the
+    // scrollport has a new end to reach.
+    if (this.hasMore && !this.loading) {
       this.emit('cx-content-browser-grid-scroll-end');
     }
   }
@@ -780,43 +1352,7 @@ export default class CxContentBrowserTable extends CortexElement {
         <cx-progress-bar indeterminate></cx-progress-bar>
       </div>
       <cx-resize-observer @cx-resize=${this.handleResize}>
-        <div
-          class="content-browser-table"
-          role="table"
-          @scroll=${this.handleScroll}
-        >
-          <div class="content-browser-table__head" role="rowgroup">
-            <div
-              class="content-browser-table__header"
-              role="row"
-            >
-              ${repeat(this.columns,
-                (column, index) => `${column.field}:${index}`,
-                (column) => html`
-                  <div
-                    class=${classMap({
-                      'content-browser-table__cell': true,
-                      [`content-browser-table__cell--${column.align}`]: Boolean(column.align),
-                    })}
-                    role="columnheader"
-                    data-field=${column.field}
-                  >
-                    <cx-line-clamp lines="1">
-                      <cx-typography variant="small">${column.title}</cx-typography>
-                    </cx-line-clamp>
-                    ${this.renderResizeHandle(column)}
-                  </div>
-                `,
-              )}
-              <div
-                class="content-browser-table__cell content-browser-table__cell--action"
-                role="columnheader"
-                aria-label=${this.ctaText || this.localize.term('insert')}
-              >
-                ${this.renderActionButton(undefined)}
-              </div>
-            </div>
-          </div>
+        <div class="content-browser-table">
           ${when(this.empty,
             () => html`
               <cx-content-browser-no-result
@@ -825,16 +1361,26 @@ export default class CxContentBrowserTable extends CortexElement {
                 message=${this.localize.term('noResults')}
               ></cx-content-browser-no-result>
             `,
-            // Deliberately not a `scroller`: the table container scrolls both axes, so the
-            // virtualizer sizes itself to the whole list and reacts to that ancestor's scrolling.
-            // One scrollport is what keeps the header and the rows on one horizontal offset.
+            // Left without `data`: reassigning it calls `setData`, which scrolls back to the top on
+            // every page, so rows are handed to the Tabulator instance directly (see `syncRows`).
             () => html`
-              <lit-virtualizer
-                class="content-browser-table__body"
-                role="rowgroup"
-                .items=${this.assets}
-                .renderItem=${(asset: Asset) => this.renderRow(asset)}
-              ></lit-virtualizer>
+              <cx-table
+                class="content-browser-table__table"
+                layout="fitColumns"
+                placeholder=""
+                no-selectable
+                no-clipboard
+                .columns=${this.#columnDefinitions}
+                .columnDefaults=${COLUMN_DEFAULTS}
+                .rowHeight=${this.hasMultilineColumn ? undefined : ROW_HEIGHT}
+                @cx-table.tableBuilt=${this.handleTableBuilt}
+                @cx-table.dataLoaded=${this.handleDataLoaded}
+                @cx-table.columnsLoaded=${this.handleColumnsLoaded}
+                @cx-table.columnResized=${this.handleColumnResized}
+                @cx-table.scrollVertical=${this.handleScrollVertical}
+                @cx-table.renderStarted=${this.handleRenderStarted}
+                @cx-table.renderComplete=${this.handleRenderComplete}
+              ></cx-table>
             `,
           )}
         </div>

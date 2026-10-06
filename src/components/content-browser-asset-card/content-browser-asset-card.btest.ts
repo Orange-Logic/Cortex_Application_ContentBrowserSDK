@@ -1,6 +1,6 @@
 import './content-browser-asset-card';
 
-import { elementUpdated, expect, fixture, html } from '@open-wc/testing';
+import { elementUpdated, expect, fixture, html, waitUntil } from '@open-wc/testing';
 import sinon from 'sinon';
 
 import { MediaType } from '@/types/asset';
@@ -311,6 +311,72 @@ describe('content-browser-asset-card', () => {
       await elementUpdated(el);
 
       expect(getComputedStyle(getCta(el)!).opacity).to.equal('0');
+    });
+  });
+
+  describe('insert overlay geometry', () => {
+    const CORNERS = [
+      'borderTopLeftRadius',
+      'borderTopRightRadius',
+      'borderBottomRightRadius',
+      'borderBottomLeftRadius',
+    ] as const;
+
+    function radii(element: Element) {
+      const style = getComputedStyle(element);
+
+      return CORNERS.map((corner) => style[corner]).join(' ');
+    }
+
+    function box(rect: DOMRect) {
+      return `${Math.round(rect.left)},${Math.round(rect.top)} ${Math.round(rect.width)}x${Math.round(rect.height)}`;
+    }
+
+    /**
+     * DS tokens are empty in the test runner, which leaves the image box square and the card
+     * unpadded, so any overlay would trivially match it. The themed values give the image box a
+     * real radius and inset.
+     */
+    async function themedCard() {
+      const wrapper = await fixture<HTMLDivElement>(html`
+        <div style="--cx-border-radius-x-large: 16px; --cx-spacing-x-small: 8px; width: 246px;">
+          <cx-content-browser-asset-card show-cta></cx-content-browser-asset-card>
+        </div>
+      `);
+      const card = wrapper.querySelector('cx-content-browser-asset-card')!;
+      await card.updateComplete;
+      await getCard(card).updateComplete;
+      const image = getCard(card).shadowRoot!.querySelector('slot[name="image"]')!;
+      await waitUntil(() => image.getBoundingClientRect().height > 0, 'the image box was never laid out');
+
+      return {
+        card,
+        cta: card.shadowRoot!.querySelector('.content-browser-asset-card__cta')!,
+        image,
+      };
+    }
+
+    it('follows the thumbnail when the card rounds its image differently', async () => {
+      const { card, cta, image } = await themedCard();
+      const sheet = new CSSStyleSheet();
+      sheet.replaceSync('.content-browser-asset-card::part(image) { border-radius: 4px; }');
+      card.shadowRoot!.adoptedStyleSheets = [...card.shadowRoot!.adoptedStyleSheets, sheet];
+
+      expect(radii(image)).to.equal('4px 4px 4px 4px');
+      expect(radii(cta)).to.equal(radii(image));
+    });
+
+    it('covers the thumbnail and never reaches past it', async () => {
+      const { cta, image } = await themedCard();
+      const overlay = cta.getBoundingClientRect();
+      const thumbnail = image.getBoundingClientRect();
+      const inside = overlay.left >= thumbnail.left - 0.5
+        && overlay.top >= thumbnail.top - 0.5
+        && overlay.right <= thumbnail.right + 0.5
+        && overlay.bottom <= thumbnail.bottom + 0.5;
+
+      expect(inside, `overlay ${box(overlay)} vs image ${box(thumbnail)}`).to.be.true;
+      expect(box(overlay)).to.equal(box(thumbnail));
     });
   });
 
