@@ -149,6 +149,13 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
   canUseProxies: boolean = false;
 
   /**
+   * Confirm as soon as the user chooses a proxy/representative format, or finishes a custom
+   * format. This only applies when the format selector is available.
+   */
+  @property({ attribute: 'confirm-on-format-select', reflect: false, type: Boolean })
+  confirmOnFormatSelect: boolean = false;
+
+  /**
    * Pick-only mode. Suppresses the custom-format editor entirely: cx-asset-link-format issues its
    * own transformasset request as soon as it is in the DOM, so hiding it with CSS is not enough.
    */
@@ -393,6 +400,10 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
     }
 
     this.showCustomFormat = false;
+
+    if (this.confirmOnFormatSelect) {
+      this.handleProxyConfirm();
+    }
   }
 
   private handleFavorite() {
@@ -426,7 +437,7 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
   }
 
   private handleProxyConfirm() {
-    if (!this.asset) {
+    if (!this.asset || this.loadingConfirm) {
       return;
     }
 
@@ -490,6 +501,10 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
   }
 
   private handleProxySelect(event: CxSelectEvent<CxMenuItem>) {
+    if (this.loadingConfirm) {
+      return;
+    }
+
     const value = event.detail.item.value;
 
     if (value === CUSTOM_FORMAT_VALUE) {
@@ -509,6 +524,10 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
     if (value === USE_REPRESENTATIVE_VALUE) {
       this.selectedProxy = USE_REPRESENTATIVE_VALUE;
 
+      if (this.confirmOnFormatSelect) {
+        this.handleProxyConfirm();
+      }
+
       return;
     }
 
@@ -521,6 +540,10 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
 
       if (this.confirmedTransformations.length > 0) {
         this.confirmedTransformations = [];
+      }
+
+      if (this.confirmOnFormatSelect) {
+        this.handleProxyConfirm();
       }
     }
   }
@@ -864,7 +887,7 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
           </cx-button>
         </cx-space>
       `;
-    } else {
+    } else if (!this.confirmOnFormatSelect) {
       content = html`
         <cx-button
           class="content-browser-format__footer__button"
@@ -885,6 +908,10 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
           </span>
         </cx-button>
       `;
+    }
+
+    if (!content) {
+      return nothing;
     }
 
     return html`

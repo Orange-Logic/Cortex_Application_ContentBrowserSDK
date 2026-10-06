@@ -411,6 +411,14 @@ customStorage: {
             </p>
           </li>
           <li>
+            <b>confirmOnFormatSelect</b> (default false)
+            <p>
+              A boolean to confirm immediately after selecting a proxy or representative image, or after clicking
+              Done in Custom Format. This removes the extra Insert click while preserving link generation and the
+              selected asset payload. It has no effect when proxy selection is unavailable.
+            </p>
+          </li>
+          <li>
             <b>allowFavorites</b> (default false)
             <p>
               A boolean to allow the user to select favorites.
@@ -529,6 +537,7 @@ customStorage: {
         pluginName: "Orange Logic Content Browser",
         showCollections: true,
         allowTracking: true,
+        confirmOnFormatSelect: false,
         allowPin: true,
         allowFormatDialogPin: true,
         useSession: '',

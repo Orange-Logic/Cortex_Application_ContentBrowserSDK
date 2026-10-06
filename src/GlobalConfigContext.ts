@@ -33,6 +33,7 @@ export type GlobalConfigContextType = {
   allowLogout?: boolean;
   allowTracking: boolean;
   allowProxy: boolean;
+  confirmOnFormatSelect: boolean;
   simplePick: boolean;
   allowFavorites: boolean;
   allowPin: boolean;
@@ -60,6 +61,7 @@ export const GlobalConfigContext = createContext<GlobalConfigContextType>({
   allowLogout: true,
   allowTracking: true,
   allowProxy: false,
+  confirmOnFormatSelect: false,
   simplePick: false,
   allowFavorites: false,
   allowPin: false,

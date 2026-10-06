@@ -108,6 +108,32 @@ setting is simply ignored. Because no GetAssetLink request is made, only the com
 `extraFields` (`ScrubUrl` and `AllowATSLink`) are returned in this mode -- request any
 other field with `simplePick` off.
 
+## Confirm When a Format Is Selected (`confirmOnFormatSelect`)
+
+Set `confirmOnFormatSelect: true` to remove the extra Insert click after the user chooses
+an image variation:
+
+```html
+<script>
+  OrangeDAMContentBrowser.open({
+    containerId: 'asset-picker',
+    allowProxy: true,
+    confirmOnFormatSelect: true,
+    onAssetSelected: (assets) => console.log(assets),
+  });
+</script>
+```
+
+Selecting a proxy or representative image confirms it immediately. Selecting Custom
+Format still opens the editor so the user can configure the transformation; clicking
+Done then confirms it immediately. Tracking remains a toggle and does not confirm the
+selection.
+
+The option defaults to `false`, so existing integrations retain the explicit Insert
+button. It has no effect when proxy selection is unavailable, including when
+`simplePick` disables proxies. Link generation and the `onAssetSelected` payload are
+unchanged.
+
 # Change Log
 * March 24, 2026 - v2.2.3
   * Supports displaying asset thumbnails according to the selected format (https://link.orangelogic.com/Tasks/420YSB)

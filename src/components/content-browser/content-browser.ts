@@ -163,6 +163,13 @@ export default class CxContentBrowser extends CortexElement {
   canUseProxies = false;
 
   /**
+   * Confirm as soon as the user chooses a format in the format dialog.
+   * Off by default to preserve the existing explicit Insert step.
+   */
+  @property({ attribute: 'confirm-on-format-select', reflect: false, type: Boolean })
+  confirmOnFormatSelect = false;
+
+  /**
    * Pick-only mode: no available-proxies lookup, no transformation on confirm. The preview popup
    * shows the asset's LargeSizePreview and confirming emits the asset straight to the host.
    * Implies `can-use-proxies=false`.
@@ -966,6 +973,7 @@ export default class CxContentBrowser extends CortexElement {
           ?can-pin-asset=${this.canPinAsset}
           ?can-track=${this.canTrack}
           ?can-use-proxies=${this.canUseProxies && !this.simplePick}
+          ?confirm-on-format-select=${this.confirmOnFormatSelect}
           ?simple-pick=${this.simplePick}
           ?can-view-versions=${this.canViewVersions}
           @cx-content-browser-format-dialog-version-history-open=${this.handleVersionHistoryOpen}

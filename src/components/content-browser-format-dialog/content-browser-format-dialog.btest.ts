@@ -668,6 +668,16 @@ describe('content-browser-format-dialog', () => {
     expect(el.loadingConfirm).to.be.true;
   });
 
+  it('keeps the confirm button when opt-in mode has no format selector', async () => {
+    el = await fixture<CxContentBrowserFormatDialog>(html`
+      <cx-content-browser-format-dialog confirm-on-format-select></cx-content-browser-format-dialog>
+    `);
+    el.open({ asset: makeAsset(), isFavorite: false, proxies: [] });
+    await elementUpdated(el);
+
+    expect(el.shadowRoot!.querySelector('.content-browser-format__footer__button')).to.exist;
+  });
+
   it('emits cx-content-browser-format-dialog-proxy-confirm when insert is clicked with a selected proxy', async () => {
     el = await fixture<CxContentBrowserFormatDialog>(
       html`<cx-content-browser-format-dialog can-use-proxies></cx-content-browser-format-dialog>`,
@@ -691,6 +701,103 @@ describe('content-browser-format-dialog', () => {
     expect(ev.detail.asset.id).to.equal('asset-1');
     expect(ev.detail.useRepresentative).to.equal(false);
     expect(ev.detail.proxyPreference).to.equal(proxy.proxyName);
+  });
+
+  it('confirms immediately and hides the Insert footer when a proxy is selected in opt-in mode', async () => {
+    el = await fixture<CxContentBrowserFormatDialog>(html`
+      <cx-content-browser-format-dialog
+        can-use-proxies
+        confirm-on-format-select
+      ></cx-content-browser-format-dialog>
+    `);
+    const proxy = makeProxy({ id: 'proxy-auto', proxyName: 'AUTO' });
+    el.open({ asset: makeAsset(), isFavorite: false, proxies: [proxy] });
+    await elementUpdated(el);
+
+    expect(el.shadowRoot!.querySelector('.content-browser-format__footer')).not.to.exist;
+
+    const p = oneEvent(el, 'cx-content-browser-format-dialog-proxy-confirm');
+    dispatchProxySelect(el, proxy.id);
+    const ev = await p;
+
+    expect(ev.detail.proxyPreference).to.equal('AUTO');
+    expect(el.loadingConfirm).to.be.true;
+  });
+
+  it('confirms a representative image immediately in opt-in mode', async () => {
+    el = await fixture<CxContentBrowserFormatDialog>(html`
+      <cx-content-browser-format-dialog
+        can-use-proxies
+        confirm-on-format-select
+        supported-representative-subtypes="thumb"
+      ></cx-content-browser-format-dialog>
+    `);
+    el.open({
+      asset: makeAsset({ docSubType: 'thumb' }),
+      isFavorite: false,
+      proxies: [makeProxy()],
+    });
+    await elementUpdated(el);
+
+    const p = oneEvent(el, 'cx-content-browser-format-dialog-proxy-confirm');
+    dispatchProxySelect(el, USE_REPRESENTATIVE_VALUE);
+    const ev = await p;
+
+    expect(ev.detail.useRepresentative).to.equal(true);
+  });
+
+  it('does not confirm tracking or custom-format menu selections in opt-in mode', async () => {
+    el = await fixture<CxContentBrowserFormatDialog>(html`
+      <cx-content-browser-format-dialog
+        can-custom-format
+        can-track
+        can-use-proxies
+        confirm-on-format-select
+        .availableExtensions=${videoMp4Extensions()}
+      ></cx-content-browser-format-dialog>
+    `);
+    el.open({ asset: makeAsset(), isFavorite: false, proxies: [makeProxy()] });
+    await elementUpdated(el);
+
+    let confirmCount = 0;
+    el.addEventListener('cx-content-browser-format-dialog-proxy-confirm', () => {
+      confirmCount += 1;
+    });
+    el.addEventListener('cx-content-browser-format-dialog-format-confirm', () => {
+      confirmCount += 1;
+    });
+
+    dispatchProxySelect(el, 'tracking');
+    dispatchProxySelect(el, CUSTOM_FORMAT_VALUE);
+    await elementUpdated(el);
+
+    expect(confirmCount).to.equal(0);
+    expect(el.enabledTracking).to.be.true;
+    expect(el.showCustomFormat).to.be.true;
+    expect(el.shadowRoot!.querySelectorAll('.content-browser-format__footer cx-button')).to.have.lengthOf(2);
+  });
+
+  it('ignores format selections while a confirmation is in flight', async () => {
+    el = await fixture<CxContentBrowserFormatDialog>(html`
+      <cx-content-browser-format-dialog
+        can-use-proxies
+        confirm-on-format-select
+      ></cx-content-browser-format-dialog>
+    `);
+    const firstProxy = makeProxy({ id: 'proxy-first' });
+    const secondProxy = makeProxy({ id: 'proxy-second' });
+    el.open({ asset: makeAsset(), isFavorite: false, proxies: [firstProxy, secondProxy] });
+    await elementUpdated(el);
+    el.loadingConfirm = true;
+
+    let confirmCount = 0;
+    el.addEventListener('cx-content-browser-format-dialog-proxy-confirm', () => {
+      confirmCount += 1;
+    });
+    dispatchProxySelect(el, secondProxy.id);
+
+    expect(confirmCount).to.equal(0);
+    expect(el.selectedProxy).to.equal(firstProxy.id);
   });
 
   it('emits proxy-confirm with useRepresentative after selecting representative', async () => {
@@ -1110,6 +1217,37 @@ describe('content-browser-format-dialog', () => {
     const ev = await p;
     expect(ev.detail.asset.id).to.equal('asset-1');
     expect(ev.detail.transformedAssetMetadata?.isCustomFormat).to.equal(true);
+  });
+
+  it('confirms immediately after custom format Done in opt-in mode', async () => {
+    el = await fixture<CxContentBrowserFormatDialog>(html`
+      <cx-content-browser-format-dialog
+        can-use-proxies
+        can-custom-format
+        confirm-on-format-select
+        .availableExtensions=${videoMp4Extensions()}
+      ></cx-content-browser-format-dialog>
+    `);
+    el.open({ asset: makeAsset(), isFavorite: false, proxies: [makeProxy()] });
+    await elementUpdated(el);
+    setAssetLinkFormatStub(el, {
+      selectedFormat: { extension: '.webm', height: 480, width: 640 },
+      transformations: [],
+    });
+    dispatchProxySelect(el, CUSTOM_FORMAT_VALUE);
+    await elementUpdated(el);
+
+    const p = oneEvent(el, 'cx-content-browser-format-dialog-format-confirm');
+    const footerButtons = el.shadowRoot!.querySelectorAll('.content-browser-format__footer cx-button');
+    (footerButtons[1] as HTMLElement).click();
+    const ev = await p;
+
+    expect(ev.detail.transformedAssetMetadata).to.deep.include({
+      extension: '.webm',
+      height: 480,
+      isCustomFormat: true,
+      width: 640,
+    });
   });
 
   it('disables insert when disabledConfirm is set', async () => {

@@ -218,6 +218,14 @@ type OrangeDAMContentBrowser = {
     allowProxy?: boolean;
 
     /**
+     * Confirm the asset as soon as the user selects a proxy/representative format, or finishes a
+     * custom format. This removes the extra Insert click while preserving the existing format
+     * picker and GetAssetLink payload. Has no effect when proxy selection is unavailable.
+     * Default: false.
+     */
+    confirmOnFormatSelect?: boolean;
+
+    /**
      * Pick-only mode. Skips the available-proxies lookup and the transformation request made when
      * an asset is confirmed; the preview popup shows the asset's LargeSizePreview and confirming
      * emits the asset straight to `onAssetSelected`. Implies `allowProxy: false`.
@@ -356,6 +364,7 @@ const ContentBrowser: OrangeDAMContentBrowser = {
         showCollections: true, // Whether to show collections in the content browser
         lastLocationMode: true, // Whether to open the last selected folder on load
         allowTracking: true, // Whether to enable tracking parameters for asset URLs
+        confirmOnFormatSelect: false, // Whether choosing a format confirms it without an extra Insert click
         allowFormatDialogPin: true, // Whether to show pin/unpin actions in format dialog
       });`);
   },
@@ -381,6 +390,7 @@ const ContentBrowser: OrangeDAMContentBrowser = {
     allowPin,
     allowLogout,
     allowProxy,
+    confirmOnFormatSelect,
     allowTracking,
     simplePick,
     availableDocTypes,
@@ -560,6 +570,7 @@ const ContentBrowser: OrangeDAMContentBrowser = {
             allowLogout: !useSiteSession && (allowLogout !== undefined ? !!allowLogout : true),
             allowTracking: allowTracking !== undefined ? !!allowTracking : true,
             allowProxy: simplePick ? false : (allowProxy !== undefined ? !!allowProxy : true),
+            confirmOnFormatSelect: !!confirmOnFormatSelect,
             simplePick: !!simplePick,
             allowFavorites: !!allowFavorites,
             defaultGridView: defaultGridView ?? '',

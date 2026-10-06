@@ -1557,6 +1557,18 @@ describe('content-browser', () => {
     expect(dialog.canUseProxies).to.equal(false);
   });
 
+  it('passes confirm-on-format-select through to the format dialog', async () => {
+    const { el } = await fixtureWithMock(html`
+      <cx-content-browser confirm-on-format-select can-use-proxies></cx-content-browser>
+    `);
+
+    const dialog = getFormatDialog(el);
+
+    expect(el.confirmOnFormatSelect).to.equal(true);
+    expect(dialog.confirmOnFormatSelect).to.equal(true);
+    expect(dialog.canUseProxies).to.equal(true);
+  });
+
   it('asks fetchAssetByID to skip the available-proxies lookup in simple-pick mode', async () => {
     const asset = makeAsset();
     const openPayload = { asset, isFavorite: false, proxies: [] as unknown[] };
