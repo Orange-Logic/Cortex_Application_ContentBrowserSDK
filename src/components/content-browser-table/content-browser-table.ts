@@ -283,6 +283,9 @@ async function fitRowToClamp(cell: TabulatorCell, clamp: InstanceType<typeof CxL
  * row itself.
  * @event cx-content-browser-grid-resize - Emitted when the number of rows the visible scrollport can
  * show changes, and again once a restarted list's rows are in, so the host can grow the page size.
+ * A count measured while a page of the shown list loads is emitted once the load ends and any
+ * rows it brings are in. A count measured after the load ends is emitted at once, and it can come
+ * before the rows of a new list are in.
  * @event cx-content-browser-grid-scroll-end - Emitted while `has-more` is set, no page is loading, and
  * the last row comes into view: by scrolling the table's own scrollport, or by scrolling the page when
  * a table taller than the viewport holds its rows without overflowing and so never scrolls itself.
@@ -442,6 +445,12 @@ export default class CxContentBrowserTable extends CortexElement {
   #containerSize: string | undefined;
 
   #lastRowCount: number | undefined;
+
+  /**
+   * Set when the table counts the rows its box shows while a page of the shown list loads. Once that
+   * load ends and any rows it brings are in, the table counts again and reports a new count.
+   */
+  #rowCountHeld = false;
 
   #lastRowObserver: IntersectionObserver | undefined;
 
@@ -969,6 +978,7 @@ export default class CxContentBrowserTable extends CortexElement {
     this.markCurrentRow(this.selectedAssetId, true);
     this.observeLastRow();
     this.reportRestartedRowCount();
+    this.reportHeldRowCount();
   }
 
   private handleTableBuilt(event: Event) {
@@ -1123,6 +1133,23 @@ export default class CxContentBrowserTable extends CortexElement {
     void this.syncRows();
   }
 
+  @watch('loading', { waitUntilFirstUpdate: true })
+  async handleLoadingChange() {
+    if (this.loading) {
+      return;
+    }
+
+    // The `assets` watcher runs after this one, so the page that landed reaches the rows only
+    // later in this same update. A new list waits for `setData`, and its row sync reports the count
+    // once the new rows are in. A table that is not built yet reports at once, with the count of its
+    // whole box.
+    await this.updateComplete;
+
+    if (this.#pendingReplaces === 0) {
+      this.reportHeldRowCount();
+    }
+  }
+
   @watch('selectedAssetId', { waitUntilFirstUpdate: true })
   handleSelectedAssetIdChange(previous?: unknown) {
     this.markCurrentRow(previous as string | undefined, false);
@@ -1251,10 +1278,16 @@ export default class CxContentBrowserTable extends CortexElement {
   private reportRowCount() {
     const rowCount = Math.ceil(this.resolveVisibleHeight(this.#lastHeight) / ROW_HEIGHT);
 
+    // While a page of the shown list loads, the page a count asks for follows the request in flight,
+    // and it can land first: it then goes to the end of the old rows, and a new list that lands after
+    // it drops it. During the initial folder wait, which has no assets, the host takes the count as
+    // the size of the first page.
+    this.#rowCountHeld = this.loading && this.assets.length > 0;
+
     // The host sizes the next page against the last page it asked for, not against the rows it
     // holds, so an unchanged count still fetches -- and where the rows size the table, every fetch
     // resizes it again.
-    if (rowCount === this.#lastRowCount) {
+    if (rowCount === this.#lastRowCount || this.#rowCountHeld) {
       return;
     }
 
@@ -1279,6 +1312,19 @@ export default class CxContentBrowserTable extends CortexElement {
   private reportRestartedRowCount() {
     // Until the container is first measured, that measurement reports the count.
     if (!this.isConnected || this.#lastRowCount !== undefined || this.#lastHeight === 0) {
+      return;
+    }
+
+    this.debouncedCalculatePageSize.flush();
+    this.reportRowCount();
+  }
+
+  /**
+   * Once the load ends and any rows it brings are in, the count measured meanwhile can ask for the
+   * page after it. A table that is not built yet reports it at once.
+   */
+  private reportHeldRowCount() {
+    if (!this.#rowCountHeld || !this.isConnected) {
       return;
     }
 
@@ -1398,8 +1444,8 @@ export default class CxContentBrowserTable extends CortexElement {
 
   private handleScrollEnd() {
     // A page asked for while another loads would be in flight with it, and pages append in the order
-    // they arrive. Once the loading page lands, the last row is observed again (`syncRows`), and the
-    // scrollport has a new end to reach.
+    // they arrive. A page with new rows gives the scrollport a new end, and `syncRows` observes the
+    // new last row. After a page with no new row, only a new scroll to the end asks again.
     if (this.hasMore && !this.loading) {
       this.emit('cx-content-browser-grid-scroll-end');
     }
