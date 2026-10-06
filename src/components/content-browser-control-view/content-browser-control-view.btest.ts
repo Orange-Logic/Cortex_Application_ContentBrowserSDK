@@ -231,6 +231,63 @@ describe('content-browser-control-view', () => {
     });
   });
 
+  describe('visible mobile checkmarks', () => {
+    async function visibleCheckmarks() {
+      const items = getMenuItems(el);
+
+      await Promise.all(items.map((item) => item.updateComplete));
+
+      return items.filter((item) => {
+        const icon = item.shadowRoot!.querySelector<HTMLElement>('[part="checked-icon"]')!;
+        const style = getComputedStyle(icon);
+
+        return style.visibility === 'visible' && style.display !== 'none';
+      }).map((item) => (item.menu === 'submenu' ? 'grid' : item.value));
+    }
+
+    it('marks only the active leaf across mobile table and grid transitions', async () => {
+      el.canUseTable = true;
+      el.isMobile = true;
+      await setViewsAndView(el, sampleViews, 'small');
+      el.addEventListener('cx-content-browser-control-view-change', (event) => {
+        el.view = event.detail.view;
+      });
+      await getDropdown(el).show();
+
+      findMenuItem(el, (item) => item.value === TABLE_VIEW).click();
+      await elementUpdated(el);
+      expect(await visibleCheckmarks()).to.deep.equal([TABLE_VIEW]);
+
+      findMenuItem(el, (item) => item.value === GridView.Small).click();
+      await elementUpdated(el);
+      expect(await visibleCheckmarks()).to.deep.equal([GridView.Small]);
+
+      findMenuItem(el, (item) => item.value === TABLE_VIEW).click();
+      await elementUpdated(el);
+      expect(await visibleCheckmarks()).to.deep.equal([TABLE_VIEW]);
+    });
+
+    it('keeps the active Table mark after the control returns from desktop to mobile', async () => {
+      el.canUseTable = true;
+      el.isMobile = true;
+      await setViewsAndView(el, sampleViews, TABLE_VIEW);
+
+      for (const isMobile of [true, false, true]) {
+        el.isMobile = isMobile;
+        await elementUpdated(el);
+        await getDropdown(el).show();
+        expect(await visibleCheckmarks()).to.deep.equal([TABLE_VIEW]);
+      }
+    });
+
+    it('keeps the mobile Grid mark for a host without table columns', async () => {
+      el.isMobile = true;
+      await setViewsAndView(el, sampleViews, 'small');
+      await getDropdown(el).show();
+
+      expect(await visibleCheckmarks()).to.deep.equal(['grid', GridView.Small]);
+    });
+  });
   describe('desktop checked state', () => {
     /** The Grid item is the one that opens the grid-size submenu. */
     function getGridItem(control: CxContentBrowserControlView) {

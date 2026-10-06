@@ -151,7 +151,7 @@ export default class CxContentBrowserControlView extends CortexElement {
                 <cx-menu-label>${this.localize.term('view')}</cx-menu-label>
                 <cx-menu-item
                   menu="submenu"
-                  always-show-checked-icon
+                  ?always-show-checked-icon=${!this.canUseTable}
                 >
                   ${this.localize.term('grid')}
                   ${when(this.selectedView,
