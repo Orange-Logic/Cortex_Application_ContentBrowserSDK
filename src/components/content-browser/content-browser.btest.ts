@@ -24,6 +24,7 @@ import type { GetFolderRequest, GetFolderResponse } from '@/types/folder';
 import sinon from 'sinon';
 
 import { ROW_HEIGHT } from '../content-browser-table/content-browser-table';
+import { OWN_FIELDS } from '../content-browser-table/content-browser-table.test-helpers';
 import type CxContentBrowserControlBar from '../content-browser-control-bar/content-browser-control-bar';
 import type CxContentBrowserFormatDialog from '../content-browser-format-dialog/content-browser-format-dialog';
 import type CxContentBrowser from './content-browser';
@@ -76,11 +77,13 @@ function createMockFetchController(
     loading?: boolean;
     parameters?: Record<string, unknown> | null;
     totalCount?: number;
+    unreadableFields?: string[];
   } = {},
 ) {
   const items = options.items ?? [];
   const totalCount = options.totalCount ?? items.length;
   const versionHistoryVersions = [makeVersion()];
+  const unreadableFields = options.unreadableFields ?? [];
 
   return {
     _versionHistoryVersions: versionHistoryVersions,
@@ -110,6 +113,7 @@ function createMockFetchController(
       request: host.lastRequest,
       sortOrders: {},
       totalCount,
+      unreadableFields,
       userInfo: {
         avatar: 'https://placehold.co/100x100',
         email: 'john.doe@example.com',
@@ -2292,6 +2296,291 @@ describe('content-browser', () => {
     expect(mock.getAssetLink).to.have.been.calledOnce;
   });
 
+
+  describe('a column Cortex flags as unreadable', () => {
+    /**
+     * L-42BJ3T: the DAM does not show a column for a secured field the user cannot read, so the
+     * table must not show one either. Cortex flags such a field on the search response, and still
+     * sends it on every item, with an empty value.
+     */
+    const COLUMNS: TableColumn[] = [
+      { field: 'CoreField.Identifier', title: 'Identifier', width: '160px' },
+      { field: 'Custom.Date', title: 'Date' },
+      { field: 'Dell.Snippet', title: 'Snippet' },
+    ];
+
+    const tableRoot = (el: CxContentBrowser) => getCxTable(el)!.shadowRoot!;
+
+    /** A header or a cell that Tabulator hides stays in the DOM with no box. */
+    const isShown = (element: Element) => element.getClientRects().length > 0;
+
+    /** The host's columns only: the filler and the CTA column always show. */
+    const shownHeaderTitles = (el: CxContentBrowser) => [...tableRoot(el).querySelectorAll(`.tabulator-col:not(${OWN_FIELDS})`)]
+      .filter(isShown)
+      .map((header) => header.querySelector('.tabulator-col-title')?.textContent?.trim() ?? '');
+
+    const shownCellCounts = (el: CxContentBrowser) => getTableRowElements(el)
+      .map((row) => [...row.querySelectorAll(`.tabulator-cell:not(${OWN_FIELDS})`)].filter(isShown).length);
+
+    const headerWidth = (el: CxContentBrowser, title: string) => {
+      const header = [...tableRoot(el).querySelectorAll<HTMLElement>('.tabulator-col')]
+        .find((column) => column.querySelector('.tabulator-col-title')?.textContent?.trim() === title);
+
+      return header ? Math.round(header.getBoundingClientRect().width) : 0;
+    };
+
+    const waitForHeaders = (el: CxContentBrowser, titles: string[], message: string) => waitUntil(
+      () => getCxTable(el)?.tabulatorInstance?.initialized === true && shownHeaderTitles(el).join('|') === titles.join('|'),
+      message,
+      { interval: 20, timeout: 5000 },
+    );
+
+    it('hands the table the configured fields Cortex flags, spelled as configured', async () => {
+      const { el } = await fixtureWithMock(html`
+        <cx-content-browser default-grid-view=${TABLE_VIEW} .tableColumns=${COLUMNS}></cx-content-browser>
+      `, { unreadableFields: [' custom.DATE ', 'Custom.Other'] });
+      const table = getTable(el)!;
+
+      expect(table.hiddenFields).to.deep.equal(['Custom.Date']);
+      expect(table.columns.map((column) => column.field))
+        .to.deep.equal(['CoreField.Identifier', 'Custom.Date', 'Dell.Snippet']);
+    });
+
+    it('keeps asking Cortex for the hidden field, so that the next response can flag it again', async () => {
+      const { el, mock } = await fixtureWithMock(html`
+        <cx-content-browser default-folder-id="library-id" .tableColumns=${COLUMNS}></cx-content-browser>
+      `, { unreadableFields: ['Custom.Date'] });
+      mock.updateAdditionalFields.resetHistory();
+
+      el.tableColumns = [...COLUMNS];
+      await elementUpdated(el);
+
+      expect(mock.updateAdditionalFields.args)
+        .to.deep.equal([[['CoreField.Identifier', 'Custom.Date', 'Dell.Snippet']]]);
+    });
+
+    it('keeps the table view when Cortex flags each column', async () => {
+      const { el } = await fixtureWithMock(html`
+        <cx-content-browser default-grid-view=${TABLE_VIEW} .tableColumns=${COLUMNS}></cx-content-browser>
+      `, { items: [makeAsset()], unreadableFields: ['CoreField.Identifier', 'Custom.Date', 'Dell.Snippet'] });
+
+      expect(getControlBar(el).canUseTable).to.equal(true);
+      expect(getGrid(el) === null).to.equal(true);
+      expect(getTable(el)!.hiddenFields).to.deep.equal(['CoreField.Identifier', 'Custom.Date', 'Dell.Snippet']);
+    });
+
+    it('keeps a flagged column hidden over the table while a list with no rows loads', async () => {
+      const { el } = await fixtureWithMock(html`
+        <cx-content-browser default-grid-view=${TABLE_VIEW} .tableColumns=${COLUMNS}></cx-content-browser>
+      `, { items: [], loading: true, unreadableFields: ['Custom.Date'] });
+
+      await waitForHeaders(el, ['Identifier', 'Snippet'], 'the table showed the flagged header over no rows');
+    });
+
+    it('hands the host the same insert payload whether or not the column is hidden', async () => {
+      const asset = makeAsset({ 'Custom.Date': '', id: 'frag-secured' } as unknown as Partial<Asset>);
+      const insert = async (unreadableFields: string[]) => {
+        const { el, mock } = await fixtureWithMock(html`
+          <cx-content-browser extra-fields="Custom.Date" default-grid-view=${TABLE_VIEW} .tableColumns=${COLUMNS}>
+          </cx-content-browser>
+        `, {
+          getAssetLinkResult: {
+            data: [{ extraFields: { 'Custom.Date': '' }, imageUrl: 'https://cdn.example/selected.jpg' }],
+            isError: false,
+          },
+          items: [asset],
+          totalCount: 1,
+          unreadableFields,
+        });
+        const selected = oneEvent(el, 'cx-content-browser-selected-asset');
+
+        getFormatDialog(el).dispatchEvent(
+          new CustomEvent('cx-content-browser-format-dialog-proxy-confirm', {
+            bubbles: true,
+            composed: true,
+            detail: { asset, selectedProxyMetadata: null, useRepresentative: false },
+          }),
+        );
+
+        return { linkRequest: mock.getAssetLink.args, payload: (await selected).detail };
+      };
+
+      const hidden = await insert(['Custom.Date']);
+      const shown = await insert([]);
+
+      expect(hidden.payload).to.deep.equal(shown.payload);
+      expect(hidden.payload[0].extraFields['Custom.Date']).to.equal('');
+      expect(hidden.linkRequest).to.deep.equal(shown.linkRequest);
+      expect(hidden.linkRequest[0][0].extraFields).to.deep.equal(['Custom.Date']);
+    });
+
+    describe('through the fetch controller', () => {
+      const originalAdapter = http.defaults.adapter;
+
+      type Search = { limit: number; searchText: string; start: number };
+
+      /** The searches Cortex received, and the answers still held back, in order. */
+      let searches: Search[] = [];
+      let held: Array<() => void> = [];
+
+      /**
+       * Answers each search with a full page of rows, flagged as `flagFor` says. A search that
+       * `holdFor` names waits until the test releases it.
+       */
+      const stubServer = (flagFor: (search: Search) => string[], holdFor: (search: Search) => boolean = () => false) => {
+        searches = [];
+        held = [];
+        http.defaults.adapter = async (config) => {
+          if ((config.url ?? '').split('?')[0] !== AssetApiEndpoint.GET_CONTENT_V3) {
+            throw new AxiosError('not stubbed', AxiosError.ERR_BAD_RESPONSE, config);
+          }
+
+          const body = JSON.parse(config.data as string) as { Limit?: number; Start?: number; Text?: string };
+          const search = { limit: body.Limit ?? 0, searchText: body.Text ?? '', start: body.Start ?? 0 };
+
+          searches.push(search);
+
+          if (holdFor(search)) {
+            await new Promise<void>((resolve) => {
+              held.push(resolve);
+            });
+          }
+
+          return {
+            config,
+            data: {
+              contentItems: Array.from({ length: search.limit }, (_, index) => {
+                const recordId = `rec-${search.searchText}-${search.start + index}`;
+
+                return {
+                  fields: {
+                    'CoreField.Identifier': `ID-${search.start + index}`,
+                    'Custom.Date': '',
+                    'Dell.Snippet': 'A fragment of text',
+                    'Document.RecordID': recordId,
+                  },
+                  recordID: recordId,
+                };
+              }),
+              facets: [],
+              totalCount: 500,
+              unreadableFields: flagFor(search),
+            },
+            headers: {},
+            status: 200,
+            statusText: 'OK',
+          };
+        };
+      };
+
+      const mountPicker = async () => {
+        const page = await fixture<HTMLDivElement>(html`
+          <div style="height: 500px; width: 800px; --content-browser-height: 100%">
+            <cx-content-browser default-folder-id="library-id" default-grid-view=${TABLE_VIEW} .tableColumns=${COLUMNS}>
+            </cx-content-browser>
+          </div>
+        `);
+        const el = page.querySelector<CxContentBrowser>('cx-content-browser')!;
+
+        await waitForTableRows(el);
+
+        return el;
+      };
+
+      const search = (el: CxContentBrowser, searchText: string) => {
+        getControlBar(el).dispatchEvent(new CustomEvent('cx-content-browser-control-bar-search-change', {
+          bubbles: true,
+          composed: true,
+          detail: { searchText },
+        }));
+      };
+
+      const scrollport = (el: CxContentBrowser) => tableRoot(el).querySelector<HTMLElement>('.tabulator-tableholder')!;
+
+      afterEach(() => {
+        held.forEach((release) => release());
+        http.defaults.adapter = originalAdapter;
+      });
+
+      it('shows no header and no cell for a flagged field, and shows them again for a new list that does not flag it', async () => {
+        stubServer(({ searchText }) => (searchText === '' ? ['Custom.Date'] : []));
+
+        const el = await mountPicker();
+
+        await waitForHeaders(el, ['Identifier', 'Snippet'], 'the table showed the flagged column');
+        expect(shownCellCounts(el).every((count) => count === 2), `shown cells per row: ${shownCellCounts(el)}`)
+          .to.equal(true);
+
+        search(el, 'unflagged');
+
+        await waitForHeaders(el, ['Identifier', 'Date', 'Snippet'], 'the column never came back for the new list');
+        await waitUntil(() => shownCellCounts(el).every((count) => count === 3), 'the cells never came back');
+      });
+
+      it('brings a column back when the page a scroll appends stops its flag, and keeps the rows and the scroll position', async () => {
+        // Each appended page waits, so that it lands after the scroll.
+        stubServer(({ start }) => (start === 0 ? ['Custom.Date'] : []), ({ start }) => start > 0);
+
+        const el = await mountPicker();
+
+        await waitForHeaders(el, ['Identifier', 'Snippet'], 'the table showed the flagged column');
+
+        // The user scrolls to the last row, which asks for the next page.
+        scrollport(el).scrollTop = scrollport(el).scrollHeight;
+        await waitUntil(() => held.length > 0, 'no appended page was asked for', { interval: 20, timeout: 5000 });
+
+        const before = scrollport(el).scrollTop;
+        const tabulator = getCxTable(el)!.tabulatorInstance!;
+        const scrollportTop = scrollport(el).getBoundingClientRect().top;
+        const rowAtScroll = tabulator.getRows()
+          .find((row) => isShown(row.getElement()) && row.getElement().getBoundingClientRect().top >= scrollportTop);
+        const markerId = String(rowAtScroll?.getData().id ?? '');
+        const marker = rowAtScroll?.getElement();
+
+        held.splice(0).forEach((release) => release());
+
+        await waitForHeaders(el, ['Identifier', 'Date', 'Snippet'], 'the column never came back');
+        await waitUntil(() => tabulator.getRows().length > 30, 'the page was never appended');
+
+        const markerRow = tabulator.getRow(markerId);
+
+        expect(before > 0, 'the scrollport never scrolled').to.equal(true);
+        expect(markerId.length > 0, 'no row sat at the scroll position').to.equal(true);
+        expect(Math.abs(scrollport(el).scrollTop - before) <= ROW_HEIGHT,
+          `scrolled from ${before} to ${scrollport(el).scrollTop}`).to.equal(true);
+        expect(markerRow !== false && markerRow.getElement() === marker, 'the rows were built again').to.equal(true);
+      });
+
+      it('brings a column back at the width the user dragged it to', async () => {
+        stubServer(({ searchText }) => (searchText === 'flagged' ? ['Custom.Date'] : []));
+
+        const el = await mountPicker();
+
+        await waitForHeaders(el, ['Identifier', 'Date', 'Snippet'], 'the table never showed each column');
+
+        const hostWidth = headerWidth(el, 'Date');
+        const handle = tableRoot(el).querySelectorAll<HTMLElement>('.tabulator-col-resize-handle')[1];
+        const { left, top, width } = handle.getBoundingClientRect();
+        const init = { bubbles: true, button: 0, clientY: top + 1, composed: true };
+        const resized = oneEvent(getTable(el)!, 'cx-content-browser-table-column-resize');
+
+        handle.dispatchEvent(new MouseEvent('mousedown', { ...init, clientX: left + width / 2 }));
+        document.body.dispatchEvent(new MouseEvent('mousemove', { ...init, clientX: left + width / 2 - 80 }));
+        document.body.dispatchEvent(new MouseEvent('mouseup', { ...init, clientX: left + width / 2 - 80 }));
+
+        const { detail } = await resized;
+
+        search(el, 'flagged');
+        await waitForHeaders(el, ['Identifier', 'Snippet'], 'the flagged column never went away');
+
+        search(el, 'unflagged');
+        await waitForHeaders(el, ['Identifier', 'Date', 'Snippet'], 'the column never came back');
+
+        expect(detail.width < hostWidth, `dragged from ${hostWidth}px to ${detail.width}px`).to.equal(true);
+        expect(headerWidth(el, 'Date')).to.equal(detail.width);
+      });
+    });
+  });
 
   describe('insert overlay in grid view', () => {
     /**

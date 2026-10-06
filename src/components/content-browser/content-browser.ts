@@ -26,7 +26,7 @@ import { FetchAndMergeAssetsController } from '@/tools/fetch-and-merge-assets';
 import {
   type AutoSelectFormat, autoSelectFormatConverter, ChangeOption, ContentBrowserFormatDialogVariant,
   type ContentBrowserView, type CtaTextTransform, GridView, isAutoSelectFormatActive, OptionType,
-  TABLE_VIEW, type TableColumn,
+  TABLE_VIEW, type TableColumn, toFieldKey,
 } from '@/types/content-browser';
 import { GetFolderRequest } from '@/types/folder';
 import { safeInteger } from '@/utils/number';
@@ -59,6 +59,24 @@ function resolvePageSize(view: ContentBrowserView): number {
     default:
       return 20;
   }
+}
+
+/** One array for the usual case, so the table sees no change when Cortex flags nothing. */
+const NO_HIDDEN_FIELDS: string[] = [];
+
+/**
+ * The configured fields, spelled as configured, that Cortex flags as unreadable: the DAM does not
+ * show a column the user cannot read. Cortex flags only the fields it gets, so the request keeps
+ * each configured field.
+ */
+function findUnreadableColumnFields(columns: TableColumn[], unreadableFields: string[]): string[] {
+  if (unreadableFields.length === 0) {
+    return NO_HIDDEN_FIELDS;
+  }
+
+  const unreadable = new Set(unreadableFields.map(toFieldKey));
+
+  return columns.map((column) => column.field).filter((field) => unreadable.has(toFieldKey(field)));
 }
 
 /**
@@ -412,6 +430,11 @@ export default class CxContentBrowser extends CortexElement {
     });
   }
 
+  /**
+   * This reads the configured columns, not the shown ones. The shown columns can change with each
+   * response, and a table view that goes away with them flips the view and its page size. When
+   * Cortex flags each column, the rows stay with only the filler and the CTA column.
+   */
   private get canUseTable(): boolean {
     return this.tableColumnList.length > 0;
   }
@@ -1036,6 +1059,7 @@ export default class CxContentBrowser extends CortexElement {
       request,
       sortOrders,
       totalCount,
+      unreadableFields,
       userInfo,
     } = this.fetchAndMergeAssetsController.getData({
       allowedExtensions: this.allowedExtensions,
@@ -1127,6 +1151,7 @@ export default class CxContentBrowser extends CortexElement {
                 .busyAssetId=${this.busyAssetId}
                 .assets=${items}
                 .columns=${this.tableColumnList}
+                .hiddenFields=${findUnreadableColumnFields(this.tableColumnList, unreadableFields)}
                 ?empty=${!loading && !this.initialFolderPending && items.length === 0}
                 cta-text=${this.ctaText}
                 cta-text-transform=${this.ctaTextTransform}

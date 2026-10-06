@@ -623,6 +623,9 @@ export async function apiGetAssets({
             facets: rawResponse.facets,
             items: mappedItems,
             totalCount: rawResponse.totalCount,
+            unreadableFields: Array.isArray(rawResponse.unreadableFields)
+              ? rawResponse.unreadableFields.filter((field) => typeof field === 'string')
+              : [],
           };
         },
       ],
@@ -635,6 +638,7 @@ export async function apiGetAssets({
       facets: [],
       items: [],
       totalCount: 0,
+      unreadableFields: [],
     };
   }
 }

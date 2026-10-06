@@ -48,7 +48,10 @@ type TabulatorColumn = {
   getElement(): HTMLElement;
   getField(): string;
   getWidth(): number;
+  hide(): void;
+  isVisible(): boolean;
   setWidth(width: number): Promise<unknown>;
+  show(): Promise<void>;
 };
 
 /** What a title formatter receives in place of a cell. */
@@ -342,6 +345,15 @@ export default class CxContentBrowserTable extends CortexElement {
   @property({ attribute: false })
   busyAssetId: string | undefined = undefined;
 
+  /**
+   * Fields of `columns`, compared exactly, whose columns the table does not show. A hidden column
+   * keeps its place, its cell values and a dragged width, so it comes back with the rows and the
+   * scroll position unchanged. The filler and the CTA column always show, so when each host column
+   * is hidden, the rows stay with only their CTA.
+   */
+  @property({ attribute: false })
+  hiddenFields: string[] = [];
+
   assetMap: Map<string, Asset> = new Map();
 
   #columnDefinitions: TableColumnDefinition[] = [];
@@ -483,7 +495,9 @@ export default class CxContentBrowserTable extends CortexElement {
   }
 
   private buildDataColumnDefinitions(): TableColumnDefinition[] {
+    const hidden = new Set(this.hiddenFields);
     const keys = this.resolveColumnKeys();
+    const variableRowHeight = this.hasMultilineColumn;
 
     return this.columns.map((column, index) => {
       const lines = Math.max(1, column.lines ?? 1);
@@ -503,11 +517,17 @@ export default class CxContentBrowserTable extends CortexElement {
 
           if (lines > 1) {
             onRendered(() => void fitRowToClamp(cell, content as InstanceType<typeof CxLineClamp>));
+          } else if (variableRowHeight) {
+            // A row is as tall as its shown cells, so hiding the multi-line column must not shrink it.
+            onRendered(() => cell.getElement()?.style.setProperty('min-height', `${ROW_HEIGHT}px`));
           }
 
           return content;
         },
         headerHozAlign: column.align,
+        // Never `false`: Tabulator awaits a `show()` for it as it builds the header, so a percentage
+        // column still has a width of 0 when `pinPercentWidths` pins it, and lays out as flexible.
+        hidden: hidden.has(column.field) || undefined,
         hozAlign: column.align,
         title: column.title,
         // A node, as for a cell: `cx-table` parses a title string as HTML.
@@ -526,10 +546,18 @@ export default class CxContentBrowserTable extends CortexElement {
    * column.
    */
   private buildFillerColumnDefinition(): TableColumnDefinition {
+    const variableRowHeight = this.hasMultilineColumn;
+
     return {
       field: FILLER_FIELD,
       formatter: (cell: TabulatorCell) => {
         const element = cell.getElement();
+
+        if (variableRowHeight) {
+          // A row is as tall as its shown cells, and Cortex can hide each host cell that carries the
+          // minimum. On the row, not on this cell or the CTA cell: Tabulator stretches them to it.
+          cell.getRow().getElement().style.minHeight = `${ROW_HEIGHT}px`;
+        }
 
         if (element) {
           // `cx-table` pads every cell, which would render the 1px column far wider than it is laid out.
@@ -1003,7 +1031,43 @@ export default class CxContentBrowserTable extends CortexElement {
 
     if (columnsChanged || tableRemounts) {
       this.#columnDefinitions = this.buildColumnDefinitions();
+    } else if (changedProperties.has('hiddenFields')) {
+      this.applyHiddenFields();
     }
+  }
+
+  /**
+   * Through Tabulator's own column visibility: new definitions would reach it through `setColumns`,
+   * and the rows would have to be rebuilt, which scrolls back to the top.
+   */
+  private applyHiddenFields() {
+    const hidden = new Set(this.hiddenFields);
+    const keys = this.resolveColumnKeys();
+
+    this.#columnDefinitions.forEach((definition) => {
+      const field = String(definition.field);
+      const hostColumn = this.columns[keys.indexOf(field)];
+
+      // The filler and the CTA column are the table's own, and the host cannot hide them.
+      if (!hostColumn) {
+        return;
+      }
+
+      const isHidden = hidden.has(hostColumn.field);
+      const column = this.tabulator?.getColumn(field) as TabulatorColumn | false | undefined;
+
+      // `cx-table` gives these same definitions to each Tabulator instance it builds, for example on
+      // a reconnect, and again once the instance is built.
+      definition.hidden = isHidden || undefined;
+
+      if (column && column.isVisible() === isHidden) {
+        if (isHidden) {
+          column.hide();
+        } else {
+          void column.show();
+        }
+      }
+    });
   }
 
   updated(changedProperties: PropertyValues<this>) {

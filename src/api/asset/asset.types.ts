@@ -68,12 +68,21 @@ export type GetAssetsRawResponse = {
   contentItems?: ContentItem[];
   facets: Facet[];
   totalCount: number;
+  /** Absent on a Cortex build older than L-42BJ3T. */
+  unreadableFields?: string[];
 };
 
 export type GetAssetsResponse = {
   facets: Facet[];
   items: Array<Asset & Record<string, string | boolean>>;
   totalCount: number;
+  /**
+   * The requested fields, spelled as sent, that the user cannot read on this page of records. Cortex
+   * still sends each one on every item, with an empty value, except a field that the
+   * `DbBOFieldSecurity_BO.Data.ObjectsInfoRetriever_IgnoredFields` parameter lists, which keeps its
+   * value. Empty when Cortex flags none, or when Cortex is too old to flag any.
+   */
+  unreadableFields: string[];
 };
 
 export type GetAvailableProxiesRequest = {

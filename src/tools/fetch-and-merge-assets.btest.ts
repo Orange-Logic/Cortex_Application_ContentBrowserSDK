@@ -198,4 +198,120 @@ describe('FetchAndMergeAssetsController', () => {
       expect(current.getData().request).to.deep.include({ ...defaults, ...supplied });
     });
   }
+
+  describe('unreadable fields (L-42BJ3T)', () => {
+    /** One search response: the rows it carries, and the flag, which an older Cortex does not send. */
+    type Page = { recordIds: string[]; unreadableFields?: string[] };
+
+    /** Runs one search per start and records the hidden set after each response. */
+    const fetchPages = async (starts: number[], pages: Page[]) => {
+      const clock = sinon.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+      const searches: Array<{ Fields: string[] }> = [];
+
+      http.defaults.adapter = async (config) => {
+        searches.push(JSON.parse(config.data));
+        const { recordIds, unreadableFields } = pages[searches.length - 1];
+
+        return {
+          config,
+          data: {
+            contentItems: recordIds.map((recordId) => ({
+              fields: { 'Custom.Date': '', 'Document.RecordID': recordId },
+              recordID: recordId,
+            })),
+            facets: [],
+            totalCount: 90,
+            ...(unreadableFields === undefined ? {} : { unreadableFields }),
+          },
+          headers: {},
+          status: 200,
+          statusText: 'OK',
+        };
+      };
+
+      const current = createController({ additionalFields: ['Custom.Date', 'Dell.Snippet'] });
+      // Avoid a metadata request so that each request the adapter sees is a search.
+      (current as unknown as { sortOrders: Record<string, unknown[]> }).sortOrders = { title: [] };
+
+      const hiddenSets: string[][] = [];
+
+      for (const start of starts) {
+        await current.fetchAndMergeAssets({ pageSize: 30, start });
+        await clock.tickAsync(200);
+        hiddenSets.push(current.getData().unreadableFields);
+      }
+
+      return { current, hiddenSets, searches };
+    };
+
+    it('hides nothing for a Cortex build that sends no flag', async () => {
+      const { hiddenSets } = await fetchPages([0], [{ recordIds: ['a'] }]);
+
+      expect(hiddenSets).to.deep.equal([[]]);
+    });
+
+    it('takes the hidden set of a new list from its first page', async () => {
+      const { hiddenSets } = await fetchPages([0], [{ recordIds: ['a'], unreadableFields: ['Custom.Date'] }]);
+
+      expect(hiddenSets).to.deep.equal([['Custom.Date']]);
+    });
+
+    it('keeps a field hidden while each appended page flags it', async () => {
+      const { current, hiddenSets } = await fetchPages([0, 30], [
+        { recordIds: ['a'], unreadableFields: ['Custom.Date'] },
+        { recordIds: ['b'], unreadableFields: ['custom.date'] },
+      ]);
+
+      expect(current.getData().items).to.have.lengthOf(2);
+      expect(hiddenSets).to.deep.equal([['Custom.Date'], ['Custom.Date']]);
+    });
+
+    it('shows a field again when an appended page has a row that can read it', async () => {
+      const { hiddenSets } = await fetchPages([0, 30], [
+        { recordIds: ['a'], unreadableFields: ['Custom.Date'] },
+        { recordIds: ['b'], unreadableFields: [] },
+      ]);
+
+      expect(hiddenSets).to.deep.equal([['Custom.Date'], []]);
+    });
+
+    it('does not show a field again for an appended page with no rows', async () => {
+      const { hiddenSets } = await fetchPages([0, 30], [
+        { recordIds: ['a'], unreadableFields: ['Custom.Date'] },
+        { recordIds: [] },
+      ]);
+
+      expect(hiddenSets).to.deep.equal([['Custom.Date'], ['Custom.Date']]);
+    });
+
+    it('replaces the hidden set when a new list starts', async () => {
+      const { hiddenSets } = await fetchPages([0, 0, 0], [
+        { recordIds: ['a'], unreadableFields: ['Custom.Date'] },
+        { recordIds: ['c'], unreadableFields: ['Dell.Snippet'] },
+        { recordIds: ['d'] },
+      ]);
+
+      expect(hiddenSets).to.deep.equal([['Custom.Date'], ['Dell.Snippet'], []]);
+    });
+
+    it('keeps asking Cortex for a field it flagged', async () => {
+      const { searches } = await fetchPages([0, 30], [
+        { recordIds: ['a'], unreadableFields: ['Custom.Date'] },
+        { recordIds: ['b'], unreadableFields: ['Custom.Date'] },
+      ]);
+
+      expect(searches.map((search) => search.Fields.filter((field) => field === 'Custom.Date'))).to.deep.equal([
+        ['Custom.Date'],
+        ['Custom.Date'],
+      ]);
+    });
+
+    it('forgets the hidden set when the host disconnects', async () => {
+      const { current } = await fetchPages([0], [{ recordIds: ['a'], unreadableFields: ['Custom.Date'] }]);
+
+      current.hostDisconnected();
+
+      expect(current.getData().unreadableFields).to.deep.equal([]);
+    });
+  });
 });

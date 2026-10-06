@@ -67,7 +67,9 @@ export type TableColumn = {
    * Cortex field the column reads, e.g. `CoreField.Identifier` or `Dell.Snippet`. It is appended to
    * the field list of the same search call the grid uses, so what a given caller gets back is decided
    * server-side — the SDK neither filters nor resolves fields of its own. Surrounding whitespace
-   * is trimmed, and the trimmed name is what the duplicate-column check compares.
+   * is trimmed, and the trimmed name is what the duplicate-column check compares. When Cortex flags
+   * the field as one the user cannot read, the table does not show the column, as the DAM does. The
+   * field stays in the request, so that the next response can flag it again.
    */
   field: string;
   /** Lines a cell shows before the text is clamped. Default 1. */
@@ -255,4 +257,9 @@ export type CtaTextTransform = 'none' | 'uppercase' | 'lowercase' | 'capitalize'
 export enum ContentBrowserFormatDialogVariant {
   Dialog = 'dialog',
   Drawer = 'drawer',
+}
+
+/** Two Cortex field names name one field when these keys are equal: the table trims and ignores case. */
+export function toFieldKey(field: string): string {
+  return field.trim().toLowerCase();
 }
