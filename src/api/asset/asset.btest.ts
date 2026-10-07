@@ -1,8 +1,9 @@
 import { expect } from '@open-wc/testing';
+import { AxiosError } from 'axios';
 
 import http from '@/api/api';
 
-import { apiGetAssets, resolveAssetCaption } from './asset';
+import { apiGetAssets, apiGetAvailableProxies, resolveAssetCaption } from './asset';
 
 describe('asset caption', () => {
   const originalAdapter = http.defaults.adapter;
@@ -87,5 +88,56 @@ describe('asset caption', () => {
       expect(seen.requestedFields).to.contain('Document.Title');
       expect(seen.requestedFields).to.not.contain('CoreField.OriginalFileName');
     });
+  });
+});
+
+// L-42BIA4: an empty format list and a failed request must stay distinguishable, so the format dialog
+// does not blame permissions for a request error. The GET is cached by URL: each case uses its own id.
+describe('apiGetAvailableProxies', () => {
+  const originalAdapter = http.defaults.adapter;
+
+  afterEach(() => {
+    http.defaults.adapter = originalAdapter;
+  });
+
+  const respondWith = (data: unknown) => {
+    http.defaults.adapter = async (config) => ({
+      config,
+      data,
+      headers: {},
+      status: 200,
+      statusText: 'OK',
+    });
+  };
+
+  it('marks a failed request as an error', async () => {
+    // An AxiosError with its config, as a real network failure: the cache interceptor clears its entry
+    // only for that shape, and a plain Error leaves the entry loading for the mocha retry.
+    http.defaults.adapter = async (config) => {
+      throw new AxiosError('Network Error', AxiosError.ERR_NETWORK, config);
+    };
+
+    const response = await apiGetAvailableProxies({ assetRecordId: 'proxies-failed' });
+
+    expect(response.isError).to.equal(true);
+    expect(response.proxies.length).to.equal(0);
+  });
+
+  it('marks a response that is not an object as an error', async () => {
+    respondWith('<html>Sign in</html>');
+
+    const response = await apiGetAvailableProxies({ assetRecordId: 'proxies-not-json' });
+
+    expect(response.isError).to.equal(true);
+    expect(response.proxies.length).to.equal(0);
+  });
+
+  it('does not mark an empty format list as an error', async () => {
+    respondWith({ previewUrl: 'https://cdn.example/preview.jpg', proxies: [] });
+
+    const response = await apiGetAvailableProxies({ assetRecordId: 'proxies-empty' });
+
+    expect(response.isError).to.equal(false);
+    expect(response.previewUrl).to.equal('https://cdn.example/preview.jpg');
   });
 });

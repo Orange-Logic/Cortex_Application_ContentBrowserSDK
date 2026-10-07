@@ -642,12 +642,14 @@ export async function apiGetAvailableProxies({
         ): GetAvailableProxiesResponse => {
           if (!rawResponse || typeof rawResponse !== 'object') {
             return {
+              isError: true,
               previewUrl: '',
               proxies: [],
             };
           }
 
           return {
+            isError: false,
             previewUrl: rawResponse.previewUrl ?? '',
             proxies: rawResponse.proxies?.map((proxy) => ({
               cdnName: proxy.cdnName,
@@ -670,6 +672,7 @@ export async function apiGetAvailableProxies({
     return response.data;
   } catch (error) {
     return {
+      isError: true,
       previewUrl: '',
       proxies: [],
     };

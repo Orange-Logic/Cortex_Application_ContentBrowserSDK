@@ -46,6 +46,19 @@ describe('content-browser-asset-proxy-selector', () => {
     });
   });
 
+  // L-42BIA4: the no-options text names permissions as a possible cause, which is wrong for a request error.
+  describe('when the format request failed', () => {
+    it('shows the error message instead of the no-options warning', async () => {
+      const el = await fixture<CxContentBrowserAssetProxySelector>(
+        html`<cx-content-browser-asset-proxy-selector proxies-failed></cx-content-browser-asset-proxy-selector>`,
+      );
+      const text = el.shadowRoot!.textContent ?? '';
+
+      expect(text.includes('Something went wrong')).to.equal(true);
+      expect(text.includes('no available options')).to.equal(false);
+    });
+  });
+
   describe('with proxy items', () => {
     let el: CxContentBrowserAssetProxySelector;
 
