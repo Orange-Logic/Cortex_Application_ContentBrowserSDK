@@ -6,7 +6,9 @@ export default css`
   }
 
   .content-browser-asset-card {
+    --border-radius: 0;
     --border-width: 0px;
+    --image-border-radius: 0;
     --padding: var(--cx-spacing-x-small);
 
     cursor: pointer;
@@ -17,6 +19,7 @@ export default css`
 
   .content-browser-asset-card::part(base) {
     overflow: hidden;
+    box-shadow: none;
   }
 
   .content-browser-asset-card::part(image) {
