@@ -628,6 +628,13 @@ export async function apiGetAvailableProxies({
   try {
     const response = await http.request<GetAvailableProxiesResponse>({
       baseURL: siteUrl,
+      cache: {
+        // A malformed body arrives with HTTP 200, so the default status check would cache the error and
+        // serve it again after the server recovers.
+        cachePredicate: {
+          responseMatch: ({ data }) => !data.isError,
+        },
+      },
       method: 'GET',
       params: {
         RecordId: assetRecordId,

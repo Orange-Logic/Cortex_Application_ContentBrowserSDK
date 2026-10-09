@@ -168,6 +168,17 @@ describe('apiGetAvailableProxies', () => {
     expect(response.proxies.length).to.equal(0);
   });
 
+  it('does not serve a cached error once the same asset answers with a valid body', async () => {
+    respondWith({ ErrorCode: 'OL_ERR_GAB_001', Message: 'Not allowed' });
+    const first = await apiGetAvailableProxies({ assetRecordId: 'proxies-recovers' });
+
+    respondWith({ previewUrl: '', proxies: [] });
+    const second = await apiGetAvailableProxies({ assetRecordId: 'proxies-recovers' });
+
+    expect(first.isError).to.equal(true);
+    expect(second.isError).to.equal(false);
+  });
+
   it('does not mark an empty format list as an error', async () => {
     respondWith({ previewUrl: 'https://cdn.example/preview.jpg', proxies: [] });
 
