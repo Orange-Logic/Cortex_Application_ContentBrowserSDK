@@ -512,6 +512,11 @@ export default class CxContentBrowser extends CortexElement {
   }
 
   private async handleScrollEnd() {
+    // After a page with an error, `lastRequest.start` is at that page. A next page goes past it, so only Retry gets it.
+    if (this.fetchAndMergeAssetsController.getData().searchError) {
+      return;
+    }
+
     const newStart = safeInteger(this.lastRequest.start) + safeInteger(this.lastRequest.pageSize);
 
     this.lastRequest = {
@@ -577,10 +582,11 @@ export default class CxContentBrowser extends CortexElement {
       return;
     }
 
-    const totalCount = this.fetchAndMergeAssetsController.getData().totalCount;
+    const { searchError, totalCount } = this.fetchAndMergeAssetsController.getData();
     const newStart = safeInteger(this.lastRequest.start) + safeInteger(this.lastRequest.pageSize);
 
-    if (newPageSize <= safeInteger(this.lastRequest.pageSize) || newPageSize === 0 || newStart > totalCount) {
+    // As in handleScrollEnd, a page after a page with an error goes past that page.
+    if (searchError || newPageSize <= safeInteger(this.lastRequest.pageSize) || newPageSize === 0 || newStart > totalCount) {
       return;
     }
 
@@ -610,6 +616,10 @@ export default class CxContentBrowser extends CortexElement {
     if (this.lastRequest.pageSize) {
       await this.fetchAndMergeAssetsController.fetchAndMergeAssets(this.lastRequest);
     }
+  }
+
+  private async handleRetry() {
+    await this.fetchAndMergeAssetsController.retrySearch();
   }
 
   private async handleGridClick(event: CxContentBrowserGridClickEvent) {
@@ -848,6 +858,7 @@ export default class CxContentBrowser extends CortexElement {
       loading,
       parameters,
       request,
+      searchError,
       sortOrders,
       totalCount,
       userInfo,
@@ -936,7 +947,8 @@ export default class CxContentBrowser extends CortexElement {
           ></cx-content-browser-control-bar>
           <cx-content-browser-grid
             .assets=${items}
-            ?empty=${!loading && !this.initialFolderPending && items.length === 0}
+            ?empty=${!loading && !this.initialFolderPending && !searchError && items.length === 0}
+            ?error=${searchError}
             ?has-more=${items.length < totalCount}
             ?loading=${loading || this.initialFolderPending}
             ?show-title=${this.showTitle}
@@ -947,6 +959,7 @@ export default class CxContentBrowser extends CortexElement {
             view=${this.view}
             @cx-content-browser-grid-scroll-end=${this.handleScrollEnd}
             @cx-content-browser-grid-resize=${this.handleGridResize}
+            @cx-content-browser-grid-retry=${this.handleRetry}
             @cx-content-browser-grid-click=${this.handleGridClick}
           ></cx-content-browser-grid>
         </cx-resize-observer>

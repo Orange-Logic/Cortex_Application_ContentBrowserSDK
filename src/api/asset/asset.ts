@@ -568,6 +568,16 @@ export async function apiGetAssets({
           ? http.defaults.transformResponse
           : []),
         (rawResponse: GetAssetsRawResponse): GetAssetsResponse => {
+          // A 2xx page that is not JSON, for example from a proxy or a login page, has no search result.
+          if (!rawResponse || typeof rawResponse !== 'object') {
+            return {
+              facets: [],
+              isError: true,
+              items: [],
+              totalCount: 0,
+            };
+          }
+
           const mappedItems =
             rawResponse.contentItems?.map((item) => {
               let extension = item.fields[FIELD_EXTENSION] ?? '';
@@ -599,6 +609,7 @@ export async function apiGetAssets({
 
           return {
             facets: rawResponse.facets,
+            isError: false,
             items: mappedItems,
             totalCount: rawResponse.totalCount,
           };
@@ -609,8 +620,10 @@ export async function apiGetAssets({
 
     return response.data;
   } catch (error) {
+    // Resolve, not reject: the public fetchAssets gives this result to the host application (L-42BQUZ).
     return {
       facets: [],
+      isError: true,
       items: [],
       totalCount: 0,
     };

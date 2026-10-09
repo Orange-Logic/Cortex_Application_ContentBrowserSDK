@@ -140,6 +140,63 @@ describe('content-browser-grid', () => {
     expect(el.shadowRoot!.querySelector('.content-browser-grid__empty')).to.be.null;
   });
 
+  describe('search error (L-42BQUZ)', () => {
+    const query = (selector: string) => el.shadowRoot!.querySelector(selector);
+
+    it('shows an error with Retry, not No results, when a search with no rows gets an error', async () => {
+      const emptyEl = await fixture<ContentBrowserGrid>(html`
+        <cx-content-browser-grid ?empty=${true}></cx-content-browser-grid>
+      `);
+      const noResultsMessage = emptyEl.shadowRoot!.querySelector('cx-content-browser-no-result')!.getAttribute('message');
+      el = await fixture<ContentBrowserGrid>(html`
+        <cx-content-browser-grid ?error=${true}></cx-content-browser-grid>
+      `);
+      await elementUpdated(el);
+
+      const panel = query('cx-content-browser-no-result');
+      expect(panel?.getAttribute('icon')).to.equal('error_outline');
+      expect(panel?.getAttribute('message') !== noResultsMessage).to.equal(true);
+      // The button is a child of the no-result panel, so it shows only when the panel has a slot for it.
+      expect((query('.content-browser-grid__retry') as HTMLElement | null)?.assignedSlot != null).to.equal(true);
+      expect(query('lit-virtualizer') === null).to.equal(true);
+    });
+
+    it('keeps the rows and shows Retry when a next page gets an error', async () => {
+      el = await fixture<ContentBrowserGrid>(html`
+        <cx-content-browser-grid ?error=${true} .assets=${[makeAsset()]}></cx-content-browser-grid>
+      `);
+      await elementUpdated(el);
+
+      expect(query('lit-virtualizer') !== null).to.equal(true);
+      expect(query('.content-browser-grid__page-error .content-browser-grid__retry') !== null).to.equal(true);
+      expect(query('cx-content-browser-no-result') === null).to.equal(true);
+    });
+
+    it('emits cx-content-browser-grid-retry when the user clicks Retry', async () => {
+      el = await fixture<ContentBrowserGrid>(html`
+        <cx-content-browser-grid ?error=${true}></cx-content-browser-grid>
+      `);
+      await elementUpdated(el);
+      let retried = false;
+      el.addEventListener('cx-content-browser-grid-retry', () => {
+        retried = true;
+      });
+
+      (query('.content-browser-grid__retry') as HTMLElement).click();
+
+      expect(retried).to.equal(true);
+    });
+
+    it('shows no Retry for a search with no hits', async () => {
+      el = await fixture<ContentBrowserGrid>(html`
+        <cx-content-browser-grid ?empty=${true}></cx-content-browser-grid>
+      `);
+      await elementUpdated(el);
+
+      expect(query('.content-browser-grid__retry') === null).to.equal(true);
+    });
+  });
+
   it('renders asset cards for items after the virtualizer lays out', async () => {
     el = await fixture<ContentBrowserGrid>(html`
       <cx-content-browser-grid .assets=${[makeAsset({ id: 'a1', name: 'One' }), makeAsset({ docType: MediaType.Video, id: 'a2', name: 'Two' })]}><</cx-content-browser-grid>

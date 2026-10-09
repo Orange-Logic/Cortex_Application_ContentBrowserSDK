@@ -68,6 +68,7 @@ function createMockFetchController(
     items?: Asset[];
     loading?: boolean;
     parameters?: Record<string, unknown> | null;
+    searchError?: boolean;
     totalCount?: number;
   } = {},
 ) {
@@ -101,6 +102,7 @@ function createMockFetchController(
           ? null
           : (options.parameters),
       request: host.lastRequest,
+      searchError: options.searchError ?? false,
       sortOrders: {},
       totalCount,
       userInfo: {
@@ -112,6 +114,7 @@ function createMockFetchController(
       },
     }),
     removeAssetFromFavorite: sinon.stub().resolves(true),
+    retrySearch: sinon.stub(),
   };
 }
 
@@ -254,6 +257,57 @@ describe('content-browser', () => {
       { items: [makeAsset()] },
     );
     expect(getGrid(populatedEl)).not.to.have.attribute('empty');
+  });
+
+  describe('search error (L-42BQUZ)', () => {
+    it('shows the search error, not the empty state, when the search gets an error', async () => {
+      const { el } = await fixtureWithMock(
+        html`<cx-content-browser default-folder-id="folder-error"></cx-content-browser>`,
+        { searchError: true },
+      );
+
+      expect(getGrid(el)!.hasAttribute('error')).to.equal(true);
+      expect(getGrid(el)!.hasAttribute('empty')).to.equal(false);
+    });
+
+    it('asks the controller to send the search again when the grid emits a retry', async () => {
+      const { el, mock } = await fixtureWithMock(
+        html`<cx-content-browser default-folder-id="folder-error"></cx-content-browser>`,
+        { searchError: true },
+      );
+
+      getGrid(el)!.dispatchEvent(new CustomEvent('cx-content-browser-grid-retry', { bubbles: true, composed: true }));
+
+      expect(mock.retrySearch.calledOnce).to.equal(true);
+    });
+
+    // The host moves its start to the next page before it sends the request, so a request after a page
+    // with an error goes past that page.
+    const nextPageEvents: Array<[string, () => CustomEvent]> = [
+      ['scroll-end', () => new CustomEvent('cx-content-browser-grid-scroll-end', { bubbles: true, composed: true })],
+      ['resize', () => new CustomEvent('cx-content-browser-grid-resize', {
+        bubbles: true,
+        composed: true,
+        detail: { columnCount: 10, rowCount: 10 },
+      })],
+    ];
+
+    for (const [name, makeEvent] of nextPageEvents) {
+      it(`does not request the next page on a grid ${name} while a page has an error`, async () => {
+        const { el, mock } = await fixtureWithMock(
+          html`<cx-content-browser default-folder-id="folder-error"></cx-content-browser>`,
+          { items: [makeAsset()], searchError: true, totalCount: 100 },
+        );
+        el.lastRequest = { ...el.lastRequest!, pageSize: 10, start: 10 };
+        await elementUpdated(el);
+        mock.fetchAndMergeAssets.resetHistory();
+
+        getGrid(el)!.dispatchEvent(makeEvent());
+        await elementUpdated(el);
+
+        expect(mock.fetchAndMergeAssets.called).to.equal(false);
+      });
+    }
   });
 
   it('sets isMobile from content width, passes is-mobile to control bar, and switches format dialog to drawer', async () => {
