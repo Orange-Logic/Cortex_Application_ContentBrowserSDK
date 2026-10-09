@@ -10,7 +10,17 @@ import {
 import { refreshAccessToken } from '@/utils/api';
 
 const SITE_URL = 'https://restore.example';
+const OTHER_SITE_URL = 'https://other.example';
 const STORED_KEY = 'stored-access-key';
+
+/** Whether `promise` settles within `ms`. A refresh that waits on its own lock never does. */
+const settlesWithin = (promise: Promise<unknown>, ms: number) =>
+  Promise.race([
+    promise.then(() => true, () => true),
+    new Promise<boolean>((resolve) => {
+      setTimeout(() => resolve(false), ms);
+    }),
+  ]);
 
 /**
  * The stored access key must survive every failure except the server declining it.
@@ -53,6 +63,11 @@ describe('session restore and token refresh preserve a valid access key', () => 
   const accessKeyDiscarded = () =>
     storage.delete.getCalls().some((call) => call.args[0] === AUTH_FEATURE_ACCESS_KEY_KEY);
 
+  /** Whether any request sent the stored access key to `siteUrl`. */
+  const storedKeySentTo = (fetchStub: sinon.SinonStub, siteUrl: string) =>
+    fetchStub.getCalls().some((call) =>
+      String(call.args[0]).startsWith(siteUrl) && String(call.args[1]?.body ?? '').includes(STORED_KEY));
+
   describe('during silent session restore', () => {
     it('keeps the key when the token endpoint answers with a gateway error page', async () => {
       sinon.stub(window, 'fetch').resolves(
@@ -89,6 +104,15 @@ describe('session restore and token refresh preserve a valid access key', () => 
 
       expect(accessKeyDiscarded()).to.equal(false);
       expect(fetchStub.called).to.equal(false);
+    });
+
+    it('settles and keeps the key when a proxy answers the token request with 401', async () => {
+      sinon.stub(window, 'fetch').callsFake(async () => new Response('', { status: 401 }));
+
+      expect(await settlesWithin(store.dispatch(initAuthInfoFromCache()), 2000)).to.equal(true);
+
+      expect(accessKeyDiscarded()).to.equal(false);
+      expect(store.getState()[AUTH_FEATURE_KEY].status).to.equal('unauthenticated');
     });
 
     it('discards the key only when the server answers and declines it', async () => {
@@ -160,6 +184,14 @@ describe('session restore and token refresh preserve a valid access key', () => 
       expect(accessKeyDiscarded()).to.equal(false);
     });
 
+    it('settles and keeps the key when a proxy answers the refresh call with 401', async () => {
+      sinon.stub(window, 'fetch').callsFake(async () => new Response('', { status: 401 }));
+
+      expect(await settlesWithin(refreshAccessToken(), 2000)).to.equal(true);
+
+      expect(accessKeyDiscarded()).to.equal(false);
+    });
+
     it('discards the key when the refresh call is declined by the server', async () => {
       sinon.stub(window, 'fetch').resolves(
         new Response(JSON.stringify({ success: false }), { status: 200 }),
@@ -210,6 +242,69 @@ describe('session restore and token refresh preserve a valid access key', () => 
       expect(await refreshAccessToken()).to.equal(null);
 
       expect(accessKeyDiscarded()).to.equal(false);
+    });
+  });
+
+  describe('the stored key reaches only the site it was stored for', () => {
+    /** Declines the authorization flow, and answers any token request with a verdict. */
+    const stubDeclinedAuthorization = () => sinon.stub(window, 'fetch').callsFake(async (input) => {
+      const url = String(input);
+      if (url.includes('requestauthorize')) {
+        return new Response(JSON.stringify({ requestID: 'request-1' }), { status: 200 });
+      }
+      if (url.includes('getaccesskey')) {
+        return new Response(JSON.stringify({ code: 'NotAuthorized', message: 'declined' }), { status: 200 });
+      }
+      return new Response(JSON.stringify({ success: false }), { status: 200 });
+    });
+
+    beforeEach(() => {
+      sinon.stub(window, 'open');
+    });
+
+    it('is neither sent nor discarded by a refresh after another site declines authorization', async () => {
+      const fetchStub = stubDeclinedAuthorization();
+      await store.dispatch(oAuth({ siteUrl: OTHER_SITE_URL }));
+
+      expect(await refreshAccessToken()).to.equal(null);
+
+      expect(storedKeySentTo(fetchStub, OTHER_SITE_URL)).to.equal(false);
+      expect(accessKeyDiscarded()).to.equal(false);
+    });
+
+    it('is neither sent nor discarded by the next open after another site declines authorization', async () => {
+      const fetchStub = stubDeclinedAuthorization();
+      await store.dispatch(oAuth({ siteUrl: OTHER_SITE_URL }));
+
+      await store.dispatch(initAuthInfoFromCache());
+
+      expect(storedKeySentTo(fetchStub, OTHER_SITE_URL)).to.equal(false);
+      expect(accessKeyDiscarded()).to.equal(false);
+      expect(store.getState()[AUTH_FEATURE_KEY].status).to.equal('unauthenticated');
+    });
+
+    it('is not presented by a refresh in header mode', async () => {
+      store.dispatch(authSlice.actions.setUseHeaders(true));
+      store.dispatch(authSlice.actions.setSiteUrl(SITE_URL));
+      const fetchStub = sinon.stub(window, 'fetch').resolves(
+        new Response(JSON.stringify({ success: false }), { status: 200 }),
+      );
+
+      expect(await refreshAccessToken()).to.equal(null);
+
+      expect(fetchStub.called).to.equal(false);
+      expect(accessKeyDiscarded()).to.equal(false);
+    });
+
+    it('is presented to its own site when the two URLs differ only by a trailing slash', async () => {
+      store.dispatch(authSlice.actions.setSiteUrl(`${SITE_URL}/`));
+      const fetchStub = sinon.stub(window, 'fetch').resolves(
+        new Response(JSON.stringify({ success: true, accessToken: 'fresh-token' }), { status: 200 }),
+      );
+
+      expect(await refreshAccessToken()).to.equal('fresh-token');
+
+      expect(storedKeySentTo(fetchStub, SITE_URL)).to.equal(true);
     });
   });
 

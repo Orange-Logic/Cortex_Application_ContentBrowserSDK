@@ -260,6 +260,22 @@ async ({ siteUrl, callbackFn }, { rejectWithValue, dispatch, getState }) => {
 },
 );
 
+const trimTrailingSlashes = (url: string) => url.replace(/\/+$/, '');
+
+/**
+ * The stored access key, but only when it was stored for `siteUrl`, so a key one site
+ * issued never reaches another. The two can disagree: a failed restore or a declined
+ * authorization keeps the key while the in-memory site changes. Throws when host
+ * storage cannot be read. (42AX2G)
+ */
+export const readStoredAccessKey = async (siteUrl: string): Promise<string | undefined> => {
+  const storedSiteUrl = await getData(AUTH_FEATURE_SITE_URL_KEY);
+  if (!storedSiteUrl || trimTrailingSlashes(storedSiteUrl) !== trimTrailingSlashes(siteUrl)) {
+    return undefined;
+  }
+  return await getData(AUTH_FEATURE_ACCESS_KEY_KEY) ?? undefined;
+};
+
 export const initAuthInfoFromCache = createAsyncThunk(
   `${AUTH_FEATURE_KEY}/initAuthInfoFromCache`,
   async (_, { dispatch, rejectWithValue, getState }) => {
@@ -310,7 +326,7 @@ export const initAuthInfoFromCache = createAsyncThunk(
           return false;
         }
 
-        const accessKey = await getData(AUTH_FEATURE_ACCESS_KEY_KEY);
+        const accessKey = await readStoredAccessKey(siteUrl);
         if (usingSiteSession()) return true;
 
         if (accessKey) {

@@ -3,12 +3,11 @@ import { Mutex } from 'async-mutex';
 import { store } from '@/store';
 import { getAccessTokenService } from '@/store/auth/auth.service';
 import {
-  AUTH_FEATURE_ACCESS_KEY_KEY, AUTH_FEATURE_KEY, endSession, logout, updateAuthTokens,
+  AUTH_FEATURE_KEY, AuthState, endSession, logout, readStoredAccessKey, updateAuthTokens,
 } from '@/store/auth/auth.slice';
 
 import { getRequestUrl } from './getRequestUrl';
 import { getSiteSessionRequestUrl } from './site-session';
-import { getData } from './storage';
 
 type CortexFetchOptions = RequestInit & {
   /**
@@ -26,15 +25,19 @@ type CortexFetchOptions = RequestInit & {
 const mutex = new Mutex();
 
 /**
- * The access key the next token request should present: the live session's, or the stored
- * one when an earlier failure ended the session without condemning the key. Throws when
- * host storage cannot be read, which is not the same as finding no key. (42AX2G)
+ * The access key the next token request should present: the live session's, or the one
+ * stored for this site when an earlier failure ended the session without condemning the
+ * key. Header mode never presents a stored key, the same as restore. Throws when host
+ * storage cannot be read, which is not the same as finding no key. (42AX2G)
  */
-const readAccessKey = async (inMemoryKey?: string): Promise<string | undefined> => {
-  if (inMemoryKey) {
-    return inMemoryKey;
+const readAccessKey = async (authState: AuthState): Promise<string | undefined> => {
+  if (authState.accessKey) {
+    return authState.accessKey;
   }
-  return await getData(AUTH_FEATURE_ACCESS_KEY_KEY) ?? undefined;
+  if (authState.useHeaders) {
+    return undefined;
+  }
+  return readStoredAccessKey(authState.siteUrl);
 };
 
 /**
@@ -67,7 +70,7 @@ export const refreshAccessToken = async (): Promise<string | null> => {
 
     let accessKey: string | undefined;
     try {
-      accessKey = await readAccessKey(authState.accessKey);
+      accessKey = await readAccessKey(authState);
     } catch {
       // A failed read says nothing about the key, and `logout` would delete it —
       // a host storage bridge can time out while the key is still stored. (42AX2G)
@@ -75,12 +78,9 @@ export const refreshAccessToken = async (): Promise<string | null> => {
       return null;
     }
 
-    if (!accessKey) {
-      store.dispatch(logout());
-      return null;
-    }
-
-    if (!authState.siteUrl) {
+    if (!accessKey || !authState.siteUrl) {
+      // No key was presented, so none was declined. `logout` here would delete a key
+      // stored for another site. (42AX2G)
       store.dispatch(endSession());
       return null;
     }

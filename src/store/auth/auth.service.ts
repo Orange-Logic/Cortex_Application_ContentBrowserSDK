@@ -39,6 +39,8 @@ export const requestAuthorizeService = async (
       headers: {
         'Content-Type': 'application/json',
       },
+      // An anonymous endpoint: a new token cannot change its answer. (42AX2G)
+      retryWhenUnauthorize: false,
     },
   );
   return { ...(await response.json()), nonce };
@@ -60,6 +62,8 @@ export const getAccessKeyService = async (
         headers: {
           'Content-Type': 'application/json',
         },
+        // An anonymous endpoint: a new token cannot change its answer. (42AX2G)
+        retryWhenUnauthorize: false,
       },
     );
     data = await response.json();
@@ -82,6 +86,9 @@ export const getAccessTokenService = async (
       headers: {
         'Content-Type': 'application/json',
       },
+      // `refreshAccessToken` calls this endpoint while it holds the refresh lock, so a
+      // 401 here must surface as an `AuthTransportError`, not wait on that lock. (42AX2G)
+      retryWhenUnauthorize: false,
     },
   );
 
