@@ -531,6 +531,11 @@ export class FetchAndMergeAssetsController implements ReactiveController {
           this.sortOrders = sortOrders;
         }
 
+        // A restart that came during the wait made this request obsolete: do not send it or set lastRequest.
+        if (generation !== this.#generation) {
+          return;
+        }
+
         if (!this.#hasFetchedOnce) {
           request = {
             ...request,

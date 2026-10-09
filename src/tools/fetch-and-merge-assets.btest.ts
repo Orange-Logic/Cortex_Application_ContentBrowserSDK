@@ -209,10 +209,24 @@ describe('FetchAndMergeAssetsController', () => {
 
     const HITS: Record<string, number> = { broad: 500, narrow: 7 };
     let held: Held[] = [];
+    let heldSortOrders: Array<() => void> = [];
 
     const holdServer = () => {
       held = [];
+      heldSortOrders = [];
       http.defaults.adapter = (config) => new Promise((resolve, reject) => {
+        if (config.method?.toLowerCase() === 'get') {
+          heldSortOrders.push(() => resolve({
+            config,
+            data: { sortOrders: [{ id: 'title-asc', name: 'title', sortDirection: 'ascending', sortDirectionGroupKey: 'title' }] },
+            headers: {},
+            status: 200,
+            statusText: 'OK',
+          }));
+
+          return;
+        }
+
         const body = JSON.parse(config.data as string) as Held['body'];
         const list = body.Text ?? '';
         const start = body.Start ?? 0;
@@ -240,14 +254,17 @@ describe('FetchAndMergeAssetsController', () => {
       });
     };
 
-    const setup = () => {
+    const setup = ({ knowsSortOrders = true } = {}) => {
       const clock = sinon.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
       const current = createController();
 
       holdServer();
-      (current as unknown as { sortOrders: Record<string, unknown[]> }).sortOrders = {
-        title: [{ id: 'title-asc', sortDirection: 'ascending' }],
-      };
+
+      if (knowsSortOrders) {
+        (current as unknown as { sortOrders: Record<string, unknown[]> }).sortOrders = {
+          title: [{ id: 'title-asc', sortDirection: 'ascending' }],
+        };
+      }
 
       const send = async (request: GetAssetsRequest) => {
         await current.fetchAndMergeAssets({ pageSize: 40, sortDirection: 'ascending', sortOrderName: 'title', ...request });
@@ -273,6 +290,26 @@ describe('FetchAndMergeAssetsController', () => {
       expect(shownLists()).to.deep.equal(['narrow']);
       expect(current.getData().totalCount).to.equal(7);
       expect(current.getData().loading).to.equal(false);
+    });
+
+    it('does not send the request of an earlier list that waited for the sort orders', async () => {
+      // http caches GETs by URL, so an earlier case may have cached the sort orders.
+      await http.storage.clear?.();
+
+      const { clock, current, send, sentTexts, settle } = setup({ knowsSortOrders: false });
+
+      await send({ searchText: 'broad', start: 0 });
+      await send({ searchText: 'narrow', start: 0 });
+      await clock.tickAsync(50);
+
+      // http shares one in-flight GET between both callbacks, so one answer lets both go on.
+      expect(heldSortOrders).to.have.length(1);
+
+      heldSortOrders[0]();
+      await settle();
+
+      expect(sentTexts()).to.deep.equal(['narrow@0']);
+      expect(current.getData().request?.searchText).to.equal('narrow');
     });
 
     it('keeps the list when the request of an earlier search fails after the later search answered', async () => {
