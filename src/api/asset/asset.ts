@@ -640,7 +640,9 @@ export async function apiGetAvailableProxies({
         (
           rawResponse: GetAvailableProxiesRawResponse,
         ): GetAvailableProxiesResponse => {
-          if (!rawResponse || typeof rawResponse !== 'object') {
+          // A success always carries a proxies array. Anything else, such as an error body sent with HTTP 200, is a
+          // request error and must not read as an empty format list (L-42BIA4).
+          if (!rawResponse || typeof rawResponse !== 'object' || !Array.isArray(rawResponse.proxies)) {
             return {
               isError: true,
               previewUrl: '',
@@ -651,7 +653,7 @@ export async function apiGetAvailableProxies({
           return {
             isError: false,
             previewUrl: rawResponse.previewUrl ?? '',
-            proxies: rawResponse.proxies?.map((proxy) => ({
+            proxies: rawResponse.proxies.map((proxy) => ({
               cdnName: proxy.cdnName,
               extension: proxy.extension,
               formatHeight: proxy.formatHeight,
@@ -662,7 +664,7 @@ export async function apiGetAvailableProxies({
               proxyLabel: proxy.proxyLabel,
               proxyName: proxy.proxyName,
               width: proxy.width,
-            })) ?? [],
+            })),
           };
         },
       ],

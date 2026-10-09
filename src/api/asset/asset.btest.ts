@@ -132,6 +132,42 @@ describe('apiGetAvailableProxies', () => {
     expect(response.proxies.length).to.equal(0);
   });
 
+  it('marks a response without a proxies array as an error', async () => {
+    respondWith({ ErrorCode: 'OL_ERR_GAB_001', Message: 'Not allowed' });
+
+    const response = await apiGetAvailableProxies({ assetRecordId: 'proxies-missing' });
+
+    expect(response.isError).to.equal(true);
+    expect(response.proxies.length).to.equal(0);
+  });
+
+  it('marks an empty object response as an error', async () => {
+    respondWith({});
+
+    const response = await apiGetAvailableProxies({ assetRecordId: 'proxies-empty-object' });
+
+    expect(response.isError).to.equal(true);
+    expect(response.proxies.length).to.equal(0);
+  });
+
+  it('marks a null proxies value as an error', async () => {
+    respondWith({ proxies: null });
+
+    const response = await apiGetAvailableProxies({ assetRecordId: 'proxies-null' });
+
+    expect(response.isError).to.equal(true);
+    expect(response.proxies.length).to.equal(0);
+  });
+
+  it('marks an array response as an error', async () => {
+    respondWith([]);
+
+    const response = await apiGetAvailableProxies({ assetRecordId: 'proxies-array' });
+
+    expect(response.isError).to.equal(true);
+    expect(response.proxies.length).to.equal(0);
+  });
+
   it('does not mark an empty format list as an error', async () => {
     respondWith({ previewUrl: 'https://cdn.example/preview.jpg', proxies: [] });
 
