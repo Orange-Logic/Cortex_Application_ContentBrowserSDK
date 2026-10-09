@@ -139,6 +139,8 @@ describe('asset caption', () => {
       ['a body with a total that is not a number', { contentItems: [], facets: [], totalCount: 'many' }],
       ['a facet without details and values', { contentItems: [], facets: [{}], totalCount: 0 }],
       ['a facet with values that are not a list', { contentItems: [], facets: [{ facetDetails: {}, values: {} }], totalCount: 0 }],
+      ['a facet value that is null', { contentItems: [], facets: [{ facetDetails: {}, values: [null] }], totalCount: 0 }],
+      ['a facet value without a value', { contentItems: [], facets: [{ facetDetails: {}, values: [{ count: 1 }] }], totalCount: 0 }],
       ['a body with items that are not a list', { contentItems: {}, facets: [], totalCount: 0 }],
     ];
 

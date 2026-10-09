@@ -1,6 +1,6 @@
 import http from '@/api/api';
 import { Asset, GetAssetsRequest, MediaType } from '@/types/asset';
-import { TransformationAction } from '@/types/content-browser';
+import { Facet, TransformationAction } from '@/types/content-browser';
 import { AssetApiEndpoint } from '@/api/endpoints';
 import { appendPathAndQuery } from '@/utils/appendPathAndQuery';
 
@@ -93,6 +93,14 @@ function isCortexErrorResponse(response: GetAssetLinkResponse | CortexErrorRespo
   return response && typeof response === 'object' && 'ErrorCode' in response;
 }
 
+// The filter reads `value` as a string (`split('>>')`), so a facet value without one cannot render.
+function isSearchFacet(facet: Facet | null | undefined) {
+  return !!facet
+    && typeof facet.facetDetails === 'object'
+    && Array.isArray(facet.values)
+    && facet.values.every((facetValue) => !!facetValue && typeof facetValue.value === 'string');
+}
+
 function isSearchResponse(response: unknown): response is GetAssetsRawResponse {
   if (!response || typeof response !== 'object' || Array.isArray(response)) {
     return false;
@@ -101,7 +109,7 @@ function isSearchResponse(response: unknown): response is GetAssetsRawResponse {
   const { contentItems, facets, totalCount } = response as Partial<GetAssetsRawResponse>;
 
   return Array.isArray(facets)
-    && facets.every((facet) => !!facet && typeof facet.facetDetails === 'object' && Array.isArray(facet.values))
+    && facets.every(isSearchFacet)
     && Number.isFinite(totalCount)
     && (contentItems === undefined || Array.isArray(contentItems));
 }
