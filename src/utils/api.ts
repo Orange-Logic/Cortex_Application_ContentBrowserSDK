@@ -25,10 +25,11 @@ type CortexFetchOptions = RequestInit & {
 const mutex = new Mutex();
 
 /**
- * The access key the next token request should present: the live session's, or the one
- * stored for this site when an earlier failure ended the session without condemning the
- * key. Header mode never presents a stored key, the same as restore. Throws when host
- * storage cannot be read, which is not the same as finding no key. (42AX2G)
+ * The access key the next token request should present: the live session's, which `oAuth`
+ * drops before it changes the site, or the one stored for this site when an earlier failure
+ * ended the session without condemning the key. Header mode never presents a stored key,
+ * the same as restore. Throws when host storage cannot be read, which is not the same as
+ * finding no key. (42AX2G)
  */
 const readAccessKey = async (authState: AuthState): Promise<string | undefined> => {
   if (authState.accessKey) {

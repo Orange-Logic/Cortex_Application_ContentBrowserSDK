@@ -5,7 +5,7 @@ import {
 import { RootState } from '@/store';
 import { GetAccessKeyRes, GetAccessKeyResponseCode, OAuthRes } from '@/types/auth';
 import { getRequestUrl } from '@/utils/getRequestUrl';
-import { deleteData, getData, storeData } from '@/utils/storage';
+import { deleteData, getData, getPairedData, storeData } from '@/utils/storage';
 import { generateRandomString } from '@/utils/string';
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 
@@ -208,6 +208,9 @@ export const cancelAuth = createAsyncThunk(`${AUTH_FEATURE_KEY}/oauth`, (_, { di
 export const oAuth = createAsyncThunk<OAuthRes, { siteUrl: string, callbackFn?: (url: string) => void }>(
   `${AUTH_FEATURE_KEY}/oauth`,
 async ({ siteUrl, callbackFn }, { rejectWithValue, dispatch, getState }) => {
+  // `refreshAccessToken` presents the in-memory key to the current site, so that key
+  // must not outlive a change of site. The stored key stays for its own site. (42AX2G)
+  dispatch(authSlice.actions.endSession());
   dispatch(authSlice.actions.setSiteUrl(siteUrl));
   dispatch(authSlice.actions.setAuthStatus('requestLogin'));
 
@@ -263,17 +266,39 @@ async ({ siteUrl, callbackFn }, { rejectWithValue, dispatch, getState }) => {
 const trimTrailingSlashes = (url: string) => url.replace(/\/+$/, '');
 
 /**
+ * Whether two site URLs address the same site. The URL parser normalizes the scheme, host
+ * and port, so host case and a default port do not matter. The path compares exactly,
+ * without trailing slashes. Not `origin`: it is "null" for every non-special scheme.
+ */
+const isSameSite = (siteUrl: string, otherSiteUrl: string) => {
+  try {
+    const site = new URL(siteUrl);
+    const otherSite = new URL(otherSiteUrl);
+    return site.protocol === otherSite.protocol
+      && site.host === otherSite.host
+      && trimTrailingSlashes(site.pathname) === trimTrailingSlashes(otherSite.pathname);
+  } catch {
+    return trimTrailingSlashes(siteUrl) === trimTrailingSlashes(otherSiteUrl);
+  }
+};
+
+/**
  * The stored access key, but only when it was stored for `siteUrl`, so a key one site
  * issued never reaches another. The two can disagree: a failed restore or a declined
- * authorization keeps the key while the in-memory site changes. Throws when host
- * storage cannot be read. (42AX2G)
+ * authorization keeps the key while the in-memory site changes. The site URL and the key
+ * come from the same storage, or one storage's site URL could vouch for another
+ * storage's key. Throws when host storage cannot be read. (42AX2G)
  */
 export const readStoredAccessKey = async (siteUrl: string): Promise<string | undefined> => {
-  const storedSiteUrl = await getData(AUTH_FEATURE_SITE_URL_KEY);
-  if (!storedSiteUrl || trimTrailingSlashes(storedSiteUrl) !== trimTrailingSlashes(siteUrl)) {
+  const stored = await getPairedData(AUTH_FEATURE_SITE_URL_KEY, AUTH_FEATURE_ACCESS_KEY_KEY);
+  if (!stored) {
     return undefined;
   }
-  return await getData(AUTH_FEATURE_ACCESS_KEY_KEY) ?? undefined;
+  const [storedSiteUrl, storedAccessKey] = stored;
+  if (!storedSiteUrl || !isSameSite(storedSiteUrl, siteUrl)) {
+    return undefined;
+  }
+  return storedAccessKey ?? undefined;
 };
 
 export const initAuthInfoFromCache = createAsyncThunk(

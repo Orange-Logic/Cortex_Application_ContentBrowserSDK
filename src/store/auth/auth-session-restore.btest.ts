@@ -63,10 +63,10 @@ describe('session restore and token refresh preserve a valid access key', () => 
   const accessKeyDiscarded = () =>
     storage.delete.getCalls().some((call) => call.args[0] === AUTH_FEATURE_ACCESS_KEY_KEY);
 
-  /** Whether any request sent the stored access key to `siteUrl`. */
-  const storedKeySentTo = (fetchStub: sinon.SinonStub, siteUrl: string) =>
+  /** Whether any request sent `accessKey` to `siteUrl`. */
+  const storedKeySentTo = (fetchStub: sinon.SinonStub, siteUrl: string, accessKey = STORED_KEY) =>
     fetchStub.getCalls().some((call) =>
-      String(call.args[0]).startsWith(siteUrl) && String(call.args[1]?.body ?? '').includes(STORED_KEY));
+      String(call.args[0]).startsWith(siteUrl) && String(call.args[1]?.body ?? '').includes(accessKey));
 
   describe('during silent session restore', () => {
     it('keeps the key when the token endpoint answers with a gateway error page', async () => {
@@ -296,15 +296,92 @@ describe('session restore and token refresh preserve a valid access key', () => 
       expect(accessKeyDiscarded()).to.equal(false);
     });
 
-    it('is presented to its own site when the two URLs differ only by a trailing slash', async () => {
-      store.dispatch(authSlice.actions.setSiteUrl(`${SITE_URL}/`));
-      const fetchStub = sinon.stub(window, 'fetch').resolves(
-        new Response(JSON.stringify({ success: true, accessToken: 'fresh-token' }), { status: 200 }),
-      );
+    it('is not sent from memory to another site after that site declines authorization', async () => {
+      store.dispatch(authSlice.actions.setSiteUrl(SITE_URL));
+      store.dispatch(authSlice.actions.updateAuthTokens({ accessKey: STORED_KEY, accessToken: 'live-token' }));
+      const fetchStub = stubDeclinedAuthorization();
+      await store.dispatch(oAuth({ siteUrl: OTHER_SITE_URL }));
 
-      expect(await refreshAccessToken()).to.equal('fresh-token');
+      expect(await refreshAccessToken()).to.equal(null);
 
-      expect(storedKeySentTo(fetchStub, SITE_URL)).to.equal(true);
+      expect(storedKeySentTo(fetchStub, OTHER_SITE_URL)).to.equal(false);
+      expect(accessKeyDiscarded()).to.equal(false);
+    });
+
+    describe('when one storage holds the site URL and another holds a key', () => {
+      const OTHER_STORAGE_KEY = 'other-storage-access-key';
+
+      beforeEach(() => {
+        storage.get.callsFake(async (key: string) => (key === AUTH_FEATURE_SITE_URL_KEY ? SITE_URL : null));
+        localStorage.setItem(AUTH_FEATURE_ACCESS_KEY_KEY, OTHER_STORAGE_KEY);
+      });
+
+      afterEach(() => {
+        localStorage.removeItem(AUTH_FEATURE_ACCESS_KEY_KEY);
+      });
+
+      it('does not pair the two on refresh', async () => {
+        store.dispatch(authSlice.actions.setSiteUrl(SITE_URL));
+        const fetchStub = sinon.stub(window, 'fetch').resolves(
+          new Response(JSON.stringify({ success: true, accessToken: 'fresh-token' }), { status: 200 }),
+        );
+
+        const token = await refreshAccessToken();
+
+        expect(storedKeySentTo(fetchStub, SITE_URL, OTHER_STORAGE_KEY)).to.equal(false);
+        expect(token).to.equal(null);
+      });
+
+      it('does not pair the two on restore', async () => {
+        const fetchStub = sinon.stub(window, 'fetch').resolves(
+          new Response(JSON.stringify({ success: true, accessToken: 'fresh-token' }), { status: 200 }),
+        );
+
+        await store.dispatch(initAuthInfoFromCache());
+
+        expect(storedKeySentTo(fetchStub, SITE_URL, OTHER_STORAGE_KEY)).to.equal(false);
+        expect(store.getState()[AUTH_FEATURE_KEY].status).to.equal('unauthenticated');
+      });
+    });
+
+    describe('when the two URLs address the same site in different forms', () => {
+      const presentsStoredKeyTo = async (siteUrl: string) => {
+        store.dispatch(authSlice.actions.setSiteUrl(siteUrl));
+        const fetchStub = sinon.stub(window, 'fetch').resolves(
+          new Response(JSON.stringify({ success: true, accessToken: 'fresh-token' }), { status: 200 }),
+        );
+        await refreshAccessToken();
+        return fetchStub.getCalls().some((call) => String(call.args[1]?.body ?? '').includes(STORED_KEY));
+      };
+
+      it('is presented when they differ only by a trailing slash', async () => {
+        expect(await presentsStoredKeyTo(`${SITE_URL}/`)).to.equal(true);
+      });
+
+      it('is presented when they differ only by host case', async () => {
+        expect(await presentsStoredKeyTo('https://RESTORE.example')).to.equal(true);
+      });
+
+      it('is presented when one names the default port', async () => {
+        expect(await presentsStoredKeyTo('https://restore.example:443')).to.equal(true);
+      });
+
+      it('is not presented to the same host on another port', async () => {
+        expect(await presentsStoredKeyTo('https://restore.example:8443')).to.equal(false);
+      });
+
+      it('is not presented to the same host under another path', async () => {
+        expect(await presentsStoredKeyTo(`${SITE_URL}/other`)).to.equal(false);
+      });
+
+      it('is not presented to another host that shares a non-special scheme and path', async () => {
+        storage.get.callsFake(async (key: string) => {
+          if (key === AUTH_FEATURE_SITE_URL_KEY) return 'cortex://restore.example/dam';
+          return storedValues(key);
+        });
+
+        expect(await presentsStoredKeyTo('cortex://other.example/dam')).to.equal(false);
+      });
     });
   });
 
