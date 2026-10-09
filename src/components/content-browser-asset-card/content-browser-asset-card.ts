@@ -141,7 +141,6 @@ export default class CxContentBrowserAssetCard extends CortexElement {
           'content-browser-asset-card--disabled': this.inColdStorage,
           'content-browser-asset-card--selected': this.selected,
         })}
-        interactive
         @mouseenter=${this.handleCardPointerMove}
         @mousemove=${this.handleCardPointerMove}
         @mouseleave=${this.handleCardPointerLeave}
