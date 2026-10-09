@@ -101,6 +101,7 @@ function isSearchResponse(response: unknown): response is GetAssetsRawResponse {
   const { contentItems, facets, totalCount } = response as Partial<GetAssetsRawResponse>;
 
   return Array.isArray(facets)
+    && facets.every((facet) => !!facet && typeof facet.facetDetails === 'object' && Array.isArray(facet.values))
     && Number.isFinite(totalCount)
     && (contentItems === undefined || Array.isArray(contentItems));
 }

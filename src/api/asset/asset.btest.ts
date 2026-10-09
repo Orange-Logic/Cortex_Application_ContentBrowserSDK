@@ -137,6 +137,8 @@ describe('asset caption', () => {
       ['an error object', { error: 'Session expired' }],
       ['a body without facets and total', { contentItems: [] }],
       ['a body with a total that is not a number', { contentItems: [], facets: [], totalCount: 'many' }],
+      ['a facet without details and values', { contentItems: [], facets: [{}], totalCount: 0 }],
+      ['a facet with values that are not a list', { contentItems: [], facets: [{ facetDetails: {}, values: {} }], totalCount: 0 }],
       ['a body with items that are not a list', { contentItems: {}, facets: [], totalCount: 0 }],
     ];
 

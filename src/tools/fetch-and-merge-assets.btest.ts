@@ -359,6 +359,18 @@ describe('FetchAndMergeAssetsController', () => {
       expect(current.getData().searchError).to.equal(false);
     });
 
+    it('shows an error and stops loading when a search answers with a malformed facet', async () => {
+      const clock = sinon.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+      scriptSearches([{ facets: [{}] as unknown as Facet[], recordIds: ['r1'], totalCount: 1 }]);
+      const current = createSearchController();
+
+      await current.fetchAndMergeAssets({ pageSize: 2, start: 0 });
+      await clock.tickAsync(200);
+
+      expect(current.getData().searchError).to.equal(true);
+      expect(current.getData().loading).to.equal(false);
+    });
+
     it('ignores the rows of a search that a subsequent search replaced, when the older one resolves last', async () => {
       const clock = sinon.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
       let releaseFirst: (reply: SearchReply) => void = () => {};
