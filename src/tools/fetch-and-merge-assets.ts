@@ -565,9 +565,9 @@ export class FetchAndMergeAssetsController implements ReactiveController {
       });
 
       const isAppend = !!request.start && request.start > 0 && !forceRefetch;
-      const isPreviousListError = assets.isError && listVersion !== this.#listVersion;
+      const isPreviousList = listVersion !== this.#listVersion;
 
-      if (!isPreviousListError) {
+      if (!isPreviousList) {
         if (assets.isError) {
           this.failedRequest = request;
 

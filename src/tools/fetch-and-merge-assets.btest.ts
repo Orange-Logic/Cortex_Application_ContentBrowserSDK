@@ -359,6 +359,26 @@ describe('FetchAndMergeAssetsController', () => {
       expect(current.getData().searchError).to.equal(false);
     });
 
+    it('ignores the rows of a search that a subsequent search replaced, when the older one resolves last', async () => {
+      const clock = sinon.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+      let releaseFirst: (reply: SearchReply) => void = () => {};
+      const first = new Promise<SearchReply>((resolve) => {
+        releaseFirst = resolve;
+      });
+      scriptSearches([first, { recordIds: ['new-1'], totalCount: 1 }]);
+      const current = createSearchController();
+
+      await current.fetchAndMergeAssets({ pageSize: 2, searchText: 'old', start: 0 });
+      await clock.tickAsync(200);
+      await current.fetchAndMergeAssets({ pageSize: 2, searchText: 'new', start: 0 });
+      await clock.tickAsync(200);
+      releaseFirst({ recordIds: ['old-1', 'old-2'], totalCount: 2 });
+      await clock.tickAsync(0);
+
+      expect(recordIdsOf(current)).to.deep.equal(['new-1']);
+      expect(current.getData().totalCount).to.equal(1);
+    });
+
     it('reports the error of a next page when a subsequent page of the same list was sent after it', async () => {
       const clock = sinon.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
       let releaseSecondPage: (reply: SearchReply) => void = () => {};

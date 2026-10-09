@@ -172,6 +172,19 @@ describe('content-browser-grid', () => {
       expect(query('cx-content-browser-no-result') === null).to.equal(true);
     });
 
+    it('keeps the page error bar below the last row instead of over it', async () => {
+      el = await fixture<ContentBrowserGrid>(html`
+        <cx-content-browser-grid ?error=${true} .assets=${[makeAsset()]} style="height: 400px"></cx-content-browser-grid>
+      `);
+      await elementUpdated(el);
+
+      const list = query('lit-virtualizer') as HTMLElement;
+      const bar = query('.content-browser-grid__page-error') as HTMLElement;
+
+      expect(bar.getBoundingClientRect().height > 0).to.equal(true);
+      expect(list.getBoundingClientRect().bottom <= bar.getBoundingClientRect().top + 0.5).to.equal(true);
+    });
+
     it('emits cx-content-browser-grid-retry when the user clicks Retry', async () => {
       el = await fixture<ContentBrowserGrid>(html`
         <cx-content-browser-grid ?error=${true}></cx-content-browser-grid>

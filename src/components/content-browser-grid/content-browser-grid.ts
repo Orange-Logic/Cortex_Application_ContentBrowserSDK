@@ -295,11 +295,8 @@ export default class CxContentBrowserGrid extends CortexElement {
 
     return html`
       <lit-virtualizer
+        class="content-browser-grid__list"
         scroller
-        style=${styleMap({
-          height: '100%',
-          'overflow-x': 'hidden',
-        })}
         .layout=${grid({
           gap: `${this.#gutter}px`,
           itemSize: {

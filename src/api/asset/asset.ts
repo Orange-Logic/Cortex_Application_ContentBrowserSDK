@@ -93,6 +93,18 @@ function isCortexErrorResponse(response: GetAssetLinkResponse | CortexErrorRespo
   return response && typeof response === 'object' && 'ErrorCode' in response;
 }
 
+function isSearchResponse(response: unknown): response is GetAssetsRawResponse {
+  if (!response || typeof response !== 'object' || Array.isArray(response)) {
+    return false;
+  }
+
+  const { contentItems, facets, totalCount } = response as Partial<GetAssetsRawResponse>;
+
+  return Array.isArray(facets)
+    && Number.isFinite(totalCount)
+    && (contentItems === undefined || Array.isArray(contentItems));
+}
+
 // What a backend without the POST overload answers. 403/404 are excluded: they carry business errors
 // (OL_ERR_002_NOTALLOWED / OL_ERR_001_NOTFOUND), so one denied asset must not disable POST for the site.
 const POST_UNSUPPORTED_STATUSES = new Set([405, 501]);
@@ -568,8 +580,8 @@ export async function apiGetAssets({
           ? http.defaults.transformResponse
           : []),
         (rawResponse: GetAssetsRawResponse): GetAssetsResponse => {
-          // A 2xx page that is not JSON, for example from a proxy or a login page, has no search result.
-          if (!rawResponse || typeof rawResponse !== 'object') {
+          // A 2xx page that is not a search result, for example from a proxy or a login page, is an error.
+          if (!isSearchResponse(rawResponse)) {
             return {
               facets: [],
               isError: true,

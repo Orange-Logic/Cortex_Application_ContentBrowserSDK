@@ -131,6 +131,33 @@ describe('asset caption', () => {
       expect(response.facets.length).to.equal(0);
     });
 
+    const malformedBodies: Array<[string, unknown]> = [
+      ['an empty object', {}],
+      ['an array', []],
+      ['an error object', { error: 'Session expired' }],
+      ['a body without facets and total', { contentItems: [] }],
+      ['a body with a total that is not a number', { contentItems: [], facets: [], totalCount: 'many' }],
+      ['a body with items that are not a list', { contentItems: {}, facets: [], totalCount: 0 }],
+    ];
+
+    for (const [name, data] of malformedBodies) {
+      it(`reports a 2xx response with ${name} as an error`, async () => {
+        http.defaults.adapter = async (config) => ({
+          config,
+          data,
+          headers: {},
+          status: 200,
+          statusText: 'OK',
+        });
+
+        const response = await apiGetAssets({} as Parameters<typeof apiGetAssets>[0]);
+
+        expect(response.isError).to.equal(true);
+        expect(response.facets.length).to.equal(0);
+        expect(response.totalCount).to.equal(0);
+      });
+    }
+
     it('reports a 2xx response with no hits as a search with no hits, not an error', async () => {
       http.defaults.adapter = async (config) => ({
         config,

@@ -8,15 +8,20 @@ export default css`
   }
 
   .content-browser-grid {
+    display: flex;
+    flex-direction: column;
     height: 100%;
     position: relative;
   }
 
+  .content-browser-grid__list {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-x: hidden;
+  }
+
   .content-browser-grid__page-error {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
+    flex: none;
     display: flex;
     align-items: center;
     justify-content: center;
