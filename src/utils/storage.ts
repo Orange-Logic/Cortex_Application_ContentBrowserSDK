@@ -170,6 +170,30 @@ export const getData = async (
   }
 };
 
+/** The order in which `getData` searches the storages when no type is given. */
+const STORAGE_SEARCH_ORDER: StorageType[] = ['CustomStorage', 'LocalStorage', 'SessionStorage', 'Cookies'];
+
+/**
+ * Get two values that must come from the same storage: the first storage, in `getData`
+ * order, that holds `key`. Two separate `getData` calls can each return a value from a
+ * different storage.
+ * @param {string} key the value that selects the storage
+ * @param {string} pairedKey the value read from that same storage
+ * @returns both values, or null when no storage holds `key`
+ */
+export const getPairedData = async (
+  key: string,
+  pairedKey: string,
+): Promise<[string, string | null] | null> => {
+  for (const storageType of STORAGE_SEARCH_ORDER) {
+    const value = await getData(key, storageType);
+    if (value !== null) {
+      return [value, await getData(pairedKey, storageType)];
+    }
+  }
+  return null;
+};
+
 /**
  * Check if a value associate with key has expired or not. If already expired, delete that value.
  * @param {string} key

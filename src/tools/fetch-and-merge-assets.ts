@@ -83,12 +83,6 @@ export class FetchAndMergeAssetsController implements ReactiveController {
   /** The resolved request of the last search that got an error. A retry sends it again. */
   private failedRequest: GetAssetsRequest | null = null;
 
-  /**
-   * Increases at each list restart (Start 0). The error of a request from a previous list is ignored:
-   * the new list has its own request, and a retry of the previous request shows rows for other controls.
-   */
-  #listVersion = 0;
-
   private sortOrders: Record<string, SortOrder[]> = {};
 
   private parameters: GetContentBrowserParametersResponse | null = null;
@@ -404,6 +398,18 @@ export class FetchAndMergeAssetsController implements ReactiveController {
 
   private _debounceResolve: ((value: unknown) => void) | null = null;
 
+  /**
+   * Identifies the list on screen. Each restart call raises it, and a response of an older number is
+   * discarded, because responses come in the order the server answers, not in the order of the requests.
+   */
+  #generation = 0;
+
+  #inFlight: number[] = [];
+
+  #queued = false;
+
+  #lastPage: { pageSize: number; start: number } | null = null;
+
   private mapAvailableExtensions(allowedExtensions: string[]) {
     // object of extensions that's available for selection in the custom format dialog.
     // E.g. {Image: [{display: 'JPG', value: '.jpg'}], Audio: [{display: 'MP3', value: '.mp3'}]}
@@ -483,22 +489,32 @@ export class FetchAndMergeAssetsController implements ReactiveController {
   }
 
   async fetchAndMergeAssets(request: GetAssetsRequest) {
+    if (request.start === null) {
+      return;
+    }
+
+    const isRestart = this.isRestart(request);
+
+    /**
+     * An append while a request of the list is queued or in flight could replace a queued first page or
+     * reach the server before it, so it is dropped. The host asks `getNextPage` first.
+     */
+    if (!isRestart && this.isBusy()) {
+      return;
+    }
+
+    if (isRestart) {
+      this.#generation += 1;
+    }
+
+    const generation = this.#generation;
+
     /**
      * Always run these lines immediately
      */
     this.loading = true;
     this.failedRequest = null;
     this.host.requestUpdate();
-
-    if (request.start === null) {
-      return;
-    }
-
-    if (!request.start) {
-      this.#listVersion += 1;
-    }
-
-    const listVersion = this.#listVersion;
 
     /**
      * Now only debounce the fetching section
@@ -515,88 +531,136 @@ export class FetchAndMergeAssetsController implements ReactiveController {
       this._debounceResolve = resolve;
     });
 
+    this.#queued = true;
+
     this._debounceTimeout = setTimeout(async () => {
-      if (Object.keys(this.sortOrders).length === 0) {
-        const sortOrders = await apiGetSortOrders();
-        this.sortOrders = sortOrders;
-      }
+      this.#queued = false;
+      this.#inFlight.push(generation);
 
-      const forceRefetch =
-        request.start === this.lastRequest?.start &&
-        !!request.pageSize &&
-        !!this.lastRequest?.pageSize &&
-        request.pageSize > this.lastRequest?.pageSize;
+      try {
+        if (Object.keys(this.sortOrders).length === 0) {
+          const sortOrders = await apiGetSortOrders();
+          this.sortOrders = sortOrders;
+        }
 
-      if (!this.#hasFetchedOnce) {
+        // A restart that came during the wait made this request obsolete: do not send it or set lastRequest.
+        if (generation !== this.#generation) {
+          return;
+        }
+
+        if (!this.#hasFetchedOnce) {
+          request = {
+            ...request,
+            // Keep a folder the host already resolved (e.g. the auto-selected initial folder).
+            folderId: request.folderId || this.defaultFolderId,
+            isSeeThrough: request.isSeeThrough ?? this.defaultIsSeeThrough,
+            searchText: request.searchText ?? this.defaultSearchText,
+            selectedFacets: request.selectedFacets ?? this.defaultSelectedFacets,
+            sortDirection: request.sortDirection ?? this.defaultSortDirection,
+            sortOrderName: request.sortOrderName ?? this.defaultSortOrderName,
+          };
+        }
+
+        let sortOrder;
+
+        if (request.sortOrderName && request.sortDirection) {
+          const sortOrders = this.sortOrders[request.sortOrderName];
+          sortOrder = sortOrders?.find((item) => item.sortDirection.toLowerCase() === request.sortDirection?.toLowerCase())?.id;
+
+          if (!sortOrder && sortOrders?.[0]) {
+            sortOrder = sortOrders[0].id;
+            request.sortDirection = sortOrders[0].sortDirection;
+          }
+        }
+
         request = {
           ...request,
-          // Keep a folder the host already resolved (e.g. the auto-selected initial folder).
-          folderId: request.folderId || this.defaultFolderId,
-          isSeeThrough: request.isSeeThrough ?? this.defaultIsSeeThrough,
-          searchText: request.searchText ?? this.defaultSearchText,
-          selectedFacets: request.selectedFacets ?? this.defaultSelectedFacets,
-          sortDirection: request.sortDirection ?? this.defaultSortDirection,
-          sortOrderName: request.sortOrderName ?? this.defaultSortOrderName,
+          limitedToDocTypes: this.availableDocTypes,
         };
-      }
 
-      let sortOrder;
+        this.lastRequest = request;
 
-      if (request.sortOrderName && request.sortDirection) {
-        const sortOrders = this.sortOrders[request.sortOrderName];
-        sortOrder = sortOrders?.find((item) => item.sortDirection.toLowerCase() === request.sortDirection?.toLowerCase())?.id;
+        const assets = await apiGetAssets({
+          ...request,
+          sortOrder,
+        });
 
-        if (!sortOrder && sortOrders?.[0]) {
-          sortOrder = sortOrders[0].id;
-          request.sortDirection = sortOrders[0].sortDirection;
+        if (generation !== this.#generation) {
+          return;
         }
-      }
 
-      request = {
-        ...request,
-        limitedToDocTypes: this.availableDocTypes,
-      };
-
-      this.lastRequest = request;
-
-      const assets = await apiGetAssets({
-        ...request,
-        sortOrder,
-      });
-
-      const isAppend = !!request.start && request.start > 0 && !forceRefetch;
-      const isPreviousList = listVersion !== this.#listVersion;
-
-      if (!isPreviousList) {
         if (assets.isError) {
           this.failedRequest = request;
 
           // The rows of a previous search do not belong to this one. A next page keeps the rows it extends.
-          if (!isAppend) {
+          if (isRestart) {
             this.items = [];
             this.totalCount = 0;
           }
         } else {
-          if (isAppend) {
-            this.items = _uniqBy([...this.items, ...assets.items], 'recordId');
-          } else {
+          if (isRestart) {
             this.items = assets.items;
+          } else {
+            this.items = _uniqBy([...this.items, ...assets.items], 'recordId');
           }
           this.facets = this.mergeFacetsWithSelected(assets.facets, this.facets, request.selectedFacets);
           this.totalCount = assets.totalCount;
+
+          this.#lastPage = {
+            pageSize: request.pageSize || assets.items.length,
+            start: request.start ?? 0,
+          };
+        }
+        this.#hasFetchedOnce = true;
+
+        if (this._debounceResolve) {
+          this._debounceResolve(this.lastRequest);
+        }
+        this._debouncePromise = null;
+        this._debounceResolve = null;
+      } finally {
+        const index = this.#inFlight.indexOf(generation);
+
+        if (index >= 0) {
+          this.#inFlight.splice(index, 1);
         }
 
-        this.loading = false;
-        this.#hasFetchedOnce = true;
+        this.loading = this.isBusy();
         this.host.requestUpdate();
       }
-
-      if (this._debounceResolve) {
-        this._debounceResolve(this.lastRequest);
-      }
-      this._debouncePromise = null;
-      this._debounceResolve = null;
     }, 200);
+  }
+
+  /**
+   * Where the next page of the list on screen starts, or `null` while a request of that list is queued
+   * or in flight. The start follows the last accepted page, not the last request sent, so a page that
+   * was dropped or discarded never leaves a gap. `lastPageSize` is the size of that accepted page.
+   */
+  getNextPage() {
+    if (this.isBusy()) {
+      return null;
+    }
+
+    return {
+      lastPageSize: this.#lastPage?.pageSize ?? 0,
+      start: this.#lastPage ? this.#lastPage.start + this.#lastPage.pageSize : 0,
+    };
+  }
+
+  private isBusy() {
+    return this.#queued || this.#inFlight.includes(this.#generation);
+  }
+
+  /**
+   * A request that starts a new list: the first page, or the same page asked for with a larger page size.
+   */
+  private isRestart(request: GetAssetsRequest) {
+    return !request.start || (
+      request.start === this.lastRequest?.start &&
+      !!request.pageSize &&
+      !!this.lastRequest?.pageSize &&
+      request.pageSize > this.lastRequest.pageSize
+    );
   }
 
   async fetchAssetFavoriteStatus(id: string) {
@@ -815,5 +879,6 @@ export class FetchAndMergeAssetsController implements ReactiveController {
     this.items = [];
     this.totalCount = 0;
     this.sortOrders = {};
+    this.#lastPage = null;
   }
 }
