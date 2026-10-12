@@ -69,6 +69,20 @@ export const refreshAccessToken = async (): Promise<string | null> => {
       return null;
     }
 
+    // A host token is not an access key: ask the host for a new one (as 2.2.8 did) and never log out. (42BXQB)
+    if (authState.useHeaders) {
+      try {
+        const result = await window.OrangeDAMContentBrowser?._onRequestToken?.();
+        if (result?.token) {
+          store.dispatch(updateAuthTokens({ accessKey: result.token }));
+          return result.token;
+        }
+      } catch {
+        // No token from the host.
+      }
+      return null;
+    }
+
     let accessKey: string | undefined;
     try {
       accessKey = await readAccessKey(authState);

@@ -10,7 +10,7 @@ import {
 import { AppContext } from '@/AppContext';
 import { GlobalConfigContext } from '@/GlobalConfigContext';
 import { useAppDispatch, useAppSelector } from '@/store';
-import { applySessionSelector, logout, siteSessionSelector } from '@/store/auth/auth.slice';
+import { applySessionSelector, bearerTokenSelector, logout, siteSessionSelector } from '@/store/auth/auth.slice';
 import {
     Asset, Facet, Folder, GetAssetLinkResponse, GetContentRequest, GetFoldersRequest, GridView,
 } from '@/types/search';
@@ -130,6 +130,7 @@ const AssetsPicker = forwardRef<AssetsPickerHandle, Props>(function AssetsPicker
   const appDispatch = useAppDispatch();
   const useSession = useAppSelector(applySessionSelector);
   const useSiteSession = useAppSelector(siteSessionSelector);
+  const bearerToken = useAppSelector(bearerTokenSelector);
   const {
     allowFavorites,
     allowFormatDialogPin,
@@ -403,6 +404,7 @@ const AssetsPicker = forwardRef<AssetsPickerHandle, Props>(function AssetsPicker
       default-search-text={defaultSettings.searchText}
       default-folder-id={defaultSettings.lastLocation}
       token={accessToken ?? ''}
+      bearerToken={bearerToken ?? ''}
       base-url={siteUrl ?? ''}
       use-session={useSession}
       use-site-session={useSiteSession}
