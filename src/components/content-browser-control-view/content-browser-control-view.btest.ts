@@ -231,7 +231,7 @@ describe('content-browser-control-view', () => {
     });
   });
 
-  describe('visible mobile checkmarks', () => {
+  describe('hidden checkmarks', () => {
     async function visibleCheckmarks() {
       const items = getMenuItems(el);
 
@@ -245,47 +245,22 @@ describe('content-browser-control-view', () => {
       }).map((item) => (item.menu === 'submenu' ? 'grid' : item.value));
     }
 
-    it('marks only the active leaf across mobile table and grid transitions', async () => {
-      el.canUseTable = true;
-      el.isMobile = true;
-      await setViewsAndView(el, sampleViews, 'small');
-      el.addEventListener('cx-content-browser-control-view-change', (event) => {
-        el.view = event.detail.view;
-      });
-      await getDropdown(el).show();
-
-      findMenuItem(el, (item) => item.value === TABLE_VIEW).click();
-      await elementUpdated(el);
-      expect(await visibleCheckmarks()).to.deep.equal([TABLE_VIEW]);
-
-      findMenuItem(el, (item) => item.value === GridView.Small).click();
-      await elementUpdated(el);
-      expect(await visibleCheckmarks()).to.deep.equal([GridView.Small]);
-
-      findMenuItem(el, (item) => item.value === TABLE_VIEW).click();
-      await elementUpdated(el);
-      expect(await visibleCheckmarks()).to.deep.equal([TABLE_VIEW]);
-    });
-
-    it('keeps the active Table mark after the control returns from desktop to mobile', async () => {
+    it('shows no checkmark on mobile and keeps the checked state', async () => {
       el.canUseTable = true;
       el.isMobile = true;
       await setViewsAndView(el, sampleViews, TABLE_VIEW);
+      await getDropdown(el).show();
 
-      for (const isMobile of [true, false, true]) {
-        el.isMobile = isMobile;
-        await elementUpdated(el);
-        await getDropdown(el).show();
-        expect(await visibleCheckmarks()).to.deep.equal([TABLE_VIEW]);
-      }
+      expect(await visibleCheckmarks()).to.deep.equal([]);
+      expect(findMenuItem(el, (item) => item.value === TABLE_VIEW).checked).to.be.true;
     });
 
-    it('keeps the mobile Grid mark for a host without table columns', async () => {
+    it('shows no Grid checkmark on mobile for a host without table columns', async () => {
       el.isMobile = true;
       await setViewsAndView(el, sampleViews, 'small');
       await getDropdown(el).show();
 
-      expect(await visibleCheckmarks()).to.deep.equal(['grid', GridView.Small]);
+      expect(await visibleCheckmarks()).to.deep.equal([]);
     });
   });
   describe('desktop checked state', () => {
@@ -301,18 +276,17 @@ describe('content-browser-control-view', () => {
         .map((item) => (getGridItem(control) === item ? 'grid' : item.value));
     }
 
-    it('leaves the Grid item unmarked for a host without table columns', async () => {
+    it('marks the Grid item and the active size while a grid view is active', async () => {
       await setViewsAndView(el, sampleViews, 'medium');
 
-      expect(getGridItem(el).hasAttribute('checked')).to.be.false;
-      expect(checkedItems(el)).to.deep.equal(['medium']);
+      expect(checkedItems(el)).to.deep.equal(['grid', 'medium']);
     });
 
-    it('marks the active grid size alone, never the Grid item, once the table is offered', async () => {
+    it('marks the Grid item and the active size once the table is offered', async () => {
       el.canUseTable = true;
       await setViewsAndView(el, sampleViews, 'medium');
 
-      expect(checkedItems(el)).to.deep.equal(['medium']);
+      expect(checkedItems(el)).to.deep.equal(['grid', 'medium']);
     });
 
     it('marks the Table item alone while the table is active', async () => {
