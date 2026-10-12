@@ -93,10 +93,17 @@ function isCortexErrorResponse(response: GetAssetLinkResponse | CortexErrorRespo
   return response && typeof response === 'object' && 'ErrorCode' in response;
 }
 
-// The filter reads `value` as a string (`split('>>')`), so a facet value without one cannot render.
+// The merge reads `facetFieldName` and the filter reads `displayName` of the details. The filter reads `value`
+// of each facet value as a string (`split('>>')`). A facet without them cannot merge or render.
 function isSearchFacet(facet: Facet | null | undefined) {
+  const details = facet?.facetDetails;
+
   return !!facet
-    && typeof facet.facetDetails === 'object'
+    && !!details
+    && typeof details === 'object'
+    && !Array.isArray(details)
+    && typeof details.facetFieldName === 'string'
+    && typeof details.displayName === 'string'
     && Array.isArray(facet.values)
     && facet.values.every((facetValue) => !!facetValue && typeof facetValue.value === 'string');
 }
