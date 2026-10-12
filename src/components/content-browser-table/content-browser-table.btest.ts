@@ -820,7 +820,7 @@ describe('content-browser-table', () => {
       return getComputedStyle(getRowElement(el, assetId)!).backgroundColor;
     }
 
-    it('paints the selected row in the table\'s selected-row style, and moves it with the selection', async () => {
+    it('marks the selected row as current without painting it, and moves the mark with the selection', async () => {
       const el = await mount(html`
         <cx-content-browser-table
           style="height: 400px; --cx-color-primary-200: ${SELECTED_ROW_COLOR}"
@@ -829,9 +829,12 @@ describe('content-browser-table', () => {
           .columns=${COLUMNS}
         ></cx-content-browser-table>
       `, 2);
+      const isCurrent = (assetId: string) => getRowElement(el, assetId)!.getAttribute('aria-current') === 'true';
 
-      expect(rowBackground(el, 'asset-1')).to.equal(SELECTED_ROW_COLOR);
-      expect(rowBackground(el, 'asset-0') === SELECTED_ROW_COLOR, 'the unselected row is painted').to.equal(false);
+      expect(isCurrent('asset-1')).to.equal(true);
+      expect(isCurrent('asset-0')).to.equal(false);
+      // An import must not paint cx-table's selected-row highlight.
+      expect(rowBackground(el, 'asset-1') === SELECTED_ROW_COLOR, 'the selected row is painted').to.equal(false);
       // A selection brings none of cx-table's selection chrome: no checkbox column, no toolbar.
       expect(getHeaderTitles(el).join('|')).to.equal('Identifier|Snippet');
       expect(getTableRoot(el).querySelector('cx-checkbox, cx-table-toolbar') === null).to.equal(true);
@@ -839,8 +842,9 @@ describe('content-browser-table', () => {
       el.selectedAssetId = 'asset-0';
       await elementUpdated(el);
 
-      expect(rowBackground(el, 'asset-0')).to.equal(SELECTED_ROW_COLOR);
-      expect(rowBackground(el, 'asset-1') === SELECTED_ROW_COLOR, 'the previous row stayed painted').to.equal(false);
+      expect(isCurrent('asset-0')).to.equal(true);
+      expect(isCurrent('asset-1')).to.equal(false);
+      expect(rowBackground(el, 'asset-0') === SELECTED_ROW_COLOR, 'the selected row is painted').to.equal(false);
     });
 
     it('leaves a clicked row unpainted: only the host selects a row', async () => {
