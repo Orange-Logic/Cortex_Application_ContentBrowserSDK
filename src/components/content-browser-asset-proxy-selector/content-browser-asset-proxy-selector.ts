@@ -64,6 +64,9 @@ export default class CxContentBrowserAssetProxySelector extends CortexElement {
   @property({ attribute: 'can-use-tracking', reflect: true, type: Boolean })
   canUseTracking: boolean = false;
 
+  @property({ attribute: 'proxies-failed', reflect: true, type: Boolean })
+  proxiesFailed: boolean = false;
+
   @property({ attribute: 'selected', reflect: true, type: String })
   selected: string = '';
 
@@ -287,7 +290,10 @@ export default class CxContentBrowserAssetProxySelector extends CortexElement {
           >
             <cx-icon name="warning"></cx-icon>
             <cx-typography variant="body3" class="content-browser-asset-proxy-selector__menu-item__name">
-              ${this.localize.term('damViewNoAvailableOptionsForThisAsset')}
+              ${this.localize.term(
+                // The no-options text names permissions as a possible cause, which a request error is not (L-42BIA4).
+                this.proxiesFailed ? 'oopsSomethingWentWrong' : 'damViewNoAvailableOptionsForThisAsset',
+              )}
             </cx-typography>
           </cx-space>
         `,

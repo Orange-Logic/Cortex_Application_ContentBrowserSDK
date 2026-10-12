@@ -654,6 +654,13 @@ export async function apiGetAvailableProxies({
   try {
     const response = await http.request<GetAvailableProxiesResponse>({
       baseURL: siteUrl,
+      cache: {
+        // A malformed body arrives with HTTP 200, so the default status check would cache the error and
+        // serve it again after the server recovers.
+        cachePredicate: {
+          responseMatch: ({ data }) => !data.isError,
+        },
+      },
       method: 'GET',
       params: {
         RecordId: assetRecordId,
@@ -666,16 +673,20 @@ export async function apiGetAvailableProxies({
         (
           rawResponse: GetAvailableProxiesRawResponse,
         ): GetAvailableProxiesResponse => {
-          if (!rawResponse || typeof rawResponse !== 'object') {
+          // A success always carries a proxies array. Anything else, such as an error body sent with HTTP 200, is a
+          // request error and must not read as an empty format list (L-42BIA4).
+          if (!rawResponse || typeof rawResponse !== 'object' || !Array.isArray(rawResponse.proxies)) {
             return {
+              isError: true,
               previewUrl: '',
               proxies: [],
             };
           }
 
           return {
+            isError: false,
             previewUrl: rawResponse.previewUrl ?? '',
-            proxies: rawResponse.proxies?.map((proxy) => ({
+            proxies: rawResponse.proxies.map((proxy) => ({
               cdnName: proxy.cdnName,
               extension: proxy.extension,
               formatHeight: proxy.formatHeight,
@@ -686,7 +697,7 @@ export async function apiGetAvailableProxies({
               proxyLabel: proxy.proxyLabel,
               proxyName: proxy.proxyName,
               width: proxy.width,
-            })) ?? [],
+            })),
           };
         },
       ],
@@ -696,6 +707,7 @@ export async function apiGetAvailableProxies({
     return response.data;
   } catch (error) {
     return {
+      isError: true,
       previewUrl: '',
       proxies: [],
     };

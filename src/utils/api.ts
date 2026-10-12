@@ -3,7 +3,7 @@ import { Mutex } from 'async-mutex';
 import { store } from '@/store';
 import { getAccessTokenService } from '@/store/auth/auth.service';
 import {
-  AUTH_FEATURE_KEY, logout, setAccessToken,
+  AUTH_FEATURE_KEY, AuthState, endSession, logout, readStoredAccessKey, updateAuthTokens,
 } from '@/store/auth/auth.slice';
 
 import { getRequestUrl } from './getRequestUrl';
@@ -25,8 +25,29 @@ type CortexFetchOptions = RequestInit & {
 const mutex = new Mutex();
 
 /**
+ * The access key the next token request should present: the live session's, which `oAuth`
+ * drops before it changes the site, or the one stored for this site when an earlier failure
+ * ended the session without condemning the key. Header mode never presents a stored key,
+ * the same as restore. Throws when host storage cannot be read, which is not the same as
+ * finding no key. (42AX2G)
+ */
+const readAccessKey = async (authState: AuthState): Promise<string | undefined> => {
+  if (authState.accessKey) {
+    return authState.accessKey;
+  }
+  if (authState.useHeaders) {
+    return undefined;
+  }
+  return readStoredAccessKey(authState.siteUrl);
+};
+
+/**
  * Refresh the access token using the stored access key. De-duplicates concurrent calls via a shared mutex.
- * Returns the new access token on success, or null if refresh failed (in which case the user is also logged out).
+ * Returns the new access token on success, or null if the refresh failed.
+ *
+ * On failure the session is always dropped, but the stored access key is only
+ * discarded when the server itself declined it — a transport failure keeps the key
+ * so a later refresh can succeed. (42AX2G)
  */
 export const refreshAccessToken = async (): Promise<string | null> => {
   if (store.getState()[AUTH_FEATURE_KEY].useSiteSession) {
@@ -48,25 +69,44 @@ export const refreshAccessToken = async (): Promise<string | null> => {
       return null;
     }
 
-    if (!authState.accessKey || !authState.siteUrl) {
-      store.dispatch(logout());
+    let accessKey: string | undefined;
+    try {
+      accessKey = await readAccessKey(authState);
+    } catch {
+      // A failed read says nothing about the key, and `logout` would delete it —
+      // a host storage bridge can time out while the key is still stored. (42AX2G)
+      store.dispatch(endSession());
+      return null;
+    }
+
+    if (!accessKey || !authState.siteUrl) {
+      // No key was presented, so none was declined. `logout` here would delete a key
+      // stored for another site. (42AX2G)
+      store.dispatch(endSession());
       return null;
     }
 
     try {
-      const tokenResp = await getAccessTokenService(authState.accessKey);
+      const tokenResp = await getAccessTokenService(accessKey);
       if (store.getState()[AUTH_FEATURE_KEY].useSiteSession) {
         return null;
       }
       if (tokenResp.accessToken) {
-        store.dispatch(setAccessToken(tokenResp.accessToken));
+        store.dispatch(updateAuthTokens({ accessKey, accessToken: tokenResp.accessToken }));
         return tokenResp.accessToken;
       }
-      store.dispatch(logout());
+      // Only an explicit `success: false` condemns the key. A well-formed response
+      // carrying no token is a server anomaly, so keep the key and let the next
+      // refresh retry. (42AX2G)
+      store.dispatch(tokenResp.success === false ? logout() : endSession());
       return null;
     } catch {
+      // Reached on a transport failure or a non-JSON error body. This runs on every
+      // 401 during normal use, so discarding the key here cost users a valid
+      // credential on any passing network blip. Keep it and let the next refresh
+      // retry. (42AX2G)
       if (!store.getState()[AUTH_FEATURE_KEY].useSiteSession) {
-        store.dispatch(logout());
+        store.dispatch(endSession());
       }
       return null;
     }

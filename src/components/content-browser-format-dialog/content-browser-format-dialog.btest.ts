@@ -872,6 +872,128 @@ describe('content-browser-format-dialog', () => {
     expect(count).to.equal(0);
   });
 
+  // L-42BIA4: Cortex lists no format for a user without Share own access. The dialog must say so, and
+  // no action may look usable: a custom format has no source format to transform.
+  describe('with no format to pick', () => {
+    const getInsert = () => el.shadowRoot!.querySelector('.content-browser-format__footer__button')!;
+
+    it('disables insert when the format list is empty', async () => {
+      el = await fixture<CxContentBrowserFormatDialog>(
+        html`<cx-content-browser-format-dialog can-use-proxies></cx-content-browser-format-dialog>`,
+      );
+      el.open({ asset: makeAsset(), isFavorite: false, proxies: [] });
+      await elementUpdated(el);
+
+      expect(getInsert().hasAttribute('disabled')).to.equal(true);
+    });
+
+    it('disables insert when the selection matches no listed format', async () => {
+      el = await fixture<CxContentBrowserFormatDialog>(
+        html`<cx-content-browser-format-dialog can-use-proxies></cx-content-browser-format-dialog>`,
+      );
+      el.open({ asset: makeAsset(), isFavorite: false, proxies: [makeProxy({ id: 'p-known' })] });
+      await elementUpdated(el);
+
+      el.selectedProxy = 'p-unknown';
+      await elementUpdated(el);
+
+      expect(getInsert().hasAttribute('disabled')).to.equal(true);
+    });
+
+    it('keeps insert enabled for a listed format', async () => {
+      el = await fixture<CxContentBrowserFormatDialog>(
+        html`<cx-content-browser-format-dialog can-use-proxies></cx-content-browser-format-dialog>`,
+      );
+      el.open({ asset: makeAsset(), isFavorite: false, proxies: [makeProxy()] });
+      await elementUpdated(el);
+
+      expect(getInsert().hasAttribute('disabled')).to.equal(false);
+    });
+
+    it('does not offer custom format when the format list is empty', async () => {
+      el = await fixture<CxContentBrowserFormatDialog>(
+        html`<cx-content-browser-format-dialog
+          can-use-proxies
+          can-custom-format
+          .availableExtensions=${videoMp4Extensions()}
+        ></cx-content-browser-format-dialog>`,
+      );
+      el.open({ asset: makeAsset({ extension: '.mp4' }), isFavorite: false, proxies: [] });
+      await elementUpdated(el);
+
+      expect(getProxySelector(el).canUseATS).to.equal(false);
+    });
+
+    it('stops offering custom format when the listed formats are filtered out after open', async () => {
+      el = await fixture<CxContentBrowserFormatDialog>(
+        html`<cx-content-browser-format-dialog
+          can-use-proxies
+          can-custom-format
+          supported-extensions="mp4"
+          .availableExtensions=${videoMp4Extensions()}
+        ></cx-content-browser-format-dialog>`,
+      );
+      el.open({ asset: makeAsset({ extension: '.mp4' }), isFavorite: false, proxies: [makeProxy({ extension: null })] });
+      await elementUpdated(el);
+      expect(getProxySelector(el).canUseATS).to.equal(true);
+
+      el.supportedExtensions = ['gif'];
+      await elementUpdated(el);
+
+      expect(getProxySelector(el).canUseATS).to.equal(false);
+    });
+
+    it('shows the no-options warning when the format list is empty', async () => {
+      el = await fixture<CxContentBrowserFormatDialog>(
+        html`<cx-content-browser-format-dialog
+          can-use-proxies
+          can-custom-format
+          .availableExtensions=${videoMp4Extensions()}
+        ></cx-content-browser-format-dialog>`,
+      );
+      el.open({ asset: makeAsset({ extension: '.mp4' }), isFavorite: false, proxies: [] });
+      await elementUpdated(el);
+      const selector = getProxySelector(el);
+      await elementUpdated(selector);
+
+      expect(selector.shadowRoot!.querySelector('cx-icon[name="warning"]') !== null).to.equal(true);
+    });
+
+    const openAndReadSelectorText = async (proxiesFailed?: boolean) => {
+      el.open({ asset: makeAsset(), isFavorite: false, proxies: [], proxiesFailed });
+      await elementUpdated(el);
+      const selector = getProxySelector(el);
+      await elementUpdated(selector);
+
+      return selector.shadowRoot!.textContent ?? '';
+    };
+
+    it('shows the error message, not the no-options warning, when the format request failed', async () => {
+      el = await fixture<CxContentBrowserFormatDialog>(
+        html`<cx-content-browser-format-dialog can-use-proxies></cx-content-browser-format-dialog>`,
+      );
+
+      const text = await openAndReadSelectorText(true);
+
+      expect(text.includes('Something went wrong')).to.equal(true);
+      expect(text.includes('no available options')).to.equal(false);
+    });
+
+    it('does not keep the error message for the next asset', async () => {
+      el = await fixture<CxContentBrowserFormatDialog>(
+        html`<cx-content-browser-format-dialog can-use-proxies></cx-content-browser-format-dialog>`,
+      );
+      await openAndReadSelectorText(true);
+      el.hide();
+      await elementUpdated(el);
+
+      const text = await openAndReadSelectorText();
+
+      expect(text.includes('no available options')).to.equal(true);
+      expect(text.includes('Something went wrong')).to.equal(false);
+    });
+  });
+
   it('keeps an original-file proxy for an asset that has no extension of its own', async () => {
     // Regression, L-29Q5K0: digitized = 0 (e.g. a text fragment) — there is no file extension to test against
     // supported-extensions, so the proxy must not be filtered away, or the dialog falls through to "no

@@ -693,12 +693,18 @@ export default class CxContentBrowser extends CortexElement {
   }
 
   private async handleScrollEnd() {
-    const newStart = safeInteger(this.lastRequest.start) + safeInteger(this.lastRequest.pageSize);
+    // The controller refuses a next page while a request of the list is queued or in flight, and it
+    // counts from the last page that it accepted, not from the last request that the host sent.
+    const nextPage = this.fetchAndMergeAssetsController.getNextPage();
+
+    if (!nextPage) {
+      return;
+    }
 
     this.lastRequest = {
       ...this.lastRequest,
       pageSize: this.defaultPageSize,
-      start: newStart,
+      start: nextPage.start,
     };
 
     await this.fetchAndMergeAssetsController.fetchAndMergeAssets(this.lastRequest);
@@ -758,16 +764,22 @@ export default class CxContentBrowser extends CortexElement {
       return;
     }
 
-    const totalCount = this.fetchAndMergeAssetsController.getData().totalCount;
-    const newStart = safeInteger(this.lastRequest.start) + safeInteger(this.lastRequest.pageSize);
+    const nextPage = this.fetchAndMergeAssetsController.getNextPage();
 
-    if (newPageSize <= safeInteger(this.lastRequest.pageSize) || newPageSize === 0 || newStart > totalCount) {
+    if (!nextPage) {
+      return;
+    }
+
+    const totalCount = this.fetchAndMergeAssetsController.getData().totalCount;
+    const newStart = nextPage.start;
+
+    if (newPageSize <= nextPage.lastPageSize || newPageSize === 0 || newStart > totalCount) {
       return;
     }
 
     this.lastRequest = {
       ...this.lastRequest,
-      pageSize: newPageSize - safeInteger(this.lastRequest.pageSize),
+      pageSize: newPageSize - nextPage.lastPageSize,
       start: newStart,
     };
 
