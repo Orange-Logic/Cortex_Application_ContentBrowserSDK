@@ -1,4 +1,5 @@
 import { expect, waitUntil } from '@open-wc/testing';
+import { AxiosError } from 'axios';
 
 import http from '@/api/api';
 import type CortexElement from '@/base/element';
@@ -100,6 +101,54 @@ describe('FetchAndMergeAssetsController', () => {
     const result = await createController().fetchAssetByID(recordId, { simplePick: true });
 
     expect(result?.asset.name).to.not.contain('_MG_8632');
+  });
+
+  // L-42BIA4: the format dialog shows a different message for a failed format request than for an empty
+  // format list, so the failure must reach it.
+  const stubContentAndProxies = ({ failProxies = false, proxiesData = {} }: { failProxies?: boolean; proxiesData?: unknown }) => {
+    recordIdSeq += 1;
+    const recordId = `Q0LDO00000189562${recordIdSeq}`;
+
+    http.defaults.adapter = async (config) => {
+      const isProxiesRequest = config.url?.includes('AvailableProxies');
+
+      if (isProxiesRequest && failProxies) {
+        throw new AxiosError('Network Error', AxiosError.ERR_NETWORK, config);
+      }
+
+      return {
+        config,
+        data: isProxiesRequest
+          ? proxiesData
+          : {
+            contentItems: [{ recordID: recordId, fields: { 'CoreField.Identifier': 'ARC12345' } }],
+            facets: [],
+            totalCount: 1,
+          },
+        headers: {},
+        status: 200,
+        statusText: 'OK',
+      };
+    };
+
+    return recordId;
+  };
+
+  it('reports a failed format request', async () => {
+    const recordId = stubContentAndProxies({ failProxies: true });
+
+    const result = await createController().fetchAssetByID(recordId);
+
+    expect(result?.proxiesFailed).to.equal(true);
+    expect(result?.proxies.length).to.equal(0);
+  });
+
+  it('does not report an empty format list as a failure', async () => {
+    const recordId = stubContentAndProxies({ proxiesData: { previewUrl: '', proxies: [] } });
+
+    const result = await createController().fetchAssetByID(recordId);
+
+    expect(result?.proxiesFailed).to.equal(false);
   });
 
   it('keeps the requested folder on the first fetch instead of resetting it to the default', async () => {
