@@ -870,8 +870,7 @@ export default class CxContentBrowserTable extends CortexElement {
 
   /**
    * `aria-current`, not `aria-selected`: this is a `grid` with no selection model of its own. The
-   * Tabulator selection is there only for `cx-table`'s selected-row style: `selectableRows` stays at
-   * its `highlight` default, so a click never selects a row by itself.
+   * row is never selected in Tabulator, so an import does not paint `cx-table`'s selected-row highlight.
    */
   private markCurrentRow(assetId: string | undefined, current: boolean) {
     const row = this.findRow(assetId);
@@ -881,12 +880,6 @@ export default class CxContentBrowserTable extends CortexElement {
     }
 
     row.getElement().setAttribute('aria-current', current ? 'true' : 'false');
-
-    if (current) {
-      this.tabulator?.selectRow(assetId);
-    } else {
-      this.tabulator?.deselectRow(assetId);
-    }
   }
 
   private getPercentColumns(tabulator: Tabulator): TabulatorColumn[] {
