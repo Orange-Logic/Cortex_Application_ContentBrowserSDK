@@ -1,11 +1,11 @@
 import { expect, waitUntil } from '@open-wc/testing';
-import { AxiosError } from 'axios';
 
 import http from '@/api/api';
+import { AuthApiEndpoint } from '@/api/endpoints';
 import type CortexElement from '@/base/element';
 import type { GetAssetsRequest } from '@/types/asset';
 
-import { AxiosError } from 'axios';
+import { AxiosError, type InternalAxiosRequestConfig } from 'axios';
 import sinon from 'sinon';
 
 import { FetchAndMergeAssetsController } from './fetch-and-merge-assets';
@@ -50,6 +50,7 @@ describe('FetchAndMergeAssetsController', () => {
       {
         availableDocTypes: [],
         baseUrl: '',
+        bearerToken: '',
         defaultFolderId: '',
         defaultIsSeeThrough: true,
         defaultSearchText: '',
@@ -213,6 +214,90 @@ describe('FetchAndMergeAssetsController', () => {
       expect(current.getData().request?.sortDirection).to.equal(sortOrderName === 'title' ? 'ascending' : 'descending');
     });
   }
+
+  // L-42BXQB: Cortex only accepts the host's OAuth token as a Bearer header.
+  describe('with a host-supplied bearer token', () => {
+    const okResponse = (config: InternalAxiosRequestConfig) => ({
+      config,
+      data: {},
+      headers: {},
+      status: 200,
+      statusText: 'OK',
+    });
+
+    it('sends it as an Authorization header', async () => {
+      const requests: InternalAxiosRequestConfig[] = [];
+      http.defaults.adapter = async (config) => {
+        requests.push(config);
+        return okResponse(config);
+      };
+      createController({ bearerToken: 'host-token' });
+
+      await http.get(AuthApiEndpoint.GET_USER_INFO, { cache: false });
+
+      expect(requests[0].headers.get('Authorization')).to.equal('Bearer host-token');
+      expect(requests[0].params?.Token).to.equal(undefined);
+    });
+
+    it('keeps sending the Token parameter when the host gives no bearer token', async () => {
+      const requests: InternalAxiosRequestConfig[] = [];
+      http.defaults.adapter = async (config) => {
+        requests.push(config);
+        return okResponse(config);
+      };
+      createController({ token: 'cortex-token' });
+
+      await http.get(AuthApiEndpoint.GET_USER_INFO, { cache: false });
+
+      expect(requests[0].params?.Token).to.equal('cortex-token');
+      expect(requests[0].headers.get('Authorization')).to.equal(undefined);
+    });
+
+    it('retries a 401 with the bearer token the host hands over next', async () => {
+      const authorizations: unknown[] = [];
+      http.defaults.adapter = async (config) => {
+        const authorization = config.headers.get('Authorization');
+        authorizations.push(authorization);
+        if (authorization === 'Bearer expired-token') {
+          throw new AxiosError('Unauthorized', AxiosError.ERR_BAD_REQUEST, config, null, {
+            ...okResponse(config),
+            status: 401,
+            statusText: 'Unauthorized',
+          });
+        }
+        return okResponse(config);
+      };
+      const current = createController({ bearerToken: 'expired-token' });
+      // Answer asynchronously, as the SDK does.
+      const handOverToken = () => queueMicrotask(() => current.updateAuth('', '', 'renewed-token'));
+      globalThis.addEventListener('cx-unauthorized', handOverToken, { once: true });
+
+      const response = await http.get(AuthApiEndpoint.GET_USER_INFO, { cache: false });
+
+      expect(response.status).to.equal(200);
+      expect(authorizations).to.deep.equal(['Bearer expired-token', 'Bearer renewed-token']);
+    });
+
+    it('does not send a bearer token set by a controller for another site', async () => {
+      const requests: InternalAxiosRequestConfig[] = [];
+      http.defaults.adapter = async (config) => {
+        requests.push(config);
+        return okResponse(config);
+      };
+      // Interceptors run in reverse order of registration, so the first controller picks the site.
+      const tokenSite = createController({ baseUrl: 'https://token.example', token: 'cortex-token' });
+      createController({ baseUrl: 'https://bearer.example', bearerToken: 'host-token' });
+
+      try {
+        await http.get(AuthApiEndpoint.GET_USER_INFO, { cache: false });
+      } finally {
+        tokenSite.hostDisconnected();
+      }
+
+      expect(requests[0].baseURL).to.equal('https://token.example');
+      expect(requests[0].headers.get('Authorization')).to.equal(undefined);
+    });
+  });
 
   for (const supplied of firstFetchControls) {
     it(`preserves supplied first-fetch controls and defaults only missing values: ${JSON.stringify(supplied)}`, async () => {

@@ -119,6 +119,7 @@ function createMockFetchController(
       },
     }),
     removeAssetFromFavorite: sinon.stub().resolves(true),
+    updateAuth: sinon.stub(),
   };
 }
 
@@ -361,6 +362,24 @@ describe('content-browser', () => {
     });
 
     expect(el.shadowRoot!.querySelector('cx-content-browser-browser')).to.exist;
+  });
+
+  // L-42BXQB: the folder tree loads its own folders, so it needs the host token too.
+  it('passes the host bearer token to the folder browser', async () => {
+    const { el } = await fixtureWithMock(html`<cx-content-browser bearer-token="host-token"></cx-content-browser>`, {
+      parameters: { collectionPath: '/collections/root' },
+    });
+
+    expect(getBrowser(el)!.getAttribute('bearer-token')).to.equal('host-token');
+  });
+
+  it('hands a renewed host bearer token to the fetch controller', async () => {
+    const { el, mock } = await fixtureWithMock(html`<cx-content-browser bearer-token="host-token"></cx-content-browser>`);
+
+    el.bearerToken = 'renewed-host-token';
+    await elementUpdated(el);
+
+    expect(mock.updateAuth).to.have.been.calledWith('', '', 'renewed-host-token');
   });
 
   it('passes can-favorite and can-use-proxies to the format dialog', async () => {

@@ -87,6 +87,9 @@ export default class CxContentBrowserBrowser extends CortexElement {
   @property({ attribute: 'token', type: String })
   token = '';
 
+  @property({ attribute: 'bearer-token', type: String })
+  bearerToken = '';
+
   @property({ attribute: 'base-url', type: String })
   baseUrl = '';
 
@@ -329,6 +332,7 @@ export default class CxContentBrowserBrowser extends CortexElement {
                 auto-page-size
                 reload-on-expand
                 .token=${this.token}
+                .bearerToken=${this.bearerToken}
                 .api=${this.useSiteSession ? apiGetFolders : noChange}
                 .baseUrl=${this.baseUrl}
                 .form=${this.closest('form')}
@@ -364,6 +368,7 @@ export default class CxContentBrowserBrowser extends CortexElement {
                     selected-value=${ifDefined(this.folderId || undefined)}
                     .api=${this.collectionApi}
                     .token=${this.token}
+                    .bearerToken=${this.bearerToken}
                     .baseUrl=${this.baseUrl}
                   >
                   </cx-folder-select-tree>
