@@ -277,6 +277,26 @@ describe('FetchAndMergeAssetsController', () => {
       expect(response.status).to.equal(200);
       expect(authorizations).to.deep.equal(['Bearer expired-token', 'Bearer renewed-token']);
     });
+
+    it('does not send a bearer token set by a controller for another site', async () => {
+      const requests: InternalAxiosRequestConfig[] = [];
+      http.defaults.adapter = async (config) => {
+        requests.push(config);
+        return okResponse(config);
+      };
+      // Interceptors run in reverse order of registration, so the first controller picks the site.
+      const tokenSite = createController({ baseUrl: 'https://token.example', token: 'cortex-token' });
+      createController({ baseUrl: 'https://bearer.example', bearerToken: 'host-token' });
+
+      try {
+        await http.get(AuthApiEndpoint.GET_USER_INFO, { cache: false });
+      } finally {
+        tokenSite.hostDisconnected();
+      }
+
+      expect(requests[0].baseURL).to.equal('https://token.example');
+      expect(requests[0].headers.get('Authorization')).to.equal(undefined);
+    });
   });
 
   for (const supplied of firstFetchControls) {

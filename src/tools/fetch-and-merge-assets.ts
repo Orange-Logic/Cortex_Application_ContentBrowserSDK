@@ -228,9 +228,12 @@ export class FetchAndMergeAssetsController implements ReactiveController {
         config.baseURL = this.baseUrl;
       }
 
-      // Cortex only accepts the host's OAuth token as a Bearer header.
+      // Cortex only accepts the host's OAuth token as a Bearer header. Controllers share `http`,
+      // so clear a header another controller set for its own site.
       if (this.bearerToken) {
         config.headers.set('Authorization', `Bearer ${this.bearerToken}`);
+      } else {
+        config.headers.delete('Authorization');
       }
 
       config.params = {
