@@ -1,4 +1,4 @@
-import { expect } from '@open-wc/testing';
+import { expect, waitUntil } from '@open-wc/testing';
 import sinon from 'sinon';
 
 import '@/index';
@@ -295,6 +295,33 @@ describe('session restore and token refresh preserve a valid access key', () => 
       expect(fetchStub.called).to.equal(false);
       expect(store.getState()[AUTH_FEATURE_KEY].status).to.equal('authenticated');
       expect(accessKeyDiscarded()).to.equal(false);
+    });
+
+    it('drops a host token that arrives after logout', async () => {
+      let answer!: (result: { token: string; siteUrl: string }) => void;
+      requestToken.returns(new Promise((resolve) => { answer = resolve; }));
+      const pending = refreshAccessToken();
+      await waitUntil(() => requestToken.called);
+
+      store.dispatch(logout());
+      answer({ token: 'late-host-token', siteUrl: SITE_URL });
+
+      expect(await pending).to.equal(null);
+      expect(store.getState()[AUTH_FEATURE_KEY].status).to.equal('unauthenticated');
+      expect(store.getState()[AUTH_FEATURE_KEY].accessKey).to.equal(undefined);
+    });
+
+    it('drops a host token that arrives after switching to the site session', async () => {
+      let answer!: (result: { token: string; siteUrl: string }) => void;
+      requestToken.returns(new Promise((resolve) => { answer = resolve; }));
+      const pending = refreshAccessToken();
+      await waitUntil(() => requestToken.called);
+
+      store.dispatch(authSlice.actions.setSiteSession(window.location.origin));
+      answer({ token: 'late-host-token', siteUrl: SITE_URL });
+
+      expect(await pending).to.equal(null);
+      expect(store.getState()[AUTH_FEATURE_KEY].accessKey).to.equal(undefined);
     });
   });
 

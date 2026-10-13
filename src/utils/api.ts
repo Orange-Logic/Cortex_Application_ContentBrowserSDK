@@ -73,6 +73,10 @@ export const refreshAccessToken = async (): Promise<string | null> => {
     if (authState.useHeaders) {
       try {
         const result = await window.OrangeDAMContentBrowser?._onRequestToken?.();
+        // Logged out or switched to site session while the host answered.
+        if (!store.getState()[AUTH_FEATURE_KEY].useHeaders) {
+          return null;
+        }
         if (result?.token) {
           store.dispatch(updateAuthTokens({ accessKey: result.token }));
           return result.token;
