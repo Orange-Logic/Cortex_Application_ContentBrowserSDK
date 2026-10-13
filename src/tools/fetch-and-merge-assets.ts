@@ -766,6 +766,7 @@ export class FetchAndMergeAssetsController implements ReactiveController {
           return proxyExtension.toLowerCase() === extension.toLowerCase();
         });
       }),
+      proxiesFailed: proxyData?.isError ?? false,
     };
   }
 

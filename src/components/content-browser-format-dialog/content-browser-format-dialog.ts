@@ -195,6 +195,9 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
   proxies: AvailableProxy[] = [];
 
   @state()
+  proxiesFailed: boolean = false;
+
+  @state()
   showVersionHistory: boolean = false;
 
   @state()
@@ -242,7 +245,8 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
   }
 
   private get canUseATS(): boolean {
-    if (!this.asset) {
+    // A custom format transforms one of the listed formats (see handleProxyConfirm), so it needs one (L-42BIA4).
+    if (!this.asset || this.filteredProxies.length === 0) {
       return false;
     }
 
@@ -255,6 +259,21 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
       .filter((item) => this.shouldAppendAutoExtension || item.value !== this.autoExtension);
 
     return this.canCustomFormat && extensionList.some((item) => item.value === this.asset!.extension);
+  }
+
+  /**
+   * One rule for the Insert button and handleProxyConfirm, so an enabled Insert always confirms (L-42BIA4).
+   */
+  private get canConfirm(): boolean {
+    if (!this.asset) {
+      return false;
+    }
+
+    if (!this.canUseProxies || this.selectedProxy === CUSTOM_FORMAT_VALUE || this.selectedProxy === USE_REPRESENTATIVE_VALUE) {
+      return true;
+    }
+
+    return this.filteredProxies.some((proxy) => proxy.id === this.selectedProxy);
   }
 
   @watch('proxies', { waitUntilFirstUpdate: true })
@@ -281,16 +300,19 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
     isFavorite,
     isAssetPinned = false,
     proxies,
+    proxiesFailed = false,
   }: {
     asset: Asset & { previewUrl: string };
     isFavorite: boolean;
     isAssetPinned?: boolean;
     proxies: AvailableProxy[];
+    proxiesFailed?: boolean;
   }) {
     this.asset = asset;
     this.isFavorite = isFavorite;
     this.isAssetPinned = isAssetPinned;
     this.proxies = proxies;
+    this.proxiesFailed = proxiesFailed;
     this.isOpen = true;
   }
 
@@ -426,7 +448,7 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
   }
 
   private handleProxyConfirm() {
-    if (!this.asset) {
+    if (!this.asset || !this.canConfirm) {
       return;
     }
 
@@ -460,10 +482,6 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
         detail: payload,
       });
     } else {
-      if (!selectedProxy && this.selectedProxy !== USE_REPRESENTATIVE_VALUE) {
-        return;
-      }
-
       const payload = this.mapProxyConfirmPayload(this.asset, selectedProxy);
 
       this.loadingConfirm = true;
@@ -759,11 +777,12 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
           ?can-use-representative=${guard([this.supportedRepresentativeSubtypes, this.asset],
             () => this.supportedRepresentativeSubtypes?.includes(safeString(this.asset?.docSubType)) && !!this.asset?.imageUrl,
           )}
-          ?can-use-ats=${guard([this.availableExtensions, this.asset, this.canCustomFormat],
+          ?can-use-ats=${guard([this.availableExtensions, this.asset, this.canCustomFormat, this.filteredProxies],
             () => this.canUseATS,
           )}
           ?can-use-tracking=${this.canTrack}
           ?enabled-tracking=${this.enabledTracking}
+          ?proxies-failed=${this.proxiesFailed}
           ?disabled-selected=${this.selectedProxy === CUSTOM_FORMAT_VALUE}
           @cx-select=${this.handleProxySelect}
           @cx-content-browser-asset-tracking-parameters-change=${this.handleTrackingParametersChange}
@@ -868,7 +887,7 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
       content = html`
         <cx-button
           class="content-browser-format__footer__button"
-          ?disabled=${this.disabledConfirm}
+          ?disabled=${this.disabledConfirm || !this.canConfirm}
           ?loading=${this.loadingConfirm}
           variant="primary"
           style=${styleMap({
@@ -930,6 +949,7 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
     this.loadingPinAsset = false;
     this.loadingVersionHistory = false;
     this.proxies = [];
+    this.proxiesFailed = false;
     this.selectedProxy = '';
     this.showCustomFormat = false;
     this.showVersionHistory = false;
