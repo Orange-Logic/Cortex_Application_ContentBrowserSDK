@@ -98,6 +98,7 @@ export type GetAvailableProxiesRawResponse = {
 };
 
 export type GetAvailableProxiesResponse = {
+  isError: boolean;
   previewUrl: string;
   proxies: AvailableProxy[];
 };

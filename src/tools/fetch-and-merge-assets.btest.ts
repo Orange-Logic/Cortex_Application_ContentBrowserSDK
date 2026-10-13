@@ -104,6 +104,54 @@ describe('FetchAndMergeAssetsController', () => {
     expect(result?.asset.name).to.not.contain('_MG_8632');
   });
 
+  // L-42BIA4: the format dialog shows a different message for a failed format request than for an empty
+  // format list, so the failure must reach it.
+  const stubContentAndProxies = ({ failProxies = false, proxiesData = {} }: { failProxies?: boolean; proxiesData?: unknown }) => {
+    recordIdSeq += 1;
+    const recordId = `Q0LDO00000189562${recordIdSeq}`;
+
+    http.defaults.adapter = async (config) => {
+      const isProxiesRequest = config.url?.includes('AvailableProxies');
+
+      if (isProxiesRequest && failProxies) {
+        throw new AxiosError('Network Error', AxiosError.ERR_NETWORK, config);
+      }
+
+      return {
+        config,
+        data: isProxiesRequest
+          ? proxiesData
+          : {
+            contentItems: [{ recordID: recordId, fields: { 'CoreField.Identifier': 'ARC12345' } }],
+            facets: [],
+            totalCount: 1,
+          },
+        headers: {},
+        status: 200,
+        statusText: 'OK',
+      };
+    };
+
+    return recordId;
+  };
+
+  it('reports a failed format request', async () => {
+    const recordId = stubContentAndProxies({ failProxies: true });
+
+    const result = await createController().fetchAssetByID(recordId);
+
+    expect(result?.proxiesFailed).to.equal(true);
+    expect(result?.proxies.length).to.equal(0);
+  });
+
+  it('does not report an empty format list as a failure', async () => {
+    const recordId = stubContentAndProxies({ proxiesData: { previewUrl: '', proxies: [] } });
+
+    const result = await createController().fetchAssetByID(recordId);
+
+    expect(result?.proxiesFailed).to.equal(false);
+  });
+
   it('keeps the requested folder on the first fetch instead of resetting it to the default', async () => {
     const searchBodies: Record<string, unknown>[] = [];
 
@@ -265,4 +313,211 @@ describe('FetchAndMergeAssetsController', () => {
       expect(current.getData().request).to.deep.include({ ...defaults, ...supplied });
     });
   }
+
+  describe('responses that arrive out of order (L-42BVFI)', () => {
+    type Held = {
+      body: { Limit?: number; Start?: number; Text?: string };
+      fail: () => void;
+      respond: () => void;
+    };
+
+    const HITS: Record<string, number> = { broad: 500, narrow: 7 };
+    let held: Held[] = [];
+    let heldSortOrders: Array<() => void> = [];
+
+    const holdServer = () => {
+      held = [];
+      heldSortOrders = [];
+      http.defaults.adapter = (config) => new Promise((resolve, reject) => {
+        if (config.method?.toLowerCase() === 'get') {
+          heldSortOrders.push(() => resolve({
+            config,
+            data: { sortOrders: [{ id: 'title-asc', name: 'title', sortDirection: 'ascending', sortDirectionGroupKey: 'title' }] },
+            headers: {},
+            status: 200,
+            statusText: 'OK',
+          }));
+
+          return;
+        }
+
+        const body = JSON.parse(config.data as string) as Held['body'];
+        const list = body.Text ?? '';
+        const start = body.Start ?? 0;
+        const rows = Math.max(0, Math.min(body.Limit ?? 0, (HITS[list] ?? 0) - start));
+
+        held.push({
+          body,
+          fail: () => reject(new AxiosError('timeout', AxiosError.ECONNABORTED, config)),
+          respond: () => resolve({
+            config,
+            data: {
+              contentItems: Array.from({ length: rows }, (_, offset) => {
+                const id = `${list}|${start + offset}`;
+
+                return { fields: { 'CoreField.Identifier': id, 'Document.RecordID': id }, recordID: id };
+              }),
+              facets: [],
+              totalCount: HITS[list] ?? 0,
+            },
+            headers: {},
+            status: 200,
+            statusText: 'OK',
+          }),
+        });
+      });
+    };
+
+    const setup = ({ knowsSortOrders = true } = {}) => {
+      const clock = sinon.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+      const current = createController();
+
+      holdServer();
+
+      if (knowsSortOrders) {
+        (current as unknown as { sortOrders: Record<string, unknown[]> }).sortOrders = {
+          title: [{ id: 'title-asc', sortDirection: 'ascending' }],
+        };
+      }
+
+      const send = async (request: GetAssetsRequest) => {
+        await current.fetchAndMergeAssets({ pageSize: 40, sortDirection: 'ascending', sortOrderName: 'title', ...request });
+        await clock.tickAsync(200);
+      };
+      const settle = () => clock.tickAsync(0);
+      const shownLists = () => [...new Set(current.getData().items.map(({ id }) => String(id).split('|')[0]))];
+      const sentTexts = () => held.map(({ body }) => `${body.Text}@${body.Start ?? 0}`);
+
+      return { clock, current, send, sentTexts, settle, shownLists };
+    };
+
+    it('keeps the list of the last search when the response of an earlier search comes last', async () => {
+      const { current, send, settle, shownLists } = setup();
+
+      await send({ searchText: 'broad', start: 0 });
+      await send({ searchText: 'narrow', start: 0 });
+      held[1].respond();
+      await settle();
+      held[0].respond();
+      await settle();
+
+      expect(shownLists()).to.deep.equal(['narrow']);
+      expect(current.getData().totalCount).to.equal(7);
+      expect(current.getData().loading).to.equal(false);
+    });
+
+    it('does not send the request of an earlier list that waited for the sort orders', async () => {
+      // http caches GETs by URL, so an earlier case may have cached the sort orders.
+      await http.storage.clear?.();
+
+      const { clock, current, send, sentTexts, settle } = setup({ knowsSortOrders: false });
+
+      await send({ searchText: 'broad', start: 0 });
+      await send({ searchText: 'narrow', start: 0 });
+      await clock.tickAsync(50);
+
+      // http shares one in-flight GET between both callbacks, so one answer lets both go on.
+      expect(heldSortOrders).to.have.length(1);
+
+      heldSortOrders[0]();
+      await settle();
+
+      expect(sentTexts()).to.deep.equal(['narrow@0']);
+      expect(current.getData().request?.searchText).to.equal('narrow');
+    });
+
+    it('keeps the list when the request of an earlier search fails after the later search answered', async () => {
+      const { current, send, settle, shownLists } = setup();
+
+      await send({ searchText: 'broad', start: 0 });
+      await send({ searchText: 'narrow', start: 0 });
+      held[1].respond();
+      await settle();
+      held[0].fail();
+      await settle();
+
+      expect(shownLists()).to.deep.equal(['narrow']);
+      expect(current.getData().totalCount).to.equal(7);
+    });
+
+    it('keeps loading on while the request of the newest list is in flight', async () => {
+      const { current, send, settle } = setup();
+
+      await send({ searchText: 'broad', start: 0 });
+      await send({ searchText: 'narrow', start: 0 });
+      held[0].respond();
+      await settle();
+
+      expect(current.getData().loading).to.equal(true);
+
+      held[1].respond();
+      await settle();
+
+      expect(current.getData().loading).to.equal(false);
+    });
+
+    it('does not add a late scroll page of the previous list to the new list', async () => {
+      const { current, send, settle, shownLists } = setup();
+
+      await send({ searchText: 'broad', start: 0 });
+      held[0].respond();
+      await settle();
+      await send({ pageSize: 20, searchText: 'broad', start: 40 });
+      await send({ searchText: 'narrow', start: 0 });
+      held[2].respond();
+      await settle();
+      held[1].respond();
+      await settle();
+
+      expect(shownLists()).to.deep.equal(['narrow']);
+      expect(current.getData().items).to.have.length(7);
+    });
+
+    it('sends the restart when a scroll request comes inside its debounce', async () => {
+      const { clock, current, send, sentTexts } = setup();
+
+      await send({ searchText: 'broad', start: 0 });
+      held[0].respond();
+      await clock.tickAsync(0);
+      await current.fetchAndMergeAssets({ pageSize: 40, searchText: 'narrow', start: 0 });
+      await current.fetchAndMergeAssets({ pageSize: 20, searchText: 'narrow', start: 40 });
+      await clock.tickAsync(200);
+
+      expect(sentTexts()).to.deep.equal(['broad@0', 'narrow@0']);
+    });
+
+    it('asks for the page after the last accepted page and for one page at a time', async () => {
+      const { current, send, settle } = setup();
+
+      expect(current.getNextPage()).to.deep.equal({ lastPageSize: 0, start: 0 });
+
+      await send({ searchText: 'broad', start: 0 });
+
+      expect(current.getNextPage(), 'a request is in flight').to.equal(null);
+
+      held[0].respond();
+      await settle();
+
+      expect(current.getNextPage()).to.deep.equal({ lastPageSize: 40, start: 40 });
+
+      await send({ pageSize: 20, searchText: 'broad', start: 40 });
+      held[1].respond();
+      await settle();
+
+      expect(current.getNextPage()).to.deep.equal({ lastPageSize: 20, start: 60 });
+    });
+
+    it('does not move the next page when a page of an older list lands', async () => {
+      const { current, send, settle } = setup();
+
+      await send({ searchText: 'broad', start: 0 });
+      await send({ searchText: 'narrow', start: 0 });
+      held[1].respond();
+      await settle();
+      held[0].respond();
+      await settle();
+
+      expect(current.getNextPage()).to.deep.equal({ lastPageSize: 40, start: 40 });
+    });
+  });
 });

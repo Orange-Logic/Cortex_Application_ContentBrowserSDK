@@ -74,11 +74,12 @@ function createMockFetchController(
   const items = options.items ?? [];
   const totalCount = options.totalCount ?? items.length;
   const versionHistoryVersions = [makeVersion()];
+  const fetchAndMergeAssets = sinon.stub().resolves(undefined);
 
   return {
     _versionHistoryVersions: versionHistoryVersions,
     addAssetToFavorite: sinon.stub().resolves(true),
-    fetchAndMergeAssets: sinon.stub().resolves(undefined),
+    fetchAndMergeAssets,
     fetchAssetByID: sinon.stub().resolves(options.fetchAssetByIDResult),
     fetchAssetVersionHistory: sinon.stub().resolves({ versions: versionHistoryVersions }),
     fetchAssets: sinon.stub().resolves({ facets: [], items: [], totalCount: 0 }),
@@ -89,6 +90,12 @@ function createMockFetchController(
         data: [{ imageUrl: 'https://cdn.example/selected.jpg' }],
         isError: false,
       }),
+    // Stands for a controller that accepted the last page it was asked for.
+    getNextPage: sinon.stub().callsFake(() => {
+      const last = fetchAndMergeAssets.lastCall?.args[0] as { pageSize?: number; start?: number } | undefined;
+
+      return { lastPageSize: last?.pageSize ?? 0, start: last ? (last.start ?? 0) + (last.pageSize ?? 0) : 0 };
+    }),
     getData: () => ({
       availableExtensions: null,
       availableFacets: [],
@@ -1004,6 +1011,7 @@ describe('content-browser', () => {
       expect(getGrid(el)).to.have.attribute('view', GridView.Large);
 
       mock.fetchAndMergeAssets.resetHistory();
+      mock.getNextPage.returns({ lastPageSize: 5, start: 15 });
 
       getGrid(el)!.dispatchEvent(
         new CustomEvent('cx-content-browser-grid-scroll-end', {
@@ -1035,6 +1043,7 @@ describe('content-browser', () => {
       expect(getGrid(el)).to.have.attribute('view', GridView.Medium);
 
       mock.fetchAndMergeAssets.resetHistory();
+      mock.getNextPage.returns({ lastPageSize: 5, start: 15 });
 
       getGrid(el)!.dispatchEvent(
         new CustomEvent('cx-content-browser-grid-scroll-end', {
@@ -1066,6 +1075,7 @@ describe('content-browser', () => {
       expect(getGrid(el)).to.have.attribute('view', GridView.Small);
 
       mock.fetchAndMergeAssets.resetHistory();
+      mock.getNextPage.returns({ lastPageSize: 5, start: 15 });
 
       getGrid(el)!.dispatchEvent(
         new CustomEvent('cx-content-browser-grid-scroll-end', {
@@ -1079,6 +1089,32 @@ describe('content-browser', () => {
       expect(req.pageSize).to.equal(30);
       expect(req.start).to.equal(15);
     });
+  });
+
+  it('does not ask for a next page while the controller has a request of the list queued or in flight', async () => {
+    const { el, mock } = await fixtureWithMock(html`<cx-content-browser default-folder-id="library"></cx-content-browser>`);
+
+    // The grid reports its first size 200 ms after it mounts. Let that settle before the host is watched.
+    await waitUntil(() => el.lastRequest?.pageSize !== undefined);
+    mock.fetchAndMergeAssets.resetHistory();
+    mock.getNextPage.returns(null);
+    const { pageSize, start } = el.lastRequest!;
+
+    getGrid(el)!.dispatchEvent(
+      new CustomEvent('cx-content-browser-grid-scroll-end', { bubbles: true, composed: true }),
+    );
+    getGrid(el)!.dispatchEvent(
+      new CustomEvent('cx-content-browser-grid-resize', {
+        bubbles: true,
+        composed: true,
+        detail: { columnCount: 8, rowCount: 8 },
+      }),
+    );
+    await elementUpdated(el);
+
+    expect(mock.fetchAndMergeAssets.called).to.equal(false);
+    expect(el.lastRequest!.start, 'the host keeps its start').to.equal(start);
+    expect(el.lastRequest!.pageSize, 'the host keeps its page size').to.equal(pageSize);
   });
 
   it('applies defaultPageSize 15 for Large when loading more (scroll-end)', async () => {
@@ -1103,6 +1139,7 @@ describe('content-browser', () => {
     await elementUpdated(el);
 
     mock.fetchAndMergeAssets.resetHistory();
+    mock.getNextPage.returns({ lastPageSize: 5, start: 15 });
 
     getGrid(el)!.dispatchEvent(
       new CustomEvent('cx-content-browser-grid-scroll-end', {
@@ -1139,6 +1176,7 @@ describe('content-browser', () => {
     await elementUpdated(el);
 
     mock.fetchAndMergeAssets.resetHistory();
+    mock.getNextPage.returns({ lastPageSize: 5, start: 15 });
 
     getGrid(el)!.dispatchEvent(
       new CustomEvent('cx-content-browser-grid-scroll-end', {
@@ -1175,6 +1213,7 @@ describe('content-browser', () => {
     await elementUpdated(el);
 
     mock.fetchAndMergeAssets.resetHistory();
+    mock.getNextPage.returns({ lastPageSize: 5, start: 15 });
 
     getGrid(el)!.dispatchEvent(
       new CustomEvent('cx-content-browser-grid-scroll-end', {
