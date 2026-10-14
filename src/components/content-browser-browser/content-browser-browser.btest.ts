@@ -320,6 +320,20 @@ describe('content-browser-browser', () => {
     expect(el.shadowRoot!.querySelector('cx-folder-select-tree')).to.exist;
   });
 
+  // L-42BXQB: both trees load their own folders, so they need the host token too.
+  it('passes the host bearer token to the folder and collection trees', async () => {
+    el = await fixture<CxContentBrowserBrowser>(html`
+      <cx-content-browser-browser bearer-token="host-token" collection-path="/col/root" ?show-collections=${true}>
+        <cx-button type="button" slot="trigger">Open</cx-button>
+      </cx-content-browser-browser>
+    `);
+    await elementUpdated(el);
+    const collectionTree = el.shadowRoot!.querySelector('cx-folder-select-tree') as unknown as { bearerToken: string };
+
+    expect(getFolderSelect(el).bearerToken).to.equal('host-token');
+    expect(collectionTree.bearerToken).to.equal('host-token');
+  });
+
   it('does not render collections when collection-path is empty', async () => {
     el = await fixture<CxContentBrowserBrowser>(html`
       <cx-content-browser-browser ?show-collections=${true}>

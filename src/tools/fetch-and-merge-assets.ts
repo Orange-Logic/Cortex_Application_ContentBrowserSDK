@@ -51,6 +51,7 @@ import _uniqBy from 'lodash-es/uniqBy';
 type FetchAndMergeAssetsControllerOptions = {
   availableDocTypes: string[];
   baseUrl: string;
+  bearerToken: string;
   defaultFolderId: string;
   defaultIsSeeThrough: boolean;
   defaultSearchText: string;
@@ -96,6 +97,8 @@ export class FetchAndMergeAssetsController implements ReactiveController {
   private isLoggedIn = true;
 
   private token: string;
+
+  private bearerToken: string;
 
   private useSession: string;
 
@@ -160,6 +163,7 @@ export class FetchAndMergeAssetsController implements ReactiveController {
   constructor(host: CortexElement, {
     availableDocTypes,
     baseUrl,
+    bearerToken,
     defaultFolderId,
     defaultIsSeeThrough,
     defaultSearchText,
@@ -186,7 +190,7 @@ export class FetchAndMergeAssetsController implements ReactiveController {
 
     this.defaultSortDirection = defaultSortDirection;
 
-    this.applyTransportMode(useSiteSession, baseUrl, token, useSession);
+    this.applyTransportMode(useSiteSession, baseUrl, token, useSession, bearerToken);
 
     this.requestInterceptorId = http.interceptors.request.use((config) => {
       if (this.useSiteSession) {
@@ -226,6 +230,14 @@ export class FetchAndMergeAssetsController implements ReactiveController {
 
       if (this.baseUrl) {
         config.baseURL = this.baseUrl;
+      }
+
+      // Cortex only accepts the host's OAuth token as a Bearer header. Controllers share `http`,
+      // so clear a header another controller set for its own site.
+      if (this.bearerToken) {
+        config.headers.set('Authorization', `Bearer ${this.bearerToken}`);
+      } else {
+        config.headers.delete('Authorization');
       }
 
       config.params = {
@@ -299,11 +311,12 @@ export class FetchAndMergeAssetsController implements ReactiveController {
    * Site-session mode decides the transport (cookies on the Cortex origin vs. Token/UseSession
    * params), so it has to be applied to the interceptor state and base URL, not just captured once.
    */
-  private applyTransportMode(useSiteSession: boolean, baseUrl: string, token: string, useSession: string) {
+  private applyTransportMode(useSiteSession: boolean, baseUrl: string, token: string, useSession: string, bearerToken: string) {
     this.useSiteSession = useSiteSession;
     this.baseUrl = useSiteSession ? resolveSiteSessionUrl(baseUrl) : baseUrl;
     this.token = useSiteSession ? '' : token;
     this.useSession = useSiteSession ? '' : useSession;
+    this.bearerToken = useSiteSession ? '' : bearerToken;
 
     http.defaults.baseURL = this.baseUrl;
   }
@@ -312,12 +325,12 @@ export class FetchAndMergeAssetsController implements ReactiveController {
    * `setSiteSession(...)` can flip the mode while the host stays mounted, so keep the transport in
    * step with the UI instead of serving requests through the mode the controller was built with.
    */
-  updateSiteSession(useSiteSession: boolean, baseUrl: string, token: string, useSession: string) {
+  updateSiteSession(useSiteSession: boolean, baseUrl: string, token: string, useSession: string, bearerToken: string) {
     if (useSiteSession === this.useSiteSession) {
       return;
     }
 
-    this.applyTransportMode(useSiteSession, baseUrl, token, useSession);
+    this.applyTransportMode(useSiteSession, baseUrl, token, useSession, bearerToken);
 
     // A pending refresh belongs to the previous mode; release its waiter so it cannot resolve later.
     if (this.resolvePendingTokenRefresh) {
@@ -338,23 +351,24 @@ export class FetchAndMergeAssetsController implements ReactiveController {
     this.host.requestUpdate();
   }
 
-  updateAuth(token: string, useSession: string) {
+  updateAuth(token: string, useSession: string, bearerToken: string) {
     if (this.useSiteSession) {
       return;
     }
-    const tokenChanged = this.token !== token;
+    const tokenChanged = this.token !== token || this.bearerToken !== bearerToken;
     const wasLoggedOut = !this.isLoggedIn;
 
     this.token = token;
     this.useSession = useSession;
+    this.bearerToken = bearerToken;
 
     if (tokenChanged && this.resolvePendingTokenRefresh) {
-      this.resolvePendingTokenRefresh(token || null);
+      this.resolvePendingTokenRefresh(bearerToken || token || null);
       this.pendingTokenRefresh = null;
       this.resolvePendingTokenRefresh = null;
     }
 
-    if (tokenChanged && wasLoggedOut && token) {
+    if (tokenChanged && wasLoggedOut && (bearerToken || token)) {
       this.isLoggedIn = true;
       this.fetchInitialData();
 

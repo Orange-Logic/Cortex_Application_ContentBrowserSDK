@@ -131,6 +131,8 @@ export const authSlice = createSlice({
             state.accessToken = accessToken;
             state.status = 'authenticated';
             state.siteUrl = siteUrl;
+            // The SDK's own session, not a host token. (42BXQB)
+            state.useHeaders = false;
             storeData(AUTH_FEATURE_ACCESS_KEY_KEY, accessKey ?? '');
             storeData(AUTH_FEATURE_SITE_URL_KEY, siteUrl);
           }
@@ -190,6 +192,12 @@ export const applyHeadersSelector = (rootState: RootState) =>
 
 export const siteSessionSelector = (rootState: RootState) =>
   !!rootState[AUTH_FEATURE_KEY].useSiteSession;
+
+// In header mode the host token (onRequestToken) is kept in accessKey.
+export const bearerTokenSelector = (rootState: RootState) => {
+  const { accessKey, useHeaders } = rootState[AUTH_FEATURE_KEY];
+  return useHeaders ? accessKey : undefined;
+};
 
 export const appAuthUrlSelector = (rootState: RootState) => {
   const siteUrl = rootState[AUTH_FEATURE_KEY].siteUrl;
