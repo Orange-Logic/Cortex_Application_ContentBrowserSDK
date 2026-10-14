@@ -167,6 +167,12 @@ export default class CxContentBrowser extends CortexElement {
   @property({ attribute: 'token', reflect: false, type: String })
   token = '';
 
+  /**
+   * Host OAuth token (`onRequestToken`), sent as a Bearer header.
+   */
+  @property({ attribute: 'bearer-token', reflect: false, type: String })
+  bearerToken = '';
+
   @property({ attribute: 'show-collections', reflect: true, type: Boolean })
   showCollections = false;
 
@@ -466,6 +472,7 @@ export default class CxContentBrowser extends CortexElement {
         additionalFields: this.tableColumnList.map((column) => column.field),
         availableDocTypes: this.availableDocTypes,
         baseUrl: this.baseUrl,
+        bearerToken: this.bearerToken,
         defaultFolderId: this.defaultFolderId,
         defaultIsSeeThrough: this.defaultIsSeeThrough,
         defaultSearchText: this.defaultSearchText,
@@ -616,9 +623,9 @@ export default class CxContentBrowser extends CortexElement {
     }
   }
 
-  @watch(['token', 'useSession'], { waitUntilFirstUpdate: true })
+  @watch(['token', 'useSession', 'bearerToken'], { waitUntilFirstUpdate: true })
   handleAuthChange() {
-    this.fetchAndMergeAssetsController?.updateAuth(this.token, this.useSession);
+    this.fetchAndMergeAssetsController?.updateAuth(this.token, this.useSession, this.bearerToken);
   }
 
   @watch('useSiteSession', { waitUntilFirstUpdate: true })
@@ -632,6 +639,7 @@ export default class CxContentBrowser extends CortexElement {
       this.baseUrl,
       this.token,
       this.useSession,
+      this.bearerToken,
     );
   }
 
@@ -1107,6 +1115,7 @@ export default class CxContentBrowser extends CortexElement {
             folder-id=${ifDefined(this.lastRequest.folderId || undefined)}
             folder-title=${ifDefined(this.folderTitle || undefined)}
             token=${this.useSiteSession ? '' : this.token}
+            bearer-token=${this.useSiteSession ? '' : this.bearerToken}
             base-url=${this.baseUrl}
             use-session=${this.useSiteSession ? '' : this.useSession}
             ?use-site-session=${this.useSiteSession}

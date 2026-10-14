@@ -1,4 +1,4 @@
-import { expect } from '@open-wc/testing';
+import { expect, waitUntil } from '@open-wc/testing';
 import sinon from 'sinon';
 
 import '@/index';
@@ -245,6 +245,86 @@ describe('session restore and token refresh preserve a valid access key', () => 
     });
   });
 
+  /**
+   * A host token is not an access key: refresh asks the host again, as 2.2.8 did. (42BXQB)
+   */
+  describe('during a refresh of a host-supplied token', () => {
+    let requestToken: sinon.SinonStub;
+
+    beforeEach(() => {
+      requestToken = sinon.stub();
+      window.OrangeDAMContentBrowser._onRequestToken = requestToken;
+      store.dispatch(authSlice.actions.setUseHeaders(true));
+      store.dispatch(authSlice.actions.setSiteUrl(SITE_URL));
+      store.dispatch(authSlice.actions.updateAuthTokens({ accessKey: 'host-token' }));
+    });
+
+    afterEach(() => {
+      window.OrangeDAMContentBrowser._onRequestToken = undefined;
+    });
+
+    it('asks the host for a new token instead of exchanging it at getaccesstoken', async () => {
+      requestToken.resolves({ token: 'renewed-host-token', siteUrl: SITE_URL });
+      const fetchStub = sinon.stub(window, 'fetch');
+
+      expect(await refreshAccessToken()).to.equal('renewed-host-token');
+
+      expect(fetchStub.called).to.equal(false);
+      expect(store.getState()[AUTH_FEATURE_KEY].accessKey).to.equal('renewed-host-token');
+      expect(store.getState()[AUTH_FEATURE_KEY].status).to.equal('authenticated');
+    });
+
+    it('keeps the session when the host has no token to give', async () => {
+      requestToken.resolves({ token: '', siteUrl: SITE_URL });
+      const fetchStub = sinon.stub(window, 'fetch');
+
+      expect(await refreshAccessToken()).to.equal(null);
+
+      expect(fetchStub.called).to.equal(false);
+      expect(store.getState()[AUTH_FEATURE_KEY].status).to.equal('authenticated');
+      expect(store.getState()[AUTH_FEATURE_KEY].accessKey).to.equal('host-token');
+      expect(accessKeyDiscarded()).to.equal(false);
+    });
+
+    it('keeps the session when the host fails to provide a token', async () => {
+      requestToken.rejects(new Error('host unavailable'));
+      const fetchStub = sinon.stub(window, 'fetch');
+
+      expect(await refreshAccessToken()).to.equal(null);
+
+      expect(fetchStub.called).to.equal(false);
+      expect(store.getState()[AUTH_FEATURE_KEY].status).to.equal('authenticated');
+      expect(accessKeyDiscarded()).to.equal(false);
+    });
+
+    it('drops a host token that arrives after logout', async () => {
+      let answer!: (result: { token: string; siteUrl: string }) => void;
+      requestToken.returns(new Promise((resolve) => { answer = resolve; }));
+      const pending = refreshAccessToken();
+      await waitUntil(() => requestToken.called);
+
+      store.dispatch(logout());
+      answer({ token: 'late-host-token', siteUrl: SITE_URL });
+
+      expect(await pending).to.equal(null);
+      expect(store.getState()[AUTH_FEATURE_KEY].status).to.equal('unauthenticated');
+      expect(store.getState()[AUTH_FEATURE_KEY].accessKey).to.equal(undefined);
+    });
+
+    it('drops a host token that arrives after switching to the site session', async () => {
+      let answer!: (result: { token: string; siteUrl: string }) => void;
+      requestToken.returns(new Promise((resolve) => { answer = resolve; }));
+      const pending = refreshAccessToken();
+      await waitUntil(() => requestToken.called);
+
+      store.dispatch(authSlice.actions.setSiteSession(window.location.origin));
+      answer({ token: 'late-host-token', siteUrl: SITE_URL });
+
+      expect(await pending).to.equal(null);
+      expect(store.getState()[AUTH_FEATURE_KEY].accessKey).to.equal(undefined);
+    });
+  });
+
   describe('the stored key reaches only the site it was stored for', () => {
     /** Declines the authorization flow, and answers any token request with a verdict. */
     const stubDeclinedAuthorization = () => sinon.stub(window, 'fetch').callsFake(async (input) => {
@@ -386,6 +466,39 @@ describe('session restore and token refresh preserve a valid access key', () => 
   });
 
   describe('during interactive authorization', () => {
+    afterEach(() => {
+      window.OrangeDAMContentBrowser._onRequestToken = undefined;
+    });
+
+    // A failed host-token restore keeps header mode (endSession). The session the user then authorizes
+    // is the SDK's own, so it refreshes with its access key instead of asking the host. (42BXQB)
+    it('refreshes the session authorized after a failed host-token restore with its own access key', async () => {
+      const requestToken = sinon.stub().rejects(new Error('host unavailable'));
+      window.OrangeDAMContentBrowser._onRequestToken = requestToken;
+      store.dispatch(authSlice.actions.setUseHeaders(true));
+      await store.dispatch(initAuthInfoFromCache());
+      expect(store.getState()[AUTH_FEATURE_KEY].status).to.equal('unauthenticated');
+
+      sinon.stub(window, 'open');
+      const fetchStub = sinon.stub(window, 'fetch').callsFake(async (input) => {
+        const url = String(input);
+        if (url.includes('requestauthorize')) {
+          return new Response(JSON.stringify({ requestID: 'request-1' }), { status: 200 });
+        }
+        if (url.includes('getaccesskey')) {
+          return new Response(JSON.stringify({ code: 'Authorized', accessKey: 'sdk-access-key' }), { status: 200 });
+        }
+        return new Response(JSON.stringify({ success: true, accessToken: 'sdk-token' }), { status: 200 });
+      });
+      await store.dispatch(oAuth({ siteUrl: SITE_URL }));
+      requestToken.resetHistory();
+
+      expect(await refreshAccessToken()).to.equal('sdk-token');
+
+      expect(requestToken.called).to.equal(false);
+      expect(storedKeySentTo(fetchStub, SITE_URL, 'sdk-access-key')).to.equal(true);
+    });
+
     it('keeps a previously stored key when the authorization flow is declined', async () => {
       sinon.stub(window, 'open');
       const fetchStub = sinon.stub(window, 'fetch');

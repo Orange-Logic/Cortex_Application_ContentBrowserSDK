@@ -36,7 +36,7 @@ describe('site session authentication', () => {
 
   const createController = () => {
     controller = new FetchAndMergeAssetsController({ requestUpdate() {}, addController() {} } as unknown as CortexElement, {
-      availableDocTypes: [], baseUrl: '', defaultFolderId: '', defaultIsSeeThrough: true,
+      availableDocTypes: [], baseUrl: '', bearerToken: '', defaultFolderId: '', defaultIsSeeThrough: true,
       defaultSearchText: '', defaultSelectedFacets: {}, defaultSortDirection: 'ascending',
       defaultSortOrderName: '', token: 'stale-token', useSession: 'stale-preview', useSiteSession: true,
     } as ConstructorParameters<typeof FetchAndMergeAssetsController>[1]);
