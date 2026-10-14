@@ -1311,6 +1311,44 @@ describe('content-browser', () => {
     );
   });
 
+  it('sends the selected folder title with the request change', async () => {
+    const { el } = await fixtureWithMock(html`<cx-content-browser></cx-content-browser>`, {
+      parameters: { collectionPath: '/collections' },
+    });
+
+    const requestChange = oneEvent(el, 'cx-content-browser-request-change');
+
+    getBrowser(el)!.dispatchEvent(
+      new CustomEvent('cx-selection-change', {
+        bubbles: true,
+        composed: true,
+        detail: { selection: makeTreeItemSelection('folder-new', 'New folder') },
+      }),
+    );
+
+    const { detail } = await requestChange;
+    expect(detail.folderTitle).to.equal('New folder');
+  });
+
+  it('keeps the default folder title when the folder is not in the root folder list', async () => {
+    const fetchFolders = sinon.stub(customElements.get('cx-folder-select-tree')!.prototype, 'fetchFolders').resolves({
+      data: [{ docType: 'Folder', fullPath: '/Library', hasChildren: true, id: 'library-id', title: 'Library' }],
+      hasMore: false,
+      totalCount: 1,
+    });
+    const { el } = await fixtureWithMock(
+      html`<cx-content-browser default-folder-id="external" default-folder-title="Image"></cx-content-browser>`,
+      { parameters: { collectionPath: '/collections' } },
+    );
+
+    await waitUntil(() => fetchFolders.called);
+    await elementUpdated(el);
+
+    expect(el.lastRequest.folderId).to.equal('external');
+    expect(el.shadowRoot!.querySelector('cx-content-browser-header')!.getAttribute('folder-title')).to.equal('Image');
+    expect(getBrowser(el)!.getAttribute('folder-title')).to.equal('Image');
+  });
+
   describe('initial folder', () => {
     let clock: sinon.SinonFakeTimers;
 
