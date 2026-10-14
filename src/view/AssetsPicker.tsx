@@ -81,6 +81,7 @@ type DefaultSettings = {
   isSeeThrough: boolean;
   searchText: string;
   lastLocation: string;
+  lastLocationTitle: string;
 };
 
 function parseSelectedFacets(selectedFilter: string | null): Record<string, string[]> {
@@ -171,6 +172,7 @@ const AssetsPicker = forwardRef<AssetsPickerHandle, Props>(function AssetsPicker
     isSeeThrough: true,
     searchText: '',
     lastLocation: '',
+    lastLocationTitle: '',
   });
   const loadedFromStorage = useRef(false);
 
@@ -269,6 +271,7 @@ const AssetsPicker = forwardRef<AssetsPickerHandle, Props>(function AssetsPicker
     }
     if (folderId !== undefined) {
       storeData('lastLocationFolderId', folderId);
+      storeData('lastLocationFolderTitle', event.detail.folderTitle ?? '');
     }
     if (sortDirection) {
       storeData('selectedSortDirection', sortDirection);
@@ -355,7 +358,19 @@ const AssetsPicker = forwardRef<AssetsPickerHandle, Props>(function AssetsPicker
       getData('searchText'),
       getData('lastLocation'),
       getData('lastLocationFolderId'),
-    ]).then(([sortOrder, sortDirection, view, newFacets, selectedFilter, selectedIsSeeThrough, searchText, lastLocation, lastLocationFolderId]) => {
+      getData('lastLocationFolderTitle'),
+    ]).then(([
+      sortOrder,
+      sortDirection,
+      view,
+      newFacets,
+      selectedFilter,
+      selectedIsSeeThrough,
+      searchText,
+      lastLocation,
+      lastLocationFolderId,
+      lastLocationFolderTitle,
+    ]) => {
       const newDefaultSettings: Partial<DefaultSettings> = {
         sortOrder: sortOrder || '',
         sortDirection: ['ascending', 'descending'].includes(sortDirection as 'ascending' | 'descending') ? sortDirection as 'ascending' | 'descending' : undefined,
@@ -370,6 +385,7 @@ const AssetsPicker = forwardRef<AssetsPickerHandle, Props>(function AssetsPicker
 
         if (lastLocationFolderId) {
           newDefaultSettings.lastLocation = lastLocationFolderId;
+          newDefaultSettings.lastLocationTitle = lastLocationFolderTitle || '';
           deleteData('lastLocation');
         } else if (lastLocation) {
           newDefaultSettings.lastLocation = parseLegacyLastLocation(lastLocation);
@@ -403,6 +419,7 @@ const AssetsPicker = forwardRef<AssetsPickerHandle, Props>(function AssetsPicker
       default-is-see-through={defaultSettings.isSeeThrough}
       default-search-text={defaultSettings.searchText}
       default-folder-id={defaultSettings.lastLocation}
+      default-folder-title={defaultSettings.lastLocationTitle}
       token={accessToken ?? ''}
       bearerToken={bearerToken ?? ''}
       base-url={siteUrl ?? ''}
