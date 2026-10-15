@@ -1,5 +1,5 @@
 import { expect } from '@open-wc/testing';
-import { AxiosError } from 'axios';
+import { AxiosError, type AxiosResponse, type InternalAxiosRequestConfig } from 'axios';
 
 import http from '@/api/api';
 
@@ -87,6 +87,98 @@ describe('asset caption', () => {
 
       expect(seen.requestedFields).to.contain('Document.Title');
       expect(seen.requestedFields).to.not.contain('CoreField.OriginalFileName');
+    });
+
+    // L-42BQUZ: axios rejects with these errors for a timeout, a lost connection and a non-2xx response.
+    const transportErrors: Array<[string, (config: InternalAxiosRequestConfig) => AxiosError]> = [
+      ['a timeout', (config) => new AxiosError('timeout of 15000ms exceeded', AxiosError.ECONNABORTED, config)],
+      ['a network error', (config) => new AxiosError('Network Error', AxiosError.ERR_NETWORK, config)],
+      ['an HTTP 500 response', (config) => new AxiosError(
+        'Request failed with status code 500',
+        AxiosError.ERR_BAD_RESPONSE,
+        config,
+        null,
+        { config, data: '', headers: {}, status: 500, statusText: 'Internal Server Error' } as AxiosResponse,
+      )],
+    ];
+
+    for (const [name, makeError] of transportErrors) {
+      it(`reports ${name} as an error, not as a search with no hits`, async () => {
+        http.defaults.adapter = async (config) => {
+          throw makeError(config);
+        };
+
+        const response = await apiGetAssets({} as Parameters<typeof apiGetAssets>[0]);
+
+        expect(response.isError).to.equal(true);
+        expect(response.items.length).to.equal(0);
+      });
+    }
+
+    // A proxy or a login page can answer with a 2xx HTML page, which axios keeps as a string.
+    it('reports a 2xx response without a search body as an error', async () => {
+      http.defaults.adapter = async (config) => ({
+        config,
+        data: '<html><body>Sign in</body></html>',
+        headers: {},
+        status: 200,
+        statusText: 'OK',
+      });
+
+      const response = await apiGetAssets({} as Parameters<typeof apiGetAssets>[0]);
+
+      expect(response.isError).to.equal(true);
+      expect(response.facets.length).to.equal(0);
+    });
+
+    const malformedBodies: Array<[string, unknown]> = [
+      ['an empty object', {}],
+      ['an array', []],
+      ['an error object', { error: 'Session expired' }],
+      ['a body without facets and total', { contentItems: [] }],
+      ['a body with a total that is not a number', { contentItems: [], facets: [], totalCount: 'many' }],
+      ['a facet without details and values', { contentItems: [], facets: [{}], totalCount: 0 }],
+      ['a facet with null details', { contentItems: [], facets: [{ facetDetails: null, values: [] }], totalCount: 0 }],
+      ['a facet with list details', { contentItems: [], facets: [{ facetDetails: [], values: [] }], totalCount: 0 }],
+      ['a facet without a field name', { contentItems: [], facets: [{ facetDetails: { displayName: 'Type' }, values: [] }], totalCount: 0 }],
+      ['a facet without a display name', { contentItems: [], facets: [{ facetDetails: { facetFieldName: 'Types' }, values: [] }], totalCount: 0 }],
+      ['a facet with values that are not a list', { contentItems: [], facets: [{ facetDetails: { displayName: 'Type', facetFieldName: 'Types' }, values: {} }], totalCount: 0 }],
+      ['a facet value that is null', { contentItems: [], facets: [{ facetDetails: { displayName: 'Type', facetFieldName: 'Types' }, values: [null] }], totalCount: 0 }],
+      ['a facet value without a value', { contentItems: [], facets: [{ facetDetails: { displayName: 'Type', facetFieldName: 'Types' }, values: [{ count: 1 }] }], totalCount: 0 }],
+      ['a body with items that are not a list', { contentItems: {}, facets: [], totalCount: 0 }],
+    ];
+
+    for (const [name, data] of malformedBodies) {
+      it(`reports a 2xx response with ${name} as an error`, async () => {
+        http.defaults.adapter = async (config) => ({
+          config,
+          data,
+          headers: {},
+          status: 200,
+          statusText: 'OK',
+        });
+
+        const response = await apiGetAssets({} as Parameters<typeof apiGetAssets>[0]);
+
+        expect(response.isError).to.equal(true);
+        expect(response.facets.length).to.equal(0);
+        expect(response.totalCount).to.equal(0);
+      });
+    }
+
+    it('reports a 2xx response with no hits as a search with no hits, not an error', async () => {
+      http.defaults.adapter = async (config) => ({
+        config,
+        data: { contentItems: [], facets: [], totalCount: 0 },
+        headers: {},
+        status: 200,
+        statusText: 'OK',
+      });
+
+      const response = await apiGetAssets({} as Parameters<typeof apiGetAssets>[0]);
+
+      expect(response.isError).to.equal(false);
+      expect(response.totalCount).to.equal(0);
     });
   });
 });

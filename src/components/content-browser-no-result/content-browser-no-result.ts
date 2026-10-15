@@ -29,6 +29,7 @@ export default class CxContentBrowserNoResult extends CortexElement {
       <div class="content-browser-no-result" data-testid="no-results">
         <cx-icon name=${this.icon}></cx-icon>
         ${this.message}
+        <slot></slot>
       </div>
     `;
   }

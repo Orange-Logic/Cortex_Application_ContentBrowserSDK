@@ -12,6 +12,8 @@ import { Asset } from '@/types/asset';
 import { ASSET_SIZE, GridView } from '@/types/content-browser';
 import { watch } from '@/utils/watch';
 import { grid } from '@lit-labs/virtualizer/layouts/grid.js';
+import CxButton from '@orangelogic/design-system/components/button';
+import CxIcon from '@orangelogic/design-system/components/icon';
 import CxProgressBar from '@orangelogic/design-system/components/progress-bar';
 import CxResizeObserver from '@orangelogic/design-system/components/resize-observer';
 import { customElement, LocalizeController } from '@orangelogic/design-system/utils';
@@ -29,8 +31,10 @@ export default class CxContentBrowserGrid extends CortexElement {
   static readonly styles: CSSResultGroup = [componentStyles, styles];
 
   static readonly dependencies = {
+    'cx-button': CxButton,
     'cx-content-browser-asset-card': CxContentBrowserAssetCard,
     'cx-content-browser-no-result': CxContentBrowserNoResult,
+    'cx-icon': CxIcon,
     'cx-progress-bar': CxProgressBar,
     'cx-resize-observer': CxResizeObserver,
   };
@@ -48,6 +52,10 @@ export default class CxContentBrowserGrid extends CortexElement {
 
   @property({ attribute: 'empty', reflect: true, type: Boolean })
   empty: boolean = false;
+
+  /** The last search request got an error. With no rows, the error replaces the grid. With rows, it shows at the bottom. */
+  @property({ attribute: 'error', reflect: true, type: Boolean })
+  error: boolean = false;
 
   @property({ attribute: 'view', reflect: true, type: String })
   view: GridView = GridView.Medium;
@@ -249,6 +257,68 @@ export default class CxContentBrowserGrid extends CortexElement {
     }
   }
 
+  private handleRetry() {
+    this.emit('cx-content-browser-grid-retry');
+  }
+
+  private renderRetry() {
+    return html`
+      <cx-button class="content-browser-grid__retry" variant="primary" @click=${this.handleRetry}>
+        ${this.localize.term('retry')}
+      </cx-button>
+    `;
+  }
+
+  private renderContent() {
+    if (this.error && this.assets.length === 0) {
+      return html`
+        <cx-content-browser-no-result
+          class="content-browser-grid__empty"
+          icon="error_outline"
+          message=${this.localize.term('oopsSomethingWentWrong')}
+          role="alert"
+        >
+          ${this.renderRetry()}
+        </cx-content-browser-no-result>
+      `;
+    }
+
+    if (this.empty) {
+      return html`
+        <cx-content-browser-no-result
+          class="content-browser-grid__empty"
+          icon="search_off"
+          message=${this.localize.term('noResults')}
+        ></cx-content-browser-no-result>
+      `;
+    }
+
+    return html`
+      <lit-virtualizer
+        class="content-browser-grid__list"
+        scroller
+        .layout=${grid({
+          gap: `${this.#gutter}px`,
+          itemSize: {
+            height: `${Math.max(this.columnWidth, 150)}px`,
+            width: `${this.columnWidth}px`,
+          },
+          flex: { preserve: 'aspect-ratio' },
+        })}
+        .items=${this.assets}
+        .renderItem=${this.renderItem}
+        @scroll=${this.handleScroll}
+      ></lit-virtualizer>
+      ${when(this.error, () => html`
+        <div class="content-browser-grid__page-error" role="alert">
+          <cx-icon name="error_outline"></cx-icon>
+          ${this.localize.term('oopsSomethingWentWrong')}
+          ${this.renderRetry()}
+        </div>
+      `)}
+    `;
+  }
+
   render() {
     return html`
         <div
@@ -262,35 +332,7 @@ export default class CxContentBrowserGrid extends CortexElement {
         </div>
       <cx-resize-observer @cx-resize=${this.handleResize}>
         <div class="content-browser-grid">
-          ${when(this.empty,
-            () => html`
-              <cx-content-browser-no-result
-                class="content-browser-grid__empty"
-                icon="search_off"
-                message=${this.localize.term('noResults')}
-              ></cx-content-browser-no-result>
-            `,
-            () => html`
-              <lit-virtualizer
-                scroller
-                style=${styleMap({
-                  height: '100%',
-                  'overflow-x': 'hidden',
-                })}
-                .layout=${grid({
-                  gap: `${this.#gutter}px`,
-                  itemSize: {
-                    height: `${Math.max(this.columnWidth, 150)}px`,
-                    width: `${this.columnWidth}px`,
-                  },
-                  flex: { preserve: 'aspect-ratio' },
-                })}
-                .items=${this.assets}
-                .renderItem=${this.renderItem}
-                @scroll=${this.handleScroll}
-              ></lit-virtualizer>
-            `,
-          )}
+          ${this.renderContent()}
         </div>
       </cx-resize-observer>
     `;

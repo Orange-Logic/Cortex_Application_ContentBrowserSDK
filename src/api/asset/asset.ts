@@ -1,6 +1,6 @@
 import http from '@/api/api';
 import { Asset, GetAssetsRequest, MediaType } from '@/types/asset';
-import { TransformationAction } from '@/types/content-browser';
+import { Facet, TransformationAction } from '@/types/content-browser';
 import { AssetApiEndpoint } from '@/api/endpoints';
 import { appendPathAndQuery } from '@/utils/appendPathAndQuery';
 
@@ -91,6 +91,34 @@ export function resolveAssetExtraFilters(
 
 function isCortexErrorResponse(response: GetAssetLinkResponse | CortexErrorResponse): response is CortexErrorResponse {
   return response && typeof response === 'object' && 'ErrorCode' in response;
+}
+
+// The merge reads `facetFieldName` and the filter reads `displayName` of the details. The filter reads `value`
+// of each facet value as a string (`split('>>')`). A facet without them cannot merge or render.
+function isSearchFacet(facet: Facet | null | undefined) {
+  const details = facet?.facetDetails;
+
+  return !!facet
+    && !!details
+    && typeof details === 'object'
+    && !Array.isArray(details)
+    && typeof details.facetFieldName === 'string'
+    && typeof details.displayName === 'string'
+    && Array.isArray(facet.values)
+    && facet.values.every((facetValue) => !!facetValue && typeof facetValue.value === 'string');
+}
+
+function isSearchResponse(response: unknown): response is GetAssetsRawResponse {
+  if (!response || typeof response !== 'object' || Array.isArray(response)) {
+    return false;
+  }
+
+  const { contentItems, facets, totalCount } = response as Partial<GetAssetsRawResponse>;
+
+  return Array.isArray(facets)
+    && facets.every(isSearchFacet)
+    && Number.isFinite(totalCount)
+    && (contentItems === undefined || Array.isArray(contentItems));
 }
 
 // What a backend without the POST overload answers. 403/404 are excluded: they carry business errors
@@ -568,6 +596,16 @@ export async function apiGetAssets({
           ? http.defaults.transformResponse
           : []),
         (rawResponse: GetAssetsRawResponse): GetAssetsResponse => {
+          // A 2xx page that is not a search result, for example from a proxy or a login page, is an error.
+          if (!isSearchResponse(rawResponse)) {
+            return {
+              facets: [],
+              isError: true,
+              items: [],
+              totalCount: 0,
+            };
+          }
+
           const mappedItems =
             rawResponse.contentItems?.map((item) => {
               let extension = item.fields[FIELD_EXTENSION] ?? '';
@@ -599,6 +637,7 @@ export async function apiGetAssets({
 
           return {
             facets: rawResponse.facets,
+            isError: false,
             items: mappedItems,
             totalCount: rawResponse.totalCount,
           };
@@ -609,8 +648,10 @@ export async function apiGetAssets({
 
     return response.data;
   } catch (error) {
+    // Resolve, not reject: the public fetchAssets gives this result to the host application (L-42BQUZ).
     return {
       facets: [],
+      isError: true,
       items: [],
       totalCount: 0,
     };
