@@ -245,34 +245,34 @@ describe('content-browser-control-view', () => {
       }).map((item) => (item.menu === 'submenu' ? 'grid' : item.value));
     }
 
-    it('shows the Table checkmark on mobile', async () => {
+    it('hides the Table checkmark on mobile and keeps its selected state', async () => {
       el.canUseTable = true;
       el.isMobile = true;
       await setViewsAndView(el, sampleViews, TABLE_VIEW);
       await getDropdown(el).show();
 
-      expect(await visibleCheckmarks()).to.deep.equal([TABLE_VIEW]);
+      expect(await visibleCheckmarks()).to.deep.equal([]);
       expect(findMenuItem(el, (item) => item.value === TABLE_VIEW).checked).to.be.true;
     });
 
-    it('shows the Grid and size checkmarks on mobile', async () => {
+    it('shows only the size checkmark on mobile', async () => {
       el.isMobile = true;
       await setViewsAndView(el, sampleViews, 'small');
       await getDropdown(el).show();
 
-      expect(await visibleCheckmarks()).to.deep.equal(['grid', 'small']);
+      expect(await visibleCheckmarks()).to.deep.equal(['small']);
     });
 
-    it('shows the mode and size checkmarks after desktop mode changes', async () => {
+    it('shows only the size checkmark after desktop mode changes', async () => {
       el.canUseTable = true;
       await setViewsAndView(el, sampleViews, TABLE_VIEW);
       await getDropdown(el).show();
-      expect(await visibleCheckmarks()).to.deep.equal([TABLE_VIEW]);
+      expect(await visibleCheckmarks()).to.deep.equal([]);
 
       el.view = GridView.Small;
       await elementUpdated(el);
       const marked = await visibleCheckmarks();
-      expect(marked).to.have.length(2);
+      expect(marked).to.have.length(1);
       expect(marked).to.include('small');
     });
   });
