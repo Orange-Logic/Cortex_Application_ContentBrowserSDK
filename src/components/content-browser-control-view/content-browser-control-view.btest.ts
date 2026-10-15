@@ -231,7 +231,7 @@ describe('content-browser-control-view', () => {
     });
   });
 
-  describe('hidden checkmarks', () => {
+  describe('visible checkmarks', () => {
     async function visibleCheckmarks() {
       const items = getMenuItems(el);
 
@@ -245,22 +245,35 @@ describe('content-browser-control-view', () => {
       }).map((item) => (item.menu === 'submenu' ? 'grid' : item.value));
     }
 
-    it('shows no checkmark on mobile and keeps the checked state', async () => {
+    it('shows the Table checkmark on mobile', async () => {
       el.canUseTable = true;
       el.isMobile = true;
       await setViewsAndView(el, sampleViews, TABLE_VIEW);
       await getDropdown(el).show();
 
-      expect(await visibleCheckmarks()).to.deep.equal([]);
+      expect(await visibleCheckmarks()).to.deep.equal([TABLE_VIEW]);
       expect(findMenuItem(el, (item) => item.value === TABLE_VIEW).checked).to.be.true;
     });
 
-    it('shows no Grid checkmark on mobile for a host without table columns', async () => {
+    it('shows the Grid and size checkmarks on mobile', async () => {
       el.isMobile = true;
       await setViewsAndView(el, sampleViews, 'small');
       await getDropdown(el).show();
 
-      expect(await visibleCheckmarks()).to.deep.equal([]);
+      expect(await visibleCheckmarks()).to.deep.equal(['grid', 'small']);
+    });
+
+    it('shows the mode and size checkmarks after desktop mode changes', async () => {
+      el.canUseTable = true;
+      await setViewsAndView(el, sampleViews, TABLE_VIEW);
+      await getDropdown(el).show();
+      expect(await visibleCheckmarks()).to.deep.equal([TABLE_VIEW]);
+
+      el.view = GridView.Small;
+      await elementUpdated(el);
+      const marked = await visibleCheckmarks();
+      expect(marked).to.have.length(2);
+      expect(marked).to.include('small');
     });
   });
   describe('desktop checked state', () => {

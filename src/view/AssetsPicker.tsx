@@ -352,6 +352,7 @@ const AssetsPicker = forwardRef<AssetsPickerHandle, Props>(function AssetsPicker
   }, [appDispatch]);
 
   useEffect(() => {
+    let cancelled = false;
     Promise.all([
       getData('selectedSortOrder'),
       getData('selectedSortDirection'),
@@ -363,10 +364,15 @@ const AssetsPicker = forwardRef<AssetsPickerHandle, Props>(function AssetsPicker
       getData('lastLocation'),
       getData('lastLocationFolderId'),
     ]).then(([sortOrder, sortDirection, view, newFacets, selectedFilter, selectedIsSeeThrough, searchText, lastLocation, lastLocationFolderId]) => {
+      if (cancelled) {
+        return;
+      }
       const newDefaultSettings: Partial<DefaultSettings> = {
         sortOrder: sortOrder || '',
         sortDirection: ['ascending', 'descending'].includes(sortDirection as 'ascending' | 'descending') ? sortDirection as 'ascending' | 'descending' : undefined,
-        view: (view as ContentBrowserView) || defaultSettings.view,
+        view: isSupportedView(defaultGridView)
+          ? defaultGridView
+          : view && isSupportedView(view) ? view : GridView.Medium,
         selectedFacets: parseSelectedFacets(selectedFilter),
         isSeeThrough: selectedIsSeeThrough === null ? true : selectedIsSeeThrough === 'true',
         searchText: searchText || '',
@@ -388,7 +394,8 @@ const AssetsPicker = forwardRef<AssetsPickerHandle, Props>(function AssetsPicker
       loadedFromStorage.current = true;
       setIsInitialLoadComplete(true);
     });
-  }, [lastLocationMode, defaultGridView, defaultSettings.view]);
+    return () => { cancelled = true; };
+  }, [lastLocationMode, defaultGridView]);
 
   if (!isInitialLoadComplete) {
     return <cx-content-browser-loader></cx-content-browser-loader>;

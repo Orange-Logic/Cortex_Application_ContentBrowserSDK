@@ -590,7 +590,7 @@ export default class CxContentBrowser extends CortexElement {
     }
   }
 
-  @watch('lastRequest', { waitUntilFirstUpdate: true })
+  @watch(['lastRequest', 'view'], { waitUntilFirstUpdate: true })
   async handleLastRequestChange() {
     this.emit('cx-content-browser-request-change', {
       detail: {
