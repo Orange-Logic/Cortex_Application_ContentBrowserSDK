@@ -298,6 +298,9 @@ export default class CxContentBrowser extends CortexElement {
   @property({ attribute: 'default-folder-id', type: String })
   defaultFolderId: string = '';
 
+  @property({ attribute: 'default-folder-title', type: String })
+  defaultFolderTitle: string = '';
+
   @property({ attribute: 'show-title', reflect: true, type: Boolean })
   showTitle: boolean = true;
 
@@ -462,6 +465,8 @@ export default class CxContentBrowser extends CortexElement {
       sortOrderName: this.defaultSortOrderName,
     };
 
+    this.folderTitle = this.defaultFolderTitle;
+
     if (!this.defaultFolderId) {
       this.initialFolderPending = true;
       this.initialFolderTimeout = setTimeout(() => this.releaseInitialFolder(), INITIAL_FOLDER_TIMEOUT_MS);
@@ -594,6 +599,7 @@ export default class CxContentBrowser extends CortexElement {
   async handleLastRequestChange() {
     this.emit('cx-content-browser-request-change', {
       detail: {
+        folderTitle: this.folderTitle,
         request: this.lastRequest,
         view: this.view,
       },

@@ -2,6 +2,7 @@ import { GetAssetsRequest } from '@/types/asset';
 import { ContentBrowserView } from '@/types/content-browser';
 
 export type CxContentBrowserRequestChangeEvent = CustomEvent<{
+  folderTitle: string | undefined;
   request: GetAssetsRequest | null;
   view: ContentBrowserView;
 }>;

@@ -515,4 +515,13 @@ describe('session restore and token refresh preserve a valid access key', () => 
       expect(store.getState()[AUTH_FEATURE_KEY].status).to.equal('unauthenticated');
     });
   });
+
+  describe('during logout', () => {
+    it('clears the last location', () => {
+      store.dispatch(logout());
+
+      expect(storage.delete.getCalls().some((call) => call.args[0] === 'lastLocationFolderId')).to.equal(true);
+      expect(storage.delete.getCalls().some((call) => call.args[0] === 'lastLocationFolderTitle')).to.equal(true);
+    });
+  });
 });

@@ -89,6 +89,8 @@ export const authSlice = createSlice({
       deleteData('selectedIsSeeThrough');
       deleteData('searchText');
       deleteData('lastLocation');
+      deleteData('lastLocationFolderId');
+      deleteData('lastLocationFolderTitle');
       deleteData('retryCount');
     },
     /**
