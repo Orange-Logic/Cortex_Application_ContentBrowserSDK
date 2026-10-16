@@ -3,16 +3,12 @@ import {
   AUTH_FEATURE_ACCESS_KEY_KEY, AUTH_FEATURE_KEY, AUTH_FEATURE_SITE_URL_KEY, USE_SESSION,
 } from '@/consts/auth';
 import { RootState } from '@/store';
-import { resetImportStatus } from '@/store/assets/assets.slice';
 import { GetAccessKeyRes, GetAccessKeyResponseCode, OAuthRes } from '@/types/auth';
 import { getRequestUrl } from '@/utils/getRequestUrl';
-import { deleteData, getData, storeData } from '@/utils/storage';
+import { deleteData, getData, getPairedData, storeData } from '@/utils/storage';
 import { generateRandomString } from '@/utils/string';
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 
-import { assetsApi } from '../assets/assets.api';
-import { searchApi } from '../search/search.api';
-import { userApi } from '../user/user.api';
 import {
   abortAuthService, authAbortController, CANCEL_AUTH_MESSAGE, getAccessKeyService,
   getAccessTokenService, requestAuthorizeService,
@@ -31,6 +27,7 @@ export type AuthState = {
   status: 'authenticated' | 'unauthenticated' | 'restoreSession' | 'requestLogin' | 'waitForAuthorize'; 
   useHeaders?: boolean;
   useSession: string;
+  useSiteSession?: boolean;
 };
 
 // #region Slice
@@ -44,6 +41,14 @@ export const authSlice = createSlice({
   name: AUTH_FEATURE_KEY,
   initialState,
   reducers: {
+    setSiteSession: (state, action: PayloadAction<string | undefined>) => {
+      if (action.payload !== undefined) {
+        return { ...initialState, useSiteSession: true, siteUrl: action.payload, status: 'authenticated' };
+      }
+      if (state.useSiteSession) {
+        return { ...initialState };
+      }
+    },
     setAccessToken: (state, action: PayloadAction<string | undefined>) => {
       state.accessToken = action.payload;
     },
@@ -84,7 +89,25 @@ export const authSlice = createSlice({
       deleteData('selectedIsSeeThrough');
       deleteData('searchText');
       deleteData('lastLocation');
+      deleteData('lastLocationFolderId');
+      deleteData('lastLocationFolderTitle');
       deleteData('retryCount');
+    },
+    /**
+     * Drop the in-memory session but keep the stored access key and site URL, so a
+     * restore or refresh that failed for a transient reason can reconnect on the
+     * next attempt instead of sending the user back to the authorization screen.
+     *
+     * Use this for every failure except the server explicitly declining the key —
+     * that one is `logout`. (42AX2G)
+     */
+    endSession: (state) => {
+      state.status = 'unauthenticated';
+      state.error = '';
+      state.accessKey = undefined;
+      state.accessToken = undefined;
+      state.oAuthUrl = undefined;
+      state.nonce = undefined;
     },
     setAuthStatus: (state, action: PayloadAction<AuthState['status']>) => {
       state.status = action.payload;
@@ -103,12 +126,15 @@ export const authSlice = createSlice({
         // eslint-disable-next-line @typescript-eslint/no-use-before-define
         oAuth.fulfilled,
         (state, { payload }) => {
+          if (state.useSiteSession) return;
           if (payload) {
             const { accessKey, accessToken, siteUrl } = payload;
             state.accessKey = accessKey;
             state.accessToken = accessToken;
             state.status = 'authenticated';
             state.siteUrl = siteUrl;
+            // The SDK's own session, not a host token. (42BXQB)
+            state.useHeaders = false;
             storeData(AUTH_FEATURE_ACCESS_KEY_KEY, accessKey ?? '');
             storeData(AUTH_FEATURE_SITE_URL_KEY, siteUrl);
           }
@@ -116,19 +142,20 @@ export const authSlice = createSlice({
       )
     // eslint-disable-next-line @typescript-eslint/no-use-before-define
       .addCase(oAuth.rejected, (state, action) => {
+        if (state.useSiteSession) return;
         state.error = action.payload as string;
         state.status = 'unauthenticated';
-        deleteData(AUTH_FEATURE_ACCESS_KEY_KEY);
       })
     // eslint-disable-next-line @typescript-eslint/no-use-before-define
       .addCase(oAuth.pending, (state) => {
+        if (state.useSiteSession) return;
         state.error = '';
       });
   },
 });
 
 export default authSlice.reducer;
-export const { logout, setAccessToken, generateNonce, setSiteUrl, setUserConfigSiteUrl, setUseSession, setUseHeaders, setAuthStatus } = authSlice.actions;
+export const { logout, endSession, setAccessToken, updateAuthTokens, generateNonce, setSiteUrl, setUserConfigSiteUrl, setUseSession, setUseHeaders, setAuthStatus, setSiteSession } = authSlice.actions;
 // #endregion
 
 // #region Selector
@@ -165,6 +192,15 @@ export const applySessionSelector = (rootState: RootState) =>
 export const applyHeadersSelector = (rootState: RootState) =>
   !!rootState[AUTH_FEATURE_KEY].useHeaders;
 
+export const siteSessionSelector = (rootState: RootState) =>
+  !!rootState[AUTH_FEATURE_KEY].useSiteSession;
+
+// In header mode the host token (onRequestToken) is kept in accessKey.
+export const bearerTokenSelector = (rootState: RootState) => {
+  const { accessKey, useHeaders } = rootState[AUTH_FEATURE_KEY];
+  return useHeaders ? accessKey : undefined;
+};
+
 export const appAuthUrlSelector = (rootState: RootState) => {
   const siteUrl = rootState[AUTH_FEATURE_KEY].siteUrl;
   return siteUrl ? getRequestUrl(siteUrl, `AppAuth?RID=${rootState[AUTH_FEATURE_KEY].nonce}`) : '';
@@ -182,6 +218,9 @@ export const cancelAuth = createAsyncThunk(`${AUTH_FEATURE_KEY}/oauth`, (_, { di
 export const oAuth = createAsyncThunk<OAuthRes, { siteUrl: string, callbackFn?: (url: string) => void }>(
   `${AUTH_FEATURE_KEY}/oauth`,
 async ({ siteUrl, callbackFn }, { rejectWithValue, dispatch, getState }) => {
+  // `refreshAccessToken` presents the in-memory key to the current site, so that key
+  // must not outlive a change of site. The stored key stays for its own site. (42AX2G)
+  dispatch(authSlice.actions.endSession());
   dispatch(authSlice.actions.setSiteUrl(siteUrl));
   dispatch(authSlice.actions.setAuthStatus('requestLogin'));
 
@@ -189,7 +228,7 @@ async ({ siteUrl, callbackFn }, { rejectWithValue, dispatch, getState }) => {
     dispatch(generateNonce());
     const nonce = nonceSelector(getState() as RootState);
     const resp = await requestAuthorizeService(nonce ?? '');
-    if (authAbortController.controller.signal.aborted) {
+    if (authAbortController.controller.signal.aborted || siteSessionSelector(getState() as RootState)) {
       throw Error(CANCEL_AUTH_MESSAGE);
     }
     const requestID = resp.requestID;
@@ -198,6 +237,9 @@ async ({ siteUrl, callbackFn }, { rejectWithValue, dispatch, getState }) => {
     if (callbackFn) callbackFn(popupUrl);
     else window.open(popupUrl, '_blank');
     const getAccessKeyData = await getAccessKeyService(requestID);
+    if (siteSessionSelector(getState() as RootState)) {
+      throw Error(CANCEL_AUTH_MESSAGE);
+    }
     if (getAccessKeyData.accessKey) {
       const tokenResp = await getAccessTokenService(getAccessKeyData.accessKey);
       if (tokenResp.accessToken) {
@@ -224,12 +266,6 @@ async ({ siteUrl, callbackFn }, { rejectWithValue, dispatch, getState }) => {
       return rejectWithValue((getOAuthResult as GetAccessKeyRes).message);
     }
 
-    // Login successfully, reset other state
-    dispatch(resetImportStatus());
-    dispatch(searchApi.util.resetApiState());
-    dispatch(assetsApi.util.resetApiState());
-    dispatch(userApi.util.resetApiState());
-
     return getOAuthResult as OAuthRes;
   } catch (exception) {
     return rejectWithValue((exception as Error).message);
@@ -237,15 +273,60 @@ async ({ siteUrl, callbackFn }, { rejectWithValue, dispatch, getState }) => {
 },
 );
 
+const trimTrailingSlashes = (url: string) => url.replace(/\/+$/, '');
+
+/**
+ * Whether two site URLs address the same site. The URL parser normalizes the scheme, host
+ * and port, so host case and a default port do not matter. The path compares exactly,
+ * without trailing slashes. Not `origin`: it is "null" for every non-special scheme.
+ */
+const isSameSite = (siteUrl: string, otherSiteUrl: string) => {
+  try {
+    const site = new URL(siteUrl);
+    const otherSite = new URL(otherSiteUrl);
+    return site.protocol === otherSite.protocol
+      && site.host === otherSite.host
+      && trimTrailingSlashes(site.pathname) === trimTrailingSlashes(otherSite.pathname);
+  } catch {
+    return trimTrailingSlashes(siteUrl) === trimTrailingSlashes(otherSiteUrl);
+  }
+};
+
+/**
+ * The stored access key, but only when it was stored for `siteUrl`, so a key one site
+ * issued never reaches another. The two can disagree: a failed restore or a declined
+ * authorization keeps the key while the in-memory site changes. The site URL and the key
+ * come from the same storage, or one storage's site URL could vouch for another
+ * storage's key. Throws when host storage cannot be read. (42AX2G)
+ */
+export const readStoredAccessKey = async (siteUrl: string): Promise<string | undefined> => {
+  const stored = await getPairedData(AUTH_FEATURE_SITE_URL_KEY, AUTH_FEATURE_ACCESS_KEY_KEY);
+  if (!stored) {
+    return undefined;
+  }
+  const [storedSiteUrl, storedAccessKey] = stored;
+  if (!storedSiteUrl || !isSameSite(storedSiteUrl, siteUrl)) {
+    return undefined;
+  }
+  return storedAccessKey ?? undefined;
+};
+
 export const initAuthInfoFromCache = createAsyncThunk(
   `${AUTH_FEATURE_KEY}/initAuthInfoFromCache`,
   async (_, { dispatch, rejectWithValue, getState }) => {
+    const usingSiteSession = () => siteSessionSelector(getState() as RootState);
+    if (usingSiteSession()) return;
     dispatch(authSlice.actions.setAuthStatus('restoreSession'));
     const useHeaders = applyHeadersSelector(getState() as RootState);
+
+    // Set by `execute` when the server itself declined the stored key, which is the
+    // only outcome that may discard it. (42AX2G)
+    let isCredentialRejected = false;
 
     const execute = async () => {
       if (useHeaders && window.OrangeDAMContentBrowser?._onRequestToken) {
         const result = await window.OrangeDAMContentBrowser?._onRequestToken();
+        if (usingSiteSession()) return true;
 
         if (result) {
           dispatch(
@@ -265,6 +346,7 @@ export const initAuthInfoFromCache = createAsyncThunk(
         let siteUrl = siteUrlSelector(getState() as RootState);
         if (!siteUrl) {
           siteUrl = await getData(AUTH_FEATURE_SITE_URL_KEY) ?? '';
+          if (usingSiteSession()) return true;
           if (!siteUrl) {
           // eslint-disable-next-line @typescript-eslint/no-use-before-define
             siteUrl = userConfigSiteUrlSelector(getState() as RootState) ?? '';
@@ -279,7 +361,8 @@ export const initAuthInfoFromCache = createAsyncThunk(
           return false;
         }
 
-        const accessKey = await getData(AUTH_FEATURE_ACCESS_KEY_KEY);
+        const accessKey = await readStoredAccessKey(siteUrl);
+        if (usingSiteSession()) return true;
 
         if (accessKey) {
           if (useHeaders) {
@@ -290,19 +373,21 @@ export const initAuthInfoFromCache = createAsyncThunk(
               }),
             );
           } else {
-            const accessToken = (
-              await getAccessTokenService(accessKey)
-            ).accessToken;
-            if (accessToken) {
+            const tokenRes = await getAccessTokenService(accessKey);
+            if (usingSiteSession()) return true;
+            if (tokenRes.accessToken) {
               dispatch(
                 // eslint-disable-next-line @typescript-eslint/no-use-before-define
                 authSlice.actions.updateAuthTokens({
                   accessKey,
-                  accessToken,
+                  accessToken: tokenRes.accessToken,
                 }),
               );
             } else {
-              dispatch(logout());
+              // Only an explicit `success: false` is a verdict on the key. The server
+              // sets Success before reading the token node, so a well-formed response
+              // can carry no token — an anomaly, not a rejection. (42AX2G)
+              isCredentialRejected = tokenRes.success === false;
               return false;
             }
           }
@@ -319,16 +404,14 @@ export const initAuthInfoFromCache = createAsyncThunk(
       if (!isSuccess) {
         return rejectWithValue('Unable to recover access key');
       }
-
-      dispatch(resetImportStatus());
-      dispatch(searchApi.util.resetApiState());
-      dispatch(assetsApi.util.resetApiState());
-      dispatch(userApi.util.resetApiState());
     } catch (exception) {
       return rejectWithValue((exception as Error).message);
     } finally {
-      if (!isSuccess) {
-        dispatch(logout());
+      if (!isSuccess && !usingSiteSession()) {
+        // Only a declined key is discarded. A transport failure, a non-JSON error
+        // page or a slow host storage read must leave the stored key alone, so the
+        // next successful open reconnects without re-authorization. (42AX2G)
+        dispatch(isCredentialRejected ? logout() : endSession());
       }
     }
   },

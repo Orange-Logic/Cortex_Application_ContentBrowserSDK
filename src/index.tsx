@@ -1,9 +1,13 @@
 import './styles.css';
 
+export { default as CxContentBrowser } from './components/content-browser/content-browser';
+
+import { createRef } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Provider } from 'react-redux';
 
 import { App } from '@/App';
+import type { AssetsPickerHandle } from './view/AssetsPicker';
 import { AppContextType } from '@/AppContext';
 import {
   CtaTextTransform,
@@ -11,18 +15,27 @@ import {
   ImageCardDisplayInfo,
 } from '@/GlobalConfigContext';
 import { store } from '@/store';
-import { resetImportStatus, setSelectedAssetId } from '@/store/assets/assets.slice';
 import {
   initAuthInfoFromCache,
   setUseHeaders,
   setUserConfigSiteUrl,
+  setUseSession,
+  setSiteSession,
 } from '@/store/auth/auth.slice';
+import { refreshAccessToken } from '@/utils/api';
+import { abortAuthService } from '@/store/auth/auth.service';
+import { resolveSiteSessionUrl } from '@/utils/site-session';
+import { findFocusContainmentHost } from '@/utils/focus-containment';
+import { Folder, GetContentRequest, GetContentResponse, GetFoldersRequest } from './types/search';
 
-import { assetsApi } from './store/assets/assets.api';
-import { searchApi } from './store/search/search.api';
-import { userApi } from './store/user/user.api';
-import { Asset, Facet, Folder, GetContentRequest, GetFoldersRequest } from './types/search';
-import { ContentBrowserApiService } from './ApiService';
+/**
+ * Listen for 401 events from the design system's shared axios instance.
+ * The design system dispatches `cx-unauthorized` whenever any of its requests get a 401;
+ * this lets the SDK kick off the same token-refresh flow it uses for its own fetches.
+ */
+globalThis.addEventListener('cx-unauthorized', refreshAccessToken);
+
+const assetsPickerRef = createRef<AssetsPickerHandle>();
 
 type OrangeDAMContentBrowser = {
   help: () => void;
@@ -60,6 +73,18 @@ type OrangeDAMContentBrowser = {
      * Callback when we make an action on the asset
      */
     onAssetAction?: AppContextType['onAssetAction'];
+    /**
+     * Callback to get pinned state of an asset by record id
+     */
+    getPinnedState?: AppContextType['getPinnedState'];
+    /**
+     * Callback when user pins an asset
+     */
+    onPinAsset?: AppContextType['onPinAsset'];
+    /**
+     * Callback when user unpins an asset
+     */
+    onUnpinAsset?: AppContextType['onUnpinAsset'];
     /**
      * Callback when the user clicks Connect button
      * Currently, it is used only for Canva integration
@@ -99,6 +124,8 @@ type OrangeDAMContentBrowser = {
      * Base url. If specified, we will prefill the site URL in the authentication page
      */
     baseUrl?: string;
+    /** Reuse the current Cortex site's browser session without requesting credentials. */
+    useSiteSession?: boolean;
     /**
      * Only show IIIF prefix. When enable, instead of return full IIIF image url, we will
      * only return the url before the {region}. IIIF link will have the format like below
@@ -191,9 +218,24 @@ type OrangeDAMContentBrowser = {
     allowProxy?: boolean;
 
     /**
+     * Pick-only mode. Skips the available-proxies lookup and the transformation request made when
+     * an asset is confirmed; the preview popup shows the asset's LargeSizePreview and confirming
+     * emits the asset straight to `onAssetSelected`. Implies `allowProxy: false`.
+     *
+     * Note: because no GetAssetLink request is made, only the computed `extraFields`
+     * (`ScrubUrl`, `AllowATSLink`) can be returned in this mode.
+     */
+    simplePick?: boolean;
+
+    /**
      * The flag to allow the user to select favorites
      */
     allowFavorites?: boolean;
+
+    /**
+     * The flag to allow pin/unpin actions in format dialog
+     */
+    allowFormatDialogPin?: boolean;
 
     /**
      * The flag to allow the user to pin the browser
@@ -217,15 +259,11 @@ type OrangeDAMContentBrowser = {
     defaultGridView?: string;
   }) => Promise<void>;
   close: () => void;
-  fetchAssets: (params: GetContentRequest) => Promise<{
-    facets: Facet[];
-    items: Asset[];
-    totalCount: number;
-  } | undefined>;
+  fetchAssets: (params: GetContentRequest) => Promise<GetContentResponse | undefined> | undefined;
   fetchFolders: (params: GetFoldersRequest) => Promise<{
     items: Folder[];
     totalCount: number;
-  } | undefined>;
+  } | undefined> | undefined;
   previewAsset?: (assetId: string) => void;
   /**
    * Global function which mirrored the behavior of onAssetSelected
@@ -287,6 +325,18 @@ const ContentBrowser: OrangeDAMContentBrowser = {
           // Callback function triggered when the browser is closed
           window.alert('Content Browser is closing');
         },
+        getPinnedState: (recordId) => {
+          // Callback function to get the pinned state of an asset
+          return localStorage.getItem(\`pinned:\${recordId}\`) === 'true';
+        },
+        onPinAsset: async (recordId) => {
+          // Callback function triggered when an asset is pinned
+          localStorage.setItem(\`pinned:\${recordId}\`, 'true');
+        },
+        onUnpinAsset: async (recordId) => {
+          // Callback function triggered when an asset is unpinned
+          localStorage.removeItem(\`pinned:\${recordId}\`);
+        },
         containerId: "", // ID of the container to attach the browser; opens in a popup if blank
         extraFields: ['coreField.OriginalFileName', 'document.CortexPath'], // Additional fields to retrieve from the assets
         baseUrl: "", // Default base URL to pre-fill in the content browser
@@ -306,27 +356,33 @@ const ContentBrowser: OrangeDAMContentBrowser = {
         showCollections: true, // Whether to show collections in the content browser
         lastLocationMode: true, // Whether to open the last selected folder on load
         allowTracking: true, // Whether to enable tracking parameters for asset URLs
+        allowFormatDialogPin: true, // Whether to show pin/unpin actions in format dialog
       });`);
   },
   open: async ({
     onAssetAction,
+    getPinnedState,
     onAssetSelected,
     onAppAuthUrlCopied,
     onImageSelected,
     onError,
     onClose,
+    onPinAsset,
     onRequestToken,
     onTokenChanged,
+    onUnpinAsset,
     onConnectClicked,
     onSiteUrlChanged,
     customStorage,
     allowedExtensions,
     allowedFolders,
     allowFavorites,
+    allowFormatDialogPin,
     allowPin,
     allowLogout,
     allowProxy,
     allowTracking,
+    simplePick,
     availableDocTypes,
     availableRepresentativeSubtypes,
     baseUrl,
@@ -350,8 +406,10 @@ const ContentBrowser: OrangeDAMContentBrowser = {
     showFavoriteFolder,
     showVersions,
     useSession,
+    useSiteSession = false,
     defaultGridView,
   }) => {
+    const siteSessionUrl = useSiteSession ? resolveSiteSessionUrl(baseUrl) : undefined;
     // !! Always assign this first to make sure that storage functionality works
     const customStorageHandlers =
       typeof customStorage === 'object' && !!customStorage
@@ -364,7 +422,10 @@ const ContentBrowser: OrangeDAMContentBrowser = {
 
     let container = containerId && document.getElementById(containerId);
     if (!containerId) {
-      container = document.body;
+      // Popup mode: if the host page has an active modal with a focus trap
+      // (e.g. Drupal's jQuery UI Dialog), mount the picker inside it so its
+      // inputs stay focusable; otherwise fall back to document.body. See 29KEV1.
+      container = findFocusContainmentHost() ?? document.body;
     } else if (!container) {
       console.error(`Container with id ${containerId} is not found`);
       return;
@@ -386,7 +447,8 @@ const ContentBrowser: OrangeDAMContentBrowser = {
     }
     const root = createRoot(pickerRoot);
 
-    if (onRequestToken) {
+    window.OrangeDAMContentBrowser._onRequestToken = undefined;
+    if (!useSiteSession && onRequestToken) {
       window.OrangeDAMContentBrowser._onRequestToken = () => {
         return onRequestToken().then((token) => {
           return { token, siteUrl: baseUrl };
@@ -395,15 +457,26 @@ const ContentBrowser: OrangeDAMContentBrowser = {
     }
 
     // Dispatch some event before start render the APP
-    if (baseUrl) {
+    if (useSiteSession) {
+      abortAuthService();
+    }
+    store.dispatch(setSiteSession(siteSessionUrl));
+    if (!useSiteSession && baseUrl) {
       store.dispatch(setUserConfigSiteUrl(baseUrl));
     }
 
-    if (onRequestToken) {
-      store.dispatch(setUseHeaders(true));
+    store.dispatch(setUseHeaders(!useSiteSession && !!onRequestToken));
+
+    // The API layer reads the session from the auth store, so the configured
+    // session must be dispatched here — not only from the connect form, which
+    // token-authenticated integrations never submit
+    if (!useSiteSession && useSession) {
+      store.dispatch(setUseSession(useSession));
     }
 
-    store.dispatch(initAuthInfoFromCache());
+    if (!useSiteSession) {
+      store.dispatch(initAuthInfoFromCache());
+    }
 
     const errorHandler =
       typeof onError === 'function' && !!onError ? onError : console.log;
@@ -429,12 +502,20 @@ const ContentBrowser: OrangeDAMContentBrowser = {
       typeof onTokenChanged === 'function' && !!onTokenChanged
         ? onTokenChanged
         : undefined;
+    const getPinnedStateHandler =
+      typeof getPinnedState === 'function' && !!getPinnedState
+        ? getPinnedState
+        : () => false;
+    const onPinAssetHandler =
+      typeof onPinAsset === 'function' && !!onPinAsset
+        ? onPinAsset
+        : undefined;
+    const onUnpinAssetHandler =
+      typeof onUnpinAsset === 'function' && !!onUnpinAsset
+        ? onUnpinAsset
+        : undefined;
 
     const handleClose = () => {
-      store.dispatch(resetImportStatus());
-      store.dispatch(searchApi.util.resetApiState());
-      store.dispatch(assetsApi.util.resetApiState());
-      store.dispatch(userApi.util.resetApiState());
       root.unmount();
       // Reset these function when close the Content Browser
       window.OrangeDAMContentBrowser._onAssetSelected = undefined;
@@ -471,13 +552,15 @@ const ContentBrowser: OrangeDAMContentBrowser = {
             },
             isContentBrowserPopedup: !containerId,
             showCollections: !!showCollections,
-            showFavoriteFolder: !!showFavoriteFolder,
+            showFavoriteFolder: showFavoriteFolder !== false,
             showVersions: !!showVersions,
-            useSession,
+            useSession: useSiteSession ? undefined : useSession,
             allowPin: !!allowPin,
-            allowLogout: allowLogout !== undefined ? !!allowLogout : true,
+            allowFormatDialogPin: !!allowFormatDialogPin,
+            allowLogout: !useSiteSession && (allowLogout !== undefined ? !!allowLogout : true),
             allowTracking: allowTracking !== undefined ? !!allowTracking : true,
-            allowProxy: allowProxy !== undefined ? !!allowProxy : true,
+            allowProxy: simplePick ? false : (allowProxy !== undefined ? !!allowProxy : true),
+            simplePick: !!simplePick,
             allowFavorites: !!allowFavorites,
             defaultGridView: defaultGridView ?? '',
           }}
@@ -488,14 +571,18 @@ const ContentBrowser: OrangeDAMContentBrowser = {
             loadExternalFonts={loadExternalFonts}
             multiSelect={!!multiSelect}
             onError={errorHandler}
+            getPinnedState={getPinnedStateHandler}
             onAssetAction={assetActionHandler}
             onAssetSelected={assetSelectedHandler}
             onAppAuthUrlCopied={appAuthUrlCopiedHandler}
             onImageSelected={imageSelectedHandler}
+            onPinAsset={onPinAssetHandler}
             onClose={handleClose}
             onConnectClicked={onConnectClicked}
             onTokenChanged={onTokenChangedHandler}
+            onUnpinAsset={onUnpinAssetHandler}
             onSiteUrlChanged={onSiteUrlChanged}
+            assetsPickerRef={assetsPickerRef}
           />
         </GlobalConfigContext.Provider>
       </Provider>,
@@ -505,16 +592,18 @@ const ContentBrowser: OrangeDAMContentBrowser = {
     window.OrangeDAMContentBrowser._onClose?.();
   },
   fetchAssets: (params: GetContentRequest) => {
-    return ContentBrowserApiService.fetchAssets(params);
+    return assetsPickerRef.current?.fetchAssets(params);
   },
   fetchFolders: (params: GetFoldersRequest) => {
-    return ContentBrowserApiService.fetchFolders(params);
+    return assetsPickerRef.current?.fetchFolders(params);
   },
   previewAsset: (recordId: string) => {
-    store.dispatch(setSelectedAssetId(recordId));
+    return assetsPickerRef.current?.selectAsset(recordId);
   },
 };
 
-window.OrangeDAMContentBrowser = ContentBrowser;
+// Public host integration uses globalThis so the bundle works as a classic <script>
+// (where `this` in the UMD wrapper is `window`) and matches nested `window` usage below.
+(globalThis as unknown as Window).OrangeDAMContentBrowser = ContentBrowser;
 
 export default ContentBrowser;

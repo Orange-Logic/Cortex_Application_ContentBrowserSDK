@@ -3,7 +3,7 @@
  * @param length
  * @returns Empty string if length is negative
  */
-export const generateRandomString = (length: number) => {
+export function generateRandomString(length: number): string {
   let retval = '';
   const characters =
     'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdefghijklmnopqrstuvwxyz';
@@ -12,13 +12,8 @@ export const generateRandomString = (length: number) => {
     retval += characters.charAt(Math.floor(Math.random() * charactersLength));
   }
   return retval;
-};
+}
 
-/**
- * Check if the given string is null, or empty, or contains only whitespaces
- * @param text
- * @returns
- */
-export const isNullOrWhiteSpace = (text?: string | null) => {
-  return !text || text.trim() === '';
-};
+export function svgToDataUrl(svg: string): string {
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+}

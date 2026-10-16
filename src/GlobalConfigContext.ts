@@ -33,8 +33,10 @@ export type GlobalConfigContextType = {
   allowLogout?: boolean;
   allowTracking: boolean;
   allowProxy: boolean;
+  simplePick: boolean;
   allowFavorites: boolean;
   allowPin: boolean;
+  allowFormatDialogPin?: boolean;
   defaultGridView: string;
 };
 
@@ -53,12 +55,14 @@ export const GlobalConfigContext = createContext<GlobalConfigContextType>({
   pluginInfo: {},
   isContentBrowserPopedup: false,
   showCollections: false,
-  showFavoriteFolder: false,
+  showFavoriteFolder: true,
   showVersions: false,
   allowLogout: true,
   allowTracking: true,
   allowProxy: false,
+  simplePick: false,
   allowFavorites: false,
   allowPin: false,
+  allowFormatDialogPin: false,
   defaultGridView: '',
 });

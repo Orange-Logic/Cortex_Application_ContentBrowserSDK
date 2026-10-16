@@ -48,10 +48,65 @@ yarn start
 ```
 yarn build
 ```
-- use the 2 files `build\static\js\ContentBrowserSDK.min.js` and `build\static\css\ContentBrowserSDK.min.css` in your other projects
+- use the 2 files `build/OrangeDAMContentBrowserSDK.min.js` and `build/OrangeDAMContentBrowserSDK.min.css` in your other projects
 
 # More guide
 For detail guides on usage check out the [Orange Logic Developer Portal](https://developer.orangelogic.com/docs/generic-asset-browser)
+
+## Reuse the Current Cortex Login
+
+For an HTML page served by the Cortex site, enable `useSiteSession` to use the
+browser's existing site login. No site URL, token callback, or SDK login is needed.
+Load `build/OrangeDAMContentBrowserSDK.min.js` and
+`build/OrangeDAMContentBrowserSDK.min.css`, then open the picker with:
+
+```html
+<div id="asset-picker" style="height: 600px"></div>
+<script>
+  OrangeDAMContentBrowser.open({
+    containerId: 'asset-picker',
+    useSiteSession: true,
+    onAssetSelected: (assets) => console.log(assets),
+  });
+</script>
+```
+
+The site defaults to `window.location.origin`. For a Cortex installation under a
+virtual directory, supply a `baseUrl` on that same origin. The HTML page (or iframe
+document) must run on the Cortex origin; loading the SDK script from Cortex into a
+page on another domain does not share its login.
+
+This mode uses cookies managed by the browser and ignores saved SDK credentials,
+`onRequestToken`, and `useSession`. It hides SDK logout and does not launch SDK
+authentication when the site session expires. Sign in through the Cortex site and
+reopen the picker to resume. Omit `useSiteSession` to retain the existing SDK
+authentication flow.
+
+## Pick Without Formats (`simplePick`)
+
+Set `simplePick: true` when the host only needs the user to choose an asset. The SDK
+skips the available-proxies lookup and the transformation request that normally runs
+when an asset is confirmed, so picking costs one fewer round trip each way:
+
+```html
+<script>
+  OrangeDAMContentBrowser.open({
+    containerId: 'asset-picker',
+    simplePick: true,
+    onAssetSelected: (assets) => console.log(assets),
+  });
+</script>
+```
+
+The preview popup still opens with the asset's metadata, but shows only the image
+(`CoreField.LargeSizePreview`, already returned by the content request that fills the
+grid) and a single confirm button -- no proxy selector and no custom-format section.
+Confirming emits the asset straight to `onAssetSelected`.
+
+`simplePick` implies `allowProxy: false`; passing both is not an error, the proxy
+setting is simply ignored. Because no GetAssetLink request is made, only the computed
+`extraFields` (`ScrubUrl` and `AllowATSLink`) are returned in this mode -- request any
+other field with `simplePick` off.
 
 # Change Log
 * March 24, 2026 - v2.2.3

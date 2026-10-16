@@ -1,18 +1,13 @@
 import { Mutex } from 'async-mutex';
 
-import { RootState, store } from '@/store';
+import { store } from '@/store';
 import { getAccessTokenService } from '@/store/auth/auth.service';
 import {
-  accessTokenSelector, AUTH_FEATURE_KEY, logout, setAccessToken,
-  applyHeadersSelector,
-  accessKeySelector,
+  AUTH_FEATURE_KEY, AuthState, endSession, logout, readStoredAccessKey, updateAuthTokens,
 } from '@/store/auth/auth.slice';
-import {
-  BaseQueryFn, FetchArgs, fetchBaseQuery, FetchBaseQueryError,
-} from '@reduxjs/toolkit/dist/query';
 
 import { getRequestUrl } from './getRequestUrl';
-import { getData, storeData } from './storage';
+import { getSiteSessionRequestUrl } from './site-session';
 
 type CortexFetchOptions = RequestInit & {
   /**
@@ -23,110 +18,120 @@ type CortexFetchOptions = RequestInit & {
    * Extended with timeout option and retry option. This value is true by default.
    * Fetch the data from the given url with retry when the response is not ok or have status code 401
    * This function will try to fetch the data again with a new token if the previous token is expired
-   * The token will be refreshed similar to the logic in AppBaseQuery
    */
   retryWhenUnauthorize?: boolean
 };
 
 const mutex = new Mutex();
 
-function appendQueryStringParam(
-  args: string | FetchArgs,
-  key: string,
-  value: string,
-): string | FetchArgs {
-  let urlEnd = typeof args === 'string' ? args : args.url;
-
-  if (urlEnd.indexOf('?') < 0) urlEnd += '?';
-  else urlEnd += '&';
-
-  urlEnd += `${key}=${value}`;
-
-  return typeof args === 'string' ? urlEnd : { ...args, url: urlEnd };
-}
-
-export const AppBaseQuery: BaseQueryFn<
-string | FetchArgs,
-unknown,
-FetchBaseQueryError
-> = async (args, api, extraOptions) => {
-  const rootState = api.getState() as RootState;
-  const key = accessKeySelector(rootState);
-  const token = accessTokenSelector(rootState);
-  const useHeaders = applyHeadersSelector(rootState);
-
-  let prepareHeaders = undefined;
-
-  if (token && !useHeaders) {
-    args = appendQueryStringParam(args, 'Token', token);
+/**
+ * The access key the next token request should present: the live session's, which `oAuth`
+ * drops before it changes the site, or the one stored for this site when an earlier failure
+ * ended the session without condemning the key. Header mode never presents a stored key,
+ * the same as restore. Throws when host storage cannot be read, which is not the same as
+ * finding no key. (42AX2G)
+ */
+const readAccessKey = async (authState: AuthState): Promise<string | undefined> => {
+  if (authState.accessKey) {
+    return authState.accessKey;
   }
-
-  if (key && useHeaders) {
-    prepareHeaders = (headers: Headers) => {
-      headers.set('Authorization', `Bearer ${key}`);
-      return headers;
-    };
+  if (authState.useHeaders) {
+    return undefined;
   }
-
-  const authState = rootState[AUTH_FEATURE_KEY];
-  const rawBaseQuery = fetchBaseQuery({
-    baseUrl: authState.siteUrl,
-    prepareHeaders,
-  });
-
-  await mutex.waitForUnlock();
-  const result = await rawBaseQuery(args, api, extraOptions);
-
-  if (result.error && result.error.status === 401) {
-    if (!mutex.isLocked()) {
-      const release = await mutex.acquire();
-      try {
-        if (authState.accessKey && !useHeaders) {
-          const accessToken = (
-            await getAccessTokenService(authState.accessKey)
-          ).accessToken;
-          api.dispatch(setAccessToken(accessToken));
-        } else if (useHeaders && window.OrangeDAMContentBrowser?._onRequestToken) {
-          const retryCount = await getData('retryCount');
-          const parsedRetryCount = parseInt(retryCount ?? '0', 10) || 0;
-
-          if (parsedRetryCount >= 2) {
-            api.dispatch(logout());
-            release();
-          }
-
-          const tokenResult = await window.OrangeDAMContentBrowser?._onRequestToken();
-        
-          storeData('retryCount', (parsedRetryCount + 1).toString());
-          
-          if (tokenResult) {
-            api.dispatch(setAccessToken(tokenResult.token));
-          }
-        } else {
-          api.dispatch(logout());
-        }
-      } finally {
-        release();
-      }
-    } else {
-      await mutex.waitForUnlock();
-      return rawBaseQuery(args, api, extraOptions);
-    }
-  }
-
-  return result;
+  return readStoredAccessKey(authState.siteUrl);
 };
 
-export function GetValueByKeyCaseInsensitive(
-  obj: { [key: string]: string },
-  key: string,
-) {
-  const lowerCaseKey = key.toLowerCase();
-  const foundKey = Object.keys(obj).find(
-    (k) => k.toLowerCase() === lowerCaseKey,
-  );
-  return foundKey ? obj[foundKey] : undefined;
-}
+/**
+ * Refresh the access token using the stored access key. De-duplicates concurrent calls via a shared mutex.
+ * Returns the new access token on success, or null if the refresh failed.
+ *
+ * On failure the session is always dropped, but the stored access key is only
+ * discarded when the server itself declined it — a transport failure keeps the key
+ * so a later refresh can succeed. (42AX2G)
+ */
+export const refreshAccessToken = async (): Promise<string | null> => {
+  if (store.getState()[AUTH_FEATURE_KEY].useSiteSession) {
+    return null;
+  }
+  await mutex.waitForUnlock();
+
+  // Another caller already refreshed while we were waiting — re-read latest state.
+  if (mutex.isLocked()) {
+    await mutex.waitForUnlock();
+    return store.getState()[AUTH_FEATURE_KEY].accessToken ?? null;
+  }
+
+  const release = await mutex.acquire();
+  try {
+    const authState = store.getState()[AUTH_FEATURE_KEY];
+
+    if (authState.useSiteSession) {
+      return null;
+    }
+
+    // A host token is not an access key: ask the host for a new one (as 2.2.8 did) and never log out. (42BXQB)
+    if (authState.useHeaders) {
+      try {
+        const result = await window.OrangeDAMContentBrowser?._onRequestToken?.();
+        // Logged out or switched to site session while the host answered.
+        if (!store.getState()[AUTH_FEATURE_KEY].useHeaders) {
+          return null;
+        }
+        if (result?.token) {
+          store.dispatch(updateAuthTokens({ accessKey: result.token }));
+          return result.token;
+        }
+      } catch {
+        // No token from the host.
+      }
+      return null;
+    }
+
+    let accessKey: string | undefined;
+    try {
+      accessKey = await readAccessKey(authState);
+    } catch {
+      // A failed read says nothing about the key, and `logout` would delete it —
+      // a host storage bridge can time out while the key is still stored. (42AX2G)
+      store.dispatch(endSession());
+      return null;
+    }
+
+    if (!accessKey || !authState.siteUrl) {
+      // No key was presented, so none was declined. `logout` here would delete a key
+      // stored for another site. (42AX2G)
+      store.dispatch(endSession());
+      return null;
+    }
+
+    try {
+      const tokenResp = await getAccessTokenService(accessKey);
+      if (store.getState()[AUTH_FEATURE_KEY].useSiteSession) {
+        return null;
+      }
+      if (tokenResp.accessToken) {
+        store.dispatch(updateAuthTokens({ accessKey, accessToken: tokenResp.accessToken }));
+        return tokenResp.accessToken;
+      }
+      // Only an explicit `success: false` condemns the key. A well-formed response
+      // carrying no token is a server anomaly, so keep the key and let the next
+      // refresh retry. (42AX2G)
+      store.dispatch(tokenResp.success === false ? logout() : endSession());
+      return null;
+    } catch {
+      // Reached on a transport failure or a non-JSON error body. This runs on every
+      // 401 during normal use, so discarding the key here cost users a valid
+      // credential on any passing network blip. Keep it and let the next refresh
+      // retry. (42AX2G)
+      if (!store.getState()[AUTH_FEATURE_KEY].useSiteSession) {
+        store.dispatch(endSession());
+      }
+      return null;
+    }
+  } finally {
+    release();
+  }
+};
 
 /*
  * Check if the available status of the site url
@@ -144,9 +149,9 @@ export const checkCorrectSiteUrl = (url: string): Promise<string | null> => {
 
 /**
  * Wrapper of fetch API with timeout option
- * @param resource 
- * @param options 
- * @returns 
+ * @param resource
+ * @param options
+ * @returns
  */
 const fetchWithTimeout = async (resource: RequestInfo | URL, options?: RequestInit & { timeout?: number }) => {
   const { timeout } = options ?? {};
@@ -168,54 +173,30 @@ const fetchWithTimeout = async (resource: RequestInfo | URL, options?: RequestIn
 
 /**
  * Wrapper of fetch API with timeout option
- * @param resource 
- * @param options 
- * @returns 
+ * @param resource
+ * @param options
+ * @returns
  */
 export const cortexFetch = async (resource: string, options?: CortexFetchOptions) => {
   const { retryWhenUnauthorize = true } = options || {};
   const authState = store.getState()[AUTH_FEATURE_KEY];
+  if (authState.useSiteSession) {
+    const headers = new Headers(options?.headers);
+    ['Authorization', 'Token', 'UseSession'].forEach((name) => headers.delete(name));
+    return fetchWithTimeout(getSiteSessionRequestUrl(authState.siteUrl, resource), {
+      ...options, credentials: 'same-origin', headers,
+    });
+  }
   resource = getRequestUrl(authState.siteUrl, resource, authState.accessToken);
   const response = await fetchWithTimeout(resource, options);
 
   if (retryWhenUnauthorize && !response.ok && response.status === 401) {
-    await mutex.waitForUnlock();
-
-    if (!mutex.isLocked()) {
-      const release = await mutex.acquire();
-      try {
-        if (!authState.accessKey || !authState.siteUrl) {
-          store.dispatch(logout());
-          return response;
-        } else {
-          let needsLoggingOut = false;
-          try {
-            const tokenResp = await getAccessTokenService(authState.accessKey);
-
-            if (tokenResp.accessToken) {
-              store.dispatch(setAccessToken(tokenResp.accessToken));
-              resource = getRequestUrl(authState.siteUrl, resource, authState.accessToken);
-              return await fetchWithTimeout(resource, options);
-            } else {
-              needsLoggingOut = true;
-              return response;
-            }
-          } catch (e) {
-            needsLoggingOut = true;
-            return response;
-          } finally {
-            if (needsLoggingOut) {
-              store.dispatch(logout());
-            }
-          }
-        }
-      } finally {
-        release();
-      }
-    } else {
-      await mutex.waitForUnlock();
-      return await fetchWithTimeout(resource, options);
+    const newToken = await refreshAccessToken();
+    if (!newToken || !authState.siteUrl) {
+      return response;
     }
+    resource = getRequestUrl(authState.siteUrl, resource, newToken);
+    return await fetchWithTimeout(resource, options);
   }
 
   return response;

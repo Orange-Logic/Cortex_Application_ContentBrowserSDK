@@ -1,20 +1,20 @@
 import { FC, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import styled from 'styled-components';
 
+import { AppContext } from '@/AppContext';
 import { GlobalConfigContext } from '@/GlobalConfigContext';
 import { useAppDispatch, useAppSelector } from '@/store';
 import {
-  appAuthUrlSelector, authStateSelector, cancelAuth, setUseSession, siteUrlSelector,
-  USE_SESSION,
+  appAuthUrlSelector, applySessionSelector, authStateSelector, cancelAuth, setUseSession,
+  siteUrlSelector, USE_SESSION,
 } from '@/store/auth/auth.slice';
-
 import { getData } from '@/utils/storage';
+
 import AuthenticatePage from './Authenticate';
 import ConnectingBackground from './ConnectingBackground';
-import styled from 'styled-components';
-import { CxTypographyProps } from '@orangelogic/design-system/react-types';
-import type { CxCopyButton } from '@orangelogic/design-system';
-import { AppContext } from '@/AppContext';
 
+import type { CxTypographyProps } from '@orangelogic/design-system/react-types';
+import type CxCopyButton from '@orangelogic/design-system/components/copy-button';
 const ResponsiveTypography = styled('cx-typography')<CxTypographyProps>`
   @container connecting-background (min-width: 0px) {
     &::part(base) {
@@ -29,7 +29,10 @@ type Props = {
 
 const RestoreSession: FC<Props> = ({ onCancel }) => {
   const dispatch = useAppDispatch();
+  const currentSession = useAppSelector(applySessionSelector);
   useEffect(() => {
+    // A session set from the SDK config takes precedence over the stored one
+    if (currentSession) return;
     getData(USE_SESSION).then((storedSession) => {
       if (storedSession) {
         dispatch(setUseSession(storedSession));

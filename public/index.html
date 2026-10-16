@@ -68,6 +68,18 @@
           await navigator.clipboard.writeText(url);
         },
         onError: console.error,
+        getPinnedState: (recordId) => {
+          console.log('getPinnedState', recordId, localStorage.getItem(`pinned:${recordId}`) === 'true');
+          return localStorage.getItem(`pinned:${recordId}`) === 'true';
+        },
+        onPinAsset: async (recordId) => {
+          console.log('onPinAsset', recordId);
+          localStorage.setItem(`pinned:${recordId}`, 'true');
+        },
+        onUnpinAsset: async (recordId) => {
+          console.log('onUnpinAsset', recordId);
+          localStorage.removeItem(`pinned:${recordId}`);
+        },
         // baseUrl: "local.orangelogic.com",
         // allowedExtensions: ["jpg"],
         // allowedFolders: ["Library/Trung_InDesign_02", "Personal Folders/V/Trung Vo personal Folder/Trung_upload_test", "Library/Trung_FileOnDemand/root_02/test_upload"],
@@ -81,18 +93,22 @@
         //   tags: false,
         extraFields: ['coreField.OriginalFileName', 'document.CortexPath', 'ScrubUrl'],
         persistMode: true,
-        // lastLocationMode: true,
         // publicApplicationName: "",
         // pluginName: "OrangeDAM Content Browser",
         searchInDrive: false,
         showCollections: true,
+        showFavoriteFolder: true,
         allowTracking: true,
         allowFavorites: true,
+        allowFormatDialogPin: true,
         allowPin: true,
         showVersions: true,
         loadExternalFonts: false,
         lastLocationMode: true,
-        onClose: () => { },
+        onClose: () => {
+          console.log('Content Browser closed, reopening ...');
+          window.OrangeDAMContentBrowser.open(settings);
+        },
         onTokenChanged: (token) => {
           console.log('Token changed:', token);
         },
@@ -107,10 +123,6 @@
             return localStorage.removeItem("custom_storage_" + key);
           }
         }
-      }
-      settings.onClose = () => {
-        console.log('Content Browser closed, reopening ...');
-        window.OrangeDAMContentBrowser.open(settings);
       }
       window.OrangeDAMContentBrowser.open(settings);
     }
