@@ -76,4 +76,42 @@ describe('content-browser-table loading border', () => {
     expect(getCxTable(el)!.tabulatorInstance!.getDataCount()).to.equal(0);
     expectAlignedBody(el);
   });
+
+  it('keeps the body border aligned with the header while the table builds, before its first data', async () => {
+    const el = await fixture<ContentBrowserTable>(html`
+      <cx-content-browser-table
+        style="height: 400px; width: 700px; --cx-input-border-width: 1px; --cx-color-neutral-200: #ccc"
+        .assets=${makeAssets(2)}
+        .columns=${SINGLE_LINE_COLUMNS}
+      ></cx-content-browser-table>
+    `);
+
+    // Tabulator lays out its header and frame at once, but fires `tableBuilt` only after its data-load debounce.
+    await waitUntil(() => {
+      const instance = getCxTable(el)?.tabulatorInstance;
+
+      return instance && !instance.initialized && getTableRoot(el).querySelector('.tabulator-header .tabulator-col');
+    }, 'the table never showed its header before it was built', { interval: 10, timeout: 5000 });
+
+    expectAlignedBody(el);
+  });
+
+  it('keeps the body border at the saved column widths while the table builds', async () => {
+    const el = await fixture<ContentBrowserTable>(html`
+      <cx-content-browser-table
+        style="height: 400px; width: 900px; --cx-input-border-width: 1px; --cx-color-neutral-200: #ccc"
+        .assets=${makeAssets(2)}
+        .columns=${SINGLE_LINE_COLUMNS}
+        .savedWidths=${{ 'CoreField.Identifier': 160, 'Dell.Snippet': 200 }}
+      ></cx-content-browser-table>
+    `);
+
+    await waitUntil(() => {
+      const instance = getCxTable(el)?.tabulatorInstance;
+
+      return instance && !instance.initialized && getTableRoot(el).querySelector('.tabulator-header .tabulator-col');
+    }, 'the table never showed its header before it was built', { interval: 10, timeout: 5000 });
+
+    expectAlignedBody(el);
+  });
 });

@@ -1045,6 +1045,21 @@ describe('content-browser-table', () => {
       expect(scrollport.scrollWidth).to.be.greaterThan(scrollport.clientWidth);
     });
 
+    it('keeps the columns inside a table whose width is not a whole pixel', async () => {
+      // `clientWidth` rounds 700.5px up to 701px. A browser shows a scrollbar for the half pixel past the edge.
+      const el = await mountFit(makeAssets(2), FIT_COLUMNS, {}, 'height: 400px; width: 700.5px');
+
+      await settle(200);
+
+      const scrollport = getScrollport(el);
+      const room = scrollport.getBoundingClientRect().width - (scrollport.offsetWidth - scrollport.clientWidth);
+      const total = getCxTable(el)!.tabulatorInstance!.getColumns()
+        .reduce((sum, column) => sum + column.getWidth(), 0);
+
+      expect(total, `the columns are ${total}px wide in ${room}px`).to.be.at.most(room);
+      expect(total, 'the columns leave more than a pixel empty').to.be.above(room - 1);
+    });
+
     it('does not lay the columns out again for an appended page', async () => {
       const firstPage = makeAssets(2);
       const el = await mountFit(firstPage);

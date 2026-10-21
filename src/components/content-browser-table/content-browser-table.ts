@@ -124,6 +124,22 @@ function horizontalPadding(element: Element): number {
 }
 
 /**
+ * The width inside the borders of an element, not rounded. `clientWidth` rounds to a whole pixel, and
+ * a display scale can give a box a fractional width (a 1px border is 0.67px at 150%). Columns laid
+ * out to a width rounded up run past the edge, and the browser shows a horizontal scrollbar.
+ */
+function unroundedClientWidth(element: Element): number {
+  const style = getComputedStyle(element);
+  const width = Number.parseFloat(style.width) || 0;
+
+  if (style.boxSizing === 'border-box') {
+    return width - (Number.parseFloat(style.borderLeftWidth) || 0) - (Number.parseFloat(style.borderRightWidth) || 0);
+  }
+
+  return width + (Number.parseFloat(style.paddingLeft) || 0) + (Number.parseFloat(style.paddingRight) || 0);
+}
+
+/**
  * Column values ride on the asset under the Cortex field name as requested (see `apiGetAssets`),
  * which `Asset` cannot declare because the field set is the host's, not the SDK's. Read as an own
  * property: a field named after an `Object.prototype` member (`toString`, `constructor`) would
@@ -411,6 +427,16 @@ export default class CxContentBrowserTable extends CortexElement {
     return instance !== undefined && instance === this.#builtTable && !instance.destroyed ? instance : undefined;
   }
 
+  /**
+   * The current Tabulator instance, built or not. Tabulator shows its header and frame as it builds,
+   * but fires `tableBuilt` only after its data-load debounce.
+   */
+  private get buildingTabulator(): Tabulator | undefined {
+    const instance = this.tableEl?.tabulatorInstance ?? undefined;
+
+    return instance && !instance.destroyed ? instance : undefined;
+  }
+
   /** Tabulator's row holder: the one element that scrolls the rows. */
   private get scrollport(): HTMLElement | undefined {
     return this.tabulator?.rowManager?.element ?? undefined;
@@ -678,7 +704,7 @@ export default class CxContentBrowserTable extends CortexElement {
 
   /** The frame ends at the data columns. The scrollport remains available to the row actions. */
   private syncTableFrame() {
-    const columns = this.tabulator?.getColumns() as TabulatorColumn[] | undefined;
+    const columns = this.buildingTabulator?.getColumns() as TabulatorColumn[] | undefined;
     const widths = columns?.filter((column) => column.getField() !== FILLER_FIELD && column.isVisible())
       .map((column) => column.getWidth()) ?? [];
     // A column with no width yet keeps the empty frame full width until the first layout.
@@ -853,7 +879,7 @@ export default class CxContentBrowserTable extends CortexElement {
       }
 
       return { natural, saved: this.#resizedWidths.get(column.field.trim()) ?? this.#sessionWidths.get(column.field.trim()) };
-    }), element.clientWidth - RESIZE_BUFFER_WIDTH - scrollbar);
+    }), Math.floor(unroundedClientWidth(element) - scrollbar) - RESIZE_BUFFER_WIDTH);
 
     shown.forEach(({ key, tabulatorColumn }, index) => {
       const width = widths[index];
@@ -942,12 +968,23 @@ export default class CxContentBrowserTable extends CortexElement {
     if (this.#builtTable) {
       this.#builtTable.options.rowFormatter = (row) => this.renderRowAction(row);
     }
+    this.prepareFrame();
+    this.#syncedAssets = [];
+    void this.syncRows();
+  }
+
+  /**
+   * Gives the frame, the scrollport and the header their styles. Runs as soon as Tabulator lays out its
+   * columns: until then the frame takes the width of its content, which is not the width of the header.
+   */
+  private prepareFrame() {
+    const scrollport = this.buildingTabulator?.rowManager?.element as HTMLElement | undefined;
     // Keep the scrollport available to actions at the container edge. The frame follows the data width.
-    const frame = this.scrollport?.parentElement;
+    const frame = scrollport?.parentElement;
 
     frame?.style.setProperty('width', '100%');
     frame?.part.add('content-browser-frame');
-    this.scrollport?.part.add('content-browser-scrollport');
+    scrollport?.part.add('content-browser-scrollport');
     const header = this.tableEl?.shadowRoot?.querySelector<HTMLElement>('.tabulator-header');
     const columns = header?.querySelector('.tabulator-headers');
 
@@ -962,8 +999,6 @@ export default class CxContentBrowserTable extends CortexElement {
       this.#frameWidthObserver.observe(columns);
     }
     this.syncTableFrame();
-    this.#syncedAssets = [];
-    void this.syncRows();
   }
 
   /**
@@ -980,11 +1015,13 @@ export default class CxContentBrowserTable extends CortexElement {
   }
 
   /**
-   * Every `setColumns` builds the columns again from the definitions: `cx-table` calls it from its
-   * own `tableBuilt` handler, after this component's has run, and again for every new column set.
+   * Every `setColumns` builds the columns again from the definitions: Tabulator calls it as it builds,
+   * before `tableBuilt`. `cx-table` calls it again from its own `tableBuilt` handler, after this
+   * component's has run, and for every new column set.
    */
   private handleColumnsLoaded(event: Event) {
     event.stopPropagation();
+    this.prepareFrame();
     this.applyColumnLayout();
   }
 
