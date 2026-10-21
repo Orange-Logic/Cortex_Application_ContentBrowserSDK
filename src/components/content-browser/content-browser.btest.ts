@@ -353,6 +353,27 @@ describe('content-browser', () => {
       expect(mock.retrySearch.calledOnce).to.equal(true);
     });
 
+    it('shows the search error, not the empty state, in the table view', async () => {
+      const { el } = await fixtureWithMock(
+        html`<cx-content-browser default-grid-view=${TABLE_VIEW} .tableColumns=${TABLE_COLUMNS}></cx-content-browser>`,
+        { searchError: true },
+      );
+
+      expect(getTable(el)!.hasAttribute('error')).to.equal(true);
+      expect(getTable(el)!.hasAttribute('empty')).to.equal(false);
+    });
+
+    it('asks the controller to send the search again when the table emits a retry', async () => {
+      const { el, mock } = await fixtureWithMock(
+        html`<cx-content-browser default-grid-view=${TABLE_VIEW} .tableColumns=${TABLE_COLUMNS}></cx-content-browser>`,
+        { searchError: true },
+      );
+
+      getTable(el)!.dispatchEvent(new CustomEvent('cx-content-browser-grid-retry', { bubbles: true, composed: true }));
+
+      expect(mock.retrySearch.calledOnce).to.equal(true);
+    });
+
     // The host moves its start to the next page before it sends the request, so a request after a page
     // with an error goes past that page.
     const nextPageEvents: Array<[string, () => CustomEvent]> = [

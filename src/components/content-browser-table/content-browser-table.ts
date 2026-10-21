@@ -16,6 +16,7 @@ import { watch } from '@/utils/watch';
  */
 import CxButton from '@orangelogic/design-system/components/button';
 import CxColorSwatchGroup from '@orangelogic/design-system/components/color-swatch-group';
+import CxIcon from '@orangelogic/design-system/components/icon';
 import CxLineClamp from '@orangelogic/design-system/components/line-clamp';
 import CxProgressBar from '@orangelogic/design-system/components/progress-bar';
 import CxResizeObserver from '@orangelogic/design-system/components/resize-observer';
@@ -196,6 +197,7 @@ function renderCellContent(value: string, inColdStorage: boolean): HTMLElement {
  * A count measured while a page of the shown list loads is emitted once the load ends and any
  * rows it brings are in. A count measured after the load ends is emitted at once, and it can come
  * before the rows of a new list are in.
+ * @event cx-content-browser-grid-retry - Emitted when the user clicks Retry after a search error.
  * @event cx-content-browser-grid-scroll-end - Emitted while `has-more` is set, no page is loading, and
  * the last row comes into view: by scrolling the table's own scrollport, or by scrolling the page when
  * a table taller than the viewport holds its rows without overflowing and so never scrolls itself.
@@ -212,6 +214,7 @@ export default class CxContentBrowserTable extends CortexElement {
   static readonly dependencies = {
     'cx-button': CxButton,
     'cx-content-browser-no-result': CxContentBrowserNoResult,
+    'cx-icon': CxIcon,
     'cx-line-clamp': CxLineClamp,
     'cx-progress-bar': CxProgressBar,
     'cx-resize-observer': CxResizeObserver,
@@ -240,6 +243,10 @@ export default class CxContentBrowserTable extends CortexElement {
 
   @property({ attribute: 'empty', reflect: true, type: Boolean })
   empty: boolean = false;
+
+  /** The last search request got an error. With no rows, the error replaces the table. With rows, it shows at the bottom. */
+  @property({ attribute: 'error', reflect: true, type: Boolean })
+  error: boolean = false;
 
   @property({ attribute: 'has-more', reflect: true, type: Boolean })
   hasMore: boolean = false;
@@ -1498,6 +1505,65 @@ export default class CxContentBrowserTable extends CortexElement {
     }
   }
 
+  private handleRetry() {
+    this.emit('cx-content-browser-grid-retry');
+  }
+
+  private renderRetry() {
+    return html`
+      <cx-button class="content-browser-table__retry" variant="primary" @click=${this.handleRetry}>
+        ${this.localize.term('retry')}
+      </cx-button>
+    `;
+  }
+
+  private renderContent() {
+    if (this.error && this.assets.length === 0) {
+      return html`
+        <cx-content-browser-no-result
+          class="content-browser-table__empty"
+          icon="error_outline"
+          message=${this.localize.term('oopsSomethingWentWrong')}
+          role="alert"
+        >
+          ${this.renderRetry()}
+        </cx-content-browser-no-result>
+      `;
+    }
+
+    if (this.empty) {
+      return html`
+        <cx-content-browser-no-result
+          class="content-browser-table__empty"
+          icon="search_off"
+          message=${this.localize.term('noResults')}
+        ></cx-content-browser-no-result>
+      `;
+    }
+
+    // Left without `data`: reassigning it calls `setData`, which scrolls back to the top on
+    // every page, so rows are handed to the Tabulator instance directly (see `syncRows`).
+    return html`
+      <cx-table
+        class="content-browser-table__table"
+        layout="fitData"
+        placeholder=""
+        no-selectable
+        no-clipboard
+        .columns=${this.#columnDefinitions}
+        .columnDefaults=${COLUMN_DEFAULTS}
+        .rowHeight=${ROW_HEIGHT}
+        @cx-table.tableBuilt=${this.handleTableBuilt}
+        @cx-table.dataLoaded=${this.handleDataLoaded}
+        @cx-table.columnsLoaded=${this.handleColumnsLoaded}
+        @cx-table.columnResized=${this.handleColumnResized}
+        @cx-table.scrollVertical=${this.handleScrollVertical}
+        @cx-table.renderStarted=${this.handleRenderStarted}
+        @cx-table.renderComplete=${this.handleRenderComplete}
+      ></cx-table>
+    `;
+  }
+
   render() {
     return html`
       <div
@@ -1510,38 +1576,16 @@ export default class CxContentBrowserTable extends CortexElement {
       </div>
       <cx-resize-observer @cx-resize=${this.handleResize}>
         <div class="content-browser-table">
-          ${when(this.empty,
-            () => html`
-              <cx-content-browser-no-result
-                class="content-browser-table__empty"
-                icon="search_off"
-                message=${this.localize.term('noResults')}
-              ></cx-content-browser-no-result>
-            `,
-            // Left without `data`: reassigning it calls `setData`, which scrolls back to the top on
-            // every page, so rows are handed to the Tabulator instance directly (see `syncRows`).
-            () => html`
-              <cx-table
-                class="content-browser-table__table"
-                layout="fitData"
-                placeholder=""
-                no-selectable
-                no-clipboard
-                .columns=${this.#columnDefinitions}
-                .columnDefaults=${COLUMN_DEFAULTS}
-                .rowHeight=${ROW_HEIGHT}
-                @cx-table.tableBuilt=${this.handleTableBuilt}
-                @cx-table.dataLoaded=${this.handleDataLoaded}
-                @cx-table.columnsLoaded=${this.handleColumnsLoaded}
-                @cx-table.columnResized=${this.handleColumnResized}
-                @cx-table.scrollVertical=${this.handleScrollVertical}
-                @cx-table.renderStarted=${this.handleRenderStarted}
-                @cx-table.renderComplete=${this.handleRenderComplete}
-              ></cx-table>
-            `,
-          )}
+          ${this.renderContent()}
         </div>
       </cx-resize-observer>
+      ${when(this.error && this.assets.length > 0, () => html`
+        <div class="content-browser-table__page-error" role="alert">
+          <cx-icon name="error_outline"></cx-icon>
+          ${this.localize.term('oopsSomethingWentWrong')}
+          ${this.renderRetry()}
+        </div>
+      `)}
     `;
   }
 }

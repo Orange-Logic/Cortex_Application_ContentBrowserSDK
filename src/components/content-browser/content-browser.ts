@@ -1272,7 +1272,8 @@ export default class CxContentBrowser extends CortexElement {
                 .widthScope=${this.baseUrl}
                 row-action-position=${toTableRowActionPosition(this.tableRowActionPosition)}
                 @cx-content-browser-table-column-resize=${this.handleTableColumnResize}
-                ?empty=${!loading && !this.initialFolderPending && items.length === 0}
+                ?empty=${!loading && !this.initialFolderPending && !searchError && items.length === 0}
+                ?error=${searchError}
                 cta-text=${this.ctaText}
                 cta-text-transform=${this.ctaTextTransform}
                 ?has-more=${items.length < totalCount}
@@ -1280,6 +1281,7 @@ export default class CxContentBrowser extends CortexElement {
                 selected-asset-id=${ifDefined(this.selectedAssetId || undefined)}
                 @cx-content-browser-grid-scroll-end=${this.handleScrollEnd}
                 @cx-content-browser-grid-resize=${this.handleGridResize}
+                @cx-content-browser-grid-retry=${this.handleRetry}
                 @cx-content-browser-grid-click=${this.handleGridClick}
               ></cx-content-browser-table>
             `,
