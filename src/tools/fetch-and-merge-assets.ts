@@ -103,6 +103,9 @@ export class FetchAndMergeAssetsController implements ReactiveController {
 
   private lastRequest: GetAssetsRequest | null = null;
 
+  /** The resolved request of the last search that got an error. A retry sends it again. */
+  private failedRequest: GetAssetsRequest | null = null;
+
   private sortOrders: Record<string, SortOrder[]> = {};
 
   private parameters: GetContentBrowserParametersResponse | null = null;
@@ -169,6 +172,7 @@ export class FetchAndMergeAssetsController implements ReactiveController {
       supportedRepresentativeSubtypes?: string[];
     } | null;
     request: GetAssetsRequest | null;
+    searchError: boolean;
     sortOrders: Record<string, SortOrder[]>;
     totalCount: number;
     unreadableFields: string[];
@@ -486,6 +490,13 @@ export class FetchAndMergeAssetsController implements ReactiveController {
     return await apiGetFolders(request);
   }
 
+  /** Sends the last search that got an error again, with the same page and controls. */
+  async retrySearch() {
+    if (this.failedRequest) {
+      await this.fetchAndMergeAssets(this.failedRequest);
+    }
+  }
+
   /**
    * A folder switch (or any refetch) can return a facet list that no longer includes a
    * currently-selected value. Keep those selected-but-missing values visible (count 0) instead
@@ -553,6 +564,7 @@ export class FetchAndMergeAssetsController implements ReactiveController {
      * Always run these lines immediately
      */
     this.loading = true;
+    this.failedRequest = null;
     this.host.requestUpdate();
 
     /**
@@ -629,20 +641,31 @@ export class FetchAndMergeAssetsController implements ReactiveController {
           return;
         }
 
-        if (isRestart) {
-          this.items = assets.items;
-          this.unreadableFields = assets.unreadableFields;
-        } else {
-          this.items = _uniqBy([...this.items, ...assets.items], 'recordId');
-          this.unreadableFields = narrowUnreadableFields(this.unreadableFields, assets);
-        }
-        this.facets = this.mergeFacetsWithSelected(assets.facets, this.facets, request.selectedFacets);
-        this.totalCount = assets.totalCount;
+        if (assets.isError) {
+          this.failedRequest = request;
 
-        this.#lastPage = {
-          pageSize: request.pageSize || assets.items.length,
-          start: request.start ?? 0,
-        };
+          // The rows of a previous search do not belong to this one. A next page keeps the rows it extends.
+          if (isRestart) {
+            this.items = [];
+            this.totalCount = 0;
+            this.unreadableFields = [];
+          }
+        } else {
+          if (isRestart) {
+            this.items = assets.items;
+            this.unreadableFields = assets.unreadableFields;
+          } else {
+            this.items = _uniqBy([...this.items, ...assets.items], 'recordId');
+            this.unreadableFields = narrowUnreadableFields(this.unreadableFields, assets);
+          }
+          this.facets = this.mergeFacetsWithSelected(assets.facets, this.facets, request.selectedFacets);
+          this.totalCount = assets.totalCount;
+
+          this.#lastPage = {
+            pageSize: request.pageSize || assets.items.length,
+            start: request.start ?? 0,
+          };
+        }
         this.#hasFetchedOnce = true;
 
         if (this._debounceResolve) {
@@ -884,6 +907,7 @@ export class FetchAndMergeAssetsController implements ReactiveController {
           : this.parameters.supportedRepresentativeSubtypes ?? [],
       } : null,
       request: this.lastRequest,
+      searchError: this.failedRequest !== null,
       sortOrders: this.sortOrders,
       totalCount: this.totalCount,
       unreadableFields: this.unreadableFields,

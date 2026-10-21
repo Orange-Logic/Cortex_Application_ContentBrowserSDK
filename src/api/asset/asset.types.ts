@@ -74,6 +74,7 @@ export type GetAssetsRawResponse = {
 
 export type GetAssetsResponse = {
   facets: Facet[];
+  isError: boolean;
   items: Array<Asset & Record<string, string | boolean>>;
   totalCount: number;
   /**
