@@ -19,17 +19,19 @@ import {
     CxContentBrowserFormatDialogFavoriteChangeEvent, CxContentBrowserFormatDialogFormatConfirmEvent,
     CxContentBrowserFormatDialogPinAssetChangeEvent, CxContentBrowserFormatDialogProxyConfirmEvent,
     CxContentBrowserFormatDialogVersionHistoryOpenEvent,
-    CxContentBrowserGridClickEvent, CxContentBrowserGridResizeEvent, CxResizeEvent, CxSelectionChangeEvent,
+    CxContentBrowserGridClickEvent, CxContentBrowserGridResizeEvent, CxContentBrowserTableColumnResizeEvent,
+    CxResizeEvent, CxSelectionChangeEvent,
 } from '@/events';
 import componentStyles from '@/styles/component.styles';
 import { FetchAndMergeAssetsController } from '@/tools/fetch-and-merge-assets';
 import {
   type AutoSelectFormat, autoSelectFormatConverter, ChangeOption, ContentBrowserFormatDialogVariant,
   type ContentBrowserView, type CtaTextTransform, GridView, isAutoSelectFormatActive, OptionType,
-  TABLE_VIEW, type TableColumn, toFieldKey,
+  TABLE_VIEW, type TableColumn, type TableRowActionPosition, toFieldKey, toTableRowActionPosition,
 } from '@/types/content-browser';
 import { GetFolderRequest } from '@/types/folder';
 import { safeInteger } from '@/utils/number';
+import { readTableColumnWidths, writeTableColumnWidth } from '@/utils/table-column-widths';
 import { watch } from '@/utils/watch';
 import { resolveSiteSessionUrl, SITE_SESSION_EXPIRED_MESSAGE } from '@/utils/site-session';
 import CxIcon from '@orangelogic/design-system/components/icon';
@@ -248,8 +250,8 @@ export default class CxContentBrowser extends CortexElement {
   defaultGridView: ContentBrowserView = GridView.Medium;
 
   /**
-   * Columns of the table view, defined by the host: a title, the Cortex field the column reads, and
-   * its styling. The table view is offered only while this is non-empty — an empty table is not a
+   * Columns of the table view, defined by the host: a title and the Cortex field the column reads.
+   * The table fits each column to its content, and the user resizes it. The table view is offered only while this is non-empty — an empty table is not a
    * view mode — and the fields are read once, when the fetch controller is created.
    */
   @property({
@@ -279,6 +281,28 @@ export default class CxContentBrowser extends CortexElement {
     type: Array,
   })
   tableColumns: TableColumn[] = [];
+
+  /**
+   * Where the row action of the table view shows: at the right edge of the host (`host-edge`), or at
+   * the end of the last data column (`row-end`). Any other value gives `host-edge`.
+   */
+  @property({ attribute: 'table-row-action-position', type: String })
+  tableRowActionPosition: TableRowActionPosition = 'host-edge';
+
+  /** The widths the user saved for the table columns of this site, in pixels, keyed by field. */
+  @state() private tableColumnWidths: Record<string, number> = {};
+
+  /**
+   * The reads and writes of the saved widths, one after the other: each write reads the stored map
+   * and writes it back, and a read that runs before a write would give the table a stale map.
+   */
+  private tableWidthQueue: Promise<unknown> = Promise.resolve();
+
+  /** The number of reads and writes queued on `tableWidthQueue`. Only the last one gives its map to the table. */
+  private tableWidthTasks = 0;
+
+  /** Set by a drag or a reset that the table shows, until a map from the storage replaces it. */
+  private tableWidthsChangedInTable = false;
 
   @property({ attribute: 'default-sort-order-name', type: String })
   defaultSortOrderName: string = '';
@@ -448,10 +472,65 @@ export default class CxContentBrowser extends CortexElement {
     return this.tableColumnList.length > 0;
   }
 
+  /**
+   * Runs a read or a write of the saved widths after the ones queued before it. The table gets the
+   * map of the last task only: an earlier map does not hold the drags and resets that came after it,
+   * and the table already shows them. A map for a site that is no longer the current one is dropped.
+   */
+  private queueTableWidthTask(task: (baseUrl: string) => Promise<Record<string, number>>) {
+    const { baseUrl } = this;
+    const taskNumber = this.tableWidthTasks + 1;
+
+    this.tableWidthTasks = taskNumber;
+    this.tableWidthQueue = this.tableWidthQueue
+      .then(() => task(baseUrl))
+      .then((widths) => {
+        if (taskNumber === this.tableWidthTasks && baseUrl === this.baseUrl) {
+          this.setTableColumnWidths(widths);
+        }
+      })
+      .catch(() => undefined);
+  }
+
+  /**
+   * A map with the same entries keeps the old one, so that the table does not lay out its columns
+   * again. After a drag or a reset the table can show widths that the old map does not hold, so the
+   * new map always replaces them.
+   */
+  private setTableColumnWidths(widths: Record<string, number>) {
+    const current = this.tableColumnWidths;
+    const fields = Object.keys(widths);
+
+    if (this.tableWidthsChangedInTable
+      || fields.length !== Object.keys(current).length
+      || fields.some((field) => current[field] !== widths[field])) {
+      this.tableWidthsChangedInTable = false;
+      this.tableColumnWidths = widths;
+    }
+  }
+
+  private loadTableColumnWidths() {
+    this.queueTableWidthTask(readTableColumnWidths);
+  }
+
+  @watch('baseUrl', { waitUntilFirstUpdate: true })
+  handleBaseUrlChangeForTableWidths() {
+    this.loadTableColumnWidths();
+  }
+
+  private handleTableColumnResize(event: CxContentBrowserTableColumnResizeEvent) {
+    const { field, reset, width } = event.detail;
+
+    this.tableWidthsChangedInTable = true;
+    this.queueTableWidthTask((baseUrl) => writeTableColumnWidth(baseUrl, field, reset ? undefined : width));
+  }
+
   runFirstUpdated() {
     if (this.useSiteSession) {
       this.baseUrl = resolveSiteSessionUrl(this.baseUrl);
     }
+
+    this.loadTableColumnWidths();
 
     this.defaultPageSize = resolvePageSize(this.view);
 
@@ -1179,6 +1258,10 @@ export default class CxContentBrowser extends CortexElement {
                 .assets=${items}
                 .columns=${this.tableColumnList}
                 .hiddenFields=${findUnreadableColumnFields(this.tableColumnList, unreadableFields)}
+                .savedWidths=${this.tableColumnWidths}
+                .widthScope=${this.baseUrl}
+                row-action-position=${toTableRowActionPosition(this.tableRowActionPosition)}
+                @cx-content-browser-table-column-resize=${this.handleTableColumnResize}
                 ?empty=${!loading && !this.initialFolderPending && items.length === 0}
                 cta-text=${this.ctaText}
                 cta-text-transform=${this.ctaTextTransform}

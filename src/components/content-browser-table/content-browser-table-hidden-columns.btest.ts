@@ -6,14 +6,15 @@ import sinon from 'sinon';
 import type { TableColumn } from '@/types/content-browser';
 
 import type ContentBrowserTable from './content-browser-table';
-import { CTA_FIELD, FILLER_FIELD, ROW_HEIGHT } from './content-browser-table';
+import { FILLER_FIELD, ROW_HEIGHT } from './content-browser-table';
 import {
   dispatchResize,
   dragColumnHandle,
-  expectFilled,
+  expectRowsFill,
   getColumnHeader,
   getContainer,
   getCta,
+  getCtaOverlay,
   getCxTable,
   getDataCells,
   getResizeHandles,
@@ -23,7 +24,6 @@ import {
   getTableRoot,
   hasFocus,
   isShown,
-  makeAsset,
   makeAssets,
   mount,
   OWN_FIELDS,
@@ -31,7 +31,7 @@ import {
   settle,
   stubInputQueries,
   tabToCta,
-  waitForCtaColumnFit,
+  waitForCtaLayout,
   waitForRows,
 } from './content-browser-table.test-helpers';
 
@@ -41,7 +41,7 @@ import {
  */
 
 const COLUMNS: TableColumn[] = [
-  { field: 'CoreField.Identifier', title: 'Identifier', width: '160px' },
+  { field: 'CoreField.Identifier', title: 'Identifier' },
   { field: 'Custom.Date', title: 'Date' },
   { field: 'Dell.Snippet', title: 'Snippet' },
 ];
@@ -65,13 +65,13 @@ function getOwnCell(row: HTMLElement, field: string) {
   return row.querySelector<HTMLElement>(`.tabulator-cell[tabulator-field="${field}"]`);
 }
 
-/** Per row, whether the filler cell and the CTA cell both have a box. */
-function getOwnCellsShown(el: ContentBrowserTable) {
-  return getRowElements(el).map((row) => hasBox(getOwnCell(row, FILLER_FIELD)) && hasBox(getOwnCell(row, CTA_FIELD)));
+/** Per row, whether the filler cell and the action overlay both have a box. */
+function getFillerAndActionShown(el: ContentBrowserTable) {
+  return getRowElements(el).map((row) => hasBox(getOwnCell(row, FILLER_FIELD)) && hasBox(getCtaOverlay(row)));
 }
 
-function getOwnHeadersShown(el: ContentBrowserTable) {
-  return hasBox(getColumnHeader(el, FILLER_FIELD)) && hasBox(getColumnHeader(el, CTA_FIELD));
+function getFillerHeaderShown(el: ContentBrowserTable) {
+  return hasBox(getColumnHeader(el, FILLER_FIELD));
 }
 
 /** A host column's header width, by its position in `columns`. */
@@ -86,10 +86,6 @@ async function waitForHeaders(el: ContentBrowserTable, titles: string[], message
 /** A page as Cortex returns it for a user who cannot read `field`: the value is an empty string. */
 function makeFlaggedAssets(count: number, from: number, field: string, prefix = 'asset') {
   return makeAssets(count, from, prefix).map((asset) => ({ ...asset, [field]: '' }));
-}
-
-function getTableWidth(el: ContentBrowserTable) {
-  return getTableRoot(el).querySelector<HTMLElement>('.tabulator')!.clientWidth;
 }
 
 /** A move of the picker: `cx-table` builds a new Tabulator instance on the reconnect. */
@@ -127,7 +123,7 @@ describe('content-browser-table hidden columns', () => {
     expect(getShownDataCellCounts(el)).to.deep.equal([2, 2, 2]);
   });
 
-  it('hides only the host column when the host hides it after the build, and keeps the filler and the CTA column', async () => {
+  it('hides only the host column when the host hides it after the build, and keeps the filler and the action overlay', async () => {
     const el = await mount(html`
       <cx-content-browser-table style="height: 400px" .assets=${makeAssets(3)} .columns=${COLUMNS}>
       </cx-content-browser-table>
@@ -138,8 +134,8 @@ describe('content-browser-table hidden columns', () => {
     await waitForHeaders(el, ['Identifier', 'Snippet'], 'the column was never hidden');
 
     expect(getShownDataCellCounts(el)).to.deep.equal([2, 2, 2]);
-    expect(getOwnHeadersShown(el), 'a header of the filler or the CTA column was hidden').to.equal(true);
-    expect(getOwnCellsShown(el)).to.deep.equal([true, true, true]);
+    expect(getFillerHeaderShown(el), 'the filler header was hidden').to.equal(true);
+    expect(getFillerAndActionShown(el)).to.deep.equal([true, true, true]);
   });
 
   it('shows the column and its cells again when the host stops hiding it', async () => {
@@ -242,30 +238,30 @@ describe('content-browser-table hidden columns', () => {
     expect(isShown(cta), 'the focused CTA hid').to.equal(true);
   });
 
-  it('fills the table width after a hide and after a show, with the filler in the space the fixed columns leave', async () => {
+  it('keeps the rows full width after a hide and a show without an extra column in the free space', async () => {
     const el = await mount(html`
       <cx-content-browser-table style="height: 400px; width: 800px" .assets=${makeAssets(3)} .columns=${COLUMNS}>
       </cx-content-browser-table>
     `, 3);
 
     // The drag fixes the width of Date, so once Snippet is hidden no host column takes the free space.
-    dragColumnHandle(getResizeHandles(el)[1], -80);
+    dragColumnHandle(getResizeHandles(el)[1], 80);
     await elementUpdated(el);
     await settle(200);
 
     el.hiddenFields = ['Dell.Snippet'];
     await elementUpdated(el);
     await waitForHeaders(el, ['Identifier', 'Date'], 'the column was never hidden');
-    await expectFilled(el, 'after the hide');
+    await expectRowsFill(el, 'after the hide');
 
     const fillerAfterHide = Math.round(getColumnHeader(el, FILLER_FIELD).getBoundingClientRect().width);
 
     el.hiddenFields = [];
     await elementUpdated(el);
     await waitForHeaders(el, ['Identifier', 'Date', 'Snippet'], 'the column never came back');
-    await expectFilled(el, 'after the show');
+    await expectRowsFill(el, 'after the show');
 
-    expect(fillerAfterHide > ROW_HEIGHT, `the filler took ${fillerAfterHide}px after the hide`).to.equal(true);
+    expect(fillerAfterHide, 'the internal column takes the free space after the hide').to.be.within(4, 8);
   });
 
   it('brings a column back at the width the user dragged it to', async () => {
@@ -275,7 +271,7 @@ describe('content-browser-table hidden columns', () => {
     `, 3);
     const hostWidth = getHeaderWidth(el, 1);
 
-    dragColumnHandle(getResizeHandles(el)[1], -80);
+    dragColumnHandle(getResizeHandles(el)[1], 80);
     await elementUpdated(el);
 
     const dragged = getHeaderWidth(el, 1);
@@ -288,7 +284,7 @@ describe('content-browser-table hidden columns', () => {
     await elementUpdated(el);
     await waitForHeaders(el, ['Identifier', 'Date', 'Snippet'], 'the column never came back');
 
-    expect(dragged < hostWidth, `dragged from ${hostWidth}px to ${dragged}px`).to.equal(true);
+    expect(dragged > hostWidth, `dragged from ${hostWidth}px to ${dragged}px`).to.equal(true);
     expect(getHeaderWidth(el, 1)).to.equal(dragged);
   });
 
@@ -366,26 +362,6 @@ describe('content-browser-table hidden columns', () => {
     });
   });
 
-  it('keeps each row at the single-line height when the multi-line column is hidden, and leaves the filler and the CTA cells as they are', async () => {
-    const el = await mount(html`
-      <cx-content-browser-table
-        style="height: 400px"
-        .assets=${[...makeAssets(2), makeAsset({ id: 'cold-0', inColdStorage: true, recordId: 'rec-cold-0' })]}
-        .columns=${[COLUMNS[0], { ...COLUMNS[2], lines: 2 }]}
-        .hiddenFields=${['Dell.Snippet']}
-      ></cx-content-browser-table>
-    `, 3);
-
-    await settle(300);
-
-    const rows = getRowElements(el);
-
-    expect(rows.map((row) => Math.round(row.getBoundingClientRect().height))).to.deep.equal([ROW_HEIGHT, ROW_HEIGHT, ROW_HEIGHT]);
-    expect(rows.map((row) => `${getOwnCell(row, FILLER_FIELD)!.style.minHeight}|${getOwnCell(row, CTA_FIELD)!.style.minHeight}`))
-      .to.deep.equal(['|', '|', '|']);
-    expect(rows.map((row) => getOwnCell(row, FILLER_FIELD)!.style.padding)).to.deep.equal(['0px', '0px', '0px']);
-  });
-
   it('keeps the rows with only their CTA when each host column is hidden', async () => {
     const el = await mount(html`
       <cx-content-browser-table
@@ -402,9 +378,9 @@ describe('content-browser-table hidden columns', () => {
       .to.equal(false);
     expect(getRowElements(el).filter(hasBox).length).to.equal(2);
     expect(getShownDataCellCounts(el)).to.deep.equal([0, 0]);
-    expect(getOwnCellsShown(el)).to.deep.equal([true, true]);
+    expect(getFillerAndActionShown(el)).to.deep.equal([true, true]);
     expect(Boolean(await getCta(getRowElement(el, 'asset-0'))), 'the row has no CTA').to.equal(true);
-    await expectFilled(el, 'with each host column hidden');
+    await expectRowsFill(el, 'with each host column hidden');
   });
 
   it('keeps the rows with only their CTA when the host hides each host column after the build', async () => {
@@ -422,52 +398,10 @@ describe('content-browser-table hidden columns', () => {
       .to.equal(false);
     expect(getRowElements(el).filter(hasBox).length).to.equal(2);
     expect(getShownDataCellCounts(el)).to.deep.equal([0, 0]);
-    expect(getOwnHeadersShown(el), 'a header of the filler or the CTA column was hidden').to.equal(true);
-    expect(getOwnCellsShown(el)).to.deep.equal([true, true]);
+    expect(getFillerHeaderShown(el), 'the filler header was hidden').to.equal(true);
+    expect(getFillerAndActionShown(el)).to.deep.equal([true, true]);
     expect(Boolean(await getCta(getRowElement(el, 'asset-0'))), 'the row has no CTA').to.equal(true);
-    await expectFilled(el, 'with each host column hidden after the build');
-  });
-
-  it('keeps each row at the single-line height when each host column of a multi-line table is hidden', async () => {
-    const columns = [COLUMNS[0], { ...COLUMNS[2], lines: 2 }];
-    const el = await mount(html`
-      <cx-content-browser-table
-        style="height: 400px"
-        .assets=${[...makeAssets(2), makeAsset({ id: 'cold-0', inColdStorage: true, recordId: 'rec-cold-0' })]}
-        .columns=${columns}
-        .hiddenFields=${columns.map((column) => column.field)}
-      ></cx-content-browser-table>
-    `, 3);
-
-    await settle(300);
-
-    expect(getShownDataCellCounts(el)).to.deep.equal([0, 0, 0]);
-    expect(getRowElements(el).map((row) => Math.round(row.getBoundingClientRect().height)))
-      .to.deep.equal([ROW_HEIGHT, ROW_HEIGHT, ROW_HEIGHT]);
-    expect(getRowElements(el).map((row) => Math.round(getOwnCell(row, CTA_FIELD)!.getBoundingClientRect().height)), 'a CTA cell kept its own height')
-      .to.deep.equal([ROW_HEIGHT, ROW_HEIGHT, ROW_HEIGHT]);
-  });
-
-  it('keeps each row at the single-line height when the host hides each host column of a multi-line table after the build', async () => {
-    const columns = [COLUMNS[0], { ...COLUMNS[2], lines: 2 }];
-    const el = await mount(html`
-      <cx-content-browser-table
-        style="height: 400px"
-        .assets=${[...makeAssets(2, 0, 'later'), makeAsset({ id: 'later-cold-0', inColdStorage: true, recordId: 'rec-later-cold-0' })]}
-        .columns=${columns}
-      ></cx-content-browser-table>
-    `, 3);
-
-    el.hiddenFields = columns.map((column) => column.field);
-    await elementUpdated(el);
-    await waitForHeaders(el, [], 'the host columns were never hidden');
-    await settle(300);
-
-    expect(getShownDataCellCounts(el)).to.deep.equal([0, 0, 0]);
-    expect(getRowElements(el).map((row) => Math.round(row.getBoundingClientRect().height)))
-      .to.deep.equal([ROW_HEIGHT, ROW_HEIGHT, ROW_HEIGHT]);
-    expect(getRowElements(el).map((row) => Math.round(getOwnCell(row, CTA_FIELD)!.getBoundingClientRect().height)), 'a CTA cell kept its own height')
-      .to.deep.equal([ROW_HEIGHT, ROW_HEIGHT, ROW_HEIGHT]);
+    await expectRowsFill(el, 'with each host column hidden after the build');
   });
 
   describe('with the row keys of the host columns', () => {
@@ -565,114 +499,6 @@ describe('content-browser-table hidden columns', () => {
   });
 
   describe('with the column widths', () => {
-    const PERCENT_COLUMNS: TableColumn[] = [
-      { field: 'CoreField.Identifier', title: 'Identifier', width: '160px' },
-      { field: 'Custom.Date', title: 'Date', width: '25%' },
-      { field: 'Dell.Snippet', title: 'Snippet' },
-    ];
-
-    it('fills the table around a hidden percentage column, and shows it at its share when it comes back', async () => {
-      const el = await mount(html`
-        <cx-content-browser-table
-          style="height: 400px; width: 800px"
-          .assets=${makeAssets(2)}
-          .columns=${PERCENT_COLUMNS}
-          .hiddenFields=${['Custom.Date']}
-        ></cx-content-browser-table>
-      `, 2);
-
-      await expectFilled(el, 'with the percentage column hidden');
-
-      el.hiddenFields = [];
-      await elementUpdated(el);
-      await waitForHeaders(el, ['Identifier', 'Date', 'Snippet'], 'the column never came back');
-
-      const share = Math.floor(getTableWidth(el) / 100 * 25);
-
-      expect(getHeaderWidth(el, 1), `the 25% column of a ${getTableWidth(el)}px table`).to.equal(share);
-      await expectFilled(el, 'once the percentage column is shown');
-    });
-
-    it('shows a hidden percentage column at its share of a table that took its columns while hidden', async () => {
-      const el = await mount(html`
-        <cx-content-browser-table style="height: 400px; width: 800px" .assets=${makeAssets(2)} .columns=${COLUMNS}>
-        </cx-content-browser-table>
-      `, 2);
-      const tabulator = getCxTable(el)!.tabulatorInstance!;
-      const observedWidths: number[] = [];
-      const observer = new ResizeObserver((entries) => {
-        observedWidths.push(entries[0].contentRect.width);
-      });
-
-      observer.observe(el);
-      await waitUntil(() => observedWidths.length > 0, 'the table was never observed', { interval: 20, timeout: 3000 });
-
-      // A panel or tab the host hides keeps the table and its Tabulator instance, with no width.
-      el.style.display = 'none';
-      el.columns = PERCENT_COLUMNS;
-      el.hiddenFields = ['Custom.Date'];
-      await elementUpdated(el);
-      await waitUntil(() => tabulator.getColumns()[1]?.getDefinition().width === '25%',
-        'the hidden table never took the new columns', { interval: 20, timeout: 3000 });
-      await waitUntil(() => observedWidths[observedWidths.length - 1] === 0,
-        'the browser never laid the hidden table out', { interval: 20, timeout: 3000 });
-      observer.disconnect();
-
-      el.style.display = '';
-      await expectFilled(el, 'once the table is shown');
-
-      el.hiddenFields = [];
-      await elementUpdated(el);
-      await waitForHeaders(el, ['Identifier', 'Date', 'Snippet'], 'the column never came back');
-
-      const share = Math.floor(getTableWidth(el) / 100 * 25);
-
-      await waitUntil(() => getHeaderWidth(el, 1) === share, '', { interval: 20, timeout: 2000 }).catch(() => undefined);
-
-      expect(getCxTable(el)!.tabulatorInstance === tabulator, 'the table was built again').to.equal(true);
-      expect(getHeaderWidth(el, 1), `the 25% column of a ${getTableWidth(el)}px table`).to.equal(share);
-      await expectFilled(el, 'once the percentage column is shown');
-    });
-
-    it('lays a percentage column out at its share when the host hides it and shows it again before the build', async () => {
-      const el = await fixture<ContentBrowserTable>(html`
-        <cx-content-browser-table style="height: 400px; width: 800px" .assets=${makeAssets(2)} .columns=${PERCENT_COLUMNS}>
-        </cx-content-browser-table>
-      `);
-      const builtBefore = getCxTable(el)?.tabulatorInstance?.initialized === true;
-
-      el.hiddenFields = ['Custom.Date'];
-      await elementUpdated(el);
-      el.hiddenFields = [];
-      await elementUpdated(el);
-      await waitForRows(el, 2);
-      await waitForHeaders(el, ['Identifier', 'Date', 'Snippet'], 'the column was never shown');
-
-      const share = Math.floor(getTableWidth(el) / 100 * 25);
-
-      expect(builtBefore, 'the table was built before the host hid the column').to.equal(false);
-      expect(getHeaderWidth(el, 1), `the 25% column of a ${getTableWidth(el)}px table`).to.equal(share);
-      await expectFilled(el, 'once the table is built');
-    });
-
-    it('brings a column of width 0 back at the floor', async () => {
-      const el = await mount(html`
-        <cx-content-browser-table
-          style="height: 400px; width: 800px"
-          .assets=${makeAssets(2)}
-          .columns=${[COLUMNS[0], { ...COLUMNS[1], width: '0px' }, COLUMNS[2]]}
-          .hiddenFields=${['Custom.Date']}
-        ></cx-content-browser-table>
-      `, 2);
-
-      el.hiddenFields = [];
-      await elementUpdated(el);
-      await waitForHeaders(el, ['Identifier', 'Date', 'Snippet'], 'the column never came back');
-
-      expect(getHeaderWidth(el, 1)).to.equal(48);
-      await expectFilled(el, 'once the column of width 0 is shown');
-    });
-
     it('brings a column back at its dragged width after a move of the picker builds a new table', async () => {
       const el = await mount(html`
         <cx-content-browser-table style="height: 400px; width: 800px" .assets=${makeAssets(1)} .columns=${COLUMNS}>
@@ -681,7 +507,7 @@ describe('content-browser-table hidden columns', () => {
       const hostWidth = getHeaderWidth(el, 1);
       const resized = oneEvent(el, 'cx-content-browser-table-column-resize');
 
-      dragColumnHandle(getResizeHandles(el)[1], -80);
+      dragColumnHandle(getResizeHandles(el)[1], 80);
       await resized;
       await elementUpdated(el);
 
@@ -698,13 +524,13 @@ describe('content-browser-table hidden columns', () => {
       await elementUpdated(el);
       await waitForHeaders(el, ['Identifier', 'Date', 'Snippet'], 'the column never came back');
 
-      expect(dragged < hostWidth, `dragged from ${hostWidth}px to ${dragged}px`).to.equal(true);
+      expect(dragged > hostWidth, `dragged from ${hostWidth}px to ${dragged}px`).to.equal(true);
       expect(getHeaderWidth(el, 1)).to.equal(dragged);
-      await expectFilled(el, 'once the dragged column is shown');
+      await expectRowsFill(el, 'once the dragged column is shown');
     });
   });
 
-  it('fits the CTA column to its button, at the right edge, when each host column is hidden', async () => {
+  it('keeps the action overlay at the right edge when each host column is hidden', async () => {
     const el = await mount(html`
       <cx-content-browser-table
         style="height: 400px; width: 800px"
@@ -714,12 +540,12 @@ describe('content-browser-table hidden columns', () => {
       ></cx-content-browser-table>
     `, 2);
 
-    await waitForCtaColumnFit(el);
+    await waitForCtaLayout(el);
 
     const table = getTableRoot(el).querySelector<HTMLElement>('.tabulator')!.getBoundingClientRect();
-    const header = getColumnHeader(el, CTA_FIELD).getBoundingClientRect();
+    const header = getCtaOverlay(getRowElements(el)[0])!.getBoundingClientRect();
 
-    expect(Math.abs(header.right - table.right) <= 1, `the CTA column ends at ${header.right}, the table at ${table.right}`)
+    expect(Math.abs(header.right - table.right) <= 1, `the action overlay ends at ${header.right}, the table at ${table.right}`)
       .to.equal(true);
   });
 
@@ -748,8 +574,8 @@ describe('content-browser-table hidden columns', () => {
       expect(spy.callCount, 'a hide or a show sent a row count').to.equal(0);
     });
 
-    it('reports the count once for a restarted list whose first page hides the multi-line column', async () => {
-      const columns = [COLUMNS[0], COLUMNS[1], { ...COLUMNS[2], lines: 2 }];
+    it('reports the count once for a restarted list whose first page hides a column', async () => {
+      const columns = [COLUMNS[0], COLUMNS[1], COLUMNS[2]];
       const el = await mount(html`
         <cx-content-browser-table style="height: 400px" .assets=${makeAssets(60)} .columns=${columns}>
         </cx-content-browser-table>
@@ -788,7 +614,7 @@ describe('content-browser-table hidden columns', () => {
     const el = page.querySelector<ContentBrowserTable>('cx-content-browser-table')!;
 
     await waitForRows(el, 60);
-    await waitForCtaColumnFit(el);
+    await waitForCtaLayout(el);
 
     const cta = (await tabToCta(page.querySelector<HTMLElement>('.before')!))!;
     const scrollport = getScrollport(el);

@@ -273,8 +273,14 @@ function makeTreeItemSelection(id: string, name: string) {
 }
 
 describe('content-browser', () => {
+  // A column drag is saved per site, so a stored width must not reach the next test.
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
   afterEach(() => {
     sinon.restore();
+    localStorage.clear();
   });
 
   it('parses space-separated list attributes (split on space)', async () => {
@@ -2661,8 +2667,8 @@ describe('content-browser', () => {
         const resized = oneEvent(getTable(el)!, 'cx-content-browser-table-column-resize');
 
         handle.dispatchEvent(new MouseEvent('mousedown', { ...init, clientX: left + width / 2 }));
-        document.body.dispatchEvent(new MouseEvent('mousemove', { ...init, clientX: left + width / 2 - 80 }));
-        document.body.dispatchEvent(new MouseEvent('mouseup', { ...init, clientX: left + width / 2 - 80 }));
+        document.body.dispatchEvent(new MouseEvent('mousemove', { ...init, clientX: left + width / 2 + 80 }));
+        document.body.dispatchEvent(new MouseEvent('mouseup', { ...init, clientX: left + width / 2 + 80 }));
 
         const { detail } = await resized;
 
@@ -2672,7 +2678,7 @@ describe('content-browser', () => {
         search(el, 'unflagged');
         await waitForHeaders(el, ['Identifier', 'Date', 'Snippet'], 'the column never came back');
 
-        expect(detail.width < hostWidth, `dragged from ${hostWidth}px to ${detail.width}px`).to.equal(true);
+        expect(detail.width > hostWidth, `dragged from ${hostWidth}px to ${detail.width}px`).to.equal(true);
         expect(headerWidth(el, 'Date')).to.equal(detail.width);
       });
     });

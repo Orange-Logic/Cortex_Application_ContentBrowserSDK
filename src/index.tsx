@@ -15,7 +15,7 @@ import {
   ImageCardDisplayInfo,
 } from '@/GlobalConfigContext';
 import { store } from '@/store';
-import { type AutoSelectFormat, TableColumn } from '@/types/content-browser';
+import { type AutoSelectFormat, TableColumn, type TableRowActionPosition } from '@/types/content-browser';
 import {
   initAuthInfoFromCache,
   setUseHeaders,
@@ -261,22 +261,27 @@ type OrangeDAMContentBrowser = {
     defaultGridView?: string;
 
     /**
-     * The columns of the table view. Each column carries a `title` (the header text), a `field`
-     * (the Cortex field it reads, e.g. "CoreField.Identifier") and optional
-     * styling: `width`, `align` and `lines`. `width` is a CSS grid track: pixels (`"160px"`) are a
-     * fixed width, a percentage (`"20%"`) is a fixed share of the table width in whole percents
-     * (`"12.5%"` is 12%), `"2fr"` is a share of the width left over, and a `minmax()` keeps a pixel
-     * minimum above 48px (`"minmax(120px, 1fr)"`). Any other form takes an equal flexible share. No
-     * column narrows below 48px, in the layout or in a drag, so a percentage share narrower than
-     * 48px renders at 48px. The one exception is a pixel width above 0 and below 48px, which renders
-     * as set. A width of 0 (`"0px"`, or a `"0fr"` share) renders at 48px. A column has no maximum
-     * width.
+     * The columns of the table view. Each column carries a `title` (the header text) and a `field`
+     * (the Cortex field it reads, e.g. "CoreField.Identifier"). The table fits each column to its
+     * content, and the columns share the spare width so that they fill the table. The user resizes
+     * a column, and the table keeps the width of a resized column for each site.
+     * When a user drags a column divider, the other columns keep their width until the page reloads,
+     * the view changes or the site changes. Thus the table can end before the right edge of the
+     * host, or scroll horizontally.
+     * `width`, `align` and `lines` are ignored.
      *
      * The table view is offered in the view menu only when this is set, and the fields listed here
      * are requested on every search — so an asset with no thumbnail, such as a text fragment,
      * becomes browsable and selectable by its metadata.
      */
     tableColumns?: TableColumn[];
+
+    /**
+     * Where the row action of the table view shows: at the right edge of the host (`host-edge`), or
+     * at the end of the last data column (`row-end`). Any other value gives `host-edge`.
+     * Default `host-edge`.
+     */
+    tableRowActionPosition?: TableRowActionPosition;
 
     /**
      * Import behaviour when picking an asset, for a host that would rather not show the format
@@ -394,10 +399,11 @@ const ContentBrowser: OrangeDAMContentBrowser = {
         allowTracking: true, // Whether to enable tracking parameters for asset URLs
         allowFormatDialogPin: true, // Whether to show pin/unpin actions in format dialog
         tableColumns: [ // Columns of the table view; omit to offer grid views only
-          { title: "Identifier", field: "CoreField.Identifier", width: "160px" },
-          { title: "Title", field: "CoreField.TitleWithFallback", width: "minmax(0, 2fr)" },
-          { title: "Description", field: "Document.CaptionLong", lines: 2 },
+          { title: "Identifier", field: "CoreField.Identifier" },
+          { title: "Title", field: "CoreField.TitleWithFallback" },
+          { title: "Description", field: "Document.CaptionLong" },
         ],
+        tableRowActionPosition: "host-edge", // Where the table row action shows: host-edge or row-end
       });`);
   },
   open: async ({
@@ -450,6 +456,7 @@ const ContentBrowser: OrangeDAMContentBrowser = {
     useSiteSession = false,
     defaultGridView,
     tableColumns,
+    tableRowActionPosition,
     autoSelectFormat,
   }) => {
     const siteSessionUrl = useSiteSession ? resolveSiteSessionUrl(baseUrl) : undefined;
@@ -608,6 +615,7 @@ const ContentBrowser: OrangeDAMContentBrowser = {
             defaultGridView: defaultGridView ?? '',
             autoSelectFormat: autoSelectFormat ?? false,
             tableColumns: tableColumns ?? [],
+            tableRowActionPosition: tableRowActionPosition ?? 'host-edge',
           }}
         >
           <App

@@ -16,8 +16,6 @@ import {
 } from '@web/test-runner-commands';
 import sinon from 'sinon';
 
-import type { TableColumn } from '@/types/content-browser';
-
 import type ContentBrowserTable from './content-browser-table';
 import {
   ROW_HEIGHT,
@@ -28,9 +26,10 @@ import {
   dispatchResize,
   doubleClick,
   effectiveOpacity,
+  fakeMediaQuery,
   getContainer,
   getCta,
-  getCtaColumnWidth,
+  getCtaWidth,
   getCtaInnerButton,
   getCtaLabel,
   getCxTable,
@@ -40,7 +39,7 @@ import {
   getScrollport,
   getTableRoot,
   hasFocus,
-  isCtaColumnFitted,
+  isCtaOverlayFitted,
   isShown,
   makeAsset,
   makeAssets,
@@ -50,7 +49,7 @@ import {
   SINGLE_LINE_COLUMNS,
   stubInputQueries,
   tabToCta,
-  waitForCtaColumnFit,
+  waitForCtaLayout,
   waitForRows,
 } from './content-browser-table.test-helpers';
 
@@ -446,7 +445,7 @@ describe('content-browser-table', () => {
       expect(isShown(cta), 'the focused CTA hid once its row was no longer marked').to.equal(true);
     });
 
-    it('keeps keyboard focus on its CTA when a relabel resizes its column', async () => {
+    it('keeps keyboard focus on its CTA when a relabel resizes its overlay', async () => {
       const page = await fixture<HTMLDivElement>(html`
         <div>
           <button class="before">before</button>
@@ -457,15 +456,15 @@ describe('content-browser-table', () => {
       const el = page.querySelector<ContentBrowserTable>('cx-content-browser-table')!;
 
       await waitForRows(el, 2);
-      await waitForCtaColumnFit(el);
+      await waitForCtaLayout(el);
 
       const cta = (await tabToCta(page.querySelector<HTMLElement>('.before')!))!;
-      const before = getCtaColumnWidth(el);
+      const before = getCtaWidth(el);
 
       el.ctaText = 'Add this asset to the page';
       await elementUpdated(el);
-      await waitUntil(() => getCtaColumnWidth(el) > before && isCtaColumnFitted(cta),
-        'the CTA column was never fitted to the longer label', { interval: 20, timeout: 3000 });
+      await waitUntil(() => getCtaWidth(el) > before && isCtaOverlayFitted(cta),
+        'the action overlay never fit the longer label', { interval: 20, timeout: 3000 });
 
       expect(hasFocus(cta), 'the relabel took the focus off the CTA').to.equal(true);
       expect(isShown(cta), 'the focused CTA hid after the relabel').to.equal(true);
@@ -483,7 +482,7 @@ describe('content-browser-table', () => {
       const el = page.querySelector<ContentBrowserTable>('cx-content-browser-table')!;
 
       await waitForRows(el, 2);
-      await waitForCtaColumnFit(el);
+      await waitForCtaLayout(el);
 
       const cta = (await tabToCta(page.querySelector<HTMLElement>('.before')!))!;
 
@@ -509,7 +508,7 @@ describe('content-browser-table', () => {
       const el = page.querySelector<ContentBrowserTable>('cx-content-browser-table')!;
 
       await waitForRows(el, 60);
-      await waitForCtaColumnFit(el);
+      await waitForCtaLayout(el);
 
       const cta = (await tabToCta(page.querySelector<HTMLElement>('.before')!))!;
       const scrollport = getScrollport(el);
@@ -547,7 +546,7 @@ describe('content-browser-table', () => {
       const el = page.querySelector<ContentBrowserTable>('cx-content-browser-table')!;
 
       await waitForRows(el, 2);
-      await waitForCtaColumnFit(el);
+      await waitForCtaLayout(el);
 
       const focused = (await tabToCta(page.querySelector<HTMLElement>('.before')!))!;
       const hoveredRow = getRowElement(el, 'asset-1')!;
@@ -655,10 +654,11 @@ describe('content-browser-table', () => {
     });
 
     describe('on a device with a touch screen beside its mouse', () => {
-      it('shows every CTA at rest, so one tap on a CTA hands its asset over, and hides them once the touch screen goes', async () => {
-        const coarsePointer = inputQueries.get('(any-pointer: coarse)')!;
+      it('hides every CTA at rest and shows the one under the pointer, as on any laptop', async () => {
+        const coarsePointer = fakeMediaQuery('(any-pointer: coarse)');
 
         coarsePointer.set(true);
+        inputQueries.set('(any-pointer: coarse)', coarsePointer);
 
         const el = await mount(html`
           <cx-content-browser-table style="height: 400px" .assets=${makeAssets(2)} .columns=${SINGLE_LINE_COLUMNS}>
@@ -666,23 +666,14 @@ describe('content-browser-table', () => {
         `, 2);
         const idle = (await getCta(getRowElement(el, 'asset-0')))!;
         const row = getRowElement(el, 'asset-1')!;
-        const cta = (await getCta(row))!;
-        const spy = sinon.spy();
+        const hovered = (await getCta(row))!;
 
-        el.addEventListener('cx-content-browser-grid-click', spy);
+        expect(effectiveOpacity(idle), 'a CTA showed at rest on a device with a touch screen beside its mouse').to.equal(0);
 
-        expect(isShown(cta), 'a CTA hid at rest on a device with a touch screen beside its mouse').to.equal(true);
-
-        // A tap as a touch screen delivers it: the press, then the emulated `mouseenter` on the row, then the click.
-        cta.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, composed: true, pointerType: 'touch' }));
         row.dispatchEvent(new MouseEvent('mouseenter'));
-        cta.dispatchEvent(new MouseEvent('click', { bubbles: true, button: 0, cancelable: true, composed: true, detail: 1 }));
 
-        expect(spy.args.map(([event]) => (event as CustomEvent<{ id: string }>).detail.id)).to.deep.equal(['asset-1']);
-
-        coarsePointer.change(false);
-
-        expect(effectiveOpacity(idle), 'a CTA stayed on screen at rest once the touch screen went').to.equal(0);
+        expect(isShown(hovered), 'the row under the pointer never showed its CTA').to.equal(true);
+        expect(effectiveOpacity(idle), 'a CTA showed at rest once another row had the pointer').to.equal(0);
       });
     });
 
@@ -1153,13 +1144,14 @@ describe('content-browser-table', () => {
     });
 
     it('does not ask for another page when the table is only scrolled sideways', async () => {
-      const wide: TableColumn[] = [
-        { field: 'CoreField.Identifier', title: 'Identifier', width: '600px' },
-        { field: 'Dell.Snippet', title: 'Snippet', width: '600px' },
-      ];
       const el = await mount(html`
-        <cx-content-browser-table style="height: 400px; width: 500px" has-more .assets=${makeAssets(3)} .columns=${wide}>
-        </cx-content-browser-table>
+        <cx-content-browser-table
+          style="height: 400px; width: 500px"
+          has-more
+          .assets=${makeAssets(3)}
+          .columns=${SINGLE_LINE_COLUMNS}
+          .savedWidths=${{ 'CoreField.Identifier': 600, 'Dell.Snippet': 600 }}
+        ></cx-content-browser-table>
       `, 3);
       const spy = sinon.spy();
       const scrollport = getScrollport(el);

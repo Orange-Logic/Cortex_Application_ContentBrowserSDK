@@ -41,11 +41,63 @@ export default css`
 
   .content-browser-table__table {
     --table-height: 100%;
-    /* The frozen CTA column is a row action, not a pinned data column: it takes no divider. */
-    --frozen-border-color: transparent;
+    --content-browser-action-boundary: 100%;
 
     position: absolute;
     inset: 0;
+  }
+
+  :host([row-action-position='row-end']) .content-browser-table__table {
+    --content-browser-action-boundary: var(--content-browser-table-width);
+  }
+
+  .content-browser-table__table::part(content-browser-header),
+  .content-browser-table__table::part(content-browser-frame)::before {
+    box-sizing: border-box;
+    width: min(100%, var(--content-browser-table-width, 100%));
+  }
+
+  .content-browser-table__table::part(content-browser-header) {
+    background-color: var(--header-background-color, var(--cx-color-neutral-50));
+    border-top-left-radius: var(--border-radius);
+    border-top-right-radius: var(--border-radius);
+  }
+
+  .content-browser-table__table::part(content-browser-scrollport) {
+    scrollbar-width: thin;
+  }
+
+  .content-browser-table__table::part(content-browser-row) {
+    min-width: 100%;
+  }
+
+  /* The zero-width anchor follows the viewport edge without space in the column layout. */
+  .content-browser-table__table::part(content-browser-action-anchor) {
+    position: sticky;
+    right: 0;
+    width: 0;
+    min-width: 0;
+    flex: 0 0 0;
+    margin-left: auto;
+    margin-right: max(0px, calc(100% - var(--content-browser-action-boundary)));
+    align-self: stretch;
+    background-color: inherit;
+    /* The frame can cross the action after a small shrink. Keep its border below the button. */
+    z-index: 2;
+  }
+
+  .content-browser-table__table::part(content-browser-action) {
+    position: absolute;
+    inset: 0 0 0 auto;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    padding: 0 var(--cell-padding-right, 8px) 0 var(--cell-padding-left, 8px);
+    background-color: inherit;
+    /* Leave the data-cell separator visible without a line across empty space. */
+    background-clip: padding-box;
+    border-bottom: var(--border-width, 1px) solid transparent;
+    border-right: var(--border-width, 1px) solid transparent;
   }
 
   .content-browser-table-loading {

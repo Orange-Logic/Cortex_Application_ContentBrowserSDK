@@ -397,21 +397,36 @@ customStorage: {
             <ul>
               <li><code>title</code> - the header text</li>
               <li><code>field</code> - the Orange Logic field the column reads, e.g. "CoreField.Identifier"</li>
-              <li>
-                <code>width</code> (optional) - pixels ("160px") are a fixed width, a percentage ("20%") is a fixed
-                share of the table width in whole percents ("12.5%" is 12%), "2fr" is a share of the width left over,
-                and a minmax() keeps a pixel minimum above 48px ("minmax(120px, 1fr)"). Any other form ("10rem",
-                "auto", "max-content") takes an equal flexible share. No column narrows below 48px, in the layout or
-                in a drag, so a percentage share narrower than 48px renders at 48px. The one exception is a pixel
-                width above 0 and below 48px, which renders as set. A width of 0 ("0px", or a "0fr" share) renders at
-                48px. A column has no maximum width
-              </li>
-              <li><code>align</code> (optional) - left (default), center or right</li>
-              <li><code>lines</code> (optional) - lines shown before the cell text is clamped (default 1)</li>
             </ul>
             <p>
               <small>
                 Note: the fields listed here are requested on every search, and field names are case-sensitive.
+              </small>
+            </p>
+            <p>
+              <small>
+                Note: the table fits each column to its content, with a minimum width of 92px, and the columns
+                share the spare width so that they fill the table. When a user drags a
+                column divider, the table saves that width for the site and uses it again after a reload. The other
+                columns keep their width until the page reloads, the view changes or the site changes. Thus the
+                table can end before the right edge of the host, or scroll horizontally. A double
+                click on the divider removes the saved width. The table ignores <code>width</code>,
+                <code>lines</code> and <code>align</code>.
+              </small>
+            </p>
+          </li>
+          <li>
+            <b>tableRowActionPosition</b> (default 'host-edge')
+            <p>
+              The position of the button that shows when the pointer is on a row of the table view.
+            </p>
+            <ul>
+              <li><code>'host-edge'</code> - the button shows at the right edge of the host container.</li>
+              <li><code>'row-end'</code> - the button shows at the end of the visible row.</li>
+            </ul>
+            <p>
+              <small>
+                Note: any other value gives <code>'host-edge'</code>.
               </small>
             </p>
           </li>
@@ -573,10 +588,11 @@ customStorage: {
         extraFields: ['coreField.OriginalFileName', 'document.CortexPath'],
         // columns of the table view; omit to offer grid views only
         tableColumns: [
-          { title: 'Identifier', field: 'CoreField.Identifier', width: '160px' },
-          { title: 'Title', field: 'CoreField.TitleWithFallback', width: 'minmax(0, 2fr)' },
-          { title: 'Description', field: 'Document.CaptionLong', lines: 2 },
+          { title: 'Identifier', field: 'CoreField.Identifier' },
+          { title: 'Title', field: 'CoreField.TitleWithFallback' },
+          { title: 'Description', field: 'Document.CaptionLong' },
         ],
+        tableRowActionPosition: 'host-edge', // 'host-edge' (default) or 'row-end'
         defaultGridView: 'table', // 'small', 'medium', 'large', 'table' (default: 'medium')
         // insert with the first available format instead of opening the format dialog
         autoSelectFormat: true,

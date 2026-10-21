@@ -61,7 +61,7 @@ export type TableColumnAlign = 'center' | 'left' | 'right';
  * default column list, so nothing here is guessed from the asset's doc type.
  */
 export type TableColumn = {
-  /** Horizontal alignment of the cell text. Default `left`. */
+  /** @deprecated Ignored. The table fits each column to its content, and the user resizes it. */
   align?: TableColumnAlign;
   /**
    * Cortex field the column reads, e.g. `CoreField.Identifier` or `Dell.Snippet`. It is appended to
@@ -72,23 +72,11 @@ export type TableColumn = {
    * field stays in the request, so that the next response can flag it again.
    */
   field: string;
-  /** Lines a cell shows before the text is clamped. Default 1. */
+  /** @deprecated Ignored. The table fits each column to its content, and the user resizes it. */
   lines?: number;
   /** Column header text. */
   title: string;
-  /**
-   * Column width, written as a CSS grid track. A length in pixels (`200px`) is a fixed width. A
-   * percentage (`25%`) is a fixed share of the table's width, in whole percents (a fraction is
-   * dropped, so `12.5%` is 12%), converted to pixels once when the table builds its columns; it
-   * does not follow later resizes of the table. A `<flex>` value (`2fr`) is a share of the width
-   * left over. A `minmax()` keeps a pixel minimum above 48px: `minmax(120px, 1fr)` is a share that
-   * never narrows below 120px, and `minmax(100px, 200px)` is a fixed 200px width that a drag can
-   * narrow to 100px. Any other form (`10rem`, `auto`, `max-content`) takes an equal flexible share.
-   * Default `minmax(0, 1fr)`. No column narrows below 48px, in the layout or in a drag, so a
-   * percentage share narrower than 48px renders at 48px. The one exception is a pixel width above 0
-   * and below 48px, which renders as set. A width of 0 (`0px`, or a `0fr` share) renders at 48px. A
-   * column has no maximum width.
-   */
+  /** @deprecated Ignored. The table fits each column to its content, and the user resizes it. */
   width?: string;
 };
 
@@ -253,6 +241,17 @@ export function isAutoSelectFormatActive(value: AutoSelectFormat): boolean {
 }
 
 export type CtaTextTransform = 'none' | 'uppercase' | 'lowercase' | 'capitalize';
+
+/**
+ * Where the table shows the row action: at the right edge of the host (`host-edge`), or at the end
+ * of the last data column (`row-end`).
+ */
+export type TableRowActionPosition = 'host-edge' | 'row-end';
+
+/** Reads a row action position. Any value other than `row-end` gives `host-edge`. */
+export function toTableRowActionPosition(value: unknown): TableRowActionPosition {
+  return value === 'row-end' ? 'row-end' : 'host-edge';
+}
 
 export enum ContentBrowserFormatDialogVariant {
   Dialog = 'dialog',

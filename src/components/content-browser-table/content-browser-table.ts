@@ -7,7 +7,7 @@ import _debounce from 'lodash-es/debounce';
 import CortexElement from '@/base/element';
 import componentStyles from '@/styles/component.styles';
 import { Asset } from '@/types/asset';
-import { type CtaTextTransform, TableColumn } from '@/types/content-browser';
+import { type CtaTextTransform, TableColumn, type TableRowActionPosition } from '@/types/content-browser';
 import { watch } from '@/utils/watch';
 /*
  * No published design-system version has a `components/table` entry. `cx-table` is defined by the
@@ -22,6 +22,7 @@ import CxResizeObserver from '@orangelogic/design-system/components/resize-obser
 import { customElement, LocalizeController } from '@orangelogic/design-system/utils';
 
 import CxContentBrowserNoResult from '../content-browser-no-result/content-browser-no-result';
+import { layoutColumnWidths, measureTextWidth, MIN_COLUMN_WIDTH } from './column-layout';
 import styles from './content-browser-table.styles';
 
 import type { CxResizeEvent } from '@/events';
@@ -39,7 +40,7 @@ type TabulatorEvent<T extends unknown[]> = CustomEvent<{ args: T }>;
 
 type TabulatorCell = {
   getElement(): HTMLElement | null;
-  getRow(): { getData(): Record<string, unknown>; getElement(): HTMLElement; normalizeHeight(): void };
+  getRow(): { getData(): Record<string, unknown>; getElement(): HTMLElement };
   getValue(): unknown;
 };
 
@@ -68,6 +69,7 @@ type TabulatorRow = {
 type RowCta = {
   assetId: string;
   button: CxButtonElement;
+  container: HTMLDivElement;
   label: HTMLSpanElement;
   rowElement: HTMLElement;
 };
@@ -75,31 +77,20 @@ type RowCta = {
 /** `cx-table`'s own row height, the one every other Cortex table renders at. */
 export const ROW_HEIGHT = 48;
 
-/** Narrow enough to be a deliberate choice, wide enough that a column never becomes a sliver. */
-export const MIN_COLUMN_WIDTH = 48;
+/** Kept here too, so the old import path of the column floor stays valid. */
+export { MIN_COLUMN_WIDTH };
 
-/** The trailing column that holds each row's CTA, keyed apart from every `column<n>` data column. */
-export const CTA_FIELD = 'cta';
-
-/** The empty column before the CTA column that takes the width no other column takes. */
+/** An invisible column keeps Tabulator rows present when every data column is hidden. */
 export const FILLER_FIELD = 'filler';
 
-/** The CTA column's width until a rendered button is measured. */
-const INITIAL_CTA_COLUMN_WIDTH = 96;
-
-/** The filler's share of the free space: above 0, which Tabulator reads as 1, and far below any data column's. */
-const FILLER_GROW = 0.001;
+/** A small buffer keeps the final resize handle clear of the frame and scrollbar. */
+const RESIZE_BUFFER_WIDTH = 6;
 
 /**
- * `(hover: none)` reads only the primary input, so a touch laptop or a tablet with a mouse matches
- * `(hover: hover)`, yet a finger on its touch screen has no hover either.
+ * `(hover: none)` reads only the primary input: a phone shows every CTA at rest, and a touch laptop
+ * shows them on hover as any laptop does. At rest, a CTA covers the end of the last column.
  */
-const NO_HOVER_QUERIES = ['(hover: none)', '(any-pointer: coarse)'];
-
-const FLEX_TRACK = /^(\d*\.?\d+)fr$/i;
-const MINMAX_TRACK = /^minmax\(\s*(.+?)\s*,\s*(.+?)\s*\)$/i;
-const PIXEL_LENGTH = /^(\d*\.?\d+)(px)?$/i;
-const PERCENT_LENGTH = /^\d*\.?\d+%$/;
+const NO_HOVER_QUERIES = ['(hover: none)'];
 
 /*
  * Constants rather than literals in the template: `cx-table` rebuilds its whole Tabulator instance
@@ -110,94 +101,25 @@ const COLUMN_DEFAULTS: Partial<TableColumnDefinition> = {
   resizable: true,
 };
 
-type ColumnSizing = Pick<TableColumnDefinition, 'minWidth' | 'width' | 'widthGrow'>;
-
-const FLEXIBLE: ColumnSizing = { minWidth: MIN_COLUMN_WIDTH, widthGrow: 1 };
-
-function parsePixels(value: string): number | undefined {
-  const match = PIXEL_LENGTH.exec(value.trim());
-
-  return match ? Number.parseFloat(match[1]) : undefined;
-}
-
-/** A host-authored minimum stands, unless it is one a flexible column could still collapse below. */
-function flexibleMinimum(minimum: string): number {
-  return Math.max(MIN_COLUMN_WIDTH, parsePixels(minimum) ?? 0);
-}
+/** The fonts and the horizontal padding that the auto-fit measures a column with. */
+type ColumnMetrics = { cellFont: string; headerFont: string; padding: number };
 
 /**
- * A drag stops only at a column's minimum, and Tabulator's own is 40px: a fixed column takes the
- * table's floor, or its authored width where that is narrower. Tabulator reads a width of 0 as no
- * width and gives the column a flexible share, so a column set to 0 floors at the table's floor.
+ * The font of an element as a canvas font string. Not the `font` shorthand: Chromium gives `''` for
+ * it when a font sub-property, such as `font-variant-numeric: tabular-nums`, cannot go into it.
  */
-function fixedSizing(width: number, minimum = 0): ColumnSizing {
-  if (width <= 0) {
-    return { minWidth: MIN_COLUMN_WIDTH, width: MIN_COLUMN_WIDTH };
-  }
+function canvasFont(element: Element): string {
+  const { fontFamily, fontSize, fontStyle, fontWeight } = getComputedStyle(element);
 
-  return { minWidth: Math.min(Math.max(MIN_COLUMN_WIDTH, minimum), width), width };
+  return `${fontStyle} ${fontWeight} ${fontSize} ${fontFamily}`;
 }
 
-/** Tabulator reads a `widthGrow` of 0 as 1, so a share of 0 is laid out as a fixed width at its floor. */
-function flexibleSizing(minimum: number, grow: number): ColumnSizing {
-  return grow > 0 ? { minWidth: minimum, widthGrow: grow } : { minWidth: minimum, width: minimum };
-}
+/** The left and right padding and border of an element: the width its box adds around its content. */
+function horizontalPadding(element: Element): number {
+  const style = getComputedStyle(element);
 
-/**
- * Maps a host column's `width`, authored as a CSS grid track, onto Tabulator column sizing under the
- * `fitColumns` layout: a pixel length is a fixed width, a percentage is a fixed share of the table
- * width in whole percents (`12.5%` is 12%), converted to pixels once when the table builds its
- * columns, or once it is shown if it built them hidden, and not resized afterward, a `<flex>` share
- * is `widthGrow`, and a `minmax()` keeps a pixel minimum above `MIN_COLUMN_WIDTH`. Any other track
- * takes an equal share of the free space.
- * Every column floors at `MIN_COLUMN_WIDTH` (48px). The one exception is a pixel width above 0 and
- * below 48px, which renders as set. A width of 0 (`0px`, or a `0fr` share) renders at 48px.
- */
-export function toColumnSizing(track: string | undefined): ColumnSizing {
-  const authored = track?.trim() ?? '';
-
-  if (!authored) {
-    return FLEXIBLE;
-  }
-
-  const pixels = parsePixels(authored);
-
-  if (pixels !== undefined) {
-    return fixedSizing(pixels);
-  }
-
-  if (PERCENT_LENGTH.test(authored)) {
-    // Tabulator reads a floor only as it builds the column, before the percentage becomes pixels, so a
-    // share narrower than the floor cannot keep its own width as a pixel track does.
-    return { minWidth: MIN_COLUMN_WIDTH, width: authored };
-  }
-
-  const flex = FLEX_TRACK.exec(authored);
-
-  if (flex) {
-    return flexibleSizing(MIN_COLUMN_WIDTH, Number.parseFloat(flex[1]));
-  }
-
-  const minmax = MINMAX_TRACK.exec(authored);
-
-  if (!minmax) {
-    return FLEXIBLE;
-  }
-
-  const [, minimum, maximum] = minmax;
-  const maximumFlex = FLEX_TRACK.exec(maximum);
-
-  if (maximumFlex) {
-    return flexibleSizing(flexibleMinimum(minimum), Number.parseFloat(maximumFlex[1]));
-  }
-
-  const maximumPixels = parsePixels(maximum);
-
-  if (maximumPixels !== undefined) {
-    return fixedSizing(maximumPixels, parsePixels(minimum));
-  }
-
-  return { ...FLEXIBLE, minWidth: flexibleMinimum(minimum) };
+  return (Number.parseFloat(style.paddingLeft) || 0) + (Number.parseFloat(style.paddingRight) || 0)
+    + (Number.parseFloat(style.borderLeftWidth) || 0) + (Number.parseFloat(style.borderRightWidth) || 0);
 }
 
 /**
@@ -222,7 +144,7 @@ export function readCellValue(asset: Asset, field: string): string {
 
 /** A value the column definitions depend on, so they are rebuilt only when the host's columns change. */
 function columnsSignature(columns: TableColumn[]): string {
-  return JSON.stringify(columns.map(({ align, field, lines, title, width }) => [align, field, lines, title, width]));
+  return JSON.stringify(columns.map(({ field, title }) => [field, title]));
 }
 
 /**
@@ -235,16 +157,17 @@ function isAppendOf(previous: Asset[], next: Asset[]): boolean {
     && previous.every((asset, index) => next[index] === asset);
 }
 
-function renderCellContent(value: string, lines: number, inColdStorage: boolean): HTMLElement {
+function renderCellContent(value: string, inColdStorage: boolean): HTMLElement {
   // Built as an element with text content, never as a string: Tabulator inserts a formatter's string
   // as HTML, and these values are the DAM's own metadata. A clamp at one line too, as `cx-table`
   // clamps its own cells and headers: a Tabulator cell neither clips nor ellipsizes what overflows it.
   const content = document.createElement('cx-line-clamp');
 
-  content.setAttribute('lines', String(lines));
+  content.setAttribute('lines', '1');
 
-  if (lines > 1) {
-    content.style.whiteSpace = 'normal';
+  // A hover shows the full value of a clipped cell or header.
+  if (value) {
+    content.title = value;
   }
 
   if (inColdStorage) {
@@ -254,19 +177,6 @@ function renderCellContent(value: string, lines: number, inColdStorage: boolean)
   content.textContent = value;
 
   return content;
-}
-
-/**
- * Tabulator sizes a row as it renders it, before the clamp has rendered its lines, and keeps that
- * height: the row is sized again once the clamp has, and never below a single-line row.
- */
-async function fitRowToClamp(cell: TabulatorCell, clamp: InstanceType<typeof CxLineClamp>) {
-  cell.getElement()?.style.setProperty('min-height', `${ROW_HEIGHT}px`);
-  await clamp.updateComplete;
-
-  if (clamp.isConnected) {
-    cell.getRow().normalizeHeight();
-  }
 }
 
 /**
@@ -290,11 +200,10 @@ async function fitRowToClamp(cell: TabulatorCell, clamp: InstanceType<typeof CxL
  * the last row comes into view: by scrolling the table's own scrollport, or by scrolling the page when
  * a table taller than the viewport holds its rows without overflowing and so never scrolls itself.
  * @event cx-content-browser-table-column-resize - Emitted when a host-configured column settles on a
- * new width: a drag of its divider released, or a double click on the divider that fits the column to
- * its content. Never emitted for the empty filler column or the CTA column, which have no divider.
- * `detail.width` is the column's width in whole pixels; `undefined` is never emitted. Resized widths
- * are session-only -- the SDK has no storage that survives a reload -- so this event is the host's
- * only chance to persist them.
+ * new width: a drag of its divider released (`detail.reset` is `false`), or a double click on the
+ * divider that removes the saved width and auto-fits the column (`detail.reset` is `true`). The
+ * filler and the row action have no divider. `detail.width` is the column's width in whole pixels,
+ * and is never `undefined`. The SDK saves the width itself.
  */
 @customElement('cx-content-browser-table')
 export default class CxContentBrowserTable extends CortexElement {
@@ -351,11 +260,32 @@ export default class CxContentBrowserTable extends CortexElement {
   /**
    * Fields of `columns`, compared exactly, whose columns the table does not show. A hidden column
    * keeps its place, its cell values and a dragged width, so it comes back with the rows and the
-   * scroll position unchanged. The filler and the CTA column always show, so when each host column
-   * is hidden, the rows stay with only their CTA.
+   * scroll position unchanged. The filler and the row action remain when every host column is hidden.
    */
   @property({ attribute: false })
   hiddenFields: string[] = [];
+
+  /**
+   * The widths that the user saved, in pixels, keyed by the trimmed `field`. A column with a saved
+   * width shows at that width. The other columns auto-fit to their content. A new map replaces the
+   * old one, the drags and resets in memory included.
+   */
+  @property({ attribute: false })
+  savedWidths: Record<string, number> = {};
+
+  /**
+   * The owner of `savedWidths`, such as the Cortex site. A new value drops the widths that a drag
+   * held for the session. A new `savedWidths` for the same owner keeps them.
+   */
+  @property({ attribute: false })
+  widthScope: string | undefined = undefined;
+
+  /**
+   * Where the row action shows: at the right edge of the host (`host-edge`), or at the end of the
+   * last data column (`row-end`).
+   */
+  @property({ attribute: 'row-action-position', reflect: true })
+  rowActionPosition: TableRowActionPosition = 'host-edge';
 
   assetMap: Map<string, Asset> = new Map();
 
@@ -378,13 +308,19 @@ export default class CxContentBrowserTable extends CortexElement {
   #heldRowKeys = new Set<string>();
 
   /**
-   * Widths the user has settled a column on, in pixels, keyed by the host's field: new definitions
-   * reach Tabulator through `setColumns`, which forgets every width a column was resized to.
+   * Widths the user has settled a column on, in pixels, keyed by the trimmed host field: new
+   * definitions reach Tabulator through `setColumns`, which forgets every width a column was resized
+   * to. Each new `savedWidths` replaces it, and a drag or a reset changes it until the next one. It
+   * keeps the width of a field the host removes, so the field gets it again when the host adds it back.
    */
   #resizedWidths = new Map<string, number>();
 
-  /** Set while the percentage columns hold the floor of a table built with no width (see `pinPercentWidths`). */
-  #percentWidthsPending = false;
+  /**
+   * Widths held for the session only, keyed by the trimmed host field: a drag keeps the width of
+   * the other auto-fit columns, so they do not take the space the drag frees. Never emitted or
+   * saved, so a reload or a new `widthScope` lets those columns fit again.
+   */
+  #sessionWidths = new Map<string, number>();
 
   /** Keyed by the row's element, which a row event and a host change can both reach. */
   #ctas = new WeakMap<HTMLElement, RowCta>();
@@ -415,15 +351,6 @@ export default class CxContentBrowserTable extends CortexElement {
    */
   #hasNoHover = false;
 
-  /** Carried into every rebuilt column set, so a new table starts at the width its button needs. */
-  #ctaColumnWidth = INITIAL_CTA_COLUMN_WIDTH;
-
-  /**
-   * The label the CTA column was fitted to since the rows were last replaced. Every CTA shares it, so
-   * one that renders with it measures nothing, however often Tabulator formats its row again.
-   */
-  #ctaFittedLabel: string | undefined;
-
   /** The Tabulator instance whose `tableBuilt` has fired: the only one rows may be handed to. */
   #builtTable: Tabulator | undefined;
 
@@ -441,8 +368,8 @@ export default class CxContentBrowserTable extends CortexElement {
 
   #lastHeight = 0;
 
-  /** The container's last observed size, as `<width>x<height>` in whole pixels. */
-  #containerSize: string | undefined;
+  /** The container's last observed size, in whole pixels. */
+  #containerSize: { height: number; width: number } | undefined;
 
   #lastRowCount: number | undefined;
 
@@ -454,6 +381,22 @@ export default class CxContentBrowserTable extends CortexElement {
 
   #lastRowObserver: IntersectionObserver | undefined;
 
+  /** The width of the vertical scrollbar that the last auto-fit left space for. */
+  #layoutScrollbarWidth = 0;
+
+  /**
+   * The natural width of each column at the last full layout, keyed by row key. A relayout for a
+   * scrollbar that comes or goes reuses them, so the rows of an appended page are never measured.
+   */
+  #naturalWidths = new Map<string, number>();
+
+  /** Set when a layout found the table with no width. The next container resize runs it. */
+  #layoutPending = false;
+
+  #fontsPending = false;
+
+  #frameWidthObserver: ResizeObserver | undefined;
+
   private get tabulator(): Tabulator | undefined {
     const instance = this.tableEl?.tabulatorInstance ?? undefined;
 
@@ -464,23 +407,6 @@ export default class CxContentBrowserTable extends CortexElement {
   /** Tabulator's row holder: the one element that scrolls the rows. */
   private get scrollport(): HTMLElement | undefined {
     return this.tabulator?.rowManager?.element ?? undefined;
-  }
-
-  private get hasMultilineColumn(): boolean {
-    return this.columns.some((column) => (column.lines ?? 1) > 1);
-  }
-
-  private resolveColumnSizing(column: TableColumn): ColumnSizing {
-    const sizing = toColumnSizing(column.width);
-    const resized = this.#resizedWidths.get(column.field);
-
-    if (resized === undefined) {
-      return sizing;
-    }
-
-    // Pinned at the dragged width, keeping its floor but no share of the free space, as the live
-    // column is pinned once its drag settles (see `handleColumnResized`).
-    return { minWidth: sizing.minWidth, width: resized };
   }
 
   /** Each host column's row key, in order: a field the host repeats takes a key per occurrence. */
@@ -500,23 +426,27 @@ export default class CxContentBrowserTable extends CortexElement {
   }
 
   private buildColumnDefinitions(): TableColumnDefinition[] {
-    return [...this.buildDataColumnDefinitions(), this.buildFillerColumnDefinition(), this.buildCtaColumnDefinition()];
+    return [...this.buildDataColumnDefinitions(), this.buildFillerColumnDefinition()];
   }
 
+  /**
+   * A pixel width for each column, so the `fitData` layout never sizes it from its content. The
+   * auto-fit sets the real width once the columns are built (see `applyColumnLayout`). Until then a
+   * column keeps the width it had in the previous definitions.
+   */
   private buildDataColumnDefinitions(): TableColumnDefinition[] {
     const hidden = new Set(this.hiddenFields);
     const keys = this.resolveColumnKeys();
-    const variableRowHeight = this.hasMultilineColumn;
+    const previousWidths = new Map(this.#columnDefinitions.map(({ field, width }) => [String(field), width]));
 
     return this.columns.map((column, index) => {
-      const lines = Math.max(1, column.lines ?? 1);
+      const previous = previousWidths.get(keys[index]);
 
       return {
         field: keys[index],
-        formatter: (cell: TabulatorCell, _params: unknown, onRendered: (callback: () => void) => void) => {
+        formatter: (cell: TabulatorCell) => {
           const row = cell.getRow();
           const inColdStorage = Boolean(row.getData().inColdStorage);
-          const content = renderCellContent(String(cell.getValue() ?? ''), lines, inColdStorage);
 
           if (inColdStorage) {
             // No click or insert reaches the host from this row, so it takes no pointer: `cx-table`
@@ -524,53 +454,36 @@ export default class CxContentBrowserTable extends CortexElement {
             row.getElement().style.pointerEvents = 'none';
           }
 
-          if (lines > 1) {
-            onRendered(() => void fitRowToClamp(cell, content as InstanceType<typeof CxLineClamp>));
-          } else if (variableRowHeight) {
-            // A row is as tall as its shown cells, so hiding the multi-line column must not shrink it.
-            onRendered(() => cell.getElement()?.style.setProperty('min-height', `${ROW_HEIGHT}px`));
-          }
-
-          return content;
+          return renderCellContent(String(cell.getValue() ?? ''), inColdStorage);
         },
-        headerHozAlign: column.align,
-        // Never `false`: Tabulator awaits a `show()` for it as it builds the header, so a percentage
-        // column still has a width of 0 when `pinPercentWidths` pins it, and lays out as flexible.
+        // Never `false`: Tabulator awaits a `show()` for it as it builds the header.
         hidden: hidden.has(column.field) || undefined,
-        hozAlign: column.align,
+        minWidth: MIN_COLUMN_WIDTH,
         title: column.title,
         // A node, as for a cell: `cx-table` parses a title string as HTML.
-        titleFormatter: (cell: TabulatorCell) => renderCellContent(String(cell.getValue() ?? ''), 1, false),
-        variableHeight: lines > 1,
-        ...this.resolveColumnSizing(column),
+        titleFormatter: (cell: TabulatorCell) => renderCellContent(String(cell.getValue() ?? ''), false),
+        width: this.#resizedWidths.get(column.field.trim())
+          ?? this.#sessionWidths.get(column.field.trim())
+          ?? (typeof previous === 'number' ? previous : MIN_COLUMN_WIDTH),
       };
     });
   }
 
   /**
-   * `fitColumns` gives the free space only to columns with no fixed width, and a drag fixes the width
-   * of the column it resizes. Once every data column has one, this column takes the space they leave,
-   * which would otherwise show blank, and keeps the CTA at the right edge. The CTA column cannot do it
-   * itself: its floor is the button's measured width, and Tabulator reads a floor only as it builds the
-   * column.
+   * Tabulator replaces its rows with a placeholder when no columns remain visible. This invisible
+   * column keeps the rows and their actions available when the host hides every data column.
+   * Its small, fixed width gives the final resize handle a buffer without a visible empty column.
    */
   private buildFillerColumnDefinition(): TableColumnDefinition {
-    const variableRowHeight = this.hasMultilineColumn;
-
     return {
       field: FILLER_FIELD,
       formatter: (cell: TabulatorCell) => {
         const element = cell.getElement();
 
-        if (variableRowHeight) {
-          // A row is as tall as its shown cells, and Cortex can hide each host cell that carries the
-          // minimum. On the row, not on this cell or the CTA cell: Tabulator stretches them to it.
-          cell.getRow().getElement().style.minHeight = `${ROW_HEIGHT}px`;
-        }
-
         if (element) {
-          // `cx-table` pads every cell, which would render the 1px column far wider than it is laid out.
+          // The buffer must keep its width even when the theme adds cell padding.
           element.style.padding = '0';
+          element.style.visibility = 'hidden';
           // The pointer lands on the row itself, so the filler has no hover or click of its own.
           element.style.pointerEvents = 'none';
           element.setAttribute('aria-hidden', 'true');
@@ -580,48 +493,21 @@ export default class CxContentBrowserTable extends CortexElement {
       },
       headerSort: false,
       // A column laid out at 0 loses its width style, and renders as wide as its content.
-      minWidth: 1,
+      minWidth: RESIZE_BUFFER_WIDTH,
       resizable: false,
       title: '',
       titleFormatter: (cell: TabulatorHeaderCell) => {
         const header = cell.getColumn().getElement();
 
-        // No divider of its own: at 1px it doubles the one before it, and wide it splits the empty
-        // area over the CTA column.
+        // Out of sight, yet a screen reader reads it as the header of each row's action gridcell.
+        header.style.opacity = '0';
         header.style.borderRight = 'none';
         header.style.pointerEvents = 'none';
-        header.setAttribute('aria-hidden', 'true');
+        header.setAttribute('aria-label', this.ctaLabel);
 
         return '';
       },
-      widthGrow: FILLER_GROW,
-    };
-  }
-
-  /**
-   * A button of our own in a formatter cell rather than a `cx-table` hover-menu action: a row action
-   * renders an icon, with its label only as a tooltip.
-   */
-  private buildCtaColumnDefinition(): TableColumnDefinition {
-    return {
-      field: CTA_FIELD,
-      formatter: (cell: TabulatorCell) => this.renderCta(cell),
-      // Held at the right edge of a table wider than the picker: a click on the row hands nothing
-      // over, so the CTA is the only insert a row has.
-      frozen: true,
-      headerSort: false,
-      hozAlign: 'right',
-      // Tabulator's default floor would hold a narrower button's column wider than it is measured.
-      minWidth: 0,
-      resizable: false,
-      title: '',
-      // Untitled on screen, but a header a screen reader reads needs a name.
-      titleFormatter: (cell: TabulatorHeaderCell) => {
-        cell.getColumn().getElement().setAttribute('aria-label', this.ctaLabel);
-
-        return '';
-      },
-      width: this.#ctaColumnWidth,
+      width: RESIZE_BUFFER_WIDTH,
     };
   }
 
@@ -629,18 +515,38 @@ export default class CxContentBrowserTable extends CortexElement {
     return this.ctaText || this.localize.term('insert');
   }
 
-  private renderCta(cell: TabulatorCell): HTMLElement | string {
-    const row = cell.getRow();
+  /** The action overlays its row and takes no column width. */
+  private renderRowAction(row: TabulatorRow) {
     const data = row.getData();
+    const rowElement = row.getElement();
+    const previous = this.#ctas.get(rowElement);
 
-    if (data.inColdStorage) {
-      return '';
+    rowElement.part.add('content-browser-row');
+    previous?.container.remove();
+
+    if (previous) {
+      this.#renderedCtas.delete(previous);
+      this.#ctas.delete(rowElement);
     }
 
-    const rowElement = row.getElement();
+    if (data.inColdStorage) {
+      rowElement.style.pointerEvents = 'none';
+      return;
+    }
+
+    rowElement.style.pointerEvents = '';
+    const container = document.createElement('div');
+    const overlay = document.createElement('div');
     const button = document.createElement('cx-button');
     const label = document.createElement('span');
-    const cta: RowCta = { assetId: String(data.id ?? ''), button, label, rowElement };
+    const cta: RowCta = { assetId: String(data.id ?? ''), button, container, label, rowElement };
+
+    container.part.add('content-browser-action-anchor');
+    container.setAttribute('role', 'gridcell');
+    overlay.part.add('content-browser-action');
+    overlay.append(button);
+    container.append(overlay);
+    rowElement.append(container);
 
     // A click on the row hands nothing over, so the row takes no pointer cursor, which `cx-table`
     // gives every selectable row. The CTA keeps a pointer cursor of its own.
@@ -648,8 +554,7 @@ export default class CxContentBrowserTable extends CortexElement {
     button.classList.add('content-browser-table__cta');
     button.setAttribute('size', 'small');
     button.setAttribute('variant', 'primary');
-    // Its own label's width in any column, so the column can be measured against it: `cx-button`
-    // caps itself at its container's width.
+    // The label supplies the overlay width without a column measurement.
     button.style.width = 'max-content';
     button.style.maxWidth = 'none';
     label.style.whiteSpace = 'nowrap';
@@ -673,20 +578,10 @@ export default class CxContentBrowserTable extends CortexElement {
       this.paintCta(cta);
     });
 
-    const previous = this.#ctas.get(rowElement);
-
-    // Tabulator formats a row again into the same element, which takes the CTA it held off the page for good.
-    if (previous) {
-      this.#renderedCtas.delete(previous);
-    }
-
     this.#ctas.set(rowElement, cta);
     this.#renderedCtas.add(cta);
     this.trackPointer(rowElement);
     this.paintCta(cta);
-    void this.fitCtaColumn(cta);
-
-    return button;
   }
 
   private isCtaShown(cta: RowCta): boolean {
@@ -710,7 +605,10 @@ export default class CxContentBrowserTable extends CortexElement {
     cta.button.loading = cta.assetId === this.busyAssetId;
     // Opacity rather than visibility: a hidden CTA stays in the tab order, where focus reaching it
     // shows it.
-    cta.button.style.opacity = this.isCtaShown(cta) ? '1' : '0';
+    const shown = this.isCtaShown(cta);
+
+    cta.container.style.opacity = shown ? '1' : '0';
+    cta.container.style.pointerEvents = shown ? '' : 'none';
   }
 
   private paintRowCta(rowElement: HTMLElement | undefined) {
@@ -765,59 +663,21 @@ export default class CxContentBrowserTable extends CortexElement {
     }
   }
 
-  /**
-   * The label is the host's, so no fixed width fits it: the column takes the rendered button's
-   * width plus whatever its cell puts around the button.
-   */
-  private async fitCtaColumn(cta: RowCta) {
-    await cta.button.updateComplete;
-
-    const tabulator = this.tabulator;
-    const column = (tabulator?.getColumn(CTA_FIELD) || undefined) as TabulatorColumn | undefined;
-    const container = cta.button.parentElement;
-
-    if (!tabulator || !column || !container || !cta.button.isConnected) {
-      return;
-    }
-
-    const labelKey = `${this.ctaLabel}\u0000${this.ctaTextTransform}`;
-
-    if (labelKey === this.#ctaFittedLabel) {
-      return;
-    }
-
-    const header = column.getElement().getBoundingClientRect().width;
-
-    // A table that CSS hides lays out no cell and no button to measure: the column is fitted once the
-    // table is shown again (see `handleResize`).
-    if (container.clientWidth === 0 || header === 0) {
-      return;
-    }
-
-    this.#ctaFittedLabel = labelKey;
-
-    const style = getComputedStyle(container);
-    const content = container.clientWidth - Number.parseFloat(style.paddingLeft) - Number.parseFloat(style.paddingRight);
-    // A scaled ancestor scales what `getBoundingClientRect` reports, never a layout width: the button is
-    // taken back to the column's own pixels by the scale its header renders at.
-    const scale = column.getWidth() > 0 ? header / column.getWidth() : 1;
-    const width = Math.ceil(column.getWidth() - content + cta.button.getBoundingClientRect().width / scale);
-
-    if (width === Math.round(column.getWidth())) {
-      return;
-    }
-
-    this.#ctaColumnWidth = width;
-    // `fitColumns` sizes a column by its definition on every layout, not by its live width.
-    column.getDefinition().width = width;
-    await column.setWidth(width);
-    // Lays the other columns out around the new width.
-    this.redrawTable();
-  }
-
   /** Lays the columns and the rendered rows out again. */
   private redrawTable() {
     this.tabulator?.redraw();
+    this.syncTableFrame();
+  }
+
+  /** The frame ends at the data columns. The scrollport remains available to the row actions. */
+  private syncTableFrame() {
+    const columns = this.tabulator?.getColumns() as TabulatorColumn[] | undefined;
+    const widths = columns?.filter((column) => column.getField() !== FILLER_FIELD && column.isVisible())
+      .map((column) => column.getWidth()) ?? [];
+    // A column with no width yet keeps the empty frame full width until the first layout.
+    const width = widths.every((value) => value > 0) ? widths.reduce((total, value) => total + value, 0) : 0;
+
+    this.tableEl?.style.setProperty('--content-browser-table-width', width > 0 ? `${width + RESIZE_BUFFER_WIDTH}px` : '100%');
   }
 
   /**
@@ -835,6 +695,13 @@ export default class CxContentBrowserTable extends CortexElement {
 
   private handleRenderComplete(event: Event) {
     event.stopPropagation();
+
+    // A vertical scrollbar that comes or goes changes the space for the columns.
+    if (this.getScrollbarWidth() !== this.#layoutScrollbarWidth) {
+      this.applyColumnLayout(false);
+    }
+
+    this.syncTableFrame();
 
     const button = this.#ctaFocusedAtRender;
 
@@ -882,57 +749,141 @@ export default class CxContentBrowserTable extends CortexElement {
     row.getElement().setAttribute('aria-current', current ? 'true' : 'false');
   }
 
-  private getPercentColumns(tabulator: Tabulator): TabulatorColumn[] {
-    return (tabulator.getColumns() as TabulatorColumn[]).filter((column) => {
-      const { width } = column.getDefinition();
+  /**
+   * The fonts and the padding of a rendered header title and data cell. A table with no rendered
+   * cell measures the values in the header font, with the header padding.
+   */
+  private readColumnMetrics(columns: TabulatorColumn[]): ColumnMetrics | undefined {
+    const header = columns.map((column) => column.getElement()).find((element) => element.isConnected);
+    const title = header?.querySelector('.tabulator-col-title cx-line-clamp')
+      ?? header?.querySelector('.tabulator-col-title');
 
-      return typeof width === 'string' && PERCENT_LENGTH.test(width);
-    });
+    if (!header || !title) {
+      return undefined;
+    }
+
+    const headerFont = canvasFont(title);
+    const headerContent = header.querySelector('.tabulator-col-content');
+    const headerPadding = horizontalPadding(header) + (headerContent ? horizontalPadding(headerContent) : 0)
+      + horizontalPadding(title.closest('.tabulator-col-title') ?? title);
+    const key = header.getAttribute('tabulator-field') ?? '';
+    const cell = this.tableEl?.shadowRoot?.querySelector<HTMLElement>(`.tabulator-row .tabulator-cell[tabulator-field="${key}"]`);
+    const text = cell?.querySelector('cx-line-clamp');
+
+    if (!cell || !text) {
+      return { cellFont: headerFont, headerFont, padding: headerPadding };
+    }
+
+    return { cellFont: canvasFont(text), headerFont, padding: Math.max(headerPadding, horizontalPadding(cell)) };
+  }
+
+  private getScrollbarWidth(): number {
+    const scrollport = this.tableEl?.tabulatorInstance?.rowManager?.element as HTMLElement | undefined;
+
+    return scrollport ? scrollport.offsetWidth - scrollport.clientWidth : 0;
+  }
+
+  /** The widest of the title and the values of the loaded rows, plus the padding. */
+  private measureNaturalWidth(column: TableColumn, metrics: ColumnMetrics): number {
+    const widest = this.#syncedAssets.reduce(
+      (width, asset) => Math.max(width, measureTextWidth(readCellValue(asset, column.field), metrics.cellFont)),
+      measureTextWidth(column.title, metrics.headerFont),
+    );
+
+    // A sub-pixel border or text width must never clip the widest value, so round the total up.
+    return Math.ceil(widest + metrics.padding);
   }
 
   /**
-   * Tabulator converts a percentage to pixels once, as it builds the column, but `fitColumns` goes on
-   * budgeting the column at that share of the table's current width, which leaves the flexible columns
-   * a gap or an overflow at any other width: the column is budgeted at the width it was built at. A
-   * table hidden as it builds its columns has no width to take a share of, and Tabulator floors every
-   * share at the column's minimum: those shares are converted once the table is shown.
+   * Sets the width of each visible host column: a saved or session width as is, and an auto-fit
+   * width for the other columns, inside the width of the table (see `layoutColumnWidths`). A hidden
+   * column keeps its width. A table with no width, as one in a hidden panel, keeps its widths until
+   * it is shown.
+   * @param measure Measure the natural widths again. Leave it false to reuse the natural widths of
+   * the last full layout, for a change of the available width only.
    */
-  private pinPercentWidths(tabulator: Tabulator) {
-    const columns = this.getPercentColumns(tabulator);
+  private applyColumnLayout(measure = true) {
+    const tabulator = this.tableEl?.tabulatorInstance;
+    const element = tabulator && !tabulator.destroyed ? tabulator.element as HTMLElement | undefined : undefined;
 
-    this.#percentWidthsPending = columns.length > 0 && tabulator.element.clientWidth === 0;
-
-    if (this.#percentWidthsPending) {
+    if (!tabulator || !element) {
       return;
     }
 
-    columns.forEach((column) => {
-      column.getDefinition().width = column.getWidth();
+    if (element.clientWidth === 0) {
+      // A ResizeObserver reports no size for a box that has none, so the table lays out when shown.
+      this.#layoutPending ||= measure;
+      return;
+    }
+
+    if (measure) {
+      this.#layoutPending = false;
+      this.layoutAgainWhenFontsLoad();
+    }
+
+    const hidden = new Set(this.hiddenFields);
+    const keys = this.resolveColumnKeys();
+    const shown = this.columns.flatMap((column, index) => {
+      const tabulatorColumn = hidden.has(column.field) ? false : tabulator.getColumn(keys[index]) as TabulatorColumn | false;
+
+      return tabulatorColumn ? [{ column, key: keys[index], tabulatorColumn }] : [];
+    });
+    const metrics = this.readColumnMetrics(shown.map(({ tabulatorColumn }) => tabulatorColumn));
+
+    if (!metrics) {
+      return;
+    }
+
+    const scrollbar = this.getScrollbarWidth();
+
+    this.#layoutScrollbarWidth = scrollbar;
+    const widths = layoutColumnWidths(shown.map(({ column, key }) => {
+      let natural = measure ? undefined : this.#naturalWidths.get(key);
+
+      if (natural === undefined) {
+        natural = this.measureNaturalWidth(column, metrics);
+        this.#naturalWidths.set(key, natural);
+      }
+
+      return { natural, saved: this.#resizedWidths.get(column.field.trim()) ?? this.#sessionWidths.get(column.field.trim()) };
+    }), element.clientWidth - RESIZE_BUFFER_WIDTH - scrollbar);
+
+    shown.forEach(({ key, tabulatorColumn }, index) => {
+      const width = widths[index];
+
+      void tabulatorColumn.setWidth(width);
+      // `setColumns` and a remount build the columns from the definitions again.
+      tabulatorColumn.getDefinition().width = width;
+
+      const definition = this.#columnDefinitions.find(({ field }) => field === key);
+
+      if (definition) {
+        definition.width = width;
+      }
+    });
+    this.syncTableFrame();
+  }
+
+  /**
+   * The canvas measures with a fallback font while a web font loads, so measure again once the fonts
+   * are ready. Guarded by one pending wait, and by the connection of the element.
+   */
+  private layoutAgainWhenFontsLoad() {
+    if (this.#fontsPending || document.fonts?.status !== 'loading') {
+      return;
+    }
+
+    this.#fontsPending = true;
+    void document.fonts.ready.then(() => {
+      this.#fontsPending = false;
+
+      if (this.isConnected) {
+        this.applyColumnLayout();
+      }
     });
   }
 
-  /** At the first width the table has, as Tabulator converts a share when it builds the column. */
-  private async convertPendingPercentWidths() {
-    const tabulator = this.tabulator;
-
-    if (!this.#percentWidthsPending || !tabulator || tabulator.element.clientWidth === 0) {
-      return;
-    }
-
-    this.#percentWidthsPending = false;
-
-    const tableWidth = tabulator.element.clientWidth;
-
-    await Promise.all(this.getPercentColumns(tabulator).map(async (column) => {
-      const definition = column.getDefinition();
-
-      // `setWidth` floors the width at the column's minimum, as the build does.
-      await column.setWidth(Math.floor(tableWidth / 100 * Number.parseInt(String(definition.width), 10)));
-      definition.width = column.getWidth();
-    }));
-    // Lays the other columns out around the converted widths.
-    this.redrawTable();
-  }
+  private readonly debouncedApplyColumnLayout = _debounce(this.applyColumnLayout, 100);
 
   /**
    * `content-browser` hands over the whole list on every page, so a list that only grows by a page
@@ -966,6 +917,9 @@ export default class CxContentBrowserTable extends CortexElement {
       } finally {
         this.#pendingReplaces -= 1;
       }
+
+      // A new list lays the columns out again. An appended page keeps the widths while the user scrolls.
+      this.applyColumnLayout();
     }
 
     this.markCurrentRow(this.selectedAssetId, true);
@@ -978,6 +932,29 @@ export default class CxContentBrowserTable extends CortexElement {
     event.stopPropagation();
 
     this.#builtTable = this.tableEl?.tabulatorInstance ?? undefined;
+    if (this.#builtTable) {
+      this.#builtTable.options.rowFormatter = (row) => this.renderRowAction(row);
+    }
+    // Keep the scrollport available to actions at the container edge. The frame follows the data width.
+    const frame = this.scrollport?.parentElement;
+
+    frame?.style.setProperty('width', '100%');
+    frame?.part.add('content-browser-frame');
+    this.scrollport?.part.add('content-browser-scrollport');
+    const header = this.tableEl?.shadowRoot?.querySelector<HTMLElement>('.tabulator-header');
+    const columns = header?.querySelector('.tabulator-headers');
+
+    header?.part.add('content-browser-header');
+    // The same listener is added once only, also when a new Tabulator instance is built in the same `cx-table`.
+    this.tableEl?.shadowRoot?.addEventListener('dblclick', this.handleResizeHandleDoubleClick, { capture: true });
+    this.#frameWidthObserver?.disconnect();
+    if (columns) {
+      // Column resize events fire on release. Observe the intrinsic width to follow each drag frame,
+      // plus column hide/show, without a redraw that changes the user's widths or scroll position.
+      this.#frameWidthObserver = new ResizeObserver(() => this.syncTableFrame());
+      this.#frameWidthObserver.observe(columns);
+    }
+    this.syncTableFrame();
     this.#syncedAssets = [];
     void this.syncRows();
   }
@@ -993,23 +970,15 @@ export default class CxContentBrowserTable extends CortexElement {
     this.#hoveredRow = undefined;
     this.#focusedCta = undefined;
     this.#renderedCtas.clear();
-    // Fitted once per list: a new table or column set starts the CTA column at its definitions' width.
-    this.#ctaFittedLabel = undefined;
   }
 
   /**
-   * Every `setColumns` builds the columns again from the host definitions, which keep the
-   * percentage: `cx-table` calls it from its own `tableBuilt` handler, after this component's has
-   * run, and again for every new column set.
+   * Every `setColumns` builds the columns again from the definitions: `cx-table` calls it from its
+   * own `tableBuilt` handler, after this component's has run, and again for every new column set.
    */
   private handleColumnsLoaded(event: Event) {
     event.stopPropagation();
-
-    const tabulator = this.tableEl?.tabulatorInstance;
-
-    if (tabulator && !tabulator.destroyed) {
-      this.pinPercentWidths(tabulator);
-    }
+    this.applyColumnLayout();
   }
 
   willUpdate(changedProperties: PropertyValues<this>) {
@@ -1029,14 +998,36 @@ export default class CxContentBrowserTable extends CortexElement {
       // rows the table holds out under the new columns, so they are built again only for a key one of
       // them carries no value under.
       this.#rowsNeedRebuild = this.hasUpdated && this.resolveColumnKeys().some((key) => !this.#heldRowKeys.has(key));
-      this.forgetRemovedColumnWidths();
+    }
+
+    const savedWidthsChanged = changedProperties.has('savedWidths');
+    const widthScopeChanged = changedProperties.has('widthScope');
+
+    if (widthScopeChanged) {
+      this.#sessionWidths.clear();
+    }
+
+    if (savedWidthsChanged) {
+      this.applySavedWidths();
     }
 
     if (columnsChanged || tableRemounts) {
       this.#columnDefinitions = this.buildColumnDefinitions();
     } else if (changedProperties.has('hiddenFields')) {
       this.applyHiddenFields();
+    } else if (savedWidthsChanged || widthScopeChanged) {
+      this.applyColumnLayout();
     }
+  }
+
+  /**
+   * The new saved widths replace all the widths in memory: a width that the new map does not hold,
+   * for example one of another site, goes away. Only a positive width counts: a bad entry has no effect.
+   */
+  private applySavedWidths() {
+    this.#resizedWidths = new Map(Object.entries(this.savedWidths ?? {}).flatMap(([field, width]) => (
+      typeof width === 'number' && Number.isFinite(width) && width > 0 ? [[field.trim(), Math.round(width)] as const] : []
+    )));
   }
 
   /**
@@ -1046,12 +1037,13 @@ export default class CxContentBrowserTable extends CortexElement {
   private applyHiddenFields() {
     const hidden = new Set(this.hiddenFields);
     const keys = this.resolveColumnKeys();
+    const shows: Promise<void>[] = [];
 
     this.#columnDefinitions.forEach((definition) => {
       const field = String(definition.field);
       const hostColumn = this.columns[keys.indexOf(field)];
 
-      // The filler and the CTA column are the table's own, and the host cannot hide them.
+      // The host cannot hide the filler.
       if (!hostColumn) {
         return;
       }
@@ -1067,28 +1059,26 @@ export default class CxContentBrowserTable extends CortexElement {
         if (isHidden) {
           column.hide();
         } else {
-          void column.show();
+          shows.push(column.show());
         }
       }
     });
+
+    // The other columns take the space of a hidden column, and give space to a shown one.
+    void Promise.all(shows).then(() => this.applyColumnLayout());
   }
 
   updated(changedProperties: PropertyValues<this>) {
     super.updated(changedProperties);
 
+    if (this.empty) {
+      this.#frameWidthObserver?.disconnect();
+    }
+
     if (this.#rowsNeedRebuild) {
       this.#rowsNeedRebuild = false;
       void this.rebuildRows();
     }
-  }
-
-  /** A column the host stops configuring starts again from the host's width if it comes back. */
-  private forgetRemovedColumnWidths() {
-    const fields = new Set(this.columns.map((column) => column.field));
-
-    [...this.#resizedWidths.keys()]
-      .filter((field) => !fields.has(field))
-      .forEach((field) => this.#resizedWidths.delete(field));
   }
 
   /** Once `cx-table` has taken the new column definitions. */
@@ -1160,21 +1150,11 @@ export default class CxContentBrowserTable extends CortexElement {
   @watch(['ctaText', 'ctaTextTransform'], { waitUntilFirstUpdate: true })
   handleCtaTextChange() {
     // A new label builds no new columns, so the header keeps the name its title formatter gave it.
-    ((this.tabulator?.getColumn(CTA_FIELD) || undefined) as TabulatorColumn | undefined)
+    ((this.tabulator?.getColumn(FILLER_FIELD) || undefined) as TabulatorColumn | undefined)
       ?.getElement().setAttribute('aria-label', this.ctaLabel);
 
     // A row not rendered yet has no CTA, and takes the new label when it renders one.
     this.#renderedCtas.forEach((cta) => this.paintCta(cta));
-    this.fitRenderedCta();
-  }
-
-  /** Every CTA shares the label, so one on the page measures the column for all of them. */
-  private fitRenderedCta() {
-    const rendered = [...this.#renderedCtas].find((cta) => cta.button.isConnected);
-
-    if (rendered) {
-      void this.fitCtaColumn(rendered);
-    }
   }
 
   private readonly handleNoHoverChange = () => {
@@ -1199,8 +1179,7 @@ export default class CxContentBrowserTable extends CortexElement {
     this.handleNoHoverChange();
 
     // A reconnect, which a move of the picker is, makes `cx-table` build a new Tabulator instance
-    // from definitions that predate every drag and every fit of the CTA column since the columns
-    // last changed.
+    // from definitions that predate the data-column drags.
     if (this.hasUpdated) {
       this.#columnDefinitions = this.buildColumnDefinitions();
       this.requestUpdate();
@@ -1213,10 +1192,12 @@ export default class CxContentBrowserTable extends CortexElement {
     this.#noHoverQueries.forEach((list) => list.removeEventListener('change', this.handleNoHoverChange));
     this.#noHoverQueries = [];
     this.#lastRowObserver?.disconnect();
+    this.#frameWidthObserver?.disconnect();
     this.debouncedCalculatePageSize.cancel();
     this.debouncedHandleScrollEnd.cancel();
     this.debouncedHandleLastRowVisible.cancel();
     this.debouncedRedrawTable.cancel();
+    this.debouncedApplyColumnLayout.cancel();
   }
 
   private handleResize(event: CxResizeEvent) {
@@ -1232,24 +1213,34 @@ export default class CxContentBrowserTable extends CortexElement {
 
     this.debouncedCalculatePageSize(height);
     this.refitToContainer(width, height);
-    void this.convertPendingPercentWidths();
-    // A CTA that rendered or took a new label while the table was hidden is measured once it is shown.
-    this.fitRenderedCta();
+
+    // The first size of a table built with no width comes only once the table is shown.
+    if (this.#layoutPending) {
+      this.applyColumnLayout();
+    }
   }
 
   /**
-   * `cx-table` lays its columns and rows out again for a new container size only until the first
-   * drag of a column divider. After it, the columns keep the old width and the rows fill only the old
-   * height, which leaves a blank area right of the columns or under the rows.
+   * A new container width changes the space that the auto-fit shares out, so the columns are laid
+   * out again. `cx-table` renders its rows again for a new container height only until the first drag
+   * of a column divider, so a new height redraws the rows, which leaves no blank area under them.
    */
   private refitToContainer(width: number, height: number) {
-    const size = `${Math.round(width)}x${Math.round(height)}`;
+    const size = { height: Math.round(height), width: Math.round(width) };
     const previous = this.#containerSize;
 
     this.#containerSize = size;
 
     // The first size observed is the one the table is built at.
-    if (previous !== undefined && previous !== size) {
+    if (previous === undefined) {
+      return;
+    }
+
+    if (previous.width !== size.width) {
+      this.debouncedApplyColumnLayout();
+    }
+
+    if (previous.height !== size.height) {
       this.debouncedRedrawTable();
     }
   }
@@ -1392,11 +1383,16 @@ export default class CxContentBrowserTable extends CortexElement {
     });
   }
 
+  /** The host field of a row key, or `undefined` for the filler. */
+  private fieldOfKey(key: string | null | undefined): string | undefined {
+    return key ? this.columns[this.resolveColumnKeys().indexOf(key)]?.field : undefined;
+  }
+
   private handleColumnResized(event: TabulatorEvent<[TabulatorColumn]>) {
     event.stopPropagation();
 
     const [column] = event.detail.args;
-    const field = this.columns[this.resolveColumnKeys().indexOf(column.getField())]?.field;
+    const field = this.fieldOfKey(column.getField());
 
     if (field === undefined) {
       return;
@@ -1404,20 +1400,78 @@ export default class CxContentBrowserTable extends CortexElement {
 
     const width = Math.round(column.getWidth());
 
-    // `fitColumns` sizes each column by its definition on every layout, which every new list runs:
-    // a flexible one would snap back to its share, and a fixed one would be budgeted at its old width.
+    // `setColumns` and a remount build the column from its definition again.
     column.getDefinition().width = width;
-    this.#resizedWidths.set(field, width);
+    this.#resizedWidths.set(field.trim(), width);
+    this.holdOtherAutoFitWidths(field);
     this.emit('cx-content-browser-table-column-resize', {
       detail: {
         field,
+        reset: false,
         width,
       },
     });
-    // A drag resizes the dragged column only: the width it frees or takes goes to the flexible
-    // columns, the filler among them, only on the next layout.
-    this.redrawTable();
+    this.applyColumnLayout();
   }
+
+  /**
+   * Holds each other visible auto-fit column at its width when the drag ends, for the session. A drag
+   * on one column must not change the width of another column (L-42CA9K issue 2).
+   */
+  private holdOtherAutoFitWidths(dragged: string) {
+    const hidden = new Set(this.hiddenFields);
+    const keys = this.resolveColumnKeys();
+
+    this.columns.forEach((column, index) => {
+      const field = column.field.trim();
+
+      if (field === dragged.trim() || hidden.has(column.field) || this.#resizedWidths.has(field)) {
+        return;
+      }
+
+      const tabulatorColumn = this.tabulator?.getColumn(keys[index]) as TabulatorColumn | false | undefined;
+      const width = tabulatorColumn ? Math.round(tabulatorColumn.getWidth()) : 0;
+
+      if (width > 0) {
+        this.#sessionWidths.set(field, width);
+      }
+    });
+  }
+
+  /**
+   * A double click on a column divider removes the saved width, and the column auto-fits again. The
+   * listener runs in the capture phase, before the listener of the divider, so the Tabulator fit to
+   * the content does not run.
+   */
+  private readonly handleResizeHandleDoubleClick = (event: Event) => {
+    const handle = (event.target as Element | null)?.closest?.('.tabulator-col-resize-handle');
+
+    if (!handle) {
+      return;
+    }
+
+    event.stopPropagation();
+
+    // Tabulator puts the divider of a column right after the header of that column.
+    const key = handle.previousElementSibling?.getAttribute('tabulator-field');
+    const field = this.fieldOfKey(key);
+    const column = key ? this.tabulator?.getColumn(key) as TabulatorColumn | false | undefined : undefined;
+
+    if (field === undefined || !column) {
+      return;
+    }
+
+    this.#resizedWidths.delete(field.trim());
+    this.#sessionWidths.delete(field.trim());
+    this.applyColumnLayout();
+    this.emit('cx-content-browser-table-column-resize', {
+      detail: {
+        field,
+        reset: true,
+        width: Math.round(column.getWidth()),
+      },
+    });
+  };
 
   private handleScrollVertical(event: Event) {
     event.stopPropagation();
@@ -1469,13 +1523,13 @@ export default class CxContentBrowserTable extends CortexElement {
             () => html`
               <cx-table
                 class="content-browser-table__table"
-                layout="fitColumns"
+                layout="fitData"
                 placeholder=""
                 no-selectable
                 no-clipboard
                 .columns=${this.#columnDefinitions}
                 .columnDefaults=${COLUMN_DEFAULTS}
-                .rowHeight=${this.hasMultilineColumn ? undefined : ROW_HEIGHT}
+                .rowHeight=${ROW_HEIGHT}
                 @cx-table.tableBuilt=${this.handleTableBuilt}
                 @cx-table.dataLoaded=${this.handleDataLoaded}
                 @cx-table.columnsLoaded=${this.handleColumnsLoaded}

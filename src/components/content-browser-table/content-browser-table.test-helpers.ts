@@ -22,7 +22,6 @@ import type { TableColumn } from '@/types/content-browser';
 
 import type ContentBrowserTable from './content-browser-table';
 import {
-  CTA_FIELD,
   FILLER_FIELD,
 } from './content-browser-table';
 
@@ -31,12 +30,12 @@ export type CxTable = HTMLElementTagNameMap['cx-table'];
 export type Cta = HTMLElement & { loading: boolean; updateComplete: Promise<unknown> };
 
 export const COLUMNS: TableColumn[] = [
-  { field: 'CoreField.Identifier', title: 'Identifier', width: '160px' },
-  { align: 'right', field: 'Dell.Snippet', lines: 2, title: 'Snippet' },
+  { field: 'CoreField.Identifier', title: 'Identifier' },
+  { field: 'Dell.Snippet', title: 'Snippet' },
 ];
 
 export const SINGLE_LINE_COLUMNS: TableColumn[] = [
-  { field: 'CoreField.Identifier', title: 'Identifier', width: '160px' },
+  { field: 'CoreField.Identifier', title: 'Identifier' },
   { field: 'Dell.Snippet', title: 'Snippet' },
 ];
 
@@ -93,16 +92,16 @@ export function getScrollport(el: ContentBrowserTable) {
   return getTableRoot(el).querySelector<HTMLElement>('.tabulator-tableholder')!;
 }
 
-/** Matches the columns the component adds to the host's: the filler and the CTA column. */
-export const OWN_FIELDS = `[tabulator-field="${FILLER_FIELD}"], [tabulator-field="${CTA_FIELD}"]`;
+/** Matches the columns the component adds to the host's: the filler. */
+export const OWN_FIELDS = `[tabulator-field="${FILLER_FIELD}"]`;
 
-/** The host's column headers: the filler's and the CTA column's are left out. */
+/** The host's column headers, without the filler header. */
 export function getHeaderTitles(el: ContentBrowserTable) {
   return [...getTableRoot(el).querySelectorAll<HTMLElement>(`.tabulator-col:not(${OWN_FIELDS}) .tabulator-col-title`)]
     .map((title) => title.textContent?.trim() ?? '');
 }
 
-/** A row's cells for the host's columns: the filler cell and the CTA cell are left out. */
+/** A row's data cells, without the filler cell. */
 export function getDataCells(row: HTMLElement) {
   return [...row.querySelectorAll<HTMLElement>(`.tabulator-cell:not(${OWN_FIELDS})`)];
 }
@@ -165,7 +164,7 @@ export function isShown(cta: Cta | undefined) {
 }
 
 /** A query list whose match a test sets, and changes as an input device that is attached or removed does. */
-function fakeMediaQuery(media: string) {
+export function fakeMediaQuery(media: string) {
   let current = false;
   const list = Object.defineProperties(new EventTarget(), {
     matches: { get: () => current },
@@ -185,14 +184,13 @@ function fakeMediaQuery(media: string) {
 }
 
 /**
- * Stands in for the input queries that make the table show every CTA at rest, none of them matched
- * at first: a touch screen on the machine that runs the tests matches `(any-pointer: coarse)`, and
- * a CTA check would then pass with the hover or focus reveal broken. Install it once per test,
- * before the table connects: `sinon.restore()` takes it off.
+ * Stands in for the input queries, none of them matched at first. A test adds a query to the map
+ * to fake a device, such as a touch screen beside a mouse, whatever the test machine has. Install
+ * it once per test, before the table connects: `sinon.restore()` takes it off.
  */
 export function stubInputQueries() {
   const matchMedia = window.matchMedia.bind(window);
-  const queries = new Map(['(hover: none)', '(any-pointer: coarse)'].map((media) => [media, fakeMediaQuery(media)] as const));
+  const queries = new Map([['(hover: none)', fakeMediaQuery('(hover: none)')]]);
 
   sinon.stub(window, 'matchMedia').callsFake((query: string) => queries.get(query)?.list ?? matchMedia(query));
 
@@ -231,29 +229,31 @@ export async function tabToCta(start: HTMLElement) {
   return undefined;
 }
 
-/**
- * The CTA column is fitted to its button once a row renders one: the button then fills its cell's
- * content box, and is cut by neither edge of its cell.
- */
-export function isCtaColumnFitted(cta: Cta | undefined) {
-  const parent = cta?.parentElement;
-  const cell = cta?.closest<HTMLElement>('.tabulator-cell');
+/** The row action overlay, independent of the data columns. */
+export function getCtaOverlay(row: HTMLElement) {
+  return row.querySelector<HTMLElement>('[part~="content-browser-action"]');
+}
 
-  if (!cta || !parent || !cell) {
+/** The action label fits its overlay without a clip, including under a scaled ancestor. */
+export function isCtaOverlayFitted(cta: Cta | undefined) {
+  const parent = cta?.parentElement;
+
+  if (!cta || !parent || parent.offsetWidth === 0) {
     return false;
   }
 
   const style = getComputedStyle(parent);
-  const content = parent.clientWidth - Number.parseFloat(style.paddingLeft) - Number.parseFloat(style.paddingRight);
+  const box = parent.getBoundingClientRect();
+  const scale = box.width / parent.offsetWidth;
+  const content = (parent.clientWidth - Number.parseFloat(style.paddingLeft) - Number.parseFloat(style.paddingRight)) * scale;
   const button = cta.getBoundingClientRect();
-  const box = cell.getBoundingClientRect();
 
   return Math.abs(content - button.width) <= 1 && button.left >= box.left - 0.5 && button.right <= box.right + 0.5;
 }
 
-export async function waitForCtaColumnFit(el: ContentBrowserTable) {
-  await waitUntil(async () => isCtaColumnFitted(await getCta(getRowElements(el)[0])),
-    'the CTA column was never fitted to its button', { interval: 20, timeout: 3000 });
+export async function waitForCtaLayout(el: ContentBrowserTable) {
+  await waitUntil(async () => isCtaOverlayFitted(await getCta(getRowElements(el)[0])),
+    'the CTA overlay never fit its button', { interval: 20, timeout: 3000 });
 }
 
 /**
@@ -274,7 +274,7 @@ export function centerOf(element: Element): [number, number] {
   return [Math.round(left + width / 2), Math.round(top + height / 2)];
 }
 
-export function resizeObserverEntry(container: HTMLDivElement, height: number) {
+export function resizeObserverEntry(container: HTMLDivElement, height: number, width = 400) {
   return {
     borderBoxSize: [],
     contentBoxSize: [],
@@ -282,12 +282,12 @@ export function resizeObserverEntry(container: HTMLDivElement, height: number) {
       bottom: height,
       height,
       left: 0,
-      right: 400,
+      right: width,
       toJSON() {
         return {};
       },
       top: 0,
-      width: 400,
+      width,
       x: 0,
       y: 0,
     } as DOMRectReadOnly,
@@ -336,11 +336,23 @@ export function getColumnHeader(el: ContentBrowserTable, field: string) {
   return getTableRoot(el).querySelector<HTMLElement>(`.tabulator-col[tabulator-field="${field}"]`)!;
 }
 
-export function getCtaColumnWidth(el: ContentBrowserTable) {
-  return getColumnHeader(el, CTA_FIELD).getBoundingClientRect().width;
+/**
+ * The rounded header width of the column that shows `field`. A row key (`column0`) works too. A
+ * Cortex field resolves to its row key through the column definitions of `cx-table`.
+ */
+export function getColumnWidthByField(el: ContentBrowserTable, field: string) {
+  const index = el.columns.findIndex((column) => column.field === field);
+  const definition = index < 0 ? undefined : getCxTable(el)!.columns![index];
+  const key = definition ? String(definition.field) : field;
+
+  return Math.round(getColumnHeader(el, key).getBoundingClientRect().width);
 }
 
-/** Every column's laid-out width added up, the filler's and the CTA column's included. */
+export function getCtaWidth(el: ContentBrowserTable) {
+  return getRowElements(el)[0].querySelector<HTMLElement>('.content-browser-table__cta')!.getBoundingClientRect().width;
+}
+
+/** Every column's laid-out width added up, the filler's included. */
 export function getColumnsTotal(el: ContentBrowserTable) {
   return [...getTableRoot(el).querySelectorAll<HTMLElement>('.tabulator-col')]
     .reduce((total, column) => total + column.getBoundingClientRect().width, 0);
@@ -357,18 +369,21 @@ export function getInnerWidth(el: ContentBrowserTable) {
     - (scrollport.offsetWidth - scrollport.clientWidth);
 }
 
-export function isFilled(el: ContentBrowserTable) {
-  return Math.abs(getColumnsTotal(el) - getInnerWidth(el)) <= 1;
+export function rowsFillViewport(el: ContentBrowserTable) {
+  const expected = Math.max(getColumnsTotal(el), getInnerWidth(el));
+
+  return getRowElements(el).every((row) => Math.abs(row.getBoundingClientRect().width - expected) <= 1);
 }
 
-/** The layout settles once a redraw runs after the change: wait for the fill, and report the widths if it never came. */
-export async function expectFilled(el: ContentBrowserTable, when: string) {
-  await waitUntil(() => isFilled(el), '', { interval: 20, timeout: 2000 }).catch(() => undefined);
+/** Rows fill the viewport even when the data columns leave empty space. */
+export async function expectRowsFill(el: ContentBrowserTable, when: string) {
+  await waitUntil(() => rowsFillViewport(el), '', { interval: 20, timeout: 2000 }).catch(() => undefined);
 
-  const total = Math.round(getColumnsTotal(el));
-  const inner = getInnerWidth(el);
+  const expected = Math.max(getColumnsTotal(el), getInnerWidth(el));
 
-  expect(Math.abs(total - inner) <= 1, `${when}, the columns take ${total}px of a ${inner}px table`).to.equal(true);
+  getRowElements(el).forEach((row) => {
+    expect(row.getBoundingClientRect().width, `${when}, a row does not fill the viewport`).to.be.closeTo(expected, 1);
+  });
 }
 
 /** A drag far past the column's left edge, where it stops at the column's minimum. */

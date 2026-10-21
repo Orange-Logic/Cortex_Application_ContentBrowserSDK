@@ -1,6 +1,6 @@
 import { createContext } from 'react';
 
-import { TableColumn, type AutoSelectFormat } from '@/types/content-browser';
+import { TableColumn, type AutoSelectFormat, type TableRowActionPosition } from '@/types/content-browser';
 
 export type ImageCardDisplayInfo = {
   title?: boolean,
@@ -42,6 +42,7 @@ export type GlobalConfigContextType = {
   defaultGridView: string;
   autoSelectFormat: AutoSelectFormat;
   tableColumns?: TableColumn[];
+  tableRowActionPosition?: TableRowActionPosition;
 };
 
 export const GlobalConfigContext = createContext<GlobalConfigContextType>({
@@ -71,4 +72,5 @@ export const GlobalConfigContext = createContext<GlobalConfigContextType>({
   defaultGridView: '',
   autoSelectFormat: false,
   tableColumns: [],
+  tableRowActionPosition: 'host-edge',
 });
