@@ -10,7 +10,8 @@ import {
 import { AppContext } from '@/AppContext';
 import { GlobalConfigContext } from '@/GlobalConfigContext';
 import { useAppDispatch, useAppSelector } from '@/store';
-import { applySessionSelector, logout, siteSessionSelector } from '@/store/auth/auth.slice';
+import { applySessionSelector, bearerTokenSelector, logout, siteSessionSelector } from '@/store/auth/auth.slice';
+import { ContentBrowserView, TABLE_VIEW } from '@/types/content-browser';
 import {
     Asset, Facet, Folder, GetAssetLinkResponse, GetContentRequest, GetFoldersRequest, GridView,
 } from '@/types/search';
@@ -75,13 +76,18 @@ type Props = {
 type DefaultSettings = {
   sortOrder: string;
   sortDirection: 'ascending' | 'descending' | '';
-  view: GridView;
+  view: ContentBrowserView;
   facets: Facet[];
   selectedFacets: Record<string, string[]>;
   isSeeThrough: boolean;
   searchText: string;
   lastLocation: string;
+  lastLocationTitle: string;
 };
+
+function isSupportedView(view: string): view is ContentBrowserView {
+  return view === TABLE_VIEW || Object.values(GridView).includes(view as GridView);
+}
 
 function parseSelectedFacets(selectedFilter: string | null): Record<string, string[]> {
   if (!selectedFilter) {
@@ -130,6 +136,7 @@ const AssetsPicker = forwardRef<AssetsPickerHandle, Props>(function AssetsPicker
   const appDispatch = useAppDispatch();
   const useSession = useAppSelector(applySessionSelector);
   const useSiteSession = useAppSelector(siteSessionSelector);
+  const bearerToken = useAppSelector(bearerTokenSelector);
   const {
     allowFavorites,
     allowFormatDialogPin,
@@ -154,6 +161,9 @@ const AssetsPicker = forwardRef<AssetsPickerHandle, Props>(function AssetsPicker
     showCollections,
     showFavoriteFolder,
     showVersions,
+    tableColumns,
+    tableRowActionPosition,
+    autoSelectFormat,
   } = useContext(GlobalConfigContext);
   const {
     extraFields, getPinnedState, onAssetAction, onAssetSelected, onClose, onError, onPinAsset, onUnpinAsset,
@@ -165,12 +175,13 @@ const AssetsPicker = forwardRef<AssetsPickerHandle, Props>(function AssetsPicker
   const [defaultSettings, setDefaultSettings] = useState<DefaultSettings>({
     sortOrder: '',
     sortDirection: '',
-    view: Object.values(GridView).includes(defaultGridView as GridView) ? defaultGridView as GridView : GridView.Medium,
+    view: isSupportedView(defaultGridView) ? defaultGridView : GridView.Medium,
     facets: [],
     selectedFacets: {},
     isSeeThrough: true,
     searchText: '',
     lastLocation: '',
+    lastLocationTitle: '',
   });
   const loadedFromStorage = useRef(false);
 
@@ -269,6 +280,7 @@ const AssetsPicker = forwardRef<AssetsPickerHandle, Props>(function AssetsPicker
     }
     if (folderId !== undefined) {
       storeData('lastLocationFolderId', folderId);
+      storeData('lastLocationFolderTitle', event.detail.folderTitle ?? '');
     }
     if (sortDirection) {
       storeData('selectedSortDirection', sortDirection);
@@ -345,6 +357,7 @@ const AssetsPicker = forwardRef<AssetsPickerHandle, Props>(function AssetsPicker
   }, [appDispatch]);
 
   useEffect(() => {
+    let cancelled = false;
     Promise.all([
       getData('selectedSortOrder'),
       getData('selectedSortDirection'),
@@ -355,11 +368,28 @@ const AssetsPicker = forwardRef<AssetsPickerHandle, Props>(function AssetsPicker
       getData('searchText'),
       getData('lastLocation'),
       getData('lastLocationFolderId'),
-    ]).then(([sortOrder, sortDirection, view, newFacets, selectedFilter, selectedIsSeeThrough, searchText, lastLocation, lastLocationFolderId]) => {
+      getData('lastLocationFolderTitle'),
+    ]).then(([
+      sortOrder,
+      sortDirection,
+      view,
+      newFacets,
+      selectedFilter,
+      selectedIsSeeThrough,
+      searchText,
+      lastLocation,
+      lastLocationFolderId,
+      lastLocationFolderTitle,
+    ]) => {
+      if (cancelled) {
+        return;
+      }
       const newDefaultSettings: Partial<DefaultSettings> = {
         sortOrder: sortOrder || '',
         sortDirection: ['ascending', 'descending'].includes(sortDirection as 'ascending' | 'descending') ? sortDirection as 'ascending' | 'descending' : undefined,
-        view: view as GridView || defaultSettings.view,
+        view: isSupportedView(defaultGridView)
+          ? defaultGridView
+          : view && isSupportedView(view) ? view : GridView.Medium,
         selectedFacets: parseSelectedFacets(selectedFilter),
         isSeeThrough: selectedIsSeeThrough === null ? true : selectedIsSeeThrough === 'true',
         searchText: searchText || '',
@@ -370,6 +400,7 @@ const AssetsPicker = forwardRef<AssetsPickerHandle, Props>(function AssetsPicker
 
         if (lastLocationFolderId) {
           newDefaultSettings.lastLocation = lastLocationFolderId;
+          newDefaultSettings.lastLocationTitle = lastLocationFolderTitle || '';
           deleteData('lastLocation');
         } else if (lastLocation) {
           newDefaultSettings.lastLocation = parseLegacyLastLocation(lastLocation);
@@ -381,7 +412,8 @@ const AssetsPicker = forwardRef<AssetsPickerHandle, Props>(function AssetsPicker
       loadedFromStorage.current = true;
       setIsInitialLoadComplete(true);
     });
-  }, [lastLocationMode, defaultGridView, defaultSettings.view]);
+    return () => { cancelled = true; };
+  }, [lastLocationMode, defaultGridView]);
 
   if (!isInitialLoadComplete) {
     return <cx-content-browser-loader></cx-content-browser-loader>;
@@ -396,6 +428,9 @@ const AssetsPicker = forwardRef<AssetsPickerHandle, Props>(function AssetsPicker
       available-doc-types={availableDocTypes}
       available-representative-subtypes={availableRepresentativeSubtypes}
       default-grid-view={defaultSettings.view}
+      table-columns={tableColumns ?? []}
+      table-row-action-position={tableRowActionPosition ?? 'host-edge'}
+      auto-select-format={autoSelectFormat ?? false}
       default-sort-order-name={defaultSettings.sortOrder}
       default-sort-direction={defaultSettings.sortDirection}
       default-facets={defaultSettings.facets}
@@ -403,7 +438,9 @@ const AssetsPicker = forwardRef<AssetsPickerHandle, Props>(function AssetsPicker
       default-is-see-through={defaultSettings.isSeeThrough}
       default-search-text={defaultSettings.searchText}
       default-folder-id={defaultSettings.lastLocation}
+      default-folder-title={defaultSettings.lastLocationTitle}
       token={accessToken ?? ''}
+      bearerToken={bearerToken ?? ''}
       base-url={siteUrl ?? ''}
       use-session={useSession}
       use-site-session={useSiteSession}

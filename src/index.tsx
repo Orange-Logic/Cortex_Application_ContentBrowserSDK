@@ -15,6 +15,7 @@ import {
   ImageCardDisplayInfo,
 } from '@/GlobalConfigContext';
 import { store } from '@/store';
+import { type AutoSelectFormat, TableColumn, type TableRowActionPosition } from '@/types/content-browser';
 import {
   initAuthInfoFromCache,
   setUseHeaders,
@@ -261,10 +262,50 @@ type OrangeDAMContentBrowser = {
     loadExternalFonts?: boolean;
 
     /**
-     * The default grid view to be used when showing asset (default Medium)
-     * Available values: small, medium, large
+     * The default view to be used when showing assets (default medium)
+     * Available values: small, medium, large, table.
+     * `table` only applies when `tableColumns` is also provided.
      */
     defaultGridView?: string;
+
+    /**
+     * The columns of the table view. Each column carries a `title` (the header text) and a `field`
+     * (the Cortex field it reads, e.g. "CoreField.Identifier"). The table fits each column to its
+     * content, and the columns share the spare width so that they fill the table. The user resizes
+     * a column, and the table keeps the width of a resized column for each site.
+     * When a user drags a column divider, the other columns keep their width until the page reloads,
+     * the view changes or the site changes. Thus the table can end before the right edge of the
+     * host, or scroll horizontally.
+     * `width`, `align` and `lines` are ignored.
+     *
+     * The table view is offered in the view menu only when this is set, and the fields listed here
+     * are requested on every search — so an asset with no thumbnail, such as a text fragment,
+     * becomes browsable and selectable by its metadata.
+     */
+    tableColumns?: TableColumn[];
+
+    /**
+     * Where the row action of the table view shows: at the right edge of the host (`host-edge`), or
+     * at the end of the last data column (`row-end`). Any other value gives `host-edge`.
+     * Default `host-edge`.
+     */
+    tableRowActionPosition?: TableRowActionPosition;
+
+    /**
+     * Import behaviour when picking an asset, for a host that would rather not show the format
+     * picker.
+     *
+     * - `false` (default) - the format dialog opens as usual.
+     * - `true` - insert with the first available format, without showing the dialog.
+     * - a format name - insert with that format. Matched case-insensitively against a proxy's
+     *   `proxyName` ("TRX") or the label the picker shows ("Original"). A name that matches no
+     *   available format opens the dialog as usual, so a stale value degrades rather than breaks.
+     *
+     * Skipping the dialog also skips everything else it offers for that asset: the preview, the
+     * ATS custom format, and the tracking-parameter panel. Assets are inserted with tracking off,
+     * which is the dialog's own default.
+     */
+    autoSelectFormat?: AutoSelectFormat;
   }) => Promise<void>;
   close: () => void;
   fetchAssets: (params: GetContentRequest) => Promise<GetContentResponse | undefined> | undefined;
@@ -366,6 +407,12 @@ const ContentBrowser: OrangeDAMContentBrowser = {
         allowTracking: true, // Whether to enable tracking parameters for asset URLs
         confirmOnFormatSelect: false, // Whether choosing a format confirms it without an extra Insert click
         allowFormatDialogPin: true, // Whether to show pin/unpin actions in format dialog
+        tableColumns: [ // Columns of the table view; omit to offer grid views only
+          { title: "Identifier", field: "CoreField.Identifier" },
+          { title: "Title", field: "CoreField.TitleWithFallback" },
+          { title: "Description", field: "Document.CaptionLong" },
+        ],
+        tableRowActionPosition: "host-edge", // Where the table row action shows: host-edge or row-end
       });`);
   },
   open: async ({
@@ -418,6 +465,9 @@ const ContentBrowser: OrangeDAMContentBrowser = {
     useSession,
     useSiteSession = false,
     defaultGridView,
+    tableColumns,
+    tableRowActionPosition,
+    autoSelectFormat,
   }) => {
     const siteSessionUrl = useSiteSession ? resolveSiteSessionUrl(baseUrl) : undefined;
     // !! Always assign this first to make sure that storage functionality works
@@ -574,6 +624,9 @@ const ContentBrowser: OrangeDAMContentBrowser = {
             simplePick: !!simplePick,
             allowFavorites: !!allowFavorites,
             defaultGridView: defaultGridView ?? '',
+            autoSelectFormat: autoSelectFormat ?? false,
+            tableColumns: tableColumns ?? [],
+            tableRowActionPosition: tableRowActionPosition ?? 'host-edge',
           }}
         >
           <App

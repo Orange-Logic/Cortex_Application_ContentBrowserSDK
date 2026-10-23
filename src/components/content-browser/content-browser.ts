@@ -12,21 +12,26 @@ import CxContentBrowserFormatDialog from '@/components/content-browser-format-di
 import CxContentBrowserGrid from '@/components/content-browser-grid/content-browser-grid';
 import CxContentBrowserHeader from '@/components/content-browser-header/content-browser-header';
 import CxContentBrowserNoResult from '@/components/content-browser-no-result/content-browser-no-result';
+import CxContentBrowserTable from '@/components/content-browser-table/content-browser-table';
 import {
     CxContentBrowserControlBarSearchChangeEvent, CxContentBrowserControlFilterChangeEvent,
     CxContentBrowserControlSortOrderChangeEvent, CxContentBrowserControlViewChangeEvent,
     CxContentBrowserFormatDialogFavoriteChangeEvent, CxContentBrowserFormatDialogFormatConfirmEvent,
     CxContentBrowserFormatDialogPinAssetChangeEvent, CxContentBrowserFormatDialogProxyConfirmEvent,
     CxContentBrowserFormatDialogVersionHistoryOpenEvent,
-    CxContentBrowserGridClickEvent, CxContentBrowserGridResizeEvent, CxResizeEvent, CxSelectionChangeEvent,
+    CxContentBrowserGridClickEvent, CxContentBrowserGridResizeEvent, CxContentBrowserTableColumnResizeEvent,
+    CxResizeEvent, CxSelectionChangeEvent,
 } from '@/events';
 import componentStyles from '@/styles/component.styles';
 import { FetchAndMergeAssetsController } from '@/tools/fetch-and-merge-assets';
 import {
-  ChangeOption, ContentBrowserFormatDialogVariant, type CtaTextTransform, GridView, OptionType,
+  type AutoSelectFormat, autoSelectFormatConverter, ChangeOption, ContentBrowserFormatDialogVariant,
+  type ContentBrowserView, type CtaTextTransform, GridView, isAutoSelectFormatActive, OptionType,
+  TABLE_VIEW, type TableColumn, type TableRowActionPosition, toFieldKey, toTableRowActionPosition,
 } from '@/types/content-browser';
 import { GetFolderRequest } from '@/types/folder';
 import { safeInteger } from '@/utils/number';
+import { readTableColumnWidths, writeTableColumnWidth } from '@/utils/table-column-widths';
 import { watch } from '@/utils/watch';
 import { resolveSiteSessionUrl, SITE_SESSION_EXPIRED_MESSAGE } from '@/utils/site-session';
 import CxIcon from '@orangelogic/design-system/components/icon';
@@ -44,6 +49,38 @@ const MOBILE_WIDTH_THRESHOLD = 480;
 const FORCE_OVERLAY_THRESHOLD = 650;
 const PERSISTENT_DRAWER_WIDTH = 400;
 const INITIAL_FOLDER_TIMEOUT_MS = 3000;
+
+/** How many items one screen of a view holds: small tiles and table rows both fit far more than a large tile. */
+function resolvePageSize(view: ContentBrowserView): number {
+  switch (view) {
+    case GridView.Large:
+      return 15;
+    case GridView.Small:
+    case TABLE_VIEW:
+      return 30;
+    default:
+      return 20;
+  }
+}
+
+/** One array for the usual case, so the table sees no change when Cortex flags nothing. */
+const NO_HIDDEN_FIELDS: string[] = [];
+
+/**
+ * The configured fields, spelled as configured, that Cortex flags as unreadable: the DAM does not
+ * show a column the user cannot read. Cortex flags only the fields it gets, so the request keeps
+ * each configured field.
+ */
+function findUnreadableColumnFields(columns: TableColumn[], unreadableFields: string[]): string[] {
+  if (unreadableFields.length === 0) {
+    return NO_HIDDEN_FIELDS;
+  }
+
+  const unreadable = new Set(unreadableFields.map(toFieldKey));
+
+  return columns.map((column) => column.field).filter((field) => unreadable.has(toFieldKey(field)));
+}
+
 /**
  * @summary CxContentBrowser
  */
@@ -58,6 +95,7 @@ export default class CxContentBrowser extends CortexElement {
     'cx-content-browser-grid': CxContentBrowserGrid,
     'cx-content-browser-header': CxContentBrowserHeader,
     'cx-content-browser-no-result': CxContentBrowserNoResult,
+    'cx-content-browser-table': CxContentBrowserTable,
     'cx-icon': CxIcon,
     'cx-icon-button': CxIconButton,
     'cx-resize-observer': CxResizeObserver,
@@ -131,6 +169,12 @@ export default class CxContentBrowser extends CortexElement {
   @property({ attribute: 'token', reflect: false, type: String })
   token = '';
 
+  /**
+   * Host OAuth token (`onRequestToken`), sent as a Bearer header.
+   */
+  @property({ attribute: 'bearer-token', reflect: false, type: String })
+  bearerToken = '';
+
   @property({ attribute: 'show-collections', reflect: true, type: Boolean })
   showCollections = false;
 
@@ -170,6 +214,12 @@ export default class CxContentBrowser extends CortexElement {
   confirmOnFormatSelect = false;
 
   /**
+   * Host-level import behaviour; forwarded to the format dialog. See `AutoSelectFormat`.
+   */
+  @property({ attribute: 'auto-select-format', converter: autoSelectFormatConverter, reflect: false })
+  autoSelectFormat: AutoSelectFormat = false;
+
+  /**
    * Pick-only mode: no available-proxies lookup, no transformation on confirm. The preview popup
    * shows the asset's LargeSizePreview and confirming emits the asset straight to the host.
    * Implies `can-use-proxies=false`.
@@ -204,7 +254,62 @@ export default class CxContentBrowser extends CortexElement {
   extraFields: string[] = [];
 
   @property({ attribute: 'default-grid-view', type: String })
-  defaultGridView: GridView = GridView.Medium;
+  defaultGridView: ContentBrowserView = GridView.Medium;
+
+  /**
+   * Columns of the table view, defined by the host: a title and the Cortex field the column reads.
+   * The table fits each column to its content, and the user resizes it. The table view is offered only while this is non-empty — an empty table is not a
+   * view mode — and the fields are read once, when the fetch controller is created.
+   */
+  @property({
+    attribute: 'table-columns',
+    /**
+     * Lit's stock Array converter returns `null` for anything `JSON.parse` rejects, and a host that
+     * stringifies an array into the attribute hands it `""` or `"[object Object]"`. `null` then
+     * throws on every read below, taking the whole picker down. An unreadable value means "no
+     * columns", which turns the table view off — the same outcome as not configuring one.
+     */
+    converter: {
+      fromAttribute: (value: string | null): TableColumn[] => {
+        if (!value) {
+          return [];
+        }
+
+        try {
+          const parsed: unknown = JSON.parse(value);
+
+          return Array.isArray(parsed) ? parsed as TableColumn[] : [];
+        } catch {
+          return [];
+        }
+      },
+      toAttribute: (value: TableColumn[]) => JSON.stringify(value ?? []),
+    },
+    type: Array,
+  })
+  tableColumns: TableColumn[] = [];
+
+  /**
+   * Where the row action of the table view shows: at the right edge of the host (`host-edge`), or at
+   * the end of the last data column (`row-end`). Any other value gives `host-edge`.
+   */
+  @property({ attribute: 'table-row-action-position', type: String })
+  tableRowActionPosition: TableRowActionPosition = 'host-edge';
+
+  /** The widths the user saved for the table columns of this site, in pixels, keyed by field. */
+  @state() private tableColumnWidths: Record<string, number> = {};
+
+  /**
+   * The reads and writes of the saved widths, one after the other: each write reads the stored map
+   * and writes it back, and a read that runs before a write would give the table a stale map.
+   */
+  private tableWidthQueue: Promise<unknown> = Promise.resolve();
+
+  /** The number of reads and writes queued on `tableWidthQueue`. Only the last one gives its map to the table. */
+  private tableWidthTasks = 0;
+
+  /** Set by a drag or a reset that the table shows, until a map from the storage replaces it. */
+  private tableWidthsChangedInTable = false;
 
   @property({ attribute: 'default-sort-order-name', type: String })
   defaultSortOrderName: string = '';
@@ -223,6 +328,9 @@ export default class CxContentBrowser extends CortexElement {
 
   @property({ attribute: 'default-folder-id', type: String })
   defaultFolderId: string = '';
+
+  @property({ attribute: 'default-folder-title', type: String })
+  defaultFolderTitle: string = '';
 
   @property({ attribute: 'show-title', reflect: true, type: Boolean })
   showTitle: boolean = true;
@@ -263,7 +371,7 @@ export default class CxContentBrowser extends CortexElement {
   private canPinLayout = true;
 
   @state()
-  private view = this.defaultGridView;
+  private view: ContentBrowserView = this.defaultGridView;
 
   @state()
   private folderTitle: string | undefined = undefined;
@@ -304,25 +412,134 @@ export default class CxContentBrowser extends CortexElement {
     super.willUpdate(changedProperties);
 
     if (!this.hasUpdated) {
-      this.view = this.defaultGridView;
+      // A table with no columns is not a view, so a stored or configured `table` falls back to the
+      // grid rather than rendering an empty frame the user cannot switch out of.
+      this.view = this.defaultGridView === TABLE_VIEW && !this.canUseTable
+        ? GridView.Medium
+        : this.defaultGridView;
     }
+  }
+
+  /**
+   * Never trust the host's value: it also arrives by direct property assignment, past the converter.
+   * Entries are checked one by one, not just the outer array — `field` is dereferenced while the
+   * fetch controller is being built, where a throw leaves the controller unassigned and the picker
+   * blank. `title` is only rendered, and Lit renders a nullish one as nothing, so a column is not
+   * worth dropping over it.
+   */
+  private get tableColumnList(): TableColumn[] {
+    const columns: unknown = this.tableColumns;
+
+    if (!Array.isArray(columns)) {
+      return [];
+    }
+
+    // A second column on the same field cannot be told apart downstream: the resize feature keys
+    // its widths, its DOM lookups and its host event on `field`, so a duplicate would resize both
+    // columns at once and report a width the host cannot attribute to either. Matched
+    // case-insensitively because the search call sends one field per casing and keys the response
+    // under whichever casing it sent, which would leave the second column blank anyway.
+    const seen = new Set<string>();
+
+    return columns.flatMap((column): TableColumn[] => {
+      if (!column || typeof column !== 'object') {
+        return [];
+      }
+
+      const { field } = column as TableColumn;
+
+      if (typeof field !== 'string') {
+        return [];
+      }
+
+      // One string is both sent as a search field and used as the key the response is read back
+      // under, so a field padded with whitespace matches nothing server-side and renders an empty
+      // column. The trim runs before the duplicate check below, since trimming is what makes two
+      // fields that differ only in padding the same field.
+      const trimmed = field.trim();
+
+      if (trimmed.length === 0 || seen.has(trimmed.toLowerCase())) {
+        return [];
+      }
+
+      seen.add(trimmed.toLowerCase());
+
+      return [trimmed === field
+        ? column as TableColumn
+        : { ...column as TableColumn, field: trimmed }];
+    });
+  }
+
+  /**
+   * This reads the configured columns, not the shown ones. The shown columns can change with each
+   * response, and a table view that goes away with them flips the view and its page size. When
+   * Cortex flags each column, the rows stay with only the filler and the CTA column.
+   */
+  private get canUseTable(): boolean {
+    return this.tableColumnList.length > 0;
+  }
+
+  /**
+   * Runs a read or a write of the saved widths after the ones queued before it. The table gets the
+   * map of the last task only: an earlier map does not hold the drags and resets that came after it,
+   * and the table already shows them. A map for a site that is no longer the current one is dropped.
+   */
+  private queueTableWidthTask(task: (baseUrl: string) => Promise<Record<string, number>>) {
+    const { baseUrl } = this;
+    const taskNumber = this.tableWidthTasks + 1;
+
+    this.tableWidthTasks = taskNumber;
+    this.tableWidthQueue = this.tableWidthQueue
+      .then(() => task(baseUrl))
+      .then((widths) => {
+        if (taskNumber === this.tableWidthTasks && baseUrl === this.baseUrl) {
+          this.setTableColumnWidths(widths);
+        }
+      })
+      .catch(() => undefined);
+  }
+
+  /**
+   * A map with the same entries keeps the old one, so that the table does not lay out its columns
+   * again. After a drag or a reset the table can show widths that the old map does not hold, so the
+   * new map always replaces them.
+   */
+  private setTableColumnWidths(widths: Record<string, number>) {
+    const current = this.tableColumnWidths;
+    const fields = Object.keys(widths);
+
+    if (this.tableWidthsChangedInTable
+      || fields.length !== Object.keys(current).length
+      || fields.some((field) => current[field] !== widths[field])) {
+      this.tableWidthsChangedInTable = false;
+      this.tableColumnWidths = widths;
+    }
+  }
+
+  private loadTableColumnWidths() {
+    this.queueTableWidthTask(readTableColumnWidths);
+  }
+
+  @watch('baseUrl', { waitUntilFirstUpdate: true })
+  handleBaseUrlChangeForTableWidths() {
+    this.loadTableColumnWidths();
+  }
+
+  private handleTableColumnResize(event: CxContentBrowserTableColumnResizeEvent) {
+    const { field, reset, width } = event.detail;
+
+    this.tableWidthsChangedInTable = true;
+    this.queueTableWidthTask((baseUrl) => writeTableColumnWidth(baseUrl, field, reset ? undefined : width));
   }
 
   runFirstUpdated() {
     if (this.useSiteSession) {
       this.baseUrl = resolveSiteSessionUrl(this.baseUrl);
     }
-    switch (this.view) {
-      case GridView.Large:
-        this.defaultPageSize = 15;
-        break;
-      case GridView.Medium:
-        this.defaultPageSize = 20;
-        break;
-      case GridView.Small:
-        this.defaultPageSize = 30;
-        break;
-    }
+
+    this.loadTableColumnWidths();
+
+    this.defaultPageSize = resolvePageSize(this.view);
 
     this.lastRequest = {
       ...this.lastRequest,
@@ -334,6 +551,8 @@ export default class CxContentBrowser extends CortexElement {
       sortOrderName: this.defaultSortOrderName,
     };
 
+    this.folderTitle = this.defaultFolderTitle;
+
     if (!this.defaultFolderId) {
       this.initialFolderPending = true;
       this.initialFolderTimeout = setTimeout(() => this.releaseInitialFolder(), INITIAL_FOLDER_TIMEOUT_MS);
@@ -341,8 +560,10 @@ export default class CxContentBrowser extends CortexElement {
 
     this.updateComplete.then(() => {
       this.fetchAndMergeAssetsController = new FetchAndMergeAssetsController(this, {
+        additionalFields: this.tableColumnList.map((column) => column.field),
         availableDocTypes: this.availableDocTypes,
         baseUrl: this.baseUrl,
+        bearerToken: this.bearerToken,
         defaultFolderId: this.defaultFolderId,
         defaultIsSeeThrough: this.defaultIsSeeThrough,
         defaultSearchText: this.defaultSearchText,
@@ -391,8 +612,36 @@ export default class CxContentBrowser extends CortexElement {
     this.formatDialog.setIsAssetPinned(isAssetPinned);
   }
 
+  /**
+   * The asset a click is still working on, or undefined. The two private flags below drive the
+   * guards; this drives the UI, and is a separate field because they are plain fields rather than
+   * reactive state.
+   *
+   * Cleared the moment the format dialog actually opens: from there the dialog's own confirm button
+   * carries the pending state, and two spinners for one operation reads as two operations. It
+   * survives when no dialog opens, which is the auto-confirm path, where the CTA is the only thing
+   * the user can be told anything by.
+   */
+  @state()
+  private busyAssetId: string | undefined = undefined;
+
+  #openingAsset = false;
+
+  #insertInFlight = false;
+
   private async openFormatDialog(id: string) {
+    // A second activation, such as the second click of a double click, can land before the fetch
+    // resolves, and would otherwise open its own dialog — or, on the auto-confirm path, insert the
+    // asset again. The second guard covers the rest of an auto-confirmed insert, which outlives the
+    // fetch and has no dialog of its own: without it the next asset's dialog inherits that insert and
+    // is torn down when it settles.
+    if (this.#openingAsset || this.#insertInFlight) {
+      return;
+    }
+
+    this.#openingAsset = true;
     this.selectedAssetId = id;
+    this.busyAssetId = id;
 
     try {
       const asset = await this.fetchAndMergeAssetsController.fetchAssetByID(id, {
@@ -402,6 +651,7 @@ export default class CxContentBrowser extends CortexElement {
 
       if (!asset) {
         this.selectedAssetId = undefined;
+        this.busyAssetId = undefined;
 
         return;
       }
@@ -417,24 +667,57 @@ export default class CxContentBrowser extends CortexElement {
       }
 
       this.formatDialog.open({ ...asset, isAssetPinned });
+
+      // open() returns without opening on the auto-confirm path, so ask what actually happened
+      // rather than assuming the dialog took over.
+      if (this.formatDialog.isDialogOpen) {
+        this.busyAssetId = undefined;
+      }
     } catch {
       this.selectedAssetId = undefined;
+      this.busyAssetId = undefined;
+    } finally {
+      this.#openingAsset = false;
     }
   }
 
-  @watch('lastRequest', { waitUntilFirstUpdate: true })
+  @watch(['lastRequest', 'view'], { waitUntilFirstUpdate: true })
   async handleLastRequestChange() {
     this.emit('cx-content-browser-request-change', {
       detail: {
+        folderTitle: this.folderTitle,
         request: this.lastRequest,
         view: this.view,
       },
     });
   }
 
-  @watch(['token', 'useSession'], { waitUntilFirstUpdate: true })
+  @watch('tableColumns', { waitUntilFirstUpdate: true })
+  handleTableColumnsChange() {
+    if (!this.fetchAndMergeAssetsController) {
+      return;
+    }
+
+    this.fetchAndMergeAssetsController.updateAdditionalFields(
+      this.tableColumnList.map((column) => column.field),
+    );
+
+    // Rows already on screen were fetched without the new fields, so their cells would stay blank.
+    // This has to be the stateful path -- `fetchAssets` only returns the response and refreshes
+    // nothing -- and it has to start from zero: past the first page the controller appends and
+    // de-duplicates by recordId, which keeps the field-less rows it already had.
+    this.lastRequest = { ...this.lastRequest, start: 0 };
+
+    // While the initial folder is pending, fetching here would show an unscoped search that the
+    // folder pick then replaces. The held first fetch already carries the new fields.
+    if (!this.initialFolderPending) {
+      void this.fetchAndMergeAssetsController.fetchAndMergeAssets(this.lastRequest);
+    }
+  }
+
+  @watch(['token', 'useSession', 'bearerToken'], { waitUntilFirstUpdate: true })
   handleAuthChange() {
-    this.fetchAndMergeAssetsController?.updateAuth(this.token, this.useSession);
+    this.fetchAndMergeAssetsController?.updateAuth(this.token, this.useSession, this.bearerToken);
   }
 
   @watch('useSiteSession', { waitUntilFirstUpdate: true })
@@ -448,6 +731,7 @@ export default class CxContentBrowser extends CortexElement {
       this.baseUrl,
       this.token,
       this.useSession,
+      this.bearerToken,
     );
   }
 
@@ -503,28 +787,29 @@ export default class CxContentBrowser extends CortexElement {
       }
     }
 
-    switch (event.detail.view) {
-      case GridView.Large:
-        this.defaultPageSize = 15;
-        break;
-      case GridView.Medium:
-        this.defaultPageSize = 20;
-        break;
-      case GridView.Small:
-        this.defaultPageSize = 30;
-        break;
-    }
+    this.defaultPageSize = resolvePageSize(event.detail.view);
 
     this.view = event.detail.view;
   }
 
   private async handleScrollEnd() {
-    const newStart = safeInteger(this.lastRequest.start) + safeInteger(this.lastRequest.pageSize);
+    // A page with an error is not counted as accepted, so only Retry sends it again, not a scroll end.
+    if (this.fetchAndMergeAssetsController.getData().searchError) {
+      return;
+    }
+
+    // The controller refuses a next page while a request of the list is queued or in flight, and it
+    // counts from the last page that it accepted, not from the last request that the host sent.
+    const nextPage = this.fetchAndMergeAssetsController.getNextPage();
+
+    if (!nextPage) {
+      return;
+    }
 
     this.lastRequest = {
       ...this.lastRequest,
       pageSize: this.defaultPageSize,
-      start: newStart,
+      start: nextPage.start,
     };
 
     await this.fetchAndMergeAssetsController.fetchAndMergeAssets(this.lastRequest);
@@ -584,16 +869,22 @@ export default class CxContentBrowser extends CortexElement {
       return;
     }
 
-    const totalCount = this.fetchAndMergeAssetsController.getData().totalCount;
-    const newStart = safeInteger(this.lastRequest.start) + safeInteger(this.lastRequest.pageSize);
+    const nextPage = this.fetchAndMergeAssetsController.getNextPage();
 
-    if (newPageSize <= safeInteger(this.lastRequest.pageSize) || newPageSize === 0 || newStart > totalCount) {
+    if (!nextPage) {
+      return;
+    }
+
+    const { searchError, totalCount } = this.fetchAndMergeAssetsController.getData();
+    const newStart = nextPage.start;
+
+    if (searchError || newPageSize <= nextPage.lastPageSize || newPageSize === 0 || newStart > totalCount) {
       return;
     }
 
     this.lastRequest = {
       ...this.lastRequest,
-      pageSize: newPageSize - safeInteger(this.lastRequest.pageSize),
+      pageSize: newPageSize - nextPage.lastPageSize,
       start: newStart,
     };
 
@@ -617,6 +908,10 @@ export default class CxContentBrowser extends CortexElement {
     if (this.lastRequest.pageSize) {
       await this.fetchAndMergeAssetsController.fetchAndMergeAssets(this.lastRequest);
     }
+  }
+
+  private async handleRetry() {
+    await this.fetchAndMergeAssetsController.retrySearch();
   }
 
   private async handleGridClick(event: CxContentBrowserGridClickEvent) {
@@ -691,9 +986,13 @@ export default class CxContentBrowser extends CortexElement {
       });
 
       this.formatDialog.hide();
+      this.busyAssetId = undefined;
 
       return;
     }
+
+    // Only the asynchronous path needs this; simple-pick above resolves synchronously.
+    this.#insertInFlight = true;
 
     try {
       const response = await this.fetchAndMergeAssetsController.getAssetLink({
@@ -707,7 +1006,7 @@ export default class CxContentBrowser extends CortexElement {
       // ExtraFields the host asked for, and swallowing the selection leaves the integration with no callback
       // and no error to act on.
       if (response.isError) {
-        this.formatDialog.setLoadingConfirm(false);
+        this.reportProxyConfirmFailure();
 
         return;
       }
@@ -720,11 +1019,32 @@ export default class CxContentBrowser extends CortexElement {
 
       this.formatDialog.hide();
     } catch {
-      this.formatDialog.setLoadingConfirm(false);
+      this.reportProxyConfirmFailure();
+    } finally {
+      this.#insertInFlight = false;
+      this.busyAssetId = undefined;
     }
   }
 
+  private reportProxyConfirmFailure() {
+    if (this.formatDialog.isDialogOpen) {
+      this.formatDialog.setLoadingConfirm(false);
+
+      return;
+    }
+
+    // An auto-confirmed insert has no dialog to report into, and the SDK has no error event, so
+    // hiding here returned the user to an unchanged table with no message and no way to retry.
+    // Show the dialog the shortcut skipped instead: it is the state the non-shortcut path would
+    // have left them in, and its confirm button is the retry.
+    this.formatDialog.revealAfterAutoConfirm();
+  }
+
   private async handleFormatConfirm(event: CxContentBrowserFormatDialogFormatConfirmEvent) {
+    // Reachable only through the ATS custom-format path, which always has a dialog on screen to
+    // serialise it — latched anyway so the guard does not depend on that staying true.
+    this.#insertInFlight = true;
+
     try {
       const response = await this.fetchAndMergeAssetsController.getAssetLink({
         ...event.detail,
@@ -752,6 +1072,9 @@ export default class CxContentBrowser extends CortexElement {
       this.formatDialog.hide();
     } catch {
       this.formatDialog.setLoadingConfirm(false);
+    } finally {
+      this.#insertInFlight = false;
+      this.busyAssetId = undefined;
     }
   }
 
@@ -855,8 +1178,10 @@ export default class CxContentBrowser extends CortexElement {
       loading,
       parameters,
       request,
+      searchError,
       sortOrders,
       totalCount,
+      unreadableFields,
       userInfo,
     } = this.fetchAndMergeAssetsController.getData({
       allowedExtensions: this.allowedExtensions,
@@ -892,6 +1217,7 @@ export default class CxContentBrowser extends CortexElement {
             folder-id=${ifDefined(this.lastRequest.folderId || undefined)}
             folder-title=${ifDefined(this.folderTitle || undefined)}
             token=${this.useSiteSession ? '' : this.token}
+            bearer-token=${this.useSiteSession ? '' : this.bearerToken}
             base-url=${this.baseUrl}
             use-session=${this.useSiteSession ? '' : this.useSession}
             ?use-site-session=${this.useSiteSession}
@@ -926,6 +1252,7 @@ export default class CxContentBrowser extends CortexElement {
             .newlyChangedOption=${this.newlyChangedOption}
             .sortOrders=${sortOrders}
             .views=${this.views}
+            ?can-use-table=${this.canUseTable}
             ?is-mobile=${this.isMobile}
             ?is-see-through=${request?.isSeeThrough}
             ?loading=${loading}
@@ -941,21 +1268,54 @@ export default class CxContentBrowser extends CortexElement {
             @cx-content-browser-control-filter-change=${this.handleFilterChange}
             @cx-content-browser-control-bar-search-change=${this.handleSearchChange}
           ></cx-content-browser-control-bar>
-          <cx-content-browser-grid
-            .assets=${items}
-            ?empty=${!loading && !this.initialFolderPending && items.length === 0}
-            ?has-more=${items.length < totalCount}
-            ?loading=${loading || this.initialFolderPending}
-            ?show-title=${this.showTitle}
-            ?show-size=${this.showSize}
-            ?show-dimensions=${this.showDimensions}
-            ?show-tags=${this.showTags}
-            selected-asset-id=${ifDefined(this.selectedAssetId || undefined)}
-            view=${this.view}
-            @cx-content-browser-grid-scroll-end=${this.handleScrollEnd}
-            @cx-content-browser-grid-resize=${this.handleGridResize}
-            @cx-content-browser-grid-click=${this.handleGridClick}
-          ></cx-content-browser-grid>
+          ${when(this.view === TABLE_VIEW && this.canUseTable,
+            () => html`
+              <cx-content-browser-table
+                .busyAssetId=${this.busyAssetId}
+                .assets=${items}
+                .columns=${this.tableColumnList}
+                .hiddenFields=${findUnreadableColumnFields(this.tableColumnList, unreadableFields)}
+                .savedWidths=${this.tableColumnWidths}
+                .widthScope=${this.baseUrl}
+                row-action-position=${toTableRowActionPosition(this.tableRowActionPosition)}
+                @cx-content-browser-table-column-resize=${this.handleTableColumnResize}
+                ?empty=${!loading && !this.initialFolderPending && !searchError && items.length === 0}
+                ?error=${searchError}
+                cta-text=${this.ctaText}
+                cta-text-transform=${this.ctaTextTransform}
+                ?has-more=${items.length < totalCount}
+                ?loading=${loading || this.initialFolderPending}
+                selected-asset-id=${ifDefined(this.selectedAssetId || undefined)}
+                @cx-content-browser-grid-scroll-end=${this.handleScrollEnd}
+                @cx-content-browser-grid-resize=${this.handleGridResize}
+                @cx-content-browser-grid-retry=${this.handleRetry}
+                @cx-content-browser-grid-click=${this.handleGridClick}
+              ></cx-content-browser-table>
+            `,
+            () => html`
+              <cx-content-browser-grid
+                .assets=${items}
+                ?empty=${!loading && !this.initialFolderPending && !searchError && items.length === 0}
+                ?error=${searchError}
+                ?has-more=${items.length < totalCount}
+                ?loading=${loading || this.initialFolderPending}
+                ?show-title=${this.showTitle}
+                ?show-size=${this.showSize}
+                ?show-dimensions=${this.showDimensions}
+                ?show-tags=${this.showTags}
+                ?show-cta=${isAutoSelectFormatActive(this.autoSelectFormat)}
+                .busyAssetId=${this.busyAssetId}
+                cta-text=${this.ctaText}
+                cta-text-transform=${this.ctaTextTransform}
+                selected-asset-id=${ifDefined(this.selectedAssetId || undefined)}
+                view=${this.view}
+                @cx-content-browser-grid-scroll-end=${this.handleScrollEnd}
+                @cx-content-browser-grid-resize=${this.handleGridResize}
+                @cx-content-browser-grid-retry=${this.handleRetry}
+                @cx-content-browser-grid-click=${this.handleGridClick}
+              ></cx-content-browser-grid>
+            `,
+          )}
         </cx-resize-observer>
         <cx-content-browser-format-dialog
           .availableExtensions=${availableExtensions}
@@ -968,6 +1328,7 @@ export default class CxContentBrowser extends CortexElement {
           cta-text-transform=${this.ctaTextTransform}
           variant=${this.isMobile ? ContentBrowserFormatDialogVariant.Drawer : ContentBrowserFormatDialogVariant.Dialog}
           token=${this.useSiteSession ? '' : this.token}
+          .autoSelectFormat=${this.autoSelectFormat}
           ?can-custom-format=${!!parameters?.ATSEnabled}
           ?can-favorite=${this.canFavorite}
           ?can-pin-asset=${this.canPinAsset}

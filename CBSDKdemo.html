@@ -377,8 +377,79 @@ customStorage: {
           <li>
             <b>defaultGridView</b>
             <p>
-              The default grid view when showing assets (default medium).
-              Available value: small, medium, large
+              The default view when showing assets (default medium).
+              Available value: small, medium, large, table
+            </p>
+            <p>
+              <small>
+                Note: <code>table</code> applies only when <b>tableColumns</b> is also provided.
+              </small>
+            </p>
+          </li>
+          <li>
+            <b>tableColumns</b>
+            <p>
+              The columns of the table view. Providing this adds a Table option to the view menu, which lists assets as
+              rows of metadata instead of thumbnails - so an asset with no file of its own, such as a text fragment, is
+              browsable and selectable by its identifying fields.
+            </p>
+            <p>Each column takes:</p>
+            <ul>
+              <li><code>title</code> - the header text</li>
+              <li><code>field</code> - the Orange Logic field the column reads, e.g. "CoreField.Identifier"</li>
+            </ul>
+            <p>
+              <small>
+                Note: the fields listed here are requested on every search, and field names are case-sensitive.
+              </small>
+            </p>
+            <p>
+              <small>
+                Note: the table fits each column to its content, with a minimum width of 92px, and the columns
+                share the spare width so that they fill the table. When a user drags a
+                column divider, the table saves that width for the site and uses it again after a reload. The other
+                columns keep their width until the page reloads, the view changes or the site changes. Thus the
+                table can end before the right edge of the host, or scroll horizontally. A double
+                click on the divider removes the saved width. The table ignores <code>width</code>,
+                <code>lines</code> and <code>align</code>.
+              </small>
+            </p>
+          </li>
+          <li>
+            <b>tableRowActionPosition</b> (default 'host-edge')
+            <p>
+              The position of the button that shows when the pointer is on a row of the table view.
+            </p>
+            <ul>
+              <li><code>'host-edge'</code> - the button shows at the right edge of the host container.</li>
+              <li><code>'row-end'</code> - the button shows at the end of the visible row.</li>
+            </ul>
+            <p>
+              <small>
+                Note: any other value gives <code>'host-edge'</code>.
+              </small>
+            </p>
+          </li>
+          <li>
+            <b>autoSelectFormat</b> (default false)
+            <p>
+              Import behaviour when picking an asset, for a host that would rather not show the format picker.
+            </p>
+            <ul>
+              <li><code>false</code> - the format dialog opens as usual.</li>
+              <li><code>true</code> - insert with the first available format, without showing the dialog.</li>
+              <li>
+                a format name - insert with that format. Matched case-insensitively against a format's proxy name
+                ("TRX") or the label the picker shows ("Original").
+              </li>
+            </ul>
+            <p>
+              <small>
+                Note: a name that matches no available format opens the dialog as usual, so a stale value degrades
+                rather than breaks. Skipping the dialog also skips everything else it offers for that asset - the
+                preview, the ATS custom format and the tracking-parameter panel - so assets are inserted with
+                tracking off, which is the dialog's own default.
+              </small>
             </p>
           </li>
         </ul>
@@ -523,6 +594,16 @@ customStorage: {
         ctaTextTransform: 'capitalize', // 'none', 'uppercase', 'lowercase', 'capitalize' (default: 'capitalize')
         // extra asset fields to get
         extraFields: ['coreField.OriginalFileName', 'document.CortexPath'],
+        // columns of the table view; omit to offer grid views only
+        tableColumns: [
+          { title: 'Identifier', field: 'CoreField.Identifier' },
+          { title: 'Title', field: 'CoreField.TitleWithFallback' },
+          { title: 'Description', field: 'Document.CaptionLong' },
+        ],
+        tableRowActionPosition: 'host-edge', // 'host-edge' (default) or 'row-end'
+        defaultGridView: 'table', // 'small', 'medium', 'large', 'table' (default: 'medium')
+        // insert with the first available format instead of opening the format dialog
+        autoSelectFormat: true,
         // default base url to pre-filled
         baseUrl: 'https://qa-latest.orangelogic.com',
         displayInfo: {

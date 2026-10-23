@@ -1,6 +1,6 @@
 import http from '@/api/api';
 import { Asset, GetAssetsRequest, MediaType } from '@/types/asset';
-import { TransformationAction } from '@/types/content-browser';
+import { Facet, TransformationAction } from '@/types/content-browser';
 import { AssetApiEndpoint } from '@/api/endpoints';
 import { appendPathAndQuery } from '@/utils/appendPathAndQuery';
 
@@ -91,6 +91,34 @@ export function resolveAssetExtraFilters(
 
 function isCortexErrorResponse(response: GetAssetLinkResponse | CortexErrorResponse): response is CortexErrorResponse {
   return response && typeof response === 'object' && 'ErrorCode' in response;
+}
+
+// The merge reads `facetFieldName` and the filter reads `displayName` of the details. The filter reads `value`
+// of each facet value as a string (`split('>>')`). A facet without them cannot merge or render.
+function isSearchFacet(facet: Facet | null | undefined) {
+  const details = facet?.facetDetails;
+
+  return !!facet
+    && !!details
+    && typeof details === 'object'
+    && !Array.isArray(details)
+    && typeof details.facetFieldName === 'string'
+    && typeof details.displayName === 'string'
+    && Array.isArray(facet.values)
+    && facet.values.every((facetValue) => !!facetValue && typeof facetValue.value === 'string');
+}
+
+function isSearchResponse(response: unknown): response is GetAssetsRawResponse {
+  if (!response || typeof response !== 'object' || Array.isArray(response)) {
+    return false;
+  }
+
+  const { contentItems, facets, totalCount } = response as Partial<GetAssetsRawResponse>;
+
+  return Array.isArray(facets)
+    && facets.every(isSearchFacet)
+    && Number.isFinite(totalCount)
+    && (contentItems === undefined || Array.isArray(contentItems));
 }
 
 // What a backend without the POST overload answers. 403/404 are excluded: they carry business errors
@@ -520,7 +548,26 @@ export async function apiGetAssetsByIDs({
   }
 }
 
+export const ASSET_LIST_FIELDS = [
+  DEFAULT_VIEW_SIZE,
+  FIELD_DOC_TITLE,
+  FIELD_DOC_TYPE,
+  FIELD_EXTENSION,
+  FIELD_FILE_SIZE,
+  FIELD_IDENTIFIER,
+  FIELD_KEYWORDS,
+  FIELD_MAX_HEIGHT,
+  FIELD_MAX_WIDTH,
+  FIELD_RECORD_ID,
+  FIELD_SUBTYPE,
+  FIELD_TITLE_WITH_FALLBACK,
+  FIELD_UPDATED_FILE_NAME,
+  FIELD_STORAGE_GROUP,
+  ORIGINAL_VIEW_SIZE,
+];
+
 export async function apiGetAssets({
+  fields,
   folderId,
   isSeeThrough,
   limitedToDocTypes = [],
@@ -531,25 +578,18 @@ export async function apiGetAssets({
   start,
   useSession,
 }: GetAssetsRequest) {
+  const validatedFields = fields?.filter((field) => field && typeof field === 'string') ?? [];
+
   try {
     const response = await http.request<GetAssetsResponse>({
       data: {
         Fields: [
-          DEFAULT_VIEW_SIZE,
-          FIELD_DOC_TITLE,
-          FIELD_DOC_TYPE,
-          FIELD_EXTENSION,
-          FIELD_FILE_SIZE,
-          FIELD_IDENTIFIER,
-          FIELD_KEYWORDS,
-          FIELD_MAX_HEIGHT,
-          FIELD_MAX_WIDTH,
-          FIELD_RECORD_ID,
-          FIELD_SUBTYPE,
-          FIELD_TITLE_WITH_FALLBACK,
-          FIELD_UPDATED_FILE_NAME,
-          FIELD_STORAGE_GROUP,
-          ORIGINAL_VIEW_SIZE,
+          ...ASSET_LIST_FIELDS,
+          ...validatedFields.filter((field, index) => {
+            const seen = [...ASSET_LIST_FIELDS, ...validatedFields.slice(0, index)];
+
+            return !seen.some((item) => item.toLowerCase() === field.toLowerCase());
+          }),
         ],
         Limit: pageSize || undefined,
         LimitedToDocTypes: limitedToDocTypes,
@@ -568,6 +608,17 @@ export async function apiGetAssets({
           ? http.defaults.transformResponse
           : []),
         (rawResponse: GetAssetsRawResponse): GetAssetsResponse => {
+          // A 2xx page that is not a search result, for example from a proxy or a login page, is an error.
+          if (!isSearchResponse(rawResponse)) {
+            return {
+              facets: [],
+              isError: true,
+              items: [],
+              totalCount: 0,
+              unreadableFields: [],
+            };
+          }
+
           const mappedItems =
             rawResponse.contentItems?.map((item) => {
               let extension = item.fields[FIELD_EXTENSION] ?? '';
@@ -578,6 +629,16 @@ export async function apiGetAssets({
               }
 
               return {
+                // Spread first so a requested field that shares a name with a mapped property cannot
+                // shadow it; a column reading that Cortex field still resolves under its own key.
+                ...validatedFields.reduce<Record<string, string>>((acc, field) => {
+                  const sourceField = ASSET_LIST_FIELDS.find(
+                    (defaultField) => defaultField.toLowerCase() === field.toLowerCase(),
+                  ) ?? field;
+                  acc[field] = item.fields[sourceField] ?? '';
+
+                  return acc;
+                }, {}),
                 allowATSLink: item.fields[FIELD_ALLOW_ATS_LINK] === 'True',
                 docSubType: item.fields[FIELD_SUBTYPE] ?? '',
                 docType: (item.fields[FIELD_DOC_TYPE] as MediaType) ?? '',
@@ -599,8 +660,12 @@ export async function apiGetAssets({
 
           return {
             facets: rawResponse.facets,
+            isError: false,
             items: mappedItems,
             totalCount: rawResponse.totalCount,
+            unreadableFields: Array.isArray(rawResponse.unreadableFields)
+              ? rawResponse.unreadableFields.filter((field) => typeof field === 'string')
+              : [],
           };
         },
       ],
@@ -609,10 +674,13 @@ export async function apiGetAssets({
 
     return response.data;
   } catch (error) {
+    // Resolve, not reject: the public fetchAssets gives this result to the host application (L-42BQUZ).
     return {
       facets: [],
+      isError: true,
       items: [],
       totalCount: 0,
+      unreadableFields: [],
     };
   }
 }
@@ -628,6 +696,13 @@ export async function apiGetAvailableProxies({
   try {
     const response = await http.request<GetAvailableProxiesResponse>({
       baseURL: siteUrl,
+      cache: {
+        // A malformed body arrives with HTTP 200, so the default status check would cache the error and
+        // serve it again after the server recovers.
+        cachePredicate: {
+          responseMatch: ({ data }) => !data.isError,
+        },
+      },
       method: 'GET',
       params: {
         RecordId: assetRecordId,
@@ -640,16 +715,20 @@ export async function apiGetAvailableProxies({
         (
           rawResponse: GetAvailableProxiesRawResponse,
         ): GetAvailableProxiesResponse => {
-          if (!rawResponse || typeof rawResponse !== 'object') {
+          // A success always carries a proxies array. Anything else, such as an error body sent with HTTP 200, is a
+          // request error and must not read as an empty format list (L-42BIA4).
+          if (!rawResponse || typeof rawResponse !== 'object' || !Array.isArray(rawResponse.proxies)) {
             return {
+              isError: true,
               previewUrl: '',
               proxies: [],
             };
           }
 
           return {
+            isError: false,
             previewUrl: rawResponse.previewUrl ?? '',
-            proxies: rawResponse.proxies?.map((proxy) => ({
+            proxies: rawResponse.proxies.map((proxy) => ({
               cdnName: proxy.cdnName,
               extension: proxy.extension,
               formatHeight: proxy.formatHeight,
@@ -660,7 +739,7 @@ export async function apiGetAvailableProxies({
               proxyLabel: proxy.proxyLabel,
               proxyName: proxy.proxyName,
               width: proxy.width,
-            })) ?? [],
+            })),
           };
         },
       ],
@@ -670,6 +749,7 @@ export async function apiGetAvailableProxies({
     return response.data;
   } catch (error) {
     return {
+      isError: true,
       previewUrl: '',
       proxies: [],
     };

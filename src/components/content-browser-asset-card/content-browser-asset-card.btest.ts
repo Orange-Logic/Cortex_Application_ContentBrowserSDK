@@ -1,6 +1,6 @@
 import './content-browser-asset-card';
 
-import { elementUpdated, expect, fixture, html } from '@open-wc/testing';
+import { elementUpdated, expect, fixture, html, waitUntil } from '@open-wc/testing';
 import sinon from 'sinon';
 
 import { MediaType } from '@/types/asset';
@@ -273,6 +273,150 @@ describe('content-browser-asset-card', () => {
       sinon.stub(card, 'getBoundingClientRect').returns({ left: 0, width: 200 } as DOMRect);
       card.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: 100 }));
       expect(updateProgressSpy).to.not.have.been.called;
+    });
+  });
+
+  describe('insert overlay', () => {
+    function getCta(card: ContentBrowserAssetCard) {
+      return card.shadowRoot!.querySelector('.content-browser-asset-card__cta');
+    }
+
+    it('is absent unless the host has asked to skip the format picker', async () => {
+      await elementUpdated(el);
+
+      expect(getCta(el)).to.not.exist;
+    });
+
+    it('appears when the card is told to show it', async () => {
+      el.showCta = true;
+      await elementUpdated(el);
+
+      expect(getCta(el)).to.exist;
+      expect(getCta(el)!.textContent).to.contain('Insert');
+    });
+
+    it('carries the host cta text when one is set', async () => {
+      el.showCta = true;
+      el.ctaText = 'Add';
+      await elementUpdated(el);
+
+      expect(getCta(el)!.textContent).to.contain('Add');
+      expect(getCta(el)!.textContent).to.not.contain('Insert');
+    });
+
+    it('stays away from a cold-storage asset, which cannot be picked at all', async () => {
+      el.showCta = true;
+      el.inColdStorage = true;
+      await elementUpdated(el);
+
+      expect(getCta(el)).to.not.exist;
+    });
+
+    it('is an affordance, not a second control', async () => {
+      el.showCta = true;
+      await elementUpdated(el);
+      const cta = getCta(el)!;
+
+      // The card beneath is the one interactive, announced, focusable thing; the overlay only says
+      // what clicking it will do, and the click has to reach the card to take the usual path.
+      expect(cta.getAttribute('aria-hidden')).to.equal('true');
+      expect(getComputedStyle(cta).pointerEvents).to.equal('none');
+      expect(cta.querySelector('cx-button')!.getAttribute('tabindex')).to.equal('-1');
+    });
+
+    it('is hidden until the card is hovered', async () => {
+      el.showCta = true;
+      await elementUpdated(el);
+
+      expect(getComputedStyle(getCta(el)!).opacity).to.equal('0');
+    });
+  });
+
+  describe('insert overlay geometry', () => {
+    const CORNERS = [
+      'borderTopLeftRadius',
+      'borderTopRightRadius',
+      'borderBottomRightRadius',
+      'borderBottomLeftRadius',
+    ] as const;
+
+    function radii(element: Element) {
+      const style = getComputedStyle(element);
+
+      return CORNERS.map((corner) => style[corner]).join(' ');
+    }
+
+    function box(rect: DOMRect) {
+      return `${Math.round(rect.left)},${Math.round(rect.top)} ${Math.round(rect.width)}x${Math.round(rect.height)}`;
+    }
+
+    /**
+     * DS tokens are empty in the test runner, which leaves the image box square and the card
+     * unpadded, so any overlay would trivially match it. The themed values give the image box a
+     * real radius and inset.
+     */
+    async function themedCard() {
+      const wrapper = await fixture<HTMLDivElement>(html`
+        <div style="--cx-border-radius-x-large: 16px; --cx-spacing-x-small: 8px; width: 246px;">
+          <cx-content-browser-asset-card show-cta></cx-content-browser-asset-card>
+        </div>
+      `);
+      const card = wrapper.querySelector('cx-content-browser-asset-card')!;
+      await card.updateComplete;
+      await getCard(card).updateComplete;
+      const image = getCard(card).shadowRoot!.querySelector('slot[name="image"]')!;
+      await waitUntil(() => image.getBoundingClientRect().height > 0, 'the image box was never laid out');
+
+      return {
+        card,
+        cta: card.shadowRoot!.querySelector('.content-browser-asset-card__cta')!,
+        image,
+      };
+    }
+
+    it('follows the thumbnail when the card rounds its image differently', async () => {
+      const { card, cta, image } = await themedCard();
+      const sheet = new CSSStyleSheet();
+      sheet.replaceSync('.content-browser-asset-card::part(image) { border-radius: 4px; }');
+      card.shadowRoot!.adoptedStyleSheets = [...card.shadowRoot!.adoptedStyleSheets, sheet];
+
+      expect(radii(image)).to.equal('4px 4px 4px 4px');
+      expect(radii(cta)).to.equal(radii(image));
+    });
+
+    it('covers the thumbnail and never reaches past it', async () => {
+      const { cta, image } = await themedCard();
+      const overlay = cta.getBoundingClientRect();
+      const thumbnail = image.getBoundingClientRect();
+      const inside = overlay.left >= thumbnail.left - 0.5
+        && overlay.top >= thumbnail.top - 0.5
+        && overlay.right <= thumbnail.right + 0.5
+        && overlay.bottom <= thumbnail.bottom + 0.5;
+
+      expect(inside, `overlay ${box(overlay)} vs image ${box(thumbnail)}`).to.be.true;
+      expect(box(overlay)).to.equal(box(thumbnail));
+    });
+  });
+
+  describe('insert pending state', () => {
+    it('holds the overlay open and spins its button while busy', async () => {
+      el.showCta = true;
+      el.busy = true;
+      await elementUpdated(el);
+      const cta = el.shadowRoot!.querySelector('.content-browser-asset-card__cta')!;
+
+      // Hover-revealed otherwise, so the feedback would vanish the moment the pointer moved away.
+      expect(getComputedStyle(cta).opacity).to.equal('1');
+      expect(cta.querySelector('cx-button')!.hasAttribute('loading')).to.be.true;
+    });
+
+    it('does not spin a card that is not the one being inserted', async () => {
+      el.showCta = true;
+      await elementUpdated(el);
+      const cta = el.shadowRoot!.querySelector('.content-browser-asset-card__cta')!;
+
+      expect(getComputedStyle(cta).opacity).to.equal('0');
+      expect(cta.querySelector('cx-button')!.hasAttribute('loading')).to.be.false;
     });
   });
 });

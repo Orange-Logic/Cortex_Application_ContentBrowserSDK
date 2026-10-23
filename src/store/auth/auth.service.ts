@@ -4,6 +4,23 @@ import { cortexFetch } from '@/utils/api';
 export const AUTH_MAX_RETRIES = 10;
 export const CANCEL_AUTH_MESSAGE = 'Authentication cancelled';
 
+/**
+ * Raised when the access-token endpoint could not be reached, or answered with
+ * something that is not a well-formed JSON body.
+ *
+ * This is deliberately distinct from the server answering and declining the key:
+ * a decline is a normal 200 response carrying `success: false`, and only that
+ * justifies discarding the stored access key. Callers must keep the key when they
+ * see this error, or a passing proxy error costs the user a still-valid
+ * credential. (42AX2G)
+ */
+export class AuthTransportError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'AuthTransportError';
+  }
+}
+
 export const authAbortController = { controller: new AbortController() };
 
 export const abortAuthService = () => {
@@ -22,6 +39,8 @@ export const requestAuthorizeService = async (
       headers: {
         'Content-Type': 'application/json',
       },
+      // An anonymous endpoint: a new token cannot change its answer. (42AX2G)
+      retryWhenUnauthorize: false,
     },
   );
   return { ...(await response.json()), nonce };
@@ -43,6 +62,8 @@ export const getAccessKeyService = async (
         headers: {
           'Content-Type': 'application/json',
         },
+        // An anonymous endpoint: a new token cannot change its answer. (42AX2G)
+        retryWhenUnauthorize: false,
       },
     );
     data = await response.json();
@@ -65,7 +86,26 @@ export const getAccessTokenService = async (
       headers: {
         'Content-Type': 'application/json',
       },
+      // `refreshAccessToken` calls this endpoint while it holds the refresh lock, so a
+      // 401 here must surface as an `AuthTransportError`, not wait on that lock. (42AX2G)
+      retryWhenUnauthorize: false,
     },
   );
-  return response.json();
+
+  // The endpoint reports a rejected key as 200 + `success: false`, so any non-2xx
+  // came from the infrastructure in front of it, not from a verdict on the key.
+  if (!response.ok) {
+    throw new AuthTransportError(
+      `getaccesstoken_4bt_v1 responded with status ${response.status}`,
+    );
+  }
+
+  try {
+    return await response.json() as GetAccessTokenRes;
+  } catch {
+    // A gateway error page parses as neither JSON nor a verdict.
+    throw new AuthTransportError(
+      'getaccesstoken_4bt_v1 returned a body that is not JSON',
+    );
+  }
 };
