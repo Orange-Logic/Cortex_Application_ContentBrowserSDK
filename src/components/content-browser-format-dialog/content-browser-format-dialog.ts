@@ -869,7 +869,7 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
     if (this.canUseProxies) {
       proxySelector = html`
         <cx-content-browser-asset-proxy-selector
-          selected=${this.selectedProxy || this.proxies[0]?.id}
+          selected=${this.confirmOnFormatSelect ? '' : this.selectedProxy || this.proxies[0]?.id}
           custom-width=${ifDefined(this.confirmedFormat?.width?.toString() || undefined)}
           custom-height=${ifDefined(this.confirmedFormat?.height?.toString() || undefined)}
           custom-extension=${ifDefined(this.confirmedFormat?.extension || undefined)}
