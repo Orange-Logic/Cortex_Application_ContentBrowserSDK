@@ -1,8 +1,8 @@
-import { GridView } from '@/types/content-browser';
+import { ContentBrowserView } from '@/types/content-browser';
 
 export type CxContentBrowserControlViewChangeEvent = CustomEvent<{
   isSeeThrough: boolean;
-  view: GridView;
+  view: ContentBrowserView;
 }>;
 
 declare global {

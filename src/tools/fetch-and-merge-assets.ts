@@ -27,7 +27,9 @@ import {
   ORIGINAL_VIEW_SIZE,
   resolveAssetCaption,
 } from '@/api/asset';
-import { GetAssetLinksRequest, GetAssetsByIDsResponse, GetAvailableExtensionsResponse, GetAvailableProxiesResponse } from '@/api/asset/asset.types';
+import {
+  GetAssetLinksRequest, GetAssetsByIDsResponse, GetAssetsResponse, GetAvailableExtensionsResponse, GetAvailableProxiesResponse,
+} from '@/api/asset/asset.types';
 import { apiGetUserInfo } from '@/api/auth';
 import { AssetApiEndpoint, AuthApiEndpoint, FOLDER_API_ENDPOINT, MetadataApiEndpoint } from '@/api/endpoints';
 import { apiGetFolders } from '@/api/folder';
@@ -39,7 +41,7 @@ import {
 import { GetContentBrowserParametersResponse } from '@/api/metadata/metadata.types';
 import { Asset, GetAssetsRequest, MediaType } from '@/types/asset';
 import { UserInfo } from '@/types/auth';
-import { Facet, SortOrder } from '@/types/content-browser';
+import { Facet, SortOrder, toFieldKey } from '@/types/content-browser';
 import { GetFolderRequest } from '@/types/folder';
 import { getSiteSessionRequestUrl, resolveSiteSessionUrl } from '@/utils/site-session';
 
@@ -49,6 +51,8 @@ import _isEqual from 'lodash-es/isEqual';
 import _uniqBy from 'lodash-es/uniqBy';
 
 type FetchAndMergeAssetsControllerOptions = {
+  /** Cortex fields the table-view columns read, requested on every search alongside the fixed set. */
+  additionalFields?: string[];
   availableDocTypes: string[];
   baseUrl: string;
   bearerToken: string;
@@ -68,6 +72,21 @@ type FetchAndMergeAssetsControllerDataOptions = {
   availableRepresentativeSubtypes: string[];
 };
 
+/**
+ * Cortex flags a field only when no record on the page lets the user read it, as the DAM field
+ * check does. Thus a field stays hidden for the list only while each page with rows flags it. A
+ * page with no rows has no records to decide by, and a failed search arrives as one.
+ */
+function narrowUnreadableFields(unreadableFields: string[], page: GetAssetsResponse): string[] {
+  if (page.items.length === 0) {
+    return unreadableFields;
+  }
+
+  const flagged = new Set(page.unreadableFields.map(toFieldKey));
+
+  return unreadableFields.filter((field) => flagged.has(toFieldKey(field)));
+}
+
 export class FetchAndMergeAssetsController implements ReactiveController {
   private readonly host: CortexElement;
 
@@ -78,6 +97,9 @@ export class FetchAndMergeAssetsController implements ReactiveController {
   private items: Array<Asset & Record<string, string | boolean>> = [];
 
   private totalCount: number = 0;
+
+  /** The requested fields, spelled as Cortex sent them, that the user cannot read on the rows in `items`. */
+  private unreadableFields: string[] = [];
 
   private lastRequest: GetAssetsRequest | null = null;
 
@@ -113,6 +135,8 @@ export class FetchAndMergeAssetsController implements ReactiveController {
   private readonly tokenRefreshTimeoutMs = 15000;
 
   private readonly availableDocTypes: string[];
+
+  private additionalFields: string[];
 
   private readonly defaultSearchText: string;
 
@@ -151,6 +175,7 @@ export class FetchAndMergeAssetsController implements ReactiveController {
     searchError: boolean;
     sortOrders: Record<string, SortOrder[]>;
     totalCount: number;
+    unreadableFields: string[];
     userInfo: UserInfo | null;
   } | null = null;
 
@@ -161,6 +186,7 @@ export class FetchAndMergeAssetsController implements ReactiveController {
   private responseInterceptorId: number | null = null;
 
   constructor(host: CortexElement, {
+    additionalFields,
     availableDocTypes,
     baseUrl,
     bearerToken,
@@ -177,6 +203,8 @@ export class FetchAndMergeAssetsController implements ReactiveController {
     this.host = host;
 
     this.availableDocTypes = availableDocTypes;
+
+    this.additionalFields = additionalFields ?? [];
 
     this.defaultFolderId = defaultFolderId;
 
@@ -349,6 +377,15 @@ export class FetchAndMergeAssetsController implements ReactiveController {
     }
 
     this.host.requestUpdate();
+  }
+
+  /**
+   * Table columns are host configuration and can be reconfigured after mount, unlike the rest of
+   * these options — every later fetch must ask for the current field list, not the one that
+   * happened to be set when the controller was constructed.
+   */
+  updateAdditionalFields(additionalFields: string[]) {
+    this.additionalFields = additionalFields;
   }
 
   updateAuth(token: string, useSession: string, bearerToken: string) {
@@ -589,6 +626,7 @@ export class FetchAndMergeAssetsController implements ReactiveController {
 
         request = {
           ...request,
+          fields: this.additionalFields,
           limitedToDocTypes: this.availableDocTypes,
         };
 
@@ -610,12 +648,15 @@ export class FetchAndMergeAssetsController implements ReactiveController {
           if (isRestart) {
             this.items = [];
             this.totalCount = 0;
+            this.unreadableFields = [];
           }
         } else {
           if (isRestart) {
             this.items = assets.items;
+            this.unreadableFields = assets.unreadableFields;
           } else {
             this.items = _uniqBy([...this.items, ...assets.items], 'recordId');
+            this.unreadableFields = narrowUnreadableFields(this.unreadableFields, assets);
           }
           this.facets = this.mergeFacetsWithSelected(assets.facets, this.facets, request.selectedFacets);
           this.totalCount = assets.totalCount;
@@ -869,6 +910,7 @@ export class FetchAndMergeAssetsController implements ReactiveController {
       searchError: this.failedRequest !== null,
       sortOrders: this.sortOrders,
       totalCount: this.totalCount,
+      unreadableFields: this.unreadableFields,
       userInfo: this.userInfo,
     };
 
@@ -893,6 +935,7 @@ export class FetchAndMergeAssetsController implements ReactiveController {
     this.facets = [];
     this.items = [];
     this.totalCount = 0;
+    this.unreadableFields = [];
     this.sortOrders = {};
     this.#lastPage = null;
   }

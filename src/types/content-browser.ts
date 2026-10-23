@@ -45,6 +45,41 @@ export enum GridView {
   Small = 'small',
 }
 
+/**
+ * The table layout. `GridView` members are the grid's pixel-width presets, so a layout that is not
+ * a grid at all cannot be one of them.
+ */
+export const TABLE_VIEW = 'table';
+
+/** What the content browser is currently rendering: one of the grid size presets, or the table. */
+export type ContentBrowserView = GridView | typeof TABLE_VIEW;
+
+export type TableColumnAlign = 'center' | 'left' | 'right';
+
+/**
+ * One column of the table view. The host owns the column set: the SDK ships the mechanism and no
+ * default column list, so nothing here is guessed from the asset's doc type.
+ */
+export type TableColumn = {
+  /** @deprecated Ignored. The table fits each column to its content, and the user resizes it. */
+  align?: TableColumnAlign;
+  /**
+   * Cortex field the column reads, e.g. `CoreField.Identifier` or `Dell.Snippet`. It is appended to
+   * the field list of the same search call the grid uses, so what a given caller gets back is decided
+   * server-side — the SDK neither filters nor resolves fields of its own. Surrounding whitespace
+   * is trimmed, and the trimmed name is what the duplicate-column check compares. When Cortex flags
+   * the field as one the user cannot read, the table does not show the column, as the DAM does. The
+   * field stays in the request, so that the next response can flag it again.
+   */
+  field: string;
+  /** @deprecated Ignored. The table fits each column to its content, and the user resizes it. */
+  lines?: number;
+  /** Column header text. */
+  title: string;
+  /** @deprecated Ignored. The table fits each column to its content, and the user resizes it. */
+  width?: string;
+};
+
 export const ASSET_SIZE = {
   [GridView.Small]: {
     maxWidth: 178,
@@ -153,9 +188,77 @@ export type FocusMode = {
 
 export type DefaultFocusMode = 'manual' | 'center';
 
+/**
+ * Import behaviour when the host would rather not show the format picker.
+ *
+ * - `false` — the format dialog opens as usual.
+ * - `true` — insert with the first available format, without showing the dialog.
+ * - a format name — insert with that format, matched case-insensitively against a proxy's
+ *   `proxyName` or `proxyLabel`. A name matching nothing opens the dialog as usual.
+ */
+export type AutoSelectFormat = boolean | string;
+
+/**
+ * Serves markup hosts: `<cx-content-browser auto-select-format="WEB">`. The union has to survive a
+ * round trip through a string, so `"true"`/`"false"` are the booleans and anything else is a format
+ * name; a bare attribute means `true`, matching how a boolean attribute normally reads.
+ *
+ * React hosts bypass this entirely — `CortexElement.createProperty` aliases the attribute name onto
+ * the prototype, so react-dom finds `'auto-select-format' in element` and assigns the property with
+ * its real type rather than setting an attribute.
+ */
+export const autoSelectFormatConverter = {
+  fromAttribute: (value: string | null): AutoSelectFormat => {
+    if (value === null) {
+      return false;
+    }
+
+    const normalized = value.trim();
+
+    if (normalized === '' || normalized.toLowerCase() === 'true') {
+      return true;
+    }
+
+    if (normalized.toLowerCase() === 'false') {
+      return false;
+    }
+
+    return normalized;
+  },
+  toAttribute: (value: AutoSelectFormat): string | null => {
+    return value === false ? null : String(value);
+  },
+};
+
+/**
+ * Whether `autoSelectFormat` is switched on at all — a blank string is off, not a format named " ".
+ *
+ * Config-level, not per-asset: it says the host has asked to skip the picker, not that this
+ * particular asset will skip it. A named format that no proxy matches still opens the dialog.
+ */
+export function isAutoSelectFormatActive(value: AutoSelectFormat): boolean {
+  return value === true || (typeof value === 'string' && value.trim() !== '');
+}
+
 export type CtaTextTransform = 'none' | 'uppercase' | 'lowercase' | 'capitalize';
+
+/**
+ * Where the table shows the row action: at the right edge of the host (`host-edge`), or at the end
+ * of the last data column (`row-end`).
+ */
+export type TableRowActionPosition = 'host-edge' | 'row-end';
+
+/** Reads a row action position. Any value other than `row-end` gives `host-edge`. */
+export function toTableRowActionPosition(value: unknown): TableRowActionPosition {
+  return value === 'row-end' ? 'row-end' : 'host-edge';
+}
 
 export enum ContentBrowserFormatDialogVariant {
   Dialog = 'dialog',
   Drawer = 'drawer',
+}
+
+/** Two Cortex field names name one field when these keys are equal: the table trims and ignores case. */
+export function toFieldKey(field: string): string {
+  return field.trim().toLowerCase();
 }

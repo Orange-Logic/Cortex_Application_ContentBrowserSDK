@@ -34,7 +34,8 @@ import CxContentBrowserAssetVersionHistory from '../content-browser-asset-versio
 import styles from './content-browser-format-dialog.styles';
 
 import {
-  type Parameter, type Transformation, type CtaTextTransform, ContentBrowserFormatDialogVariant,
+  type Parameter, type Transformation, type CtaTextTransform, type AutoSelectFormat,
+  autoSelectFormatConverter, ContentBrowserFormatDialogVariant, isAutoSelectFormatActive,
 } from '@/types/content-browser';
 import type CxMenuItem from '@orangelogic/design-system/components/menu-item';
 const DEFAULT_TRACKING_PARAMETERS: Parameter[] = [{
@@ -147,6 +148,14 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
 
   @property({ attribute: 'can-use-proxies', reflect: false, type: Boolean })
   canUseProxies: boolean = false;
+
+  /**
+   * Skip the format picker and insert directly — see `resolveAutoSelection` for what each value
+   * does. Off by default: this changes what a click does, so a host opts in rather than
+   * inheriting it.
+   */
+  @property({ attribute: 'auto-select-format', converter: autoSelectFormatConverter, reflect: false })
+  autoSelectFormat: AutoSelectFormat = false;
 
   /**
    * Pick-only mode. Suppresses the custom-format editor entirely: cx-asset-link-format issues its
@@ -276,10 +285,8 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
     return this.filteredProxies.some((proxy) => proxy.id === this.selectedProxy);
   }
 
-  @watch('proxies', { waitUntilFirstUpdate: true })
-  @watch('supportedExtensions')
-  handleSupportedExtensionsChange() {
-    this.filteredProxies = this.proxies.filter((item) => {
+  private filterProxies(proxies: AvailableProxy[]): AvailableProxy[] {
+    return proxies.filter((item) => {
       const assetExtension = this.asset?.extension?.replace(/^\./, '') ?? '';
 
       // A proxy with no extension of its own serves the asset's original file, so it is only offered when that
@@ -292,7 +299,51 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
 
       return true;
     });
+  }
+
+  @watch('proxies', { waitUntilFirstUpdate: true })
+  @watch('supportedExtensions')
+  handleSupportedExtensionsChange() {
+    this.filteredProxies = this.filterProxies(this.proxies);
     this.selectedProxy = this.filteredProxies[0]?.id ?? '';
+  }
+
+  /**
+   * What `autoSelectFormat` resolves to for this asset: the proxy to insert with, or `undefined`
+   * when the dialog should open as usual.
+   *
+   * `{ proxy: undefined }` is deliberate rather than a miss — with the picker switched off there is
+   * no format to name and the original file is the only outcome, which is `handleProxyConfirm`'s
+   * no-proxy branch. With the picker on a proxy must actually resolve: confirming none emits
+   * nothing and would turn the click into a silent no-op, so both an empty proxy list and a format
+   * name that matches nothing fall back to the dialog.
+   */
+  private resolveAutoSelection(): { proxy?: AvailableProxy } | undefined {
+    const requested = this.autoSelectFormat;
+
+    if (!isAutoSelectFormatActive(requested)) {
+      return undefined;
+    }
+
+    if (!this.canUseProxies) {
+      return { proxy: undefined };
+    }
+
+    if (requested === true) {
+      const [first] = this.filteredProxies;
+
+      return first ? { proxy: first } : undefined;
+    }
+
+    const wanted = String(requested).trim().toLowerCase();
+
+    // proxyName is the stable identifier and what the selection payload reports back as
+    // proxyPreference; proxyLabel is accepted too because it is what the picker shows.
+    const match = this.filteredProxies.find((proxy) => {
+      return proxy.proxyName?.toLowerCase() === wanted || proxy.proxyLabel?.toLowerCase() === wanted;
+    });
+
+    return match ? { proxy: match } : undefined;
   }
 
   open({
@@ -313,11 +364,67 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
     this.isAssetPinned = isAssetPinned;
     this.proxies = proxies;
     this.proxiesFailed = proxiesFailed;
+
+    // The watcher that derives these runs on the next update, and the decision below needs them now.
+    this.filteredProxies = this.filterProxies(this.proxies);
+    this.selectedProxy = this.filteredProxies[0]?.id ?? '';
+
+    const autoSelection = this.disabledConfirm ? undefined : this.resolveAutoSelection();
+
+    if (autoSelection) {
+      if (autoSelection.proxy) {
+        this.selectedProxy = autoSelection.proxy.id;
+      }
+
+      // Without the dialog there is no confirm button to disable, so a second click would otherwise
+      // hand the same asset over twice while the first insert is still in flight.
+      if (!this.loadingConfirm) {
+        this.handleProxyConfirm();
+      }
+
+      return;
+    }
+
+    // Only the shortcut above may inherit loadingConfirm, as its guard. A dialog that actually
+    // opens starts clean: an insert still in flight for a previous asset would otherwise show this
+    // one's confirm button already spinning, and settle against this dialog instead of its own.
+    this.loadingConfirm = false;
     this.isOpen = true;
   }
 
   hide() {
     this.handleClose();
+  }
+
+  /**
+   * Show a dialog that `open()` skipped through the auto-confirm shortcut. The asset, proxies and
+   * resolved selection are still in place, so this lands the user on exactly the dialog the
+   * shortcut spared them, with its confirm button live again to retry.
+   */
+  revealAfterAutoConfirm() {
+    if (!this.asset) {
+      // Nothing left to show. Close cleanly rather than latching loadingConfirm on a blank dialog.
+      this.handleClose();
+
+      return;
+    }
+
+    // The proxies watcher has run since `open()` and reset `selectedProxy` to the first filtered
+    // proxy, so restore the format the host asked for. Without this a retry inserts a different
+    // format than the one the shortcut attempted.
+    const autoSelection = this.resolveAutoSelection();
+
+    if (autoSelection?.proxy) {
+      this.selectedProxy = autoSelection.proxy.id;
+    }
+
+    this.loadingConfirm = false;
+    this.isOpen = true;
+  }
+
+  /** Whether the dialog is actually on screen — false when `open()` took the auto-confirm path. */
+  get isDialogOpen(): boolean {
+    return this.isOpen;
   }
 
   setVersionHistory(versions: AssetVersion[]) {
@@ -854,7 +961,7 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
         <cx-button
           class="content-browser-format__footer__button"
           variant="primary"
-          ?loading=${this.loadingProxies}
+          ?loading=${this.loadingConfirm || this.loadingProxies}
           @click=${this.handleProxyConfirm}
         >
           <cx-icon slot="prefix" name="folder"></cx-icon>
@@ -922,7 +1029,10 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
   }
 
   private handleRequestClose(event: CxRequestCloseEvent) {
-    if (this.loadingFavorites || this.loadingPinAsset) {
+    // An insert cannot be abandoned: the request is already out, its closure still holds the asset,
+    // and the host blocks further selections until it settles. Dismissing here would hand over an
+    // asset the user cancelled, after a window of silently dead clicks.
+    if (this.loadingConfirm || this.loadingFavorites || this.loadingPinAsset) {
       event.preventDefault();
 
       return;

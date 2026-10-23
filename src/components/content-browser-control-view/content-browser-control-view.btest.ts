@@ -3,7 +3,7 @@ import './content-browser-control-view';
 import { elementUpdated, expect, fixture, html, oneEvent } from '@open-wc/testing';
 
 import type CxMenuItem from '@orangelogic/design-system/components/menu-item';
-import { GridView, type ControlOption } from '@/types/content-browser';
+import { GridView, TABLE_VIEW, type ControlOption } from '@/types/content-browser';
 
 import type CxContentBrowserControlView from './content-browser-control-view';
 
@@ -185,6 +185,130 @@ describe('content-browser-control-view', () => {
       await dispatchSelectOnDropdown(el, small);
       const evt = await evtPromise;
       expect(evt.detail.view).to.equal('small');
+    });
+  });
+  describe('table view option', () => {
+    it('is absent while the host has configured no table columns', async () => {
+      await setViewsAndView(el, sampleViews, 'medium');
+
+      expect(getMenuItems(el).some((item) => item.value === TABLE_VIEW)).to.be.false;
+    });
+
+    it('is offered on both layouts once can-use-table is set', async () => {
+      el.canUseTable = true;
+      await setViewsAndView(el, sampleViews, 'medium');
+      expect(findMenuItem(el, (item) => item.value === TABLE_VIEW)).to.exist;
+
+      el.isMobile = true;
+      await elementUpdated(el);
+      expect(findMenuItem(el, (item) => item.value === TABLE_VIEW)).to.exist;
+    });
+
+    it('emits the table view when selected', async () => {
+      el.canUseTable = true;
+      await setViewsAndView(el, sampleViews, 'medium');
+
+      const table = findMenuItem(el, (item) => item.value === TABLE_VIEW);
+      const evtPromise = oneEvent(el, 'cx-content-browser-control-view-change');
+      await dispatchSelectOnDropdown(el, table);
+      const evt = await evtPromise;
+
+      expect(evt.detail.view).to.equal(TABLE_VIEW);
+      expect(evt.detail.isSeeThrough).to.be.false;
+    });
+
+    it('returns to the grid when a size is picked from table view', async () => {
+      el.canUseTable = true;
+      await setViewsAndView(el, sampleViews, 'medium');
+      el.view = TABLE_VIEW;
+      await elementUpdated(el);
+
+      const small = findMenuItem(el, (item) => item.value === 'small');
+      const evtPromise = oneEvent(el, 'cx-content-browser-control-view-change');
+      await dispatchSelectOnDropdown(el, small);
+
+      expect((await evtPromise).detail.view).to.equal(GridView.Small);
+    });
+  });
+
+  describe('visible checkmarks', () => {
+    async function visibleCheckmarks() {
+      const items = getMenuItems(el);
+
+      await Promise.all(items.map((item) => item.updateComplete));
+
+      return items.filter((item) => {
+        const icon = item.shadowRoot!.querySelector<HTMLElement>('[part="checked-icon"]')!;
+        const style = getComputedStyle(icon);
+
+        return style.visibility === 'visible' && style.display !== 'none';
+      }).map((item) => (item.menu === 'submenu' ? 'grid' : item.value));
+    }
+
+    it('hides the Table checkmark on mobile and keeps its selected state', async () => {
+      el.canUseTable = true;
+      el.isMobile = true;
+      await setViewsAndView(el, sampleViews, TABLE_VIEW);
+      await getDropdown(el).show();
+
+      expect(await visibleCheckmarks()).to.deep.equal([]);
+      expect(findMenuItem(el, (item) => item.value === TABLE_VIEW).checked).to.be.true;
+    });
+
+    it('shows only the size checkmark on mobile', async () => {
+      el.isMobile = true;
+      await setViewsAndView(el, sampleViews, 'small');
+      await getDropdown(el).show();
+
+      expect(await visibleCheckmarks()).to.deep.equal(['small']);
+    });
+
+    it('shows only the size checkmark after desktop mode changes', async () => {
+      el.canUseTable = true;
+      await setViewsAndView(el, sampleViews, TABLE_VIEW);
+      await getDropdown(el).show();
+      expect(await visibleCheckmarks()).to.deep.equal([]);
+
+      el.view = GridView.Small;
+      await elementUpdated(el);
+      const marked = await visibleCheckmarks();
+      expect(marked).to.have.length(1);
+      expect(marked).to.include('small');
+    });
+  });
+  describe('desktop checked state', () => {
+    /** The Grid item is the one that opens the grid-size submenu. */
+    function getGridItem(control: CxContentBrowserControlView) {
+      return findMenuItem(control, (item) => item.querySelector(':scope > cx-menu[slot="submenu"]') !== null);
+    }
+
+    /** Labels, not nodes, so a failure reads as the list of marked items. */
+    function checkedItems(control: CxContentBrowserControlView) {
+      return getMenuItems(control)
+        .filter((item) => item.hasAttribute('checked'))
+        .map((item) => (getGridItem(control) === item ? 'grid' : item.value));
+    }
+
+    it('marks the Grid item and the active size while a grid view is active', async () => {
+      await setViewsAndView(el, sampleViews, 'medium');
+
+      expect(checkedItems(el)).to.deep.equal(['grid', 'medium']);
+    });
+
+    it('marks the Grid item and the active size once the table is offered', async () => {
+      el.canUseTable = true;
+      await setViewsAndView(el, sampleViews, 'medium');
+
+      expect(checkedItems(el)).to.deep.equal(['grid', 'medium']);
+    });
+
+    it('marks the Table item alone while the table is active', async () => {
+      el.canUseTable = true;
+      await setViewsAndView(el, sampleViews, 'medium');
+      el.view = TABLE_VIEW;
+      await elementUpdated(el);
+
+      expect(checkedItems(el)).to.deep.equal([TABLE_VIEW]);
     });
   });
 });

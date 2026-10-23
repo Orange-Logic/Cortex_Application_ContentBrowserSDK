@@ -21,4 +21,5 @@ export * from './cx-content-browser-pin-asset-change';
 export * from './cx-content-browser-pin-asset-lookup';
 export * from './cx-content-browser-request-change';
 export * from './cx-content-browser-selected-asset';
+export * from './cx-content-browser-table-column-resize';
 export * from './cx-loaded';

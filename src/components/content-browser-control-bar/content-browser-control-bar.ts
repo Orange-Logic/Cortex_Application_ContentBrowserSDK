@@ -104,6 +104,9 @@ export default class CxContentBrowserControlBar extends CortexElement {
   @property({ attribute: 'is-mobile', reflect: false, type: Boolean })
   isMobile = false;
 
+  @property({ attribute: 'can-use-table', reflect: true, type: Boolean })
+  canUseTable = false;
+
   private handleSearchChange(event: CxChangeEvent) {
     this.searchText = (event.target as CxInput).value;
 
@@ -152,6 +155,7 @@ export default class CxContentBrowserControlBar extends CortexElement {
           <cx-content-browser-control-view
             view=${this.view}
             .views=${this.views}
+            ?can-use-table=${this.canUseTable}
             ?is-see-through=${this.isSeeThrough}
             ?is-mobile=${this.isMobile}
           ></cx-content-browser-control-view>

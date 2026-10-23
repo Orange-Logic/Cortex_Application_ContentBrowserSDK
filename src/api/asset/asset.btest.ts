@@ -180,6 +180,67 @@ describe('asset caption', () => {
       expect(response.isError).to.equal(false);
       expect(response.totalCount).to.equal(0);
     });
+
+    describe('unreadable fields (L-42BJ3T)', () => {
+      const stubResponse = (members: Record<string, unknown>) => {
+        http.defaults.adapter = async (config) => ({
+          config,
+          data: {
+            contentItems: [{ fields: { 'Custom.Date': '' }, recordID: 'Q0LDO000001895618' }],
+            facets: [],
+            totalCount: 1,
+            ...members,
+          },
+          headers: {},
+          status: 200,
+          statusText: 'OK',
+        });
+      };
+
+      const getAssets = () => apiGetAssets({ fields: ['Custom.Date'] } as Parameters<typeof apiGetAssets>[0]);
+
+      it('passes on the fields Cortex flags, spelled as Cortex sent them', async () => {
+        stubResponse({ unreadableFields: ['Custom.Date'] });
+
+        expect((await getAssets()).unreadableFields).to.deep.equal(['Custom.Date']);
+      });
+
+      it('reads a Cortex build that sends no flag as one that flags nothing', async () => {
+        stubResponse({});
+
+        expect((await getAssets()).unreadableFields).to.deep.equal([]);
+      });
+
+      it('drops a flag that is not a list of field names', async () => {
+        stubResponse({ unreadableFields: 'Custom.Date' });
+        expect((await getAssets()).unreadableFields).to.deep.equal([]);
+
+        stubResponse({ unreadableFields: [null, 7, 'Custom.Date'] });
+        expect((await getAssets()).unreadableFields).to.deep.equal(['Custom.Date']);
+      });
+
+      it('keeps the empty value Cortex sends for a flagged field on the item', async () => {
+        stubResponse({ unreadableFields: ['Custom.Date'] });
+
+        const [item] = (await getAssets()).items;
+
+        expect(item['Custom.Date']).to.equal('');
+      });
+
+      it('flags nothing when the search call fails', async () => {
+        http.defaults.adapter = async () => {
+          throw new Error('Network Error');
+        };
+
+        expect((await getAssets()).unreadableFields).to.deep.equal([]);
+      });
+
+      it('flags nothing when a 2xx response is not a search body', async () => {
+        stubResponse({ facets: 'none', unreadableFields: ['Custom.Date'] });
+
+        expect((await getAssets()).unreadableFields).to.deep.equal([]);
+      });
+    });
   });
 });
 

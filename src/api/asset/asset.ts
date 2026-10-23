@@ -548,7 +548,26 @@ export async function apiGetAssetsByIDs({
   }
 }
 
+export const ASSET_LIST_FIELDS = [
+  DEFAULT_VIEW_SIZE,
+  FIELD_DOC_TITLE,
+  FIELD_DOC_TYPE,
+  FIELD_EXTENSION,
+  FIELD_FILE_SIZE,
+  FIELD_IDENTIFIER,
+  FIELD_KEYWORDS,
+  FIELD_MAX_HEIGHT,
+  FIELD_MAX_WIDTH,
+  FIELD_RECORD_ID,
+  FIELD_SUBTYPE,
+  FIELD_TITLE_WITH_FALLBACK,
+  FIELD_UPDATED_FILE_NAME,
+  FIELD_STORAGE_GROUP,
+  ORIGINAL_VIEW_SIZE,
+];
+
 export async function apiGetAssets({
+  fields,
   folderId,
   isSeeThrough,
   limitedToDocTypes = [],
@@ -559,25 +578,18 @@ export async function apiGetAssets({
   start,
   useSession,
 }: GetAssetsRequest) {
+  const validatedFields = fields?.filter((field) => field && typeof field === 'string') ?? [];
+
   try {
     const response = await http.request<GetAssetsResponse>({
       data: {
         Fields: [
-          DEFAULT_VIEW_SIZE,
-          FIELD_DOC_TITLE,
-          FIELD_DOC_TYPE,
-          FIELD_EXTENSION,
-          FIELD_FILE_SIZE,
-          FIELD_IDENTIFIER,
-          FIELD_KEYWORDS,
-          FIELD_MAX_HEIGHT,
-          FIELD_MAX_WIDTH,
-          FIELD_RECORD_ID,
-          FIELD_SUBTYPE,
-          FIELD_TITLE_WITH_FALLBACK,
-          FIELD_UPDATED_FILE_NAME,
-          FIELD_STORAGE_GROUP,
-          ORIGINAL_VIEW_SIZE,
+          ...ASSET_LIST_FIELDS,
+          ...validatedFields.filter((field, index) => {
+            const seen = [...ASSET_LIST_FIELDS, ...validatedFields.slice(0, index)];
+
+            return !seen.some((item) => item.toLowerCase() === field.toLowerCase());
+          }),
         ],
         Limit: pageSize || undefined,
         LimitedToDocTypes: limitedToDocTypes,
@@ -603,6 +615,7 @@ export async function apiGetAssets({
               isError: true,
               items: [],
               totalCount: 0,
+              unreadableFields: [],
             };
           }
 
@@ -616,6 +629,16 @@ export async function apiGetAssets({
               }
 
               return {
+                // Spread first so a requested field that shares a name with a mapped property cannot
+                // shadow it; a column reading that Cortex field still resolves under its own key.
+                ...validatedFields.reduce<Record<string, string>>((acc, field) => {
+                  const sourceField = ASSET_LIST_FIELDS.find(
+                    (defaultField) => defaultField.toLowerCase() === field.toLowerCase(),
+                  ) ?? field;
+                  acc[field] = item.fields[sourceField] ?? '';
+
+                  return acc;
+                }, {}),
                 allowATSLink: item.fields[FIELD_ALLOW_ATS_LINK] === 'True',
                 docSubType: item.fields[FIELD_SUBTYPE] ?? '',
                 docType: (item.fields[FIELD_DOC_TYPE] as MediaType) ?? '',
@@ -640,6 +663,9 @@ export async function apiGetAssets({
             isError: false,
             items: mappedItems,
             totalCount: rawResponse.totalCount,
+            unreadableFields: Array.isArray(rawResponse.unreadableFields)
+              ? rawResponse.unreadableFields.filter((field) => typeof field === 'string')
+              : [],
           };
         },
       ],
@@ -654,6 +680,7 @@ export async function apiGetAssets({
       isError: true,
       items: [],
       totalCount: 0,
+      unreadableFields: [],
     };
   }
 }
