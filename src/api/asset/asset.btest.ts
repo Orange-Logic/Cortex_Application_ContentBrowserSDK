@@ -3,7 +3,9 @@ import { AxiosError, type AxiosResponse, type InternalAxiosRequestConfig } from 
 
 import http from '@/api/api';
 
-import { apiGetAssets, apiGetAvailableProxies, resolveAssetCaption } from './asset';
+import type { Asset } from '@/types/asset';
+
+import { apiGetAssetLinks, apiGetAssets, apiGetAvailableProxies, resolveAssetCaption } from './asset';
 
 describe('asset caption', () => {
   const originalAdapter = http.defaults.adapter;
@@ -339,5 +341,68 @@ describe('apiGetAvailableProxies', () => {
 
     expect(response.isError).to.equal(false);
     expect(response.previewUrl).to.equal('https://cdn.example/preview.jpg');
+  });
+});
+
+describe('apiGetAssetLinks with skipLinkGeneration (L-29U6N8)', () => {
+  const originalAdapter = http.defaults.adapter;
+  const asset = {
+    extension: '.jpg',
+    imageUrl: 'https://cdn.example/preview.jpg',
+    recordId: '2Z7DHUNW2RPB',
+  } as Asset;
+  let sentBodies: Record<string, unknown>[] = [];
+
+  // Cortex answers a metadata-only request with no link: imageUrl is null, the ExtraFields are there.
+  const respondWith = (data: unknown) => {
+    http.defaults.adapter = async (config) => {
+      sentBodies.push(typeof config.data === 'string' ? JSON.parse(config.data) : config.data);
+
+      return {
+        config,
+        data,
+        headers: {},
+        status: 200,
+        statusText: 'OK',
+      };
+    };
+  };
+
+  beforeEach(() => {
+    sentBodies = [];
+  });
+
+  afterEach(() => {
+    http.defaults.adapter = originalAdapter;
+  });
+
+  it('asks Cortex for metadata only, so no link is created', async () => {
+    respondWith({ extraFields: { 'Document.RecordID': 'Q2ADO000000356116' }, imageUrl: null, metadata: null });
+
+    await apiGetAssetLinks({ assets: [asset], extraFields: ['Document.RecordID'], skipLinkGeneration: true });
+
+    expect(sentBodies[0]?.GenerateAssetUrl).to.equal(false);
+  });
+
+  it('hands the host its extraFields when Cortex returns no link', async () => {
+    respondWith({ extraFields: { 'Document.RecordID': 'Q2ADO000000356116' }, imageUrl: null, metadata: null });
+
+    const response = await apiGetAssetLinks({
+      assets: [asset],
+      extraFields: ['Document.RecordID'],
+      skipLinkGeneration: true,
+    });
+
+    expect(response.isError).to.equal(false);
+    expect(response.data[0]?.extraFields?.['Document.RecordID']).to.equal('Q2ADO000000356116');
+    expect(response.data[0]?.imageUrl).to.equal('https://cdn.example/preview.jpg');
+  });
+
+  it('still asks Cortex for a link when the option is off', async () => {
+    respondWith({ extraFields: {}, imageUrl: 'https://cdn.example/AssetLink/abc.jpg', metadata: null });
+
+    await apiGetAssetLinks({ assets: [asset], extraFields: ['Document.RecordID'] });
+
+    expect(sentBodies[0]?.GenerateAssetUrl).to.equal(true);
   });
 });

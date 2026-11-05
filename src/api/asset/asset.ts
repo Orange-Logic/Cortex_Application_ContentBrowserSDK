@@ -333,6 +333,7 @@ export async function apiGetAssetLinks({
   parameters,
   permanentLink,
   proxyPreference,
+  skipLinkGeneration,
   transformations,
   useSession,
 }: GetAssetLinksRequest): Promise<GetAssetLinksResponse> {
@@ -344,7 +345,7 @@ export async function apiGetAssetLinks({
   try {
     const settled = await Promise.allSettled(assets.map(async (asset) => {
       const requestBody: GetAssetLinkRequest = {
-        GenerateAssetUrl: !permanentLink,
+        GenerateAssetUrl: !permanentLink && !skipLinkGeneration,
         Parameters: parameters,
         Proxy: proxyPreference,
         RecordId: asset.recordId,
@@ -424,6 +425,14 @@ export async function apiGetAssetLinks({
         return {
           imageUrl: asset.imageUrl,
         } as GetAssetLinkResponse;
+      }
+
+      // Cortex sends no link for a metadata-only request, so there is nothing to rewrite.
+      if (skipLinkGeneration) {
+        return {
+          ...rawResponse,
+          imageUrl: asset.imageUrl ?? '',
+        };
       }
 
       const imageUrl = buildAssetLinkImageUrl({

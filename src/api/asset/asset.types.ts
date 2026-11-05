@@ -136,6 +136,11 @@ export type GetAssetLinksRequest = {
   parameters?: TrackingParameter[];
   permanentLink?: string;
   proxyPreference?: string;
+  /**
+   * Ask Cortex for the asset metadata and ExtraFields only (GenerateAssetUrl=false), so no asset link is
+   * created. Each item's imageUrl is then the grid preview URL the asset already carries.
+   */
+  skipLinkGeneration?: boolean;
   token?: string;
   transformations?: Transformation[];
   useRepresentative?: boolean;
