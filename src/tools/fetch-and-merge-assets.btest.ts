@@ -105,6 +105,45 @@ describe('FetchAndMergeAssetsController', () => {
     expect(result?.asset.name).to.not.contain('_MG_8632');
   });
 
+  // L-42D2A9: the format dialog opens through fetchAssetByID, so it must show the caption that the host chose.
+  it('shows the original file name for titleFallback originalFileName', async () => {
+    const recordId = stubContent({
+      'CoreField.Identifier': 'FA23E70G',
+      'CoreField.OriginalFileName': 'CHI-BEARS-ARCH.ai',
+      'Document.Title': '',
+    });
+
+    const result = await createController({ titleFallback: 'originalFileName' })
+      .fetchAssetByID(recordId, { simplePick: true });
+
+    expect(result?.asset.name).to.equal('CHI-BEARS-ARCH.ai');
+  });
+
+  it('sends titleFallback with the assets request of the host', async () => {
+    const seen: { requestedFields: string[] } = { requestedFields: [] };
+
+    http.defaults.adapter = async (config) => {
+      seen.requestedFields = JSON.parse(config.data).Fields;
+
+      return {
+        config,
+        data: {
+          contentItems: [{ recordID: 'Q0LDO000001895619', fields: { 'CoreField.OriginalFileName': 'CHI-BEARS-ARCH.ai' } }],
+          facets: [],
+          totalCount: 1,
+        },
+        headers: {},
+        status: 200,
+        statusText: 'OK',
+      };
+    };
+
+    const response = await createController({ titleFallback: 'originalFileName' }).fetchAssets({} as GetAssetsRequest);
+
+    expect(seen.requestedFields).to.contain('CoreField.OriginalFileName');
+    expect(response.items[0].name).to.equal('CHI-BEARS-ARCH.ai');
+  });
+
   // L-42BIA4: the format dialog shows a different message for a failed format request than for an empty
   // format list, so the failure must reach it.
   const stubContentAndProxies = ({ failProxies = false, proxiesData = {} }: { failProxies?: boolean; proxiesData?: unknown }) => {

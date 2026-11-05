@@ -27,7 +27,8 @@ import { FetchAndMergeAssetsController } from '@/tools/fetch-and-merge-assets';
 import {
   type AutoSelectFormat, autoSelectFormatConverter, ChangeOption, ContentBrowserFormatDialogVariant,
   type ContentBrowserView, type CtaTextTransform, GridView, isAutoSelectFormatActive, OptionType,
-  TABLE_VIEW, type TableColumn, type TableRowActionPosition, toFieldKey, toTableRowActionPosition,
+  TABLE_VIEW, type TableColumn, type TableRowActionPosition, type TitleFallback, toFieldKey, toTableRowActionPosition,
+  toTitleFallback,
 } from '@/types/content-browser';
 import { GetFolderRequest } from '@/types/folder';
 import { safeInteger } from '@/utils/number';
@@ -288,6 +289,13 @@ export default class CxContentBrowser extends CortexElement {
    */
   @property({ attribute: 'table-row-action-position', type: String })
   tableRowActionPosition: TableRowActionPosition = 'host-edge';
+
+  /**
+   * What the asset caption shows when the asset has no title: `uniqueIdentifier` (default) or
+   * `originalFileName`. Any other value gives `uniqueIdentifier`.
+   */
+  @property({ attribute: 'title-fallback', type: String })
+  titleFallback: TitleFallback = 'uniqueIdentifier';
 
   /** The widths the user saved for the table columns of this site, in pixels, keyed by field. */
   @state() private tableColumnWidths: Record<string, number> = {};
@@ -563,6 +571,7 @@ export default class CxContentBrowser extends CortexElement {
         defaultSelectedFacets: this.defaultSelectedFacets,
         defaultSortDirection: this.defaultSortDirection,
         defaultSortOrderName: this.defaultSortOrderName,
+        titleFallback: toTitleFallback(this.titleFallback),
         token: this.token,
         useSession: this.useSession,
         useSiteSession: this.useSiteSession,

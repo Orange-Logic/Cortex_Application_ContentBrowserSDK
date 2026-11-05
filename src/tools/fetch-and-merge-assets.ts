@@ -26,6 +26,7 @@ import {
   FIELD_TITLE_WITH_FALLBACK,
   ORIGINAL_VIEW_SIZE,
   resolveAssetCaption,
+  resolveTitleFallbackField,
 } from '@/api/asset';
 import {
   GetAssetLinksRequest, GetAssetsByIDsResponse, GetAssetsResponse, GetAvailableExtensionsResponse, GetAvailableProxiesResponse,
@@ -41,7 +42,7 @@ import {
 import { GetContentBrowserParametersResponse } from '@/api/metadata/metadata.types';
 import { Asset, GetAssetsRequest, MediaType } from '@/types/asset';
 import { UserInfo } from '@/types/auth';
-import { Facet, SortOrder, toFieldKey } from '@/types/content-browser';
+import { Facet, SortOrder, type TitleFallback, toFieldKey } from '@/types/content-browser';
 import { GetFolderRequest } from '@/types/folder';
 import { getSiteSessionRequestUrl, resolveSiteSessionUrl } from '@/utils/site-session';
 
@@ -62,6 +63,8 @@ type FetchAndMergeAssetsControllerOptions = {
   defaultSelectedFacets: Record<string, string[]>;
   defaultSortDirection: 'ascending' | 'descending';
   defaultSortOrderName: string;
+  /** What the asset caption shows when the asset has no title. Default `uniqueIdentifier`. */
+  titleFallback?: TitleFallback;
   token: string;
   useSession: string;
   useSiteSession?: boolean;
@@ -138,6 +141,8 @@ export class FetchAndMergeAssetsController implements ReactiveController {
 
   private additionalFields: string[];
 
+  private titleFallback: TitleFallback;
+
   private readonly defaultSearchText: string;
 
   private readonly defaultSelectedFacets: Record<string, string[]>;
@@ -196,6 +201,7 @@ export class FetchAndMergeAssetsController implements ReactiveController {
     defaultSelectedFacets,
     defaultSortDirection,
     defaultSortOrderName,
+    titleFallback = 'uniqueIdentifier',
     token,
     useSession,
     useSiteSession = false,
@@ -205,6 +211,8 @@ export class FetchAndMergeAssetsController implements ReactiveController {
     this.availableDocTypes = availableDocTypes;
 
     this.additionalFields = additionalFields ?? [];
+
+    this.titleFallback = titleFallback;
 
     this.defaultFolderId = defaultFolderId;
 
@@ -483,7 +491,7 @@ export class FetchAndMergeAssetsController implements ReactiveController {
   }
 
   async fetchAssets(request: GetAssetsRequest) {
-    return await apiGetAssets(request);
+    return await apiGetAssets({ titleFallback: this.titleFallback, ...request });
   }
 
   async fetchFolders(request: GetFolderRequest) {
@@ -635,6 +643,7 @@ export class FetchAndMergeAssetsController implements ReactiveController {
         const assets = await apiGetAssets({
           ...request,
           sortOrder,
+          titleFallback: this.titleFallback,
         });
 
         if (generation !== this.#generation) {
@@ -747,6 +756,7 @@ export class FetchAndMergeAssetsController implements ReactiveController {
           FIELD_SUBTYPE,
           FIELD_TITLE_WITH_FALLBACK,
           ORIGINAL_VIEW_SIZE,
+          ...(this.titleFallback === 'originalFileName' ? [resolveTitleFallbackField(this.titleFallback)] : []),
         ],
         recordIds: [id],
       }),
@@ -790,7 +800,7 @@ export class FetchAndMergeAssetsController implements ReactiveController {
         identifier: item[FIELD_IDENTIFIER] ?? '',
         imageUrl: item[DEFAULT_VIEW_SIZE] ?? '',
         inColdStorage: Boolean(item.inColdStorage),
-        name: resolveAssetCaption(item),
+        name: resolveAssetCaption(item, this.titleFallback),
         originalUrl: item[ORIGINAL_VIEW_SIZE] ?? '',
         previewUrl: proxyData?.previewUrl ?? item[DEFAULT_VIEW_SIZE] ?? '',
         recordId: item[FIELD_RECORD_ID] ?? '',

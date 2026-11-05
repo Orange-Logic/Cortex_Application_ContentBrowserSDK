@@ -1,3 +1,5 @@
+import type { TitleFallback } from '@/types/content-browser';
+
 export type AssetVersion = {
   createByEmail: string;
   fileImportDate: string;
@@ -103,6 +105,8 @@ export type GetAssetsRequest = {
   sortOrder?: string;
   sortOrderName?: string;
   start?: number;
+  /** What the caption shows when the asset has no title. Default `uniqueIdentifier`. */
+  titleFallback?: TitleFallback;
   useSession?: string;
 };
 

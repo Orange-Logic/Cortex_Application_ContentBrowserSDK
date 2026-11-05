@@ -43,6 +43,38 @@ describe('asset caption', () => {
         'CoreField.OriginalFileName': '_MG_8632.jpg',
       })).to.equal('');
     });
+
+    // L-42D2A9: a host can opt in to the file name with the titleFallback option.
+    describe('with titleFallback originalFileName', () => {
+      it('falls back to the original file name when the title is blank', () => {
+        expect(resolveAssetCaption({
+          'Document.Title': '',
+          'CoreField.Identifier': 'FA23E70G',
+          'CoreField.OriginalFileName': 'CHI-BEARS-ARCH.ai',
+        }, 'originalFileName')).to.equal('CHI-BEARS-ARCH.ai');
+      });
+
+      it('still shows the title when it is set', () => {
+        expect(resolveAssetCaption({
+          'Document.Title': 'Bears arch',
+          'CoreField.Identifier': 'FA23E70G',
+          'CoreField.OriginalFileName': 'CHI-BEARS-ARCH.ai',
+        }, 'originalFileName')).to.equal('Bears arch');
+      });
+
+      it('falls back to the identifier when the file name is blank', () => {
+        expect(resolveAssetCaption({
+          'CoreField.Identifier': 'FA23E70G',
+        }, 'originalFileName')).to.equal('FA23E70G');
+      });
+    });
+
+    it('keeps the identifier for titleFallback uniqueIdentifier', () => {
+      expect(resolveAssetCaption({
+        'CoreField.Identifier': 'ARC12345',
+        'CoreField.OriginalFileName': '_MG_8632.jpg',
+      }, 'uniqueIdentifier')).to.equal('ARC12345');
+    });
   });
 
   describe('apiGetAssets', () => {
@@ -87,6 +119,59 @@ describe('asset caption', () => {
 
       expect(seen.requestedFields).to.contain('Document.Title');
       expect(seen.requestedFields).to.not.contain('CoreField.OriginalFileName');
+    });
+
+    it('asks Cortex for the original file name and shows it for titleFallback originalFileName', async () => {
+      const seen = stubContent({
+        'Document.Title': '',
+        'CoreField.Identifier': 'FA23E70G',
+        'CoreField.OriginalFileName': 'CHI-BEARS-ARCH.ai',
+      });
+
+      const response = await apiGetAssets({ titleFallback: 'originalFileName' } as Parameters<typeof apiGetAssets>[0]);
+
+      expect(seen.requestedFields).to.contain('CoreField.OriginalFileName');
+      expect(response.items[0].name).to.equal('CHI-BEARS-ARCH.ai');
+      expect(response.items[0]).to.not.have.property('CoreField.OriginalFileName');
+    });
+
+    it('keeps the file name caption when a host field spells it in a different case', async () => {
+      const values: Record<string, string> = {
+        'document.title': '',
+        'corefield.identifier': 'ARC12345',
+        'corefield.originalfilename': 'photo.jpg',
+      };
+      const seen: { requestedFields: string[] } = { requestedFields: [] };
+
+      // Cortex keys each returned field by the spelling of the request.
+      http.defaults.adapter = async (config) => {
+        seen.requestedFields = JSON.parse(config.data).Fields;
+
+        return {
+          config,
+          data: {
+            contentItems: [{
+              recordID: 'Q0LDO000001895618',
+              fields: Object.fromEntries(seen.requestedFields.map((field) => [field, values[field.toLowerCase()] ?? ''])),
+            }],
+            facets: [],
+            totalCount: 1,
+          },
+          headers: {},
+          status: 200,
+          statusText: 'OK',
+        };
+      };
+
+      const response = await apiGetAssets({
+        fields: ['corefield.originalfilename'],
+        titleFallback: 'originalFileName',
+      } as Parameters<typeof apiGetAssets>[0]);
+
+      expect(seen.requestedFields.filter((field) => field.toLowerCase() === 'corefield.originalfilename'))
+        .to.deep.equal(['CoreField.OriginalFileName']);
+      expect(response.items[0].name).to.equal('photo.jpg');
+      expect(response.items[0]['corefield.originalfilename']).to.equal('photo.jpg');
     });
 
     // L-42BQUZ: axios rejects with these errors for a timeout, a lost connection and a non-2xx response.

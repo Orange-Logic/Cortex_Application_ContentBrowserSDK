@@ -162,6 +162,7 @@ const AssetsPicker = forwardRef<AssetsPickerHandle, Props>(function AssetsPicker
     showVersions,
     tableColumns,
     tableRowActionPosition,
+    titleFallback,
     autoSelectFormat,
   } = useContext(GlobalConfigContext);
   const {
@@ -429,6 +430,7 @@ const AssetsPicker = forwardRef<AssetsPickerHandle, Props>(function AssetsPicker
       default-grid-view={defaultSettings.view}
       table-columns={tableColumns ?? []}
       table-row-action-position={tableRowActionPosition ?? 'host-edge'}
+      title-fallback={titleFallback ?? 'uniqueIdentifier'}
       auto-select-format={autoSelectFormat ?? false}
       default-sort-order-name={defaultSettings.sortOrder}
       default-sort-direction={defaultSettings.sortDirection}

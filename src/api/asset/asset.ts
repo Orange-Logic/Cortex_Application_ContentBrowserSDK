@@ -1,6 +1,6 @@
 import http from '@/api/api';
 import { Asset, GetAssetsRequest, MediaType } from '@/types/asset';
-import { Facet, TransformationAction } from '@/types/content-browser';
+import { Facet, type TitleFallback, TransformationAction } from '@/types/content-browser';
 import { AssetApiEndpoint } from '@/api/endpoints';
 import { appendPathAndQuery } from '@/utils/appendPathAndQuery';
 
@@ -45,13 +45,18 @@ export const LIBRARY_NAME = 'Library';
 export const MESSAGE_NEW_LINE = '\n';
 export const ORIGINAL_VIEW_SIZE = 'CoreField.OriginalPreview';
 
+/** The field the caption shows when the title is blank. */
+export function resolveTitleFallbackField(titleFallback?: TitleFallback) {
+  return titleFallback === 'originalFileName' ? FIELD_ORIGINAL_FILE_NAME : FIELD_IDENTIFIER;
+}
+
 /**
- * The caption shown under an asset. Falls back to the identifier rather than the original file name:
- * file names can carry private information (model names, shoot details) that must never reach a host
- * application, and there is no way for a customer to turn the caption off. See L-42B0OO.
+ * The caption shown under an asset. By default it falls back to the identifier rather than the original
+ * file name: file names can carry private information (model names, shoot details), and the host decides
+ * whether its users may see them. See L-42B0OO and L-42D2A9.
  */
-export function resolveAssetCaption(fields: Record<string, string>) {
-  return fields[FIELD_DOC_TITLE] || fields[FIELD_IDENTIFIER] || '';
+export function resolveAssetCaption(fields: Record<string, string>, titleFallback?: TitleFallback) {
+  return fields[FIELD_DOC_TITLE] || fields[resolveTitleFallbackField(titleFallback)] || fields[FIELD_IDENTIFIER] || '';
 }
 
 export function resolveAssetExtraFilters(
@@ -576,21 +581,23 @@ export async function apiGetAssets({
   selectedFacets,
   sortOrder,
   start,
+  titleFallback,
   useSession,
 }: GetAssetsRequest) {
   const validatedFields = fields?.filter((field) => field && typeof field === 'string') ?? [];
+  // The SDK spellings come first, so a host field in a different case cannot replace the key the caption reads.
+  const requestedFields = [
+    ...ASSET_LIST_FIELDS,
+    resolveTitleFallbackField(titleFallback),
+    ...validatedFields,
+  ].filter(
+    (field, index, all) => all.findIndex((item) => item.toLowerCase() === field.toLowerCase()) === index,
+  );
 
   try {
     const response = await http.request<GetAssetsResponse>({
       data: {
-        Fields: [
-          ...ASSET_LIST_FIELDS,
-          ...validatedFields.filter((field, index) => {
-            const seen = [...ASSET_LIST_FIELDS, ...validatedFields.slice(0, index)];
-
-            return !seen.some((item) => item.toLowerCase() === field.toLowerCase());
-          }),
-        ],
+        Fields: requestedFields,
         Limit: pageSize || undefined,
         LimitedToDocTypes: limitedToDocTypes,
         ObjectRecordID: folderId || undefined,
@@ -622,7 +629,7 @@ export async function apiGetAssets({
           const mappedItems =
             rawResponse.contentItems?.map((item) => {
               let extension = item.fields[FIELD_EXTENSION] ?? '';
-              const name = resolveAssetCaption(item.fields);
+              const name = resolveAssetCaption(item.fields, titleFallback);
 
               if (extension && !extension.startsWith('.')) {
                 extension = '.' + extension;
@@ -632,8 +639,8 @@ export async function apiGetAssets({
                 // Spread first so a requested field that shares a name with a mapped property cannot
                 // shadow it; a column reading that Cortex field still resolves under its own key.
                 ...validatedFields.reduce<Record<string, string>>((acc, field) => {
-                  const sourceField = ASSET_LIST_FIELDS.find(
-                    (defaultField) => defaultField.toLowerCase() === field.toLowerCase(),
+                  const sourceField = requestedFields.find(
+                    (requestedField) => requestedField.toLowerCase() === field.toLowerCase(),
                   ) ?? field;
                   acc[field] = item.fields[sourceField] ?? '';
 

@@ -431,6 +431,22 @@ customStorage: {
             </p>
           </li>
           <li>
+            <b>titleFallback</b> (default 'uniqueIdentifier')
+            <p>
+              What the asset caption shows when the asset has no title. The title always shows when it is set.
+            </p>
+            <ul>
+              <li><code>'uniqueIdentifier'</code> - the unique identifier of the asset.</li>
+              <li><code>'originalFileName'</code> - the original file name of the asset.</li>
+            </ul>
+            <p>
+              <small>
+                Note: a file name can hold private information. Set <code>'originalFileName'</code> only when every
+                user of the host can see the file names. Any other value gives <code>'uniqueIdentifier'</code>.
+              </small>
+            </p>
+          </li>
+          <li>
             <b>autoSelectFormat</b> (default false)
             <p>
               Import behaviour when picking an asset, for a host that would rather not show the format picker.
@@ -593,6 +609,7 @@ customStorage: {
           { title: 'Description', field: 'Document.CaptionLong' },
         ],
         tableRowActionPosition: 'host-edge', // 'host-edge' (default) or 'row-end'
+        titleFallback: 'uniqueIdentifier', // 'uniqueIdentifier' (default) or 'originalFileName'
         defaultGridView: 'table', // 'small', 'medium', 'large', 'table' (default: 'medium')
         // insert with the first available format instead of opening the format dialog
         autoSelectFormat: true,

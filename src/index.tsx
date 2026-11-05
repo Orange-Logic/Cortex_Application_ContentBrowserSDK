@@ -15,7 +15,9 @@ import {
   ImageCardDisplayInfo,
 } from '@/GlobalConfigContext';
 import { store } from '@/store';
-import { type AutoSelectFormat, TableColumn, type TableRowActionPosition } from '@/types/content-browser';
+import {
+  type AutoSelectFormat, TableColumn, type TableRowActionPosition, type TitleFallback, toTitleFallback,
+} from '@/types/content-browser';
 import {
   initAuthInfoFromCache,
   setUseHeaders,
@@ -284,6 +286,18 @@ type OrangeDAMContentBrowser = {
     tableRowActionPosition?: TableRowActionPosition;
 
     /**
+     * What the asset caption shows when the asset has no title. The title always shows when it is set.
+     *
+     * - `uniqueIdentifier` (default) - the unique identifier of the asset.
+     * - `originalFileName` - the original file name of the asset.
+     *
+     * A file name can hold private information, for example model names or shoot details. Set
+     * `originalFileName` only when every user of the host can see the file names. Any other value gives
+     * `uniqueIdentifier`.
+     */
+    titleFallback?: TitleFallback;
+
+    /**
      * Import behaviour when picking an asset, for a host that would rather not show the format
      * picker.
      *
@@ -404,6 +418,7 @@ const ContentBrowser: OrangeDAMContentBrowser = {
           { title: "Description", field: "Document.CaptionLong" },
         ],
         tableRowActionPosition: "host-edge", // Where the table row action shows: host-edge or row-end
+        titleFallback: "uniqueIdentifier", // Caption when the title is blank: uniqueIdentifier or originalFileName
       });`);
   },
   open: async ({
@@ -457,6 +472,7 @@ const ContentBrowser: OrangeDAMContentBrowser = {
     defaultGridView,
     tableColumns,
     tableRowActionPosition,
+    titleFallback,
     autoSelectFormat,
   }) => {
     const siteSessionUrl = useSiteSession ? resolveSiteSessionUrl(baseUrl) : undefined;
@@ -616,6 +632,7 @@ const ContentBrowser: OrangeDAMContentBrowser = {
             autoSelectFormat: autoSelectFormat ?? false,
             tableColumns: tableColumns ?? [],
             tableRowActionPosition: tableRowActionPosition ?? 'host-edge',
+            titleFallback: toTitleFallback(titleFallback),
           }}
         >
           <App
