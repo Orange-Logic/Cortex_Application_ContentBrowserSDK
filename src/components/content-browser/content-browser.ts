@@ -4,6 +4,7 @@ import { ifDefined } from 'lit/directives/if-defined.js';
 import { when } from 'lit/directives/when.js';
 import _camelCase from 'lodash-es/camelCase';
 
+import { toAssetLinkError } from '@/api/asset/asset';
 import { GetAssetLinkResponse } from '@/api/asset/asset.types';
 import CortexElement from '@/base/element';
 import CxContentBrowserBrowser from '@/components/content-browser-browser/content-browser-browser';
@@ -999,7 +1000,7 @@ export default class CxContentBrowser extends CortexElement {
       // ExtraFields the host asked for, and swallowing the selection leaves the integration with no callback
       // and no error to act on.
       if (response.isError) {
-        this.reportProxyConfirmFailure();
+        this.reportConfirmFailure(response.error);
 
         return;
       }
@@ -1011,26 +1012,31 @@ export default class CxContentBrowser extends CortexElement {
       });
 
       this.formatDialog.hide();
-    } catch {
-      this.reportProxyConfirmFailure();
+    } catch (error) {
+      this.reportConfirmFailure(error);
     } finally {
       this.#insertInFlight = false;
       this.busyAssetId = undefined;
     }
   }
 
-  private reportProxyConfirmFailure() {
-    if (this.formatDialog.isDialogOpen) {
-      this.formatDialog.setLoadingConfirm(false);
+  private reportConfirmFailure(cause: unknown) {
+    const error = toAssetLinkError(cause);
 
-      return;
+    // An auto-confirmed insert has no dialog to report into. Show the dialog the shortcut skipped:
+    // it is the state the non-shortcut path would have left the user in, and its confirm button is the retry.
+    if (!this.formatDialog.isDialogOpen) {
+      this.formatDialog.revealAfterAutoConfirm();
     }
 
-    // An auto-confirmed insert has no dialog to report into, and the SDK has no error event, so
-    // hiding here returned the user to an unchanged table with no message and no way to retry.
-    // Show the dialog the shortcut skipped instead: it is the state the non-shortcut path would
-    // have left them in, and its confirm button is the retry.
-    this.formatDialog.revealAfterAutoConfirm();
+    if (this.formatDialog.isDialogOpen) {
+      // Only a Cortex message is specific enough to show. The dialog has a localized text for the other failures.
+      this.formatDialog.showConfirmError(error.serverMessage);
+    }
+
+    this.emit('cx-content-browser-asset-link-error', {
+      detail: { error },
+    });
   }
 
   private async handleFormatConfirm(event: CxContentBrowserFormatDialogFormatConfirmEvent) {
@@ -1050,7 +1056,7 @@ export default class CxContentBrowser extends CortexElement {
       // ExtraFields the host asked for, and swallowing the selection leaves the integration with no callback
       // and no error to act on.
       if (response.isError) {
-        this.formatDialog.setLoadingConfirm(false);
+        this.reportConfirmFailure(response.error);
 
         return;
       }
@@ -1063,8 +1069,8 @@ export default class CxContentBrowser extends CortexElement {
       });
 
       this.formatDialog.hide();
-    } catch {
-      this.formatDialog.setLoadingConfirm(false);
+    } catch (error) {
+      this.reportConfirmFailure(error);
     } finally {
       this.#insertInFlight = false;
       this.busyAssetId = undefined;

@@ -1,6 +1,7 @@
 import './styles.css';
 
 export { default as CxContentBrowser } from './components/content-browser/content-browser';
+export { AssetLinkError } from './api/asset/asset';
 
 import { createRef } from 'react';
 import { createRoot } from 'react-dom/client';
@@ -59,7 +60,9 @@ type OrangeDAMContentBrowser = {
     onAppAuthUrlCopied?: AppContextType['onAppAuthUrlCopied'];
 
     /**
-     * Callback when we have any error while using content browser
+     * Callback when we have any error while using content browser.
+     * When the asset link request of a confirm fails, `error` is an `AssetLinkError`.
+     * Its `errorCode` holds the Cortex error code (for example `OL_ERR_002_NOTALLOWED`) when Cortex sent one.
      */
     onError?: AppContextType['onError'];
     /**

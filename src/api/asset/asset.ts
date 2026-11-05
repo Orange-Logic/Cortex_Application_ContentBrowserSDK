@@ -89,8 +89,55 @@ export function resolveAssetExtraFilters(
   );
 }
 
-function isCortexErrorResponse(response: GetAssetLinkResponse | CortexErrorResponse): response is CortexErrorResponse {
-  return response && typeof response === 'object' && 'ErrorCode' in response;
+/**
+ * A GetAssetLink failure. `errorCode` and `serverMessage` are set only when Cortex sent an error body.
+ */
+export class AssetLinkError extends Error {
+  readonly errorCode?: CortexErrorResponse['ErrorCode'];
+
+  readonly serverMessage?: string;
+
+  constructor(message: string, { errorCode, serverMessage }: {
+    errorCode?: CortexErrorResponse['ErrorCode'];
+    serverMessage?: string;
+  } = {}) {
+    super(message);
+    this.name = 'AssetLinkError';
+    this.errorCode = errorCode;
+    this.serverMessage = serverMessage;
+  }
+}
+
+const ASSET_LINK_FAILED_MESSAGE = 'Failed to get the asset link';
+
+function isCortexErrorResponse(response: unknown): response is CortexErrorResponse {
+  return !!response && typeof response === 'object' && 'ErrorCode' in response;
+}
+
+function fromCortexErrorResponse(response: CortexErrorResponse) {
+  const serverMessage = typeof response.Message === 'string' && response.Message.trim()
+    ? response.Message
+    : undefined;
+
+  return new AssetLinkError(serverMessage ?? ASSET_LINK_FAILED_MESSAGE, {
+    errorCode: response.ErrorCode,
+    serverMessage,
+  });
+}
+
+/** Convert any GetAssetLink failure to an AssetLinkError, and keep the Cortex error body when there is one. */
+export function toAssetLinkError(error: unknown): AssetLinkError {
+  if (error instanceof AssetLinkError) {
+    return error;
+  }
+
+  const responseData = (error as { response?: { data?: unknown } } | undefined)?.response?.data;
+
+  if (isCortexErrorResponse(responseData)) {
+    return fromCortexErrorResponse(responseData);
+  }
+
+  return new AssetLinkError(error instanceof Error && error.message ? error.message : ASSET_LINK_FAILED_MESSAGE);
 }
 
 // The merge reads `facetFieldName` and the filter reads `displayName` of the details. The filter reads `value`
@@ -336,13 +383,11 @@ export async function apiGetAssetLinks({
   transformations,
   useSession,
 }: GetAssetLinksRequest): Promise<GetAssetLinksResponse> {
-  const getAssetLinkErrors: { [key: string]: Asset[] } = {};
-  const isOnlyOneAssetSelected = assets.length === 1;
-  let hasError = false;
+  const failures: (AssetLinkError | undefined)[] = [];
   const origin = http.defaults.baseURL ?? window.location.origin;
 
   try {
-    const settled = await Promise.allSettled(assets.map(async (asset) => {
+    const settled = await Promise.allSettled(assets.map(async (asset, index) => {
       const requestBody: GetAssetLinkRequest = {
         GenerateAssetUrl: !permanentLink,
         Parameters: parameters,
@@ -363,6 +408,7 @@ export async function apiGetAssetLinks({
 
       const attemptPost = !postUnsupportedOrigins.has(origin);
       let rawResponse: GetAssetLinkResponse | CortexErrorResponse | undefined;
+      let rawStatus = 200;
 
       if (attemptPost) {
         try {
@@ -382,6 +428,7 @@ export async function apiGetAssetLinks({
             postUnsupportedOrigins.add(origin);
           } else {
             rawResponse = postResult.data;
+            rawStatus = postResult.status;
           }
         } catch {
           // A preflight that disallows POST rejects instead of answering, so there is no status to inspect; fall
@@ -410,20 +457,27 @@ export async function apiGetAssetLinks({
         rawResponse = getResult.data;
       }
 
-      if (isCortexErrorResponse(rawResponse)) {
-        hasError = true;
-        // We will give more details error message if only one asset was imported
-        if (isOnlyOneAssetSelected) {
-          if (getAssetLinkErrors[rawResponse.ErrorCode]) {
-            getAssetLinkErrors[rawResponse.ErrorCode].push(asset);
-          } else {
-            getAssetLinkErrors[rawResponse.ErrorCode] = [asset];
-          }
-        }
+      const isResponseObject = !!rawResponse && typeof rawResponse === 'object';
+
+      if (isCortexErrorResponse(rawResponse) || !isResponseObject || rawStatus < 200 || rawStatus >= 300) {
+        failures[index] = isCortexErrorResponse(rawResponse)
+          ? fromCortexErrorResponse(rawResponse)
+          : new AssetLinkError(`${ASSET_LINK_FAILED_MESSAGE} (HTTP ${rawStatus})`);
 
         return {
           imageUrl: asset.imageUrl,
         } as GetAssetLinkResponse;
+      }
+
+      const linkResponse = rawResponse as GetAssetLinkResponse;
+
+      // Cortex can answer 200 with no link, for example when it does not authorize the format. The ExtraFields
+      // are still valid, so the selection goes through with the preview the grid already shows.
+      if (!permanentLink && (linkResponse.imageUrl === null || linkResponse.imageUrl === undefined)) {
+        return {
+          ...linkResponse,
+          imageUrl: asset.imageUrl,
+        };
       }
 
       const imageUrl = buildAssetLinkImageUrl({
@@ -431,33 +485,37 @@ export async function apiGetAssetLinks({
         extension,
         parameters,
         permanentLink,
-        rawResponse,
+        rawResponse: linkResponse,
         transformations,
         useSession,
       });
 
       return {
-        ...rawResponse,
+        ...linkResponse,
         imageUrl,
       };
     }));
 
-    const data = settled.flatMap((result) => {
+    const data = settled.flatMap((result, index) => {
       if (result.status === 'fulfilled') {
         return [result.value];
       }
 
-      hasError = true;
+      failures[index] = toAssetLinkError(result.reason);
       return [];
     });
 
+    const error = failures.find((failure) => failure !== undefined);
+
     return {
       data,
-      isError: hasError,
+      ...(error ? { error } : {}),
+      isError: !!error,
     };
-  } catch {
+  } catch (error) {
     return {
       data: [],
+      error: toAssetLinkError(error),
       isError: true,
     };
   }

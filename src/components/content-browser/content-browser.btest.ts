@@ -12,6 +12,7 @@ import { setViewport } from '@web/test-runner-commands';
 import { AxiosError } from 'axios';
 
 import http from '@/api/api';
+import { AssetLinkError } from '@/api/asset/asset';
 import type { GetAssetLinksResponse } from '@/api/asset/asset.types';
 import { AssetApiEndpoint, MetadataApiEndpoint } from '@/api/endpoints';
 import type { Asset, AssetVersion, GetAssetsRequest } from '@/types/asset';
@@ -954,6 +955,155 @@ describe('content-browser', () => {
     expect(ev.detail[0].extraFields['Dell.Snippet']).to.equal('A fragment of text');
     expect(ev.detail[0].imageUrl).to.equal('');
     expect(hideSpy).to.have.been.called;
+  });
+
+  describe('asset link error on confirm', () => {
+    const serverMessage = 'You do not have permission to get bulk of reusable permanent links';
+
+    async function openDialog(el: CxContentBrowser, asset: Asset) {
+      const dialog = getFormatDialog(el);
+
+      dialog.open({ asset: { ...asset, previewUrl: asset.imageUrl }, isFavorite: false, proxies: [] });
+      await elementUpdated(dialog);
+
+      return dialog;
+    }
+
+    function getDialogError(dialog: CxContentBrowserFormatDialog) {
+      return dialog.shadowRoot!.querySelector('.content-browser-format__error');
+    }
+
+    function confirmProxy(dialog: CxContentBrowserFormatDialog, asset: Asset) {
+      dialog.loadingConfirm = true;
+      dialog.dispatchEvent(
+        new CustomEvent('cx-content-browser-format-dialog-proxy-confirm', {
+          bubbles: true,
+          composed: true,
+          detail: { asset, selectedProxyMetadata: null, useRepresentative: false },
+        }),
+      );
+    }
+
+    it('shows the Cortex message in the open dialog and reports the error code to the host', async () => {
+      const asset = makeAsset();
+      const { el } = await fixtureWithMock(html`<cx-content-browser></cx-content-browser>`, {
+        getAssetLinkResult: {
+          data: [{ imageUrl: asset.imageUrl ?? '' }],
+          error: new AssetLinkError(serverMessage, { errorCode: 'OL_ERR_002_NOTALLOWED', serverMessage }),
+          isError: true,
+        },
+        items: [asset],
+        totalCount: 1,
+      });
+      const dialog = await openDialog(el, asset);
+      const selectedSpy = sinon.spy();
+      el.addEventListener('cx-content-browser-selected-asset', selectedSpy);
+      const errorEvent = oneEvent(el, 'cx-content-browser-asset-link-error');
+
+      confirmProxy(dialog, asset);
+
+      const ev = await errorEvent;
+      await elementUpdated(dialog);
+
+      expect(ev.detail.error.errorCode).to.equal('OL_ERR_002_NOTALLOWED');
+      expect(ev.detail.error.message).to.equal(serverMessage);
+      expect(dialog.isDialogOpen).to.equal(true);
+      expect(dialog.loadingConfirm).to.equal(false);
+      expect(getDialogError(dialog)?.textContent).to.contain(serverMessage);
+      expect(selectedSpy).not.to.have.been.called;
+    });
+
+    it('shows a generic message and reports the error when the request throws', async () => {
+      const asset = makeAsset();
+      const { el, mock } = await fixtureWithMock(html`<cx-content-browser></cx-content-browser>`, {
+        items: [asset],
+        totalCount: 1,
+      });
+      mock.getAssetLink.rejects(new Error('Network Error'));
+      const dialog = await openDialog(el, asset);
+      const errorEvent = oneEvent(el, 'cx-content-browser-asset-link-error');
+
+      confirmProxy(dialog, asset);
+
+      const ev = await errorEvent;
+      await elementUpdated(dialog);
+
+      expect(ev.detail.error).to.be.instanceOf(AssetLinkError);
+      expect(ev.detail.error.message).to.equal('Network Error');
+      expect(ev.detail.error.errorCode).to.equal(undefined);
+      expect(dialog.loadingConfirm).to.equal(false);
+
+      const text = getDialogError(dialog)?.textContent?.trim() ?? '';
+
+      expect(text).to.not.equal('');
+      expect(text).to.not.contain('Network Error');
+    });
+
+    it('clears the message when the user confirms again', async () => {
+      const asset = makeAsset();
+      const { el, mock } = await fixtureWithMock(html`<cx-content-browser></cx-content-browser>`, {
+        items: [asset],
+        totalCount: 1,
+      });
+      mock.getAssetLink.onFirstCall().rejects(new Error('Network Error'));
+      mock.getAssetLink.onSecondCall().returns(new Promise(() => {}));
+      const dialog = await openDialog(el, asset);
+      const errorEvent = oneEvent(el, 'cx-content-browser-asset-link-error');
+
+      confirmProxy(dialog, asset);
+      await errorEvent;
+      await elementUpdated(dialog);
+      expect(getDialogError(dialog)).to.exist;
+
+      dialog.shadowRoot!.querySelector<HTMLElement>('.content-browser-format__footer__button')!.click();
+      await elementUpdated(dialog);
+
+      expect(getDialogError(dialog)).to.equal(null);
+      expect(dialog.loadingConfirm).to.equal(true);
+    });
+
+    it('shows the Cortex message when a custom-format confirm fails', async () => {
+      const asset = makeAsset();
+      const { el } = await fixtureWithMock(html`<cx-content-browser></cx-content-browser>`, {
+        getAssetLinkResult: {
+          data: [],
+          error: new AssetLinkError(serverMessage, { errorCode: 'OL_ERR_002_NOTALLOWED', serverMessage }),
+          isError: true,
+        },
+        items: [asset],
+        totalCount: 1,
+      });
+      const dialog = await openDialog(el, asset);
+      const errorEvent = oneEvent(el, 'cx-content-browser-asset-link-error');
+      dialog.loadingConfirm = true;
+
+      dialog.dispatchEvent(
+        new CustomEvent('cx-content-browser-format-dialog-format-confirm', {
+          bubbles: true,
+          composed: true,
+          detail: {
+            asset,
+            extension: '.webp',
+            sourceProxyMetadata: null,
+            transformations: [],
+            transformedAssetMetadata: {
+              extension: '.webp',
+              height: 600,
+              isCustomFormat: true,
+              permanentLink: null,
+              width: 800,
+            },
+          },
+        }),
+      );
+
+      const ev = await errorEvent;
+      await elementUpdated(dialog);
+
+      expect(ev.detail.error.errorCode).to.equal('OL_ERR_002_NOTALLOWED');
+      expect(dialog.loadingConfirm).to.equal(false);
+      expect(getDialogError(dialog)?.textContent).to.contain(serverMessage);
+    });
   });
 
   it('merges ScrubUrl into selected payload when extra-fields requests it', async () => {
@@ -1968,8 +2118,8 @@ describe('content-browser', () => {
         }),
       );
 
-      // The shortcut skipped the dialog, so there is nowhere to report into and the SDK has no
-      // error event. The dialog it skipped is the fallback: its confirm button is the retry.
+      // The shortcut skipped the dialog, so there is nowhere to report into. The dialog it skipped
+      // is the fallback: its confirm button is the retry.
       await waitUntil(() => getFormatDialog(el).isDialogOpen);
       expect(el.selectedAssetId).to.equal('frag-1');
     });

@@ -1,3 +1,4 @@
+import type { AssetLinkError } from './asset';
 import { Asset, AssetVersion, AvailableProxy, MediaType, TrackingParameter } from '@/types/asset';
 import { Facet, Transformation } from '@/types/content-browser';
 
@@ -41,6 +42,8 @@ export type GetAssetLinkResponse = {
 
 export type GetAssetLinksResponse = {
   data: GetAssetLinkResponse[];
+  /** The first failure, in asset order. Set only when `isError` is true. */
+  error?: AssetLinkError;
   isError: boolean;
 };
 
