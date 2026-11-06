@@ -468,6 +468,27 @@ customStorage: {
               </small>
             </p>
           </li>
+          <li>
+            <b>skipLinkGeneration</b> (default false)
+            <p>
+              Select an asset without an asset link, for a host that needs the asset fields, not a URL.
+            </p>
+            <ul>
+              <li><code>false</code> - Confirm creates an asset link as usual.</li>
+              <li>
+                <code>true</code> - Confirm requests GetAssetLink with <code>GenerateAssetUrl=false</code>. Cortex
+                returns the metadata and the <code>extraFields</code>, and creates no asset link.
+              </li>
+            </ul>
+            <p>
+              <small>
+                Note: use it when the host does not need a link. Cortex can refuse a link to a user who can read the
+                asset, for example a CDN permanent link without the <code>GetBulkPermanentLinks</code> security
+                function. The selection then fails. With this option, <code>imageUrl</code> is the grid preview URL.
+                Unlike <code>simplePick</code>, it accepts any <code>extraFields</code>.
+              </small>
+            </p>
+          </li>
         </ul>
         <ul>
 
@@ -613,6 +634,8 @@ customStorage: {
         defaultGridView: 'table', // 'small', 'medium', 'large', 'table' (default: 'medium')
         // insert with the first available format instead of opening the format dialog
         autoSelectFormat: true,
+        // true: select without an asset link, imageUrl is the preview URL
+        skipLinkGeneration: false,
         // default base url to pre-filled
         baseUrl: 'https://qa-latest.orangelogic.com',
         displayInfo: {

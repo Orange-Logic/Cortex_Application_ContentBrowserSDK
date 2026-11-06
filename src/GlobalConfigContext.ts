@@ -36,6 +36,7 @@ export type GlobalConfigContextType = {
   allowTracking: boolean;
   allowProxy: boolean;
   simplePick: boolean;
+  skipLinkGeneration: boolean;
   allowFavorites: boolean;
   allowPin: boolean;
   allowFormatDialogPin?: boolean;
@@ -67,6 +68,7 @@ export const GlobalConfigContext = createContext<GlobalConfigContextType>({
   allowTracking: true,
   allowProxy: false,
   simplePick: false,
+  skipLinkGeneration: false,
   allowFavorites: false,
   allowPin: false,
   allowFormatDialogPin: false,

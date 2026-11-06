@@ -800,6 +800,52 @@ describe('content-browser', () => {
     expect(ev.detail[0].assetLinkInfo?.proxyName).to.equal('HD');
   });
 
+  it('asks getAssetLink for metadata only when skip-link-generation is set (L-29U6N8)', async () => {
+    const asset = makeAsset();
+    const { el, mock } = await fixtureWithMock(
+      html`<cx-content-browser skip-link-generation></cx-content-browser>`,
+      { items: [asset], totalCount: 1 },
+    );
+
+    const dialog = getFormatDialog(el);
+    const p = oneEvent(el, 'cx-content-browser-selected-asset');
+
+    dialog.dispatchEvent(
+      new CustomEvent('cx-content-browser-format-dialog-proxy-confirm', {
+        bubbles: true,
+        composed: true,
+        detail: { asset, extension: '.jpg', proxyPreference: '', useRepresentative: false },
+      }),
+    );
+
+    await p;
+    const linkPayload = mock.getAssetLink.firstCall.args[0] as { skipLinkGeneration?: boolean };
+    expect(linkPayload.skipLinkGeneration).to.equal(true);
+  });
+
+  it('asks getAssetLink for a link by default (L-29U6N8)', async () => {
+    const asset = makeAsset();
+    const { el, mock } = await fixtureWithMock(html`<cx-content-browser></cx-content-browser>`, {
+      items: [asset],
+      totalCount: 1,
+    });
+
+    const dialog = getFormatDialog(el);
+    const p = oneEvent(el, 'cx-content-browser-selected-asset');
+
+    dialog.dispatchEvent(
+      new CustomEvent('cx-content-browser-format-dialog-proxy-confirm', {
+        bubbles: true,
+        composed: true,
+        detail: { asset, extension: '.jpg', proxyPreference: '', useRepresentative: false },
+      }),
+    );
+
+    await p;
+    const linkPayload = mock.getAssetLink.firstCall.args[0] as { skipLinkGeneration?: boolean };
+    expect(linkPayload.skipLinkGeneration).to.equal(false);
+  });
+
   it('handleFormatConfirm calls getAssetLink, hides the dialog, and emits selected asset with transformation metadata', async () => {
     const asset = makeAsset();
     const { el, mock } = await fixtureWithMock(html`<cx-content-browser></cx-content-browser>`, {

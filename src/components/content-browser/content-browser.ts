@@ -221,6 +221,14 @@ export default class CxContentBrowser extends CortexElement {
   @property({ attribute: 'simple-pick', reflect: true, type: Boolean })
   simplePick = false;
 
+  /**
+   * Confirm asks GetAssetLink for the asset metadata and extra fields only, so Cortex creates no asset link.
+   * For a host that needs fields such as `Document.RecordID`, not a URL: a link can be refused for a user
+   * who can still read the asset.
+   */
+  @property({ attribute: 'skip-link-generation', reflect: true, type: Boolean })
+  skipLinkGeneration = false;
+
   @property({ attribute: 'can-view-versions', reflect: true, type: Boolean })
   canViewVersions = false;
 
@@ -1001,6 +1009,7 @@ export default class CxContentBrowser extends CortexElement {
         ...event.detail,
         assets: [event.detail.asset],
         extraFields: this.extraFields,
+        skipLinkGeneration: this.skipLinkGeneration,
       });
 
       // Only a real failure keeps the dialog open. A successful response with no link is not one: an asset with

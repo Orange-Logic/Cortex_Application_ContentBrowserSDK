@@ -231,6 +231,14 @@ type OrangeDAMContentBrowser = {
     simplePick?: boolean;
 
     /**
+     * Confirm returns the asset metadata and the requested `extraFields` without creating an asset link.
+     * Use it when the host needs fields such as `Document.RecordID`, not a URL: Cortex can refuse a link
+     * (for example a CDN permanent link) to a user who can still read the asset. Each selected item's
+     * `imageUrl` is then the preview URL of the grid. Default `false`.
+     */
+    skipLinkGeneration?: boolean;
+
+    /**
      * The flag to allow the user to select favorites
      */
     allowFavorites?: boolean;
@@ -445,6 +453,7 @@ const ContentBrowser: OrangeDAMContentBrowser = {
     allowProxy,
     allowTracking,
     simplePick,
+    skipLinkGeneration,
     availableDocTypes,
     availableRepresentativeSubtypes,
     baseUrl,
@@ -627,6 +636,7 @@ const ContentBrowser: OrangeDAMContentBrowser = {
             allowTracking: allowTracking !== undefined ? !!allowTracking : true,
             allowProxy: simplePick ? false : (allowProxy !== undefined ? !!allowProxy : true),
             simplePick: !!simplePick,
+            skipLinkGeneration: !!skipLinkGeneration,
             allowFavorites: !!allowFavorites,
             defaultGridView: defaultGridView ?? '',
             autoSelectFormat: autoSelectFormat ?? false,
