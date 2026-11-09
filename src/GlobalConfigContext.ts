@@ -76,5 +76,4 @@ export const GlobalConfigContext = createContext<GlobalConfigContextType>({
   autoSelectFormat: false,
   tableColumns: [],
   tableRowActionPosition: 'host-edge',
-  titleFallback: 'uniqueIdentifier',
 });

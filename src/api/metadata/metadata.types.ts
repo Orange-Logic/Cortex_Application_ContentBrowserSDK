@@ -1,4 +1,4 @@
-import { Facet, SortOrder } from '@/types/content-browser';
+import { Facet, SortOrder, type TitleFallback } from '@/types/content-browser';
 
 export type GetSortOrdersResponse = Record<string, SortOrder[]>;
 
@@ -13,6 +13,7 @@ export enum ContentBrowserParameters {
   RepresentativeSupportedDocSubType = 'RepresentativeSupportedDocSubType',
   SupportDocTypes = 'SupportDocTypes',
   SupportedDocSubTypesV2 = 'SupportedDocSubTypesV2',
+  TitleFallback = 'TitleFallback',
 }
 
 export type GetContentBrowserParametersResponse = {
@@ -21,4 +22,5 @@ export type GetContentBrowserParametersResponse = {
   collectionPath: string;
   supportedExtensions: string[];
   supportedRepresentativeSubtypes: string[];
+  titleFallback: TitleFallback;
 };

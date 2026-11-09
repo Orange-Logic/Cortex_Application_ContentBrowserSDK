@@ -1,6 +1,6 @@
 import http from '@/api/api';
 import { MetadataApiEndpoint } from '@/api/endpoints';
-import { Facet, SortOrder } from '@/types/content-browser';
+import { Facet, SortOrder, toTitleFallback } from '@/types/content-browser';
 
 import {
   ContentBrowserParameters,
@@ -70,6 +70,7 @@ export async function apiGetAvailableFacets() {
 export async function apiGetContentBrowserParameters() {
   try {
     const response = await http.request<GetContentBrowserParametersResponse>({
+      cache: false,
       method: 'GET',
       transformResponse: [
         ...(Array.isArray(http.defaults.transformResponse)
@@ -77,11 +78,12 @@ export async function apiGetContentBrowserParameters() {
           : []),
         (contentBrowserParametersRawResponse: Record<string, string>): GetContentBrowserParametersResponse => {
           return {
-            ATSEnabled: contentBrowserParametersRawResponse[ContentBrowserParameters.EnableATSInGetLink].toLowerCase() === 'true',
+            ATSEnabled: contentBrowserParametersRawResponse[ContentBrowserParameters.EnableATSInGetLink]?.toLowerCase() === 'true',
             autoExtension: contentBrowserParametersRawResponse[ContentBrowserParameters.ExtensionAuto]?.toLowerCase() ?? '.auto',
             collectionPath: contentBrowserParametersRawResponse[ContentBrowserParameters.CollectionSubtypeCriteria]?.toLowerCase() ?? '',
             supportedExtensions: contentBrowserParametersRawResponse[ContentBrowserParameters.ExtensionsThatSupportTransformationUsingATS]?.split('\n') ?? [],
             supportedRepresentativeSubtypes: contentBrowserParametersRawResponse[ContentBrowserParameters.RepresentativeSupportedDocSubType]?.split('\r\n') ?? [],
+            titleFallback: toTitleFallback(contentBrowserParametersRawResponse[ContentBrowserParameters.TitleFallback]),
           };
         },
       ],
@@ -96,6 +98,7 @@ export async function apiGetContentBrowserParameters() {
       collectionPath: '',
       supportedExtensions: [],
       supportedRepresentativeSubtypes: [],
+      titleFallback: 'uniqueIdentifier' as const,
     };
   }
 }

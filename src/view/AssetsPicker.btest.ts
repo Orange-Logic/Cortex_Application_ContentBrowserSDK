@@ -8,12 +8,14 @@ import { GlobalConfigContext } from '@/GlobalConfigContext';
 import { store } from '@/store';
 import { deleteData, getData, storeData } from '@/utils/storage';
 import type CxContentBrowser from '@/components/content-browser/content-browser';
+import type { TitleFallback } from '@/types/content-browser';
 import AssetsPicker from './AssetsPicker';
 
-function Host({ view }: { view: string }) {
+function Host({ view, titleFallback }: { view: string; titleFallback?: TitleFallback }) {
   const defaults = useContext(GlobalConfigContext);
   return createElement(GlobalConfigContext.Provider, {
-    value: { ...defaults, defaultGridView: view, tableColumns: [{ title: 'Title', field: 'CoreField.Title' }] },
+    value: { ...defaults, defaultGridView: view, tableColumns: [{ title: 'Title', field: 'CoreField.Title' }],
+      ...(titleFallback === undefined ? {} : { titleFallback }) },
   }, createElement(AssetsPicker));
 }
 
@@ -34,15 +36,26 @@ describe('AssetsPicker view configuration', () => {
     await deleteData('selectedView');
   });
 
-  async function render(view: string) {
+  async function render(view: string, titleFallback?: TitleFallback) {
     // React Redux requires the children prop in its createElement overload.
     // eslint-disable-next-line react/no-children-prop
-    root.render(createElement(Provider, { store, children: createElement(Host, { view }) }));
+    root.render(createElement(Provider, { store, children: createElement(Host, { view, titleFallback }) }));
     await waitUntil(() => !!container.querySelector('cx-content-browser'));
     const browser = container.querySelector('cx-content-browser') as CxContentBrowser;
     await browser.updateComplete;
     return browser;
   }
+
+  it('preserves an omitted title fallback for the site default', async () => {
+    const browser = await render('medium');
+    expect(browser.titleFallback).to.equal(undefined);
+    expect(browser.hasAttribute('title-fallback')).to.equal(false);
+  });
+
+  it('preserves an explicit identifier fallback', async () => {
+    const browser = await render('medium', 'uniqueIdentifier');
+    expect(browser.titleFallback).to.equal('uniqueIdentifier');
+  });
 
   for (const view of ['small', 'medium', 'large', 'table']) {
     it(`applies the configured ${view} view before the saved view`, async () => {

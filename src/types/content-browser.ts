@@ -250,7 +250,8 @@ export type TableRowActionPosition = 'host-edge' | 'row-end';
 
 /**
  * What the asset caption shows when the asset has no title: the unique identifier (`uniqueIdentifier`), or
- * the original file name (`originalFileName`). A file name can hold private information, so a host must opt in.
+ * the original file name (`originalFileName`). The host option overrides the site default.
+ * Without either default, the SDK uses the unique identifier.
  */
 export type TitleFallback = 'uniqueIdentifier' | 'originalFileName';
 

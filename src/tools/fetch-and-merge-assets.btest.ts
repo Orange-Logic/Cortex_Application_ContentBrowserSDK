@@ -1,7 +1,7 @@
 import { expect, waitUntil } from '@open-wc/testing';
 
 import http from '@/api/api';
-import { AuthApiEndpoint } from '@/api/endpoints';
+import { AuthApiEndpoint, MetadataApiEndpoint } from '@/api/endpoints';
 import type CortexElement from '@/base/element';
 import type { GetAssetsRequest } from '@/types/asset';
 import type { Facet } from '@/types/content-browser';
@@ -66,6 +66,203 @@ describe('FetchAndMergeAssetsController', () => {
 
     return controller;
   };
+
+  describe('site title fallback', () => {
+    let siteSequence = 0;
+
+    const configureSite = (siteFallback: unknown, options: Partial<ConstructorParameters<typeof FetchAndMergeAssetsController>[1]> = {}) => {
+      siteSequence += 1;
+      const requests: InternalAxiosRequestConfig[] = [];
+      http.defaults.adapter = async (config) => {
+        requests.push(config);
+        return {
+          config,
+          data: config.url?.includes('getparameters_412Z_v1')
+            ? { EnableATSInGetLink: 'false', TitleFallback: siteFallback }
+            : { contentItems: [{ recordID: `fallback-${siteSequence}`, fields: {
+              'CoreField.Identifier': 'UID-1', 'CoreField.OriginalFileName': 'photo.jpg', 'Document.Title': '',
+            } }], facets: [], totalCount: 1 },
+          headers: {}, status: 200, statusText: 'OK',
+        };
+      };
+      return { current: createController({ baseUrl: `https://fallback-${siteSequence}.example`, ...options }), requests };
+    };
+
+    for (const [siteFallback, explicit, expected] of [
+      ['originalFileName', undefined, 'photo.jpg'],
+      ['originalFileName', 'uniqueIdentifier', 'UID-1'],
+      ['uniqueIdentifier', 'originalFileName', 'photo.jpg'],
+      ['originalFileName', 'invalid', 'UID-1'],
+      ['originalFileName', null, 'UID-1'],
+      [undefined, undefined, 'UID-1'],
+      ['invalid', undefined, 'UID-1'],
+    ] as const) {
+      it(`resolves site ${siteFallback} and explicit ${explicit} to ${expected}`, async () => {
+        const { current, requests } = configureSite(siteFallback, {
+          titleFallback: explicit as ConstructorParameters<typeof FetchAndMergeAssetsController>[1]['titleFallback'],
+        });
+        const result = await current.fetchAssets({});
+        expect(result.items[0].name).to.equal(expected);
+        const assetRequest = requests.find((request) => request.method === 'post')!;
+        expect(JSON.parse(assetRequest.data).Fields.includes('CoreField.OriginalFileName')).to.equal(expected === 'photo.jpg');
+      });
+    }
+
+    it('uses the site fallback in the first list and the format dialog', async () => {
+      const { current } = configureSite('originalFileName');
+      await current.fetchAndMergeAssets({ start: 0 });
+      await waitUntil(() => current.getData().items.length > 0);
+      expect(current.getData().items[0].name).to.equal('photo.jpg');
+      const result = await current.fetchAssetByID('site-default-dialog', { simplePick: true });
+      expect(result?.asset.name).to.equal('photo.jpg');
+    });
+
+    it('keeps the title ahead of the site filename default', async () => {
+      const { current } = configureSite('originalFileName');
+      const adapter = http.defaults.adapter as (config: InternalAxiosRequestConfig) => Promise<{
+        data: { contentItems?: Array<{ fields: Record<string, string> }> };
+      }>;
+      http.defaults.adapter = async (config) => {
+        const response = await adapter(config);
+        const item = response.data.contentItems?.[0];
+        if (item) {
+          item.fields['Document.Title'] = 'Asset title';
+        }
+        return response as never;
+      };
+      expect((await current.fetchAssets({})).items[0].name).to.equal('Asset title');
+      expect((await current.fetchAssetByID('site-title-dialog', { simplePick: true }))?.asset.name).to.equal('Asset title');
+    });
+
+    it('waits for one shared parameter request before asset requests', async () => {
+      const { current, requests } = configureSite('originalFileName');
+      const adapter = http.defaults.adapter as (config: InternalAxiosRequestConfig) => Promise<unknown>;
+      let release!: () => void;
+      const pending = new Promise<void>((resolve) => { release = resolve; });
+      http.defaults.adapter = async (config) => {
+        if (config.url === MetadataApiEndpoint.GET_CONTENT_BROWSER_PARAMETERS) {
+          await pending;
+        }
+        return await adapter(config) as never;
+      };
+      const assets = current.fetchAssets({});
+      const dialog = current.fetchAssetByID('shared-default-dialog', { simplePick: true });
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      try {
+        expect(requests).to.have.length(0);
+      } finally {
+        release();
+      }
+      expect((await assets).items[0].name).to.equal('photo.jpg');
+      expect((await dialog)?.asset.name).to.equal('photo.jpg');
+      expect(requests.filter((request) => request.url === MetadataApiEndpoint.GET_CONTENT_BROWSER_PARAMETERS)).to.have.length(1);
+    });
+
+    it('discards an old parameter response after a site-session change', async () => {
+      const { current } = configureSite('uniqueIdentifier');
+      const adapter = http.defaults.adapter as (config: InternalAxiosRequestConfig) => Promise<unknown>;
+      let release!: () => void;
+      const pending = new Promise<void>((resolve) => { release = resolve; });
+      let oldRequestStarted = false;
+      http.defaults.adapter = async (config) => {
+        if (config.url === MetadataApiEndpoint.GET_CONTENT_BROWSER_PARAMETERS && !oldRequestStarted) {
+          oldRequestStarted = true;
+          await pending;
+          return { config, data: { EnableATSInGetLink: 'false', TitleFallback: 'originalFileName' }, headers: {}, status: 200, statusText: 'OK' };
+        }
+        return await adapter(config) as never;
+      };
+      current.hostConnected();
+      await waitUntil(() => oldRequestStarted);
+      const waitingAssets = current.fetchAssets({});
+      try {
+        current.updateSiteSession(true, `${window.location.origin}/new-fallback`, '', '', '');
+        const first = await current.fetchAssets({});
+        expect(first.items[0].name).to.equal('UID-1');
+      } finally {
+        release();
+      }
+      expect((await waitingAssets).items[0].name).to.equal('UID-1');
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      expect((await current.fetchAssets({})).items[0].name).to.equal('UID-1');
+    });
+
+    it('completes the list with the identifier when the parameter API fails', async () => {
+      const { current } = configureSite('originalFileName');
+      const adapter = http.defaults.adapter as (config: InternalAxiosRequestConfig) => Promise<unknown>;
+      http.defaults.adapter = async (config) => {
+        if (config.url === MetadataApiEndpoint.GET_CONTENT_BROWSER_PARAMETERS) {
+          throw new Error('offline');
+        }
+        return await adapter(config) as never;
+      };
+      await current.fetchAndMergeAssets({ start: 0 });
+      await waitUntil(() => current.getData().items.length > 0);
+      expect(current.getData().items[0].name).to.equal('UID-1');
+      expect(current.getData().loading).to.equal(false);
+    });
+
+    it('uses the new credential default after the sort-order wait', async () => {
+      const { current, requests } = configureSite('originalFileName');
+      expect((await current.fetchAssets({})).items[0].name).to.equal('photo.jpg');
+      const adapter = http.defaults.adapter as (config: InternalAxiosRequestConfig) => Promise<unknown>;
+      let release!: () => void;
+      let sortRequestStarted = false;
+      const pending = new Promise<void>((resolve) => { release = resolve; });
+      await http.storage.clear?.();
+      http.defaults.adapter = async (config) => {
+        if (config.url === MetadataApiEndpoint.GET_SORT_ORDERS) {
+          sortRequestStarted = true;
+          await pending;
+          return { config, data: { sortOrders: [] }, headers: {}, status: 200, statusText: 'OK' };
+        }
+        if (config.url === MetadataApiEndpoint.GET_CONTENT_BROWSER_PARAMETERS) {
+          return { config, data: { TitleFallback: 'uniqueIdentifier' }, headers: {}, status: 200, statusText: 'OK' };
+        }
+        return await adapter(config) as never;
+      };
+      await current.fetchAndMergeAssets({ start: 0 });
+      try {
+        await waitUntil(() => sortRequestStarted);
+        current.updateAuth('new-identity', '', '');
+      } finally {
+        release();
+      }
+      await waitUntil(() => current.getData().items.length > 0);
+      expect(current.getData().items[0].name).to.equal('UID-1');
+      const lastAssetRequest = requests.filter((request) => request.method === 'post').at(-1)!;
+      expect(JSON.parse(lastAssetRequest.data).Fields).not.to.contain('CoreField.OriginalFileName');
+    });
+
+    for (const change of ['site', 'credentials', 'reconnect']) {
+      it(`reads a fresh default after a ${change} change`, async () => {
+        const { current } = configureSite('originalFileName');
+        expect((await current.fetchAssets({})).items[0].name).to.equal('photo.jpg');
+        const adapter = http.defaults.adapter as (config: InternalAxiosRequestConfig) => Promise<unknown>;
+        http.defaults.adapter = async (config) => config.url?.includes('getparameters_412Z_v1')
+          ? { config, data: { EnableATSInGetLink: 'false', TitleFallback: 'uniqueIdentifier' }, headers: {}, status: 200, statusText: 'OK' }
+          : await adapter(config) as never;
+        if (change === 'site') {
+          current.updateSiteSession(false, 'https://changed-default.example', '', '', '');
+        } else if (change === 'credentials') {
+          current.updateAuth('new-token', '', '');
+        } else {
+          current.hostConnected();
+        }
+        expect((await current.fetchAssets({})).items[0].name).to.equal('UID-1');
+      });
+    }
+
+    it('reloads the other site parameters after credential rotation with an explicit fallback', async () => {
+      const { current } = configureSite('originalFileName', { titleFallback: 'uniqueIdentifier' });
+      current.hostConnected();
+      await waitUntil(() => current.getData().parameters !== null);
+      current.updateAuth('rotated-token', '', '');
+      await current.fetchAssets({});
+      await waitUntil(() => current.getData().parameters !== null, 'site parameters stayed empty after credential rotation');
+      expect(current.getData().parameters?.autoExtension).to.equal('.auto');
+    });
+  });
 
   // L-42B0OO: a grid click opens the format dialog through fetchAssetByID, and content-browser.btest.ts
   // stubs that method wholesale — so without this, the caption fallback could regress here unnoticed while
@@ -295,9 +492,14 @@ describe('FetchAndMergeAssetsController', () => {
 
     it('retries a 401 with the bearer token the host hands over next', async () => {
       const authorizations: unknown[] = [];
+      const parameterAuthorizations: unknown[] = [];
       http.defaults.adapter = async (config) => {
         const authorization = config.headers.get('Authorization');
-        authorizations.push(authorization);
+        if (config.url === AuthApiEndpoint.GET_USER_INFO) {
+          authorizations.push(authorization);
+        } else if (config.url === MetadataApiEndpoint.GET_CONTENT_BROWSER_PARAMETERS) {
+          parameterAuthorizations.push(authorization);
+        }
         if (authorization === 'Bearer expired-token') {
           throw new AxiosError('Unauthorized', AxiosError.ERR_BAD_REQUEST, config, null, {
             ...okResponse(config),
@@ -316,6 +518,8 @@ describe('FetchAndMergeAssetsController', () => {
 
       expect(response.status).to.equal(200);
       expect(authorizations).to.deep.equal(['Bearer expired-token', 'Bearer renewed-token']);
+      await waitUntil(() => parameterAuthorizations.length > 0);
+      expect(parameterAuthorizations).to.deep.equal(['Bearer renewed-token']);
     });
 
     it('does not send a bearer token set by a controller for another site', async () => {
@@ -730,6 +934,10 @@ describe('FetchAndMergeAssetsController', () => {
       held = [];
       heldSortOrders = [];
       http.defaults.adapter = (config) => new Promise((resolve, reject) => {
+        if (config.url === MetadataApiEndpoint.GET_CONTENT_BROWSER_PARAMETERS) {
+          resolve({ config, data: { TitleFallback: 'uniqueIdentifier' }, headers: {}, status: 200, statusText: 'OK' });
+          return;
+        }
         if (config.method?.toLowerCase() === 'get') {
           heldSortOrders.push(() => resolve({
             config,
