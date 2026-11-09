@@ -3,9 +3,11 @@ import { AxiosError, type AxiosResponse, type InternalAxiosRequestConfig } from 
 
 import http from '@/api/api';
 
-import type { Asset } from '@/types/asset';
+import { type Asset, MediaType } from '@/types/asset';
 
-import { apiGetAssetLinks, apiGetAssets, apiGetAvailableProxies, resolveAssetCaption } from './asset';
+import {
+  apiGetAssetLinks, apiGetAssets, apiGetAvailableProxies, AssetLinkError, resolveAssetCaption,
+} from './asset';
 
 describe('asset caption', () => {
   const originalAdapter = http.defaults.adapter;
@@ -426,6 +428,158 @@ describe('apiGetAvailableProxies', () => {
 
     expect(response.isError).to.equal(false);
     expect(response.previewUrl).to.equal('https://cdn.example/preview.jpg');
+  });
+});
+
+describe('apiGetAssetLinks', () => {
+  const originalAdapter = http.defaults.adapter;
+  const notAllowed = {
+    ErrorCode: 'OL_ERR_002_NOTALLOWED',
+    Message: 'You do not have permission to get bulk of reusable permanent links',
+  };
+
+  const makeAsset = (overrides: Partial<Asset> = {}): Asset => ({
+    docSubType: '',
+    docType: MediaType.Image,
+    extension: '.jpg',
+    id: 'link-asset',
+    identifier: 'ID-1',
+    imageUrl: 'https://cdn.example/preview.jpg',
+    name: 'Photo',
+    originalUrl: '',
+    recordId: 'link-asset',
+    size: '1 MB',
+    tags: '',
+    ...overrides,
+  });
+
+  afterEach(() => {
+    http.defaults.adapter = originalAdapter;
+  });
+
+  it('reports a Cortex error body as an error with its code and message', async () => {
+    http.defaults.adapter = async (config) => ({
+      config,
+      data: notAllowed,
+      headers: {},
+      status: 400,
+      statusText: 'Bad Request',
+    });
+
+    const response = await apiGetAssetLinks({ assets: [makeAsset({ recordId: 'link-400' })] });
+
+    expect(response.isError).to.equal(true);
+    expect(response.error).to.be.instanceOf(AssetLinkError);
+    expect(response.error?.errorCode).to.equal('OL_ERR_002_NOTALLOWED');
+    expect(response.error?.serverMessage).to.equal(notAllowed.Message);
+    expect(response.error?.message).to.equal(notAllowed.Message);
+  });
+
+  it('reports a thrown request as an error without a code', async () => {
+    http.defaults.adapter = async (config) => {
+      throw new AxiosError('Network Error', AxiosError.ERR_NETWORK, config);
+    };
+
+    const response = await apiGetAssetLinks({ assets: [makeAsset({ recordId: 'link-network' })] });
+
+    expect(response.isError).to.equal(true);
+    expect(response.error).to.be.instanceOf(AssetLinkError);
+    expect(response.error?.errorCode).to.equal(undefined);
+    expect(response.error?.serverMessage).to.equal(undefined);
+    expect(response.error?.message).to.equal('Network Error');
+  });
+
+  it('keeps the Cortex code of a GET fallback that the server refuses', async () => {
+    http.defaults.adapter = async (config) => {
+      if (config.method?.toUpperCase() === 'POST') {
+        throw new AxiosError('Network Error', AxiosError.ERR_NETWORK, config);
+      }
+
+      throw new AxiosError(
+        'Request failed with status code 400',
+        AxiosError.ERR_BAD_REQUEST,
+        config,
+        null,
+        { config, data: notAllowed, headers: {}, status: 400, statusText: 'Bad Request' } as AxiosResponse,
+      );
+    };
+
+    const response = await apiGetAssetLinks({ assets: [makeAsset({ recordId: 'link-get-400' })] });
+
+    expect(response.isError).to.equal(true);
+    expect(response.error?.errorCode).to.equal('OL_ERR_002_NOTALLOWED');
+    expect(response.error?.serverMessage).to.equal(notAllowed.Message);
+  });
+
+  it('reports a non-2xx response without a Cortex error body as an error', async () => {
+    http.defaults.adapter = async (config) => ({
+      config,
+      data: '<html>Server error</html>',
+      headers: {},
+      status: 500,
+      statusText: 'Internal Server Error',
+    });
+
+    const response = await apiGetAssetLinks({ assets: [makeAsset({ recordId: 'link-500' })] });
+
+    expect(response.isError).to.equal(true);
+    expect(response.error?.errorCode).to.equal(undefined);
+  });
+
+  it('passes a 200 response with no link through with the preview and the extra fields', async () => {
+    http.defaults.adapter = async (config) => ({
+      config,
+      data: { extraFields: { 'Document.RecordID': 'Q2ADO000000356116' }, imageUrl: null },
+      headers: {},
+      status: 200,
+      statusText: 'OK',
+    });
+
+    const response = await apiGetAssetLinks({
+      assets: [makeAsset({ recordId: 'link-null' })],
+      extraFields: ['Document.RecordID'],
+    });
+
+    expect(response.isError).to.equal(false);
+    expect(response.error).to.equal(undefined);
+    expect(response.data).to.have.lengthOf(1);
+    expect(response.data[0].extraFields).to.deep.equal({ 'Document.RecordID': 'Q2ADO000000356116' });
+    expect(response.data[0].imageUrl).to.equal('https://cdn.example/preview.jpg');
+  });
+
+  it('still rewrites the extension of a link the server sends', async () => {
+    http.defaults.adapter = async (config) => ({
+      config,
+      data: { imageUrl: 'https://cdn.example/AssetLink/abc.png' },
+      headers: {},
+      status: 200,
+      statusText: 'OK',
+    });
+
+    const response = await apiGetAssetLinks({ assets: [makeAsset({ recordId: 'link-ok' })] });
+
+    expect(response.isError).to.equal(false);
+    expect(response.data[0].imageUrl).to.equal('https://cdn.example/AssetLink/abc.jpg');
+  });
+
+  it('reports the first failure of a multi-asset selection and keeps one entry per asset', async () => {
+    http.defaults.adapter = async (config) => {
+      const { RecordId } = JSON.parse(config.data);
+
+      return RecordId === 'multi-denied'
+        ? { config, data: notAllowed, headers: {}, status: 400, statusText: 'Bad Request' }
+        : { config, data: { imageUrl: 'https://cdn.example/AssetLink/ok.jpg' }, headers: {}, status: 200, statusText: 'OK' };
+    };
+
+    const response = await apiGetAssetLinks({
+      assets: [makeAsset({ recordId: 'multi-ok' }), makeAsset({ recordId: 'multi-denied' })],
+    });
+
+    expect(response.isError).to.equal(true);
+    expect(response.error?.errorCode).to.equal('OL_ERR_002_NOTALLOWED');
+    expect(response.data).to.have.lengthOf(2);
+    expect(response.data[0].imageUrl).to.equal('https://cdn.example/AssetLink/ok.jpg');
+    expect(response.data[1].imageUrl).to.equal('https://cdn.example/preview.jpg');
   });
 });
 

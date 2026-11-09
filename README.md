@@ -108,6 +108,30 @@ setting is simply ignored. Because no GetAssetLink request is made, only the com
 `extraFields` (`ScrubUrl` and `AllowATSLink`) are returned in this mode -- request any
 other field with `simplePick` off.
 
+## Errors on Confirm (`onError`)
+
+When the asset link request of a confirm fails, the SDK does not call `onAssetSelected`.
+The dialog stays open and shows the error, and its confirm button becomes usable again.
+The SDK also calls `onError(errorMessage, error)`:
+
+```html
+<script>
+  OrangeDAMContentBrowser.open({
+    containerId: 'asset-picker',
+    onAssetSelected: (assets) => console.log(assets),
+    onError: (errorMessage, error) => {
+      // error.errorCode is the Cortex error code, for example 'OL_ERR_002_NOTALLOWED'.
+      console.error(errorMessage, error?.errorCode);
+    },
+  });
+</script>
+```
+
+`error` is an `AssetLinkError`. When Cortex sends an error body, `errorCode` and
+`serverMessage` hold its `ErrorCode` and `Message`. For a network failure they are empty.
+A successful response with no link is not an error: the asset goes to `onAssetSelected`
+with its preview URL as `imageUrl`.
+
 ## Select Without an Asset Link (`skipLinkGeneration`)
 
 Set `skipLinkGeneration: true` when the host needs the selected asset's fields, not a

@@ -19,6 +19,7 @@ import { isPromise } from '@/utils/function';
 import { deleteData, getData, storeData } from '@/utils/storage';
 
 import type {
+    CxContentBrowserAssetLinkErrorEvent,
     CxContentBrowserGridClickEvent, CxContentBrowserPinAssetChangeEvent, CxContentBrowserPinAssetLookupEvent,
     CxContentBrowserRequestChangeEvent, CxContentBrowserSelectedAssetEvent,
 } from '@/events';
@@ -258,6 +259,12 @@ const AssetsPicker = forwardRef<AssetsPickerHandle, Props>(function AssetsPicker
     onClose?.();
   }, [onAssetSelected, onClose, persistMode]);
 
+  const onAssetLinkError = useCallback((event: CxContentBrowserAssetLinkErrorEvent) => {
+    const { error } = event.detail;
+
+    onError(error.message, error);
+  }, [onError]);
+
   const onFetchAndMergeAssetsSuccess = useCallback((event: CxContentBrowserRequestChangeEvent) => {
     if (!loadedFromStorage.current) {
       return;
@@ -468,6 +475,7 @@ const AssetsPicker = forwardRef<AssetsPickerHandle, Props>(function AssetsPicker
       show-title={displayInfo.title}
       multi-select={multiSelect ? 'true' : undefined}
       oncx-content-browser-selected-asset={onSelectedAsset}
+      oncx-content-browser-asset-link-error={onAssetLinkError}
       oncx-content-browser-request-change={onFetchAndMergeAssetsSuccess}
       oncx-content-browser-grid-click={onGridClick}
       oncx-content-browser-pin-asset-lookup={onPinAssetLookup}
