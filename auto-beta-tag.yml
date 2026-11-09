@@ -1,0 +1,78 @@
+# Creates a beta git tag (<release>-<ticket>-beta-<n>) for a merge commit on master.
+# Pushing that tag triggers azure-pipeline.yaml, which builds, publishes to npm and S3.
+# Can also be run manually against a PR branch to cut a beta for that branch.
+trigger:
+  branches:
+    include:
+      - 'master'
+
+resources:
+  repositories:
+    - repository: infra-templates
+      type: git
+      name: Infra_Pipelines-templates-dev
+      ref: refs/tags/1.0.15
+
+variables:
+  - group: "Global Vars"
+
+stages:
+  - stage: Auto_Tag
+    dependsOn: []
+    jobs:
+      - job: Auto_Tag
+        displayName: 'Auto beta tag'
+        pool:
+          name: VN Linux
+        steps:
+          - checkout: self
+            clean: true
+            fetchDepth: 0
+            persistCredentials: true
+
+          - template: azure-pipelines/common/steps-printenv.yml@infra-templates
+
+          - bash: |
+              set -euo pipefail
+              sha="$(Build.SourceVersion)"
+              subject=$(git show -s --format=%s "$sha")
+              echo "Commit : $sha"
+              echo "Subject: $subject"
+
+              # Link ticket id: 6 chars, starts with 2 digits, contains a letter.
+              # Accepts "[42D4G7] ...", "42C47O - ...", "42AJB7: ..."; ignores the "Merged PR 123:" number.
+              ticket=$(echo "$subject" | sed -E 's/^Merged PR [0-9]+: //' | grep -Eow '[0-9]{2}[0-9A-Z]{4}' | grep -E '[A-Z]' | head -n1 || true)
+              if [ -z "$ticket" ]; then
+                echo "##vso[task.logissue type=warning]No ticket id in commit subject - no beta tag created"
+                exit 0
+              fi
+
+              # A release tag on this commit means it is already released; do not add a beta.
+              release_here=$(git tag --points-at "$sha" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' || true)
+              if [ -n "$release_here" ]; then
+                echo "Commit already has release tag(s): $release_here - no beta tag created"
+                exit 0
+              fi
+
+              # Base = newest release tag reachable from this commit.
+              base=$(git tag --merged "$sha" --sort=-v:refname | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | head -n1)
+              if [ -z "$base" ]; then
+                echo "##vso[task.logissue type=error]No release tag reachable from $sha"
+                exit 1
+              fi
+
+              prefix="${base}-${ticket}-beta-"
+              last=$(git tag -l "${prefix}*" | sed "s|^${prefix}||" | grep -E '^[0-9]+$' | sort -n | tail -n1 || true)
+              next=$(( ${last:-0} + 1 ))
+              tag="${prefix}${next}"
+              echo "Base   : $base"
+              echo "Ticket : $ticket"
+              echo "Tag    : $tag"
+
+              git config user.name  "Azure Pipelines"
+              git config user.email "build@orangelogic.com"
+              git tag -a "$tag" -m "$subject" "$sha"
+              git -c http.extraheader="AUTHORIZATION: bearer $(System.AccessToken)" push origin "refs/tags/$tag"
+              echo "##vso[build.addbuildtag]$tag"
+              echo "Pushed $tag - azure-pipeline.yaml will build and publish it"
+            displayName: 'Create and push beta tag'
