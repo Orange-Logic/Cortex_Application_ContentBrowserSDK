@@ -833,9 +833,12 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
     let previewer: TemplateResult | undefined = undefined;
     let proxySelector: TemplateResult | undefined = undefined;
 
-    // The cropper is filled by cx-asset-link-format, which simple-pick does not render; without it
-    // the element would spin forever, so fall back to the plain image previewer.
-    if (!this.simplePick && this.asset.docType === MediaType.Image) {
+    // The editor initializes the cropper and requests a transformed image, even when hidden.
+    // Keep both mounted for a confirmed custom format, but leave ordinary previews on the original image.
+    const useCropper = !this.simplePick && this.asset.docType === MediaType.Image
+      && (this.showCustomFormat || this.selectedProxy === CUSTOM_FORMAT_VALUE);
+
+    if (useCropper) {
       previewer = html`
         <cx-cropper id="cropper" class="content-browser-format__cropper" fill-image></cx-cropper>
       `;
@@ -918,7 +921,7 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
     }
 
     return html`
-      ${guard([this.asset], () => previewer)}
+      ${guard([this.asset, useCropper], () => previewer)}
       ${guard([
           this.availableExtensions,
           this.asset,
@@ -926,10 +929,10 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
           this.confirmedTransformations,
           this.selectedProxy,
           this.showCustomFormat,
-          this.simplePick,
+          useCropper,
         ],
         () => {
-          if (this.simplePick || this.asset?.docType !== MediaType.Image) {
+          if (!useCropper || !this.asset) {
             return nothing;
           }
 
