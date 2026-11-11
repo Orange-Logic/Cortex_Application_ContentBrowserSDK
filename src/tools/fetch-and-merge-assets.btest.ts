@@ -619,6 +619,49 @@ describe('FetchAndMergeAssetsController', () => {
       expect(current.getData().searchError).to.equal(false);
     });
 
+    // L-29UGSA: a folder switch with a Types filter that no asset of the new folder matches.
+    // Cortex answers with `contentItems: null`, and the main facet counts the folder without its own filter.
+    it('shows no results with the facets of the new folder when it has no match for the applied filter', async () => {
+      const clock = sinon.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+      const libraryTypes: Facet = {
+        facetDetails: { displayName: 'Types', facetFieldName: 'Types' },
+        values: [{ count: 127373, displayValue: 'Audio', value: 'audio' }],
+      };
+      const favoriteTypes: Facet = {
+        facetDetails: { displayName: 'Types', facetFieldName: 'Types' },
+        values: [
+          { count: 5, displayValue: 'Videos', value: 'videos' },
+          { count: 4, displayValue: 'Images', value: 'images' },
+        ],
+      };
+      const replies = [
+        { contentItems: [{ fields: { 'Document.RecordID': 'a1' }, recordID: 'a1' }], facets: [libraryTypes], totalCount: 127373 },
+        { contentItems: null, facets: [favoriteTypes], totalCount: 0, unreadableFields: [] },
+      ];
+      let call = 0;
+      http.defaults.adapter = async (config) => ({
+        config,
+        data: replies[call++],
+        headers: {},
+        status: 200,
+        statusText: 'OK',
+      });
+      const current = createSearchController();
+      const selectedFacets = { Types: ['audio'] };
+
+      await current.fetchAndMergeAssets({ folderId: 'library', pageSize: 2, selectedFacets, start: 0 });
+      await clock.tickAsync(200);
+      await current.fetchAndMergeAssets({ folderId: 'favorites', pageSize: 2, selectedFacets, start: 0 });
+      await clock.tickAsync(200);
+
+      const data = current.getData();
+      expect(data.searchError).to.equal(false);
+      expect(recordIdsOf(current)).to.deep.equal([]);
+      expect(data.totalCount).to.equal(0);
+      expect(data.facets.map((facet) => facet.values.map((value) => `${value.value}:${value.count}`)))
+        .to.deep.equal([['videos:5', 'images:4', 'audio:0']]);
+    });
+
     it('sends the request with the error again on a retry, and adds its rows', async () => {
       const clock = sinon.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
       const bodies = scriptSearches([

@@ -68,7 +68,8 @@ export type GetAssetsByIDsResponse = {
 };
 
 export type GetAssetsRawResponse = {
-  contentItems?: ContentItem[];
+  /** Null when no record matches: Cortex leaves the list unset and its JSON keeps the null. */
+  contentItems?: ContentItem[] | null;
   facets: Facet[];
   totalCount: number;
   /** Absent on a Cortex build older than L-42BJ3T. */
