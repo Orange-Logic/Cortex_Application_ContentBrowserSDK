@@ -162,6 +162,20 @@ export class FetchAndMergeAssetsController implements ReactiveController {
 
   #lastMappedAvailableExtensions: GetAvailableExtensionsResponse | null = null;
 
+  /**
+   * The `availableExtensions` that `#lastMappedAvailableExtensions` was mapped from. The extensions load
+   * after the first render (and again after a re-login), so the memo must also be redone when they change,
+   * not only when the getData options do (L-42DAEP).
+   */
+  #lastMappedAvailableExtensionsSource: GetAvailableExtensionsResponse | null = null;
+
+  /**
+   * Identifies the latest available extensions request. A mode switch or re-login asks again while the
+   * previous request can still be pending, so an answer of an older number is discarded: it belongs to
+   * the previous transport, and a failed one would replace the extensions with `{}`.
+   */
+  #availableExtensionsGeneration = 0;
+
   #lastData: {
     availableExtensions: GetAvailableExtensionsResponse | null;
     availableFacets: Array<Facet['facetDetails']>;
@@ -444,7 +458,14 @@ export class FetchAndMergeAssetsController implements ReactiveController {
       this.host.requestUpdate();
     });
 
+    this.#availableExtensionsGeneration += 1;
+    const extensionsGeneration = this.#availableExtensionsGeneration;
+
     apiGetAvailableExtensions().then((availableExtensions) => {
+      if (extensionsGeneration !== this.#availableExtensionsGeneration) {
+        return;
+      }
+
       this.availableExtensions = availableExtensions;
 
       this.host.requestUpdate();
@@ -884,12 +905,16 @@ export class FetchAndMergeAssetsController implements ReactiveController {
       availableRepresentativeSubtypes = [],
     } = options ?? {};
 
-    if (!_isEqual(this.#lastGetDataParameters, options)) {
+    if (
+      !_isEqual(this.#lastGetDataParameters, options)
+      || this.#lastMappedAvailableExtensionsSource !== this.availableExtensions
+    ) {
       this.#lastGetDataParameters = {
         allowedExtensions,
         availableRepresentativeSubtypes,
       };
 
+      this.#lastMappedAvailableExtensionsSource = this.availableExtensions;
       this.#lastMappedAvailableExtensions = this.mapAvailableExtensions(allowedExtensions);
     }
 

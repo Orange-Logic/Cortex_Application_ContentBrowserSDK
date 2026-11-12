@@ -1,4 +1,4 @@
-import { expect, waitUntil } from '@open-wc/testing';
+import { aTimeout, expect, waitUntil } from '@open-wc/testing';
 
 import http from '@/api/api';
 import { AuthApiEndpoint } from '@/api/endpoints';
@@ -962,6 +962,124 @@ describe('FetchAndMergeAssetsController', () => {
       await settle();
 
       expect(current.getNextPage()).to.deep.equal({ lastPageSize: 40, start: 40 });
+    });
+  });
+
+  // L-42DAEP: the format dialog offers "Custom format" only once the available extensions are known, and
+  // the content browser renders with the same getData options until the user changes something.
+  describe('available extensions that load late (L-42DAEP)', () => {
+    const options = { allowedExtensions: ['jpg'], availableRepresentativeSubtypes: [] };
+
+    // Every request gets an empty body, except the extensions request, which waits for `release`.
+    const holdExtensions = () => {
+      let release = () => {};
+      const released = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+
+      http.defaults.adapter = async (config) => {
+        const isExtensionsRequest = config.url?.includes('getavailableextensions') ?? false;
+
+        if (isExtensionsRequest) {
+          await released;
+        }
+
+        return {
+          config,
+          data: isExtensionsRequest
+            ? {
+              extensions: {
+                Image: [
+                  { display: 'JPG', value: '.jpg' },
+                  { display: 'PNG', value: '.png' },
+                ],
+              },
+            }
+            : {},
+          headers: {},
+          status: 200,
+          statusText: 'OK',
+        };
+      };
+
+      return () => release();
+    };
+
+    beforeEach(async () => {
+      // http caches GETs by URL, so an answer cached by another case would never be held.
+      await http.storage.clear?.();
+    });
+
+    it('shows the extensions that land after the first render', async () => {
+      const release = holdExtensions();
+      const current = createController();
+
+      current.hostConnected();
+
+      expect(current.getData(options).availableExtensions).to.equal(null);
+
+      release();
+
+      await waitUntil(
+        () => current.getData(options).availableExtensions !== null,
+        'getData kept the extensions it had before they loaded',
+      );
+
+      expect(current.getData(options).availableExtensions).to.deep.equal({
+        Image: [{ display: 'JPG', value: '.jpg' }],
+      });
+    });
+
+    it('keeps the same extensions object while nothing changes', async () => {
+      holdExtensions()();
+      const current = createController();
+
+      current.hostConnected();
+
+      await waitUntil(() => current.getData(options).availableExtensions !== null);
+
+      expect(current.getData({ ...options }).availableExtensions).to.equal(current.getData(options).availableExtensions);
+    });
+
+    // Switching the site-session mode refetches while the previous mode's request can still be pending
+    // (e.g. waiting on a token refresh that the switch then cancels, whose failure yields `{}`).
+    it('keeps the newer extensions when an older request lands last', async () => {
+      const held: Array<(extensions: unknown) => void> = [];
+
+      http.defaults.adapter = async (config) => {
+        const isExtensionsRequest = config.url?.includes('getavailableextensions') ?? false;
+        const extensions = isExtensionsRequest
+          ? await new Promise((resolve) => {
+            held.push(resolve);
+          })
+          : undefined;
+
+        return {
+          config,
+          data: isExtensionsRequest ? { extensions } : {},
+          headers: {},
+          status: 200,
+          statusText: 'OK',
+        };
+      };
+
+      const current = createController({ baseUrl: 'https://old.example.com' });
+
+      current.hostConnected();
+      await waitUntil(() => held.length === 1, 'the first extensions request was never sent');
+
+      current.updateSiteSession(true, '', '', '', '');
+      await waitUntil(() => held.length === 2, 'switching the mode did not refetch the extensions');
+
+      held[1]({ Image: [{ display: 'JPG', value: '.jpg' }] });
+      await waitUntil(() => current.getData(options).availableExtensions !== null);
+
+      held[0]({});
+      await aTimeout(50);
+
+      expect(current.getData(options).availableExtensions).to.deep.equal({
+        Image: [{ display: 'JPG', value: '.jpg' }],
+      });
     });
   });
 });
