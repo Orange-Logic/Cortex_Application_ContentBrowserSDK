@@ -1,4 +1,4 @@
-import { CSSResultGroup, html, nothing, TemplateResult } from 'lit';
+import { CSSResultGroup, html, noChange, nothing, TemplateResult } from 'lit';
 import { property, query, state } from 'lit/decorators.js';
 import { guard } from 'lit/directives/guard.js';
 import { ifDefined } from 'lit/directives/if-defined.js';
@@ -34,6 +34,7 @@ import CxContentBrowserAssetVersionHistory from '../content-browser-asset-versio
 import styles from './content-browser-format-dialog.styles';
 
 import {
+  type AssetLinkFormatPart, type CropMode, type FocusMode,
   type Parameter, type Transformation, type CtaTextTransform, type AutoSelectFormat,
   autoSelectFormatConverter, ContentBrowserFormatDialogVariant, isAutoSelectFormatActive,
 } from '@/types/content-browser';
@@ -51,9 +52,10 @@ const DEFAULT_TRACKING_PARAMETERS: Parameter[] = [{
 
 /**
  * Same as cx-asset-link-format's default cropModes, minus the "Azure AI" auto-cropping option —
- * that suggestion mode is not supported in the content-builder context.
+ * that suggestion mode is not supported in the content-builder context. Used when Cortex sends no
+ * crop modes.
  */
-const CROP_MODES = [
+const CROP_MODES: CropMode[] = [
   { label: 'Free', value: 'free' },
   { label: 'Widescreen (16:9)', value: '16:9' },
   { label: 'Phone (9:16)', value: '9:16' },
@@ -66,9 +68,9 @@ const CROP_MODES = [
 /**
  * Same as cx-asset-link-format's default focusModes, minus the "Optical", "Google AI", and
  * "Smart Swatch" auto-focus suggestion modes — those are not supported in the content-builder
- * context.
+ * context. Used when Cortex sends no focus modes.
  */
-const FOCUS_MODES = [
+const FOCUS_MODES: FocusMode[] = [
   { label: 'Manual focus', value: 'manual' },
   { label: 'Center focus', value: 'center' },
 ];
@@ -187,6 +189,22 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
 
   @property({ attribute: 'base-url', type: String })
   baseUrl: string = '';
+
+  /** Crop modes of the custom format panel (Cortex `AssetLinkFormatCropModes`). Empty → `CROP_MODES`. */
+  @property({ attribute: false })
+  cropModes: CropMode[] | undefined = undefined;
+
+  /** Focus modes of the custom format panel (Cortex `AssetLinkFormatFocusModes`). Empty → `FOCUS_MODES`. */
+  @property({ attribute: false })
+  focusModes: FocusMode[] | undefined = undefined;
+
+  /**
+   * Panels of the custom format panel, in order (Cortex `AssetLinkFormatParts`). Empty → the
+   * design system's default panels: the binding then sends nothing, because cx-asset-link-format
+   * throws on an `undefined` list.
+   */
+  @property({ attribute: false })
+  parts: AssetLinkFormatPart[] | undefined = undefined;
 
   @state()
   asset: Asset & { previewUrl: string } | undefined = undefined;
@@ -907,6 +925,9 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
           this.selectedProxy,
           this.showCustomFormat,
           this.simplePick,
+          this.cropModes,
+          this.focusModes,
+          this.parts,
         ],
         () => {
           if (this.simplePick || this.asset?.docType !== MediaType.Image) {
@@ -927,8 +948,9 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
               use-custom-extension
               .asset=${this.asset}
               .baseUrl=${this.baseUrl}
-              .cropModes=${CROP_MODES}
-              .focusModes=${FOCUS_MODES}
+              .cropModes=${this.cropModes?.length ? this.cropModes : CROP_MODES}
+              .focusModes=${this.focusModes?.length ? this.focusModes : FOCUS_MODES}
+              .parts=${this.parts?.length ? this.parts : noChange}
               .extensions=${extensions}
               .queryElement=${this.shadowRoot}
               .proxies=${this.proxies}

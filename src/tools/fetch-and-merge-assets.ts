@@ -168,6 +168,9 @@ export class FetchAndMergeAssetsController implements ReactiveController {
       ATSEnabled?: boolean;
       autoExtension?: string;
       collectionPath?: string;
+      cropModes?: GetContentBrowserParametersResponse['cropModes'];
+      focusModes?: GetContentBrowserParametersResponse['focusModes'];
+      parts?: GetContentBrowserParametersResponse['parts'];
       supportedExtensions?: string[];
       supportedRepresentativeSubtypes?: string[];
     } | null;

@@ -3,11 +3,11 @@ import { MetadataApiEndpoint } from '@/api/endpoints';
 import { Facet, SortOrder } from '@/types/content-browser';
 
 import {
-  ContentBrowserParameters,
   GetAvailableFacetsResponse,
   GetContentBrowserParametersResponse,
   GetSortOrdersResponse,
 } from './metadata.types';
+import { toContentBrowserParameters } from './metadata.utils';
 
 export async function apiGetSortOrders() {
   try {
@@ -75,27 +75,13 @@ export async function apiGetContentBrowserParameters() {
         ...(Array.isArray(http.defaults.transformResponse)
           ? http.defaults.transformResponse
           : []),
-        (contentBrowserParametersRawResponse: Record<string, string>): GetContentBrowserParametersResponse => {
-          return {
-            ATSEnabled: contentBrowserParametersRawResponse[ContentBrowserParameters.EnableATSInGetLink].toLowerCase() === 'true',
-            autoExtension: contentBrowserParametersRawResponse[ContentBrowserParameters.ExtensionAuto]?.toLowerCase() ?? '.auto',
-            collectionPath: contentBrowserParametersRawResponse[ContentBrowserParameters.CollectionSubtypeCriteria]?.toLowerCase() ?? '',
-            supportedExtensions: contentBrowserParametersRawResponse[ContentBrowserParameters.ExtensionsThatSupportTransformationUsingATS]?.split('\n') ?? [],
-            supportedRepresentativeSubtypes: contentBrowserParametersRawResponse[ContentBrowserParameters.RepresentativeSupportedDocSubType]?.split('\r\n') ?? [],
-          };
-        },
+        toContentBrowserParameters,
       ],
       url: MetadataApiEndpoint.GET_CONTENT_BROWSER_PARAMETERS,
     });
 
     return response.data;
   } catch (error) {
-    return {
-      ATSEnabled: false,
-      autoExtension: '.auto',
-      collectionPath: '',
-      supportedExtensions: [],
-      supportedRepresentativeSubtypes: [],
-    };
+    return toContentBrowserParameters({});
   }
 }

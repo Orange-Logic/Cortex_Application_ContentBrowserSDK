@@ -1315,6 +1315,9 @@ export default class CxContentBrowser extends CortexElement {
           .boundary=${this.content}
           .supportedExtensions=${ifDefined(parameters?.supportedExtensions)}
           .supportedRepresentativeSubtypes=${ifDefined(parameters?.supportedRepresentativeSubtypes)}
+          .cropModes=${parameters?.cropModes}
+          .focusModes=${parameters?.focusModes}
+          .parts=${parameters?.parts}
           auto-extension=${ifDefined(parameters?.autoExtension)}
           base-url=${this.baseUrl}
           cta-text=${this.ctaText}

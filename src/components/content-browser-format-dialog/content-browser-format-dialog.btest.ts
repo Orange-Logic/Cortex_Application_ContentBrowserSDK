@@ -11,7 +11,10 @@ import {
 import type { GetAvailableExtensionsResponse } from '@/api/asset/asset.types';
 import type { Asset, AvailableProxy } from '@/types/asset';
 import { MediaType } from '@/types/asset';
-import { type Parameter, TransformationAction, ContentBrowserFormatDialogVariant } from '@/types/content-browser';
+import {
+  type Parameter, AssetLinkFormatPart, TransformationAction, ContentBrowserFormatDialogVariant,
+} from '@/types/content-browser';
+import type CxAssetLinkFormat from '@orangelogic/design-system/components/asset-link-format';
 
 import type CxContentBrowserAssetProxySelector from '../content-browser-asset-proxy-selector/content-browser-asset-proxy-selector';
 import {
@@ -2073,4 +2076,88 @@ describe('content-browser-format-dialog', () => {
     expect(preview!.getAttribute('image-url')).to.equal(asset.imageUrl);
   });
 
+  describe('custom format panel modes and parts (Cortex parameters)', () => {
+    const imageAsset = () => makeAsset({
+      docType: MediaType.Image,
+      extension: '.jpg',
+      originalUrl: 'https://example.com/i.jpg',
+    });
+
+    const getLinkFormat = (dialog: CxContentBrowserFormatDialog) => dialog.shadowRoot!.querySelector(
+      'cx-asset-link-format',
+    ) as CxAssetLinkFormat;
+
+    const openImage = async () => {
+      el.open({ asset: imageAsset(), isFavorite: false, proxies: [] });
+      await elementUpdated(el);
+
+      return getLinkFormat(el);
+    };
+
+    it('passes the given crop and focus modes', async () => {
+      const cropModes = [{ label: 'Freeform', value: 'free' }, { label: 'Square (1:1)', value: '1:1' }];
+      const focusModes = [{ label: 'Center focus', value: 'center' }];
+      el.cropModes = cropModes;
+      el.focusModes = focusModes;
+
+      const linkFormat = await openImage();
+
+      expect(linkFormat.cropModes).to.deep.equal(cropModes);
+      expect(linkFormat.focusModes).to.deep.equal(focusModes);
+    });
+
+    [undefined, []].forEach((modes) => {
+      it(`falls back to the built-in modes when the modes are ${modes ? 'empty' : 'unset'}`, async () => {
+        el.cropModes = modes;
+        el.focusModes = modes;
+
+        const linkFormat = await openImage();
+
+        expect(linkFormat.cropModes.map((mode) => mode.value)).to.deep.equal(
+          ['free', '16:9', '9:16', '4:3', '1:1', '3:2', '2:3'],
+        );
+        expect(linkFormat.cropModes[0].label).to.equal('Free');
+        expect(linkFormat.focusModes.map((mode) => mode.value)).to.deep.equal(['manual', 'center']);
+      });
+    });
+
+    it('passes the given parts', async () => {
+      const parts = [AssetLinkFormatPart.Crop, AssetLinkFormatPart.Proxy];
+      el.parts = parts;
+
+      const linkFormat = await openImage();
+
+      expect(linkFormat.parts).to.deep.equal(parts);
+    });
+
+    // cx-asset-link-format throws on an undefined parts list, so nothing is sent and it keeps its own.
+    [undefined, []].forEach((parts) => {
+      it(`keeps the design system's default parts when parts are ${parts ? 'empty' : 'unset'}`, async () => {
+        el.parts = parts;
+
+        const linkFormat = await openImage();
+
+        expect(linkFormat.parts).to.deep.equal(
+          (document.createElement('cx-asset-link-format') as CxAssetLinkFormat).parts,
+        );
+      });
+    });
+
+    it('updates an open panel when the modes and parts arrive after open()', async () => {
+      await openImage();
+
+      const cropModes = [{ label: 'Square (1:1)', value: '1:1' }];
+      const focusModes = [{ label: 'Center focus', value: 'center' }];
+      const parts = [AssetLinkFormatPart.Rotate];
+      el.cropModes = cropModes;
+      el.focusModes = focusModes;
+      el.parts = parts;
+      await elementUpdated(el);
+
+      const linkFormat = getLinkFormat(el);
+      expect(linkFormat.cropModes).to.deep.equal(cropModes);
+      expect(linkFormat.focusModes).to.deep.equal(focusModes);
+      expect(linkFormat.parts).to.deep.equal(parts);
+    });
+  });
 });

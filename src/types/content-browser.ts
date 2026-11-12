@@ -148,6 +148,11 @@ export type Proxy = {
 
 export enum TransformationAction {
   Crop = 'Crop',
+  /**
+   * Mirrors the design system (4.x). Only the `dimensions` panel emits it, and the SDK never shows
+   * that panel, so link building does not handle it.
+   */
+  Dimensions = 'Dimensions',
   Metadata = 'Metadata',
   Proxy = 'Proxy',
   Quality = 'Quality',
@@ -187,6 +192,20 @@ export type FocusMode = {
 };
 
 export type DefaultFocusMode = 'manual' | 'center';
+
+/**
+ * Panels of cx-asset-link-format, same values as the design system's `AssetLinkFormatPart`
+ * (not exported from its public entries).
+ */
+export enum AssetLinkFormatPart {
+  Crop = 'crop',
+  Dimensions = 'dimensions',
+  Metadata = 'metadata',
+  Proxy = 'proxy',
+  Quality = 'quality',
+  Resize = 'resize',
+  Rotate = 'rotate',
+}
 
 /**
  * Import behaviour when the host would rather not show the format picker.

@@ -427,6 +427,31 @@ describe('content-browser', () => {
     expect(getFormatDialog(el).variant).to.equal(ContentBrowserFormatDialogVariant.Dialog);
   });
 
+  it('passes the custom format panel parameters to the format dialog', async () => {
+    const cropModes = [{ label: 'Freeform', value: 'free' }];
+    const focusModes = [{ label: 'Center focus', value: 'center' }];
+    const parts = ['crop', 'proxy'];
+    const { el } = await fixtureWithMock(html`<cx-content-browser></cx-content-browser>`, {
+      parameters: { ...minimalFetchParameters(), cropModes, focusModes, parts },
+    });
+    const dialog = getFormatDialog(el);
+
+    expect(dialog.cropModes).to.equal(cropModes);
+    expect(dialog.focusModes).to.equal(focusModes);
+    expect(dialog.parts).to.equal(parts);
+  });
+
+  it('leaves the custom format panel parameters unset when Cortex sends none', async () => {
+    const { el } = await fixtureWithMock(html`<cx-content-browser></cx-content-browser>`, {
+      parameters: minimalFetchParameters(),
+    });
+    const dialog = getFormatDialog(el);
+
+    expect(dialog.cropModes).to.equal(undefined);
+    expect(dialog.focusModes).to.equal(undefined);
+    expect(dialog.parts).to.equal(undefined);
+  });
+
   it('sets force-overlay on the folder browser when content width is below 650px', async () => {
     const { el } = await fixtureWithMock(html`<cx-content-browser></cx-content-browser>`, {
       parameters: minimalFetchParameters(),
