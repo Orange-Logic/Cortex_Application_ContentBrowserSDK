@@ -47,6 +47,7 @@ import type { CSSResultGroup, TemplateResult } from 'lit';
  * @property {boolean} loading - Indicates if facet/filter options are loading.
  * @property {ChangeOption | undefined} newlyChangedOption - Metadata about the last user-initiated filter change.
  * @property {boolean} isMobile - Whether mobile mode is enabled.
+ * @property {HTMLElement | undefined} boundary - The area the filter panel stays inside.
  *
  * @event cx-content-browser-control-filter-change - Fired when the filters are changed.
  */
@@ -94,6 +95,9 @@ export default class CxContentBrowserControlFilter extends CortexElement {
 
   @property({ attribute: 'is-mobile', reflect: false, type: Boolean })
   isMobile = false;
+
+  @property({ attribute: 'boundary', reflect: false, type: Object })
+  boundary: HTMLElement | undefined;
 
   @state()
   private appliedFiltersCount = 0;
@@ -274,6 +278,9 @@ export default class CxContentBrowserControlFilter extends CortexElement {
         placement="bottom-start"
         distance="4"
         skidding=${this.isMobile ? 40 : 0}
+        .autoSizeBoundary=${this.boundary}
+        .flipBoundary=${this.boundary}
+        .shiftBoundary=${this.boundary}
         @cx-remove=${this.handleRemove}
         @cx-selection-change=${this.handleSelectionChange}
         hoist

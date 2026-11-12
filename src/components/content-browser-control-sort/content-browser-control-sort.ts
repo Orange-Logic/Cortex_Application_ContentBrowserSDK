@@ -41,6 +41,7 @@ type ChangeOption = {
  * @property {boolean} loading - Indicates if sort options are loading.
  * @property {boolean} isMobile - Adjusts dropdown UI for mobile devices.
  * @property {object} newlyChangedOption - Metadata about the last user-initiated sort change.
+ * @property {HTMLElement | undefined} boundary - The area the sort menu stays inside.
  *
  * @event cx-content-browser-control-sort-change - Emitted when the sort field or sort order is changed.
  */
@@ -78,6 +79,9 @@ export default class CxContentBrowserControlSort extends CortexElement {
 
   @property({ attribute: 'newly-changed-option', reflect: false, type: Object })
   newlyChangedOption: ChangeOption | undefined;
+
+  @property({ attribute: 'boundary', reflect: false, type: Object })
+  boundary: HTMLElement | undefined;
 
   @state()
   private mappedSortDirections: Array<ControlOption & { icon: TemplateResult }> = [];
@@ -148,6 +152,9 @@ export default class CxContentBrowserControlSort extends CortexElement {
         placement="bottom-end"
         distance="4"
         skidding=${this.isMobile ? 40 : 0}
+        .autoSizeBoundary=${this.boundary}
+        .flipBoundary=${this.boundary}
+        .shiftBoundary=${this.boundary}
         @cx-select=${this.handleSortSelect}
         hoist
       >
