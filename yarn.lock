@@ -1824,10 +1824,10 @@
     "@types/sinon-chai" "^3.2.3"
     chai-a11y-axe "^1.5.0"
 
-"@orangelogic/design-system@3.56.0":
-  version "3.56.0"
-  resolved "https://registry.yarnpkg.com/@orangelogic/design-system/-/design-system-3.56.0.tgz#45efa5e6c51bf7a6fb1996385a99be765f6c80b7"
-  integrity sha512-C7kgZAhDbWhxPubV3aD0N86HiCgoAioumNQ9O1zJgminOtUcXNIrq1lKLU5MBqLLA7oY2+QfYgTFKDowq9Luvg==
+"@orangelogic/design-system@3.78.0":
+  version "3.78.0"
+  resolved "https://registry.yarnpkg.com/@orangelogic/design-system/-/design-system-3.78.0.tgz#ddb566922407916590cb5daaa05999f6b08e74d3"
+  integrity sha512-DZgx5Fr6/8wIw3z/aOwEwTaizpzrKaJ8WLS/v4qFFHw+qj6u+8EyRPe+9anU/yMAc3K4sQSI4e7rmqtpjrjefQ==
 
 "@pkgjs/parseargs@^0.11.0":
   version "0.11.0"

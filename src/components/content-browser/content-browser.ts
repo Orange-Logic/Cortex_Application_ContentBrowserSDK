@@ -1264,6 +1264,7 @@ export default class CxContentBrowser extends CortexElement {
           ></cx-content-browser-header>
           <cx-content-browser-control-bar
             .availableFacets=${availableFacets}
+            .boundary=${this.content}
             .selectedFacets=${request?.selectedFacets ?? {}}
             .facets=${facets}
             .newlyChangedOption=${this.newlyChangedOption}

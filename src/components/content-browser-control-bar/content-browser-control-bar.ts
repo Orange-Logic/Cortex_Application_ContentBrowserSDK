@@ -38,6 +38,7 @@ import type { CSSResultGroup, TemplateResult } from 'lit';
  * @property {boolean} isSeeThrough - If "see through" mode is enabled.
  * @property {boolean} loading - If the toolbar or its sub-controls are loading.
  * @property {ChangeOption | undefined} newlyChangedOption - Metadata about the last user-initiated change.
+ * @property {HTMLElement | undefined} boundary - The area the filter, view and sort dropdowns stay inside.
  *
  * @event cx-content-browser-control-bar-search-change - Fired when the search text is changed.
  */
@@ -107,6 +108,9 @@ export default class CxContentBrowserControlBar extends CortexElement {
   @property({ attribute: 'can-use-table', reflect: true, type: Boolean })
   canUseTable = false;
 
+  @property({ attribute: 'boundary', reflect: false, type: Object })
+  boundary: HTMLElement | undefined;
+
   private handleSearchChange(event: CxChangeEvent) {
     this.searchText = (event.target as CxInput).value;
 
@@ -141,6 +145,7 @@ export default class CxContentBrowserControlBar extends CortexElement {
           </cx-input>
           <cx-content-browser-control-filter
             .availableFacets=${this.availableFacets}
+            .boundary=${this.boundary}
             .facets=${this.facets}
             .newlyChangedOption=${this.newlyChangedOption}
             .selectedFacets=${this.selectedFacets}
@@ -154,6 +159,7 @@ export default class CxContentBrowserControlBar extends CortexElement {
           </cx-line-clamp>
           <cx-content-browser-control-view
             view=${this.view}
+            .boundary=${this.boundary}
             .views=${this.views}
             ?can-use-table=${this.canUseTable}
             ?is-see-through=${this.isSeeThrough}
@@ -162,6 +168,7 @@ export default class CxContentBrowserControlBar extends CortexElement {
           <cx-content-browser-control-sort
             sort-order-name=${this.sortOrderName}
             sort-direction=${this.sortDirection}
+            .boundary=${this.boundary}
             .newlyChangedOption=${this.newlyChangedOption}
             .sortOrders=${this.sortOrders}
             ?is-mobile=${this.isMobile}
