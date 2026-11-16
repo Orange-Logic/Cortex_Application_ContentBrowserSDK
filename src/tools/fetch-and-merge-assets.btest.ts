@@ -919,6 +919,191 @@ describe('FetchAndMergeAssetsController', () => {
     });
   });
 
+  describe('site changes', () => {
+    let siteSequence = 0;
+
+    const setup = ({ holdSortOrders = false, descendingOnlyOnA = false } = {}) => {
+      siteSequence += 1;
+      const siteA = `https://search-reset-${siteSequence}-a.example`;
+      const siteB = `https://search-reset-${siteSequence}-b.example`;
+      const clock = sinon.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+      const searches: Array<{
+        body: { Start: number; OrderBy: string; Text: string };
+        respond: () => void;
+        site: string;
+      }> = [];
+      const sorts: Array<{ respond: () => void; site: string }> = [];
+
+      http.defaults.adapter = (config) => new Promise((resolve) => {
+        const respond = (data: unknown) => resolve({ config, data, headers: {}, status: 200, statusText: 'OK' });
+        const site = config.baseURL === siteA ? 'A' : 'B';
+
+        if (config.url === MetadataApiEndpoint.GET_SORT_ORDERS) {
+          const sortRequest = {
+            respond: () => respond({ sortOrders: [
+              { id: `${site}-sort`, name: 'title', sortDirection: site === 'A' && descendingOnlyOnA ? 'descending' : 'ascending' },
+              ...(site === 'B' && descendingOnlyOnA ? [{ id: 'B-desc', name: 'title', sortDirection: 'descending' }] : []),
+            ] }),
+            site,
+          };
+          sorts.push(sortRequest);
+          if (!holdSortOrders || site === 'B') {
+            sortRequest.respond();
+          }
+        } else if (config.method === 'post') {
+          const body = JSON.parse(config.data as string);
+          searches.push({
+            body,
+            respond: () => respond({
+              contentItems: Array.from({ length: 40 }, (_, offset) => {
+                const id = `${site}-${body.Start + offset}`;
+                return { fields: { 'CoreField.Identifier': id, 'Document.RecordID': id }, recordID: id };
+              }),
+              facets: [],
+              totalCount: 120,
+              unreadableFields: ['Document.Secret'],
+            }),
+            site,
+          });
+        } else {
+          respond({});
+        }
+      });
+
+      const current = createController({ baseUrl: siteA, titleFallback: 'uniqueIdentifier' });
+      const send = async (start: number) => {
+        await current.fetchAndMergeAssets({ pageSize: 40, searchText: 'query', sortDirection: 'ascending', sortOrderName: 'title', start });
+        await clock.tickAsync(200);
+      };
+      const switchSite = () => current.updateSiteSession(false, siteB, '', '', '');
+      const shownSites = () => [...new Set(current.getData().items.map(({ id }) => String(id).split('-')[0]))];
+
+      return { clock, current, searches, send, shownSites, sorts, switchSite };
+    };
+
+    it('clears the previous list and restarts at page zero after multiple pages', async () => {
+      const { clock, current, searches, send, shownSites, switchSite } = setup();
+      await send(0);
+      searches[0].respond();
+      await clock.tickAsync(0);
+      await send(40);
+      searches[1].respond();
+      await clock.tickAsync(0);
+      expect(current.getData().items).to.have.length(80);
+
+      switchSite();
+
+      expect(current.getData().items).to.deep.equal([]);
+      expect(current.getData().facets).to.deep.equal([]);
+      expect(current.getData().totalCount).to.equal(0);
+      expect(current.getData().unreadableFields).to.deep.equal([]);
+      expect(current.getData().request).to.equal(null);
+      expect(current.getNextPage()).to.equal(null);
+      await clock.tickAsync(200);
+      expect(searches.map(({ body, site }) => `${site}@${body.Start}`)).to.deep.equal(['A@0', 'A@40', 'B@0']);
+      expect(searches[2].body.Text).to.equal('query');
+      searches[2].respond();
+      await clock.tickAsync(0);
+
+      expect(shownSites()).to.deep.equal(['B']);
+      expect(current.getNextPage()).to.deep.equal({ lastPageSize: 40, start: 40 });
+    });
+
+    for (const oldResponseFirst of [true, false]) {
+      it(`discards a previous site's pending page when it arrives ${oldResponseFirst ? 'first' : 'last'}`, async () => {
+        const { clock, current, searches, send, shownSites, switchSite } = setup();
+        await send(0);
+        searches[0].respond();
+        await clock.tickAsync(0);
+        await send(40);
+        switchSite();
+        await clock.tickAsync(200);
+
+        expect(searches).to.have.length(3);
+        expect(searches[2].body.Start).to.equal(0);
+        searches[oldResponseFirst ? 1 : 2].respond();
+        await clock.tickAsync(0);
+        expect(current.getData().loading).to.equal(oldResponseFirst);
+        expect(shownSites()).to.deep.equal(oldResponseFirst ? [] : ['B']);
+        searches[oldResponseFirst ? 2 : 1].respond();
+        await clock.tickAsync(0);
+
+        expect(shownSites()).to.deep.equal(['B']);
+        expect(current.getData().items).to.have.length(40);
+        expect(current.getNextPage()).to.deep.equal({ lastPageSize: 40, start: 40 });
+      });
+    }
+
+    it('restarts the first search when the site changes inside the debounce', async () => {
+      const { clock, current, searches, switchSite } = setup();
+      await current.fetchAndMergeAssets({ pageSize: 40, searchText: 'queued', start: 0 });
+      switchSite();
+      await clock.tickAsync(200);
+
+      expect(searches).to.have.length(1);
+      expect(searches[0].site).to.equal('B');
+      expect(searches[0].body.Start).to.equal(0);
+      expect(searches[0].body.Text).to.equal('queued');
+      searches[0].respond();
+      await clock.tickAsync(0);
+      expect(current.getData().loading).to.equal(false);
+    });
+
+    it('reloads the same sort name with the new site ID', async () => {
+      const { clock, current, searches, send, sorts, switchSite } = setup();
+      await send(0);
+      searches[0].respond();
+      await clock.tickAsync(0);
+      expect(searches[0].body.OrderBy).to.equal('A-sort');
+      switchSite();
+      await clock.tickAsync(200);
+
+      expect(sorts.map(({ site }) => site)).to.deep.equal(['A', 'B']);
+      expect(searches[1].body.OrderBy).to.equal('B-sort');
+      searches[1].respond();
+      await clock.tickAsync(0);
+      expect(current.getData().sortOrders.title[0].id).to.equal('B-sort');
+    });
+
+    it('keeps the resolved sort direction after the site changes', async () => {
+      const { clock, current, searches, send, switchSite } = setup({ descendingOnlyOnA: true });
+      await send(0);
+      searches[0].respond();
+      await clock.tickAsync(0);
+      expect(current.getData().request?.sortDirection).to.equal('descending');
+      switchSite();
+      await clock.tickAsync(200);
+
+      expect(searches[1].body.OrderBy).to.equal('B-desc');
+      searches[1].respond();
+      await clock.tickAsync(0);
+      expect(current.getData().request?.sortDirection).to.equal('descending');
+    });
+
+    it('discards an old sort response after the new site answers', async () => {
+      const { clock, current, searches, send, sorts, switchSite } = setup({ holdSortOrders: true });
+      await send(0);
+      expect(sorts).to.have.length(1);
+      expect(searches).to.have.length(0);
+      switchSite();
+      await clock.tickAsync(200);
+
+      expect(sorts.map(({ site }) => site)).to.deep.equal(['A', 'B']);
+      expect(searches).to.have.length(1);
+      expect(searches[0].body.OrderBy).to.equal('B-sort');
+      searches[0].respond();
+      await clock.tickAsync(0);
+      sorts[0].respond();
+      await clock.tickAsync(0);
+      expect(current.getData().sortOrders.title[0].id).to.equal('B-sort');
+      expect(searches).to.have.length(1);
+      await send(40);
+      expect(searches[1].body.OrderBy).to.equal('B-sort');
+      searches[1].respond();
+      await clock.tickAsync(0);
+    });
+  });
+
   describe('responses that arrive out of order (L-42BVFI)', () => {
     type Held = {
       body: { Limit?: number; Start?: number; Text?: string };

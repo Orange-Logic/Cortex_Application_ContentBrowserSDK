@@ -106,6 +106,9 @@ export class FetchAndMergeAssetsController implements ReactiveController {
 
   private lastRequest: GetAssetsRequest | null = null;
 
+  /** The latest accepted search, including the debounce and metadata wait. */
+  private latestRequest: GetAssetsRequest | null = null;
+
   /** The resolved request of the last search that got an error. A retry sends it again. */
   private failedRequest: GetAssetsRequest | null = null;
 
@@ -380,14 +383,33 @@ export class FetchAndMergeAssetsController implements ReactiveController {
       this.resolvePendingTokenRefresh = null;
     }
 
-    this.isLoggedIn = true;
+    const request = this.latestRequest;
+
+    // A site change starts a new list before any response from the previous site can arrive.
+    this.#generation += 1;
+    if (this._debounceTimeout) {
+      clearTimeout(this._debounceTimeout);
+      this._debounceTimeout = undefined;
+    }
+    this.#queued = false;
+    this.#lastPage = null;
     this.#hasFetchedOnce = false;
+    this.items = [];
+    this.facets = [];
+    this.totalCount = 0;
+    this.unreadableFields = [];
+    this.failedRequest = null;
+    this.lastRequest = null;
+    this.latestRequest = null;
+    this.sortOrders = {};
+    this.loading = false;
+    this.isLoggedIn = true;
     this.resetParameters();
 
     this.fetchInitialData();
 
-    if (this.lastRequest) {
-      this.fetchAndMergeAssets(this.lastRequest);
+    if (request) {
+      this.fetchAndMergeAssets({ ...request, start: 0 });
     }
 
     this.host.requestUpdate();
@@ -610,6 +632,7 @@ export class FetchAndMergeAssetsController implements ReactiveController {
     }
 
     const generation = this.#generation;
+    this.latestRequest = request;
 
     /**
      * Always run these lines immediately
@@ -642,6 +665,9 @@ export class FetchAndMergeAssetsController implements ReactiveController {
       try {
         if (Object.keys(this.sortOrders).length === 0) {
           const sortOrders = await apiGetSortOrders();
+          if (generation !== this.#generation) {
+            return;
+          }
           this.sortOrders = sortOrders;
         }
 
@@ -684,6 +710,7 @@ export class FetchAndMergeAssetsController implements ReactiveController {
         };
 
         this.lastRequest = request;
+        this.latestRequest = request;
 
         const assets = await apiGetAssets({
           ...request,
