@@ -9,4 +9,8 @@ export default css`
   .content-browser-asset-tracking-parameters__row {
     width: 100%;
   }
+
+  .content-browser-asset-tracking-parameters__add-button {
+    --font-weight: var(--cx-font-weight-regular);
+  }
 `;

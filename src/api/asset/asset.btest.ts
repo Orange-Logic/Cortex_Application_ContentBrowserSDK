@@ -270,6 +270,45 @@ describe('asset caption', () => {
       expect(response.totalCount).to.equal(0);
     });
 
+    // L-29UGSA: Cortex leaves ContentItems unset when nothing matches, and its JSON keeps the null.
+    // This is the body dam.qa0 sent for a folder with no match for the Types filter.
+    it('reports the Cortex body for a page with no hits (contentItems null) as a search with no hits, not an error', async () => {
+      const emptyFacet = (facetFieldName: string, displayName: string) => ({
+        facetDetails: { displayName, facetFieldName },
+        values: [],
+      });
+
+      http.defaults.adapter = async (config) => ({
+        config,
+        data: {
+          contentItems: null,
+          facets: [
+            emptyFacet('Types', 'Types'),
+            emptyFacet('CoreField.WorkflowStatus', 'Status'),
+            emptyFacet('CoreField.Purpose', 'Visibility Class'),
+            emptyFacet('CustomFacetOther.FileExtension', 'File Extension'),
+          ],
+          totalCount: 0,
+          unreadableFields: [],
+        },
+        headers: {},
+        status: 200,
+        statusText: 'OK',
+      });
+
+      const response = await apiGetAssets({} as Parameters<typeof apiGetAssets>[0]);
+
+      expect(response.isError).to.equal(false);
+      expect(response.items).to.deep.equal([]);
+      expect(response.totalCount).to.equal(0);
+      expect(response.facets.map((facet) => facet.facetDetails.facetFieldName)).to.deep.equal([
+        'Types',
+        'CoreField.WorkflowStatus',
+        'CoreField.Purpose',
+        'CustomFacetOther.FileExtension',
+      ]);
+    });
+
     describe('unreadable fields (L-42BJ3T)', () => {
       const stubResponse = (members: Record<string, unknown>) => {
         http.defaults.adapter = async (config) => ({

@@ -153,7 +153,11 @@ export default class CxContentBrowserAssetTrackingParameters extends CortexEleme
         align-items="flex-start"
       >
         ${rows}
-        <cx-button variant="neutral" @click=${this.addParameter}>
+        <cx-button
+          class="content-browser-asset-tracking-parameters__add-button"
+          variant="neutral"
+          @click=${this.addParameter}
+        >
           <cx-icon slot="prefix" name="add"></cx-icon>
           ${this.localize.term('addParameter')}
         </cx-button>

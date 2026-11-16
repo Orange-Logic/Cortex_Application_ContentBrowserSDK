@@ -215,7 +215,7 @@ describe('content-browser-format-dialog', () => {
     expect(preview!.getAttribute('image-url')).to.equal(asset.imageUrl);
   });
 
-  it('shows cropper for image assets after open()', async () => {
+  it('shows a stable image preview without a cropper after open()', async () => {
     const asset = makeAsset({
       docType: MediaType.Image,
       extension: '.jpg',
@@ -223,8 +223,8 @@ describe('content-browser-format-dialog', () => {
     });
     el.open({ asset, isFavorite: false, proxies: [] });
     await elementUpdated(el);
-    expect(el.shadowRoot!.querySelector('#cropper')).to.exist;
-    expect(el.shadowRoot!.querySelector('cx-content-browser-asset-preview')).to.be.null;
+    expect(el.shadowRoot!.querySelector('#cropper') === null).to.be.true;
+    expect(el.shadowRoot!.querySelector('cx-content-browser-asset-preview')).to.exist;
   });
 
   it('clears preview content after hide()', async () => {
@@ -2022,7 +2022,7 @@ describe('content-browser-format-dialog', () => {
       });
     });
   });
-  it('renders cx-asset-link-format for an image asset by default', async () => {
+  it('does not start the format editor for an image preview', async () => {
     const asset = makeAsset({
       docType: MediaType.Image,
       extension: '.jpg',
@@ -2032,7 +2032,7 @@ describe('content-browser-format-dialog', () => {
     el.open({ asset, isFavorite: false, proxies: [] });
     await elementUpdated(el);
 
-    expect(el.shadowRoot!.querySelector('cx-asset-link-format')).to.exist;
+    expect(el.shadowRoot!.querySelector('cx-asset-link-format') === null).to.be.true;
   });
 
   it('does not render cx-asset-link-format in simple-pick mode', async () => {
@@ -2071,6 +2071,76 @@ describe('content-browser-format-dialog', () => {
     const preview = el.shadowRoot!.querySelector('cx-content-browser-asset-preview');
     expect(preview).to.exist;
     expect(preview!.getAttribute('image-url')).to.equal(asset.imageUrl);
+  });
+
+  describe('image preview lifecycle', () => {
+    const imageAsset = () => makeAsset({
+      docType: MediaType.Image,
+      extension: '.jpg',
+      height: '240',
+      width: '320',
+      imageUrl: 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="320" height="240"><rect width="320" height="240" fill="orange"/></svg>'),
+    });
+
+    beforeEach(async () => {
+      el.canUseProxies = true;
+      el.canCustomFormat = true;
+      el.open({ asset: imageAsset(), isFavorite: false, proxies: [makeProxy({ extension: '.jpg' })] });
+      await elementUpdated(el);
+    });
+
+    it('keeps the same preview node when a proxy or tracking selection changes', async () => {
+      const preview = el.shadowRoot!.querySelector('cx-content-browser-asset-preview');
+      expect(preview).to.exist;
+      dispatchProxySelect(el, 'tracking');
+      await elementUpdated(el);
+      dispatchProxySelect(el, 'proxy-1');
+      await elementUpdated(el);
+      expect(el.shadowRoot!.querySelector('cx-content-browser-asset-preview')).to.equal(preview);
+      expect(el.shadowRoot!.querySelector('cx-asset-link-format') === null).to.be.true;
+    });
+
+    it('mounts the cropper and editor together only for Custom Format', async () => {
+      expect(el.shadowRoot!.querySelector('#cropper') === null).to.be.true;
+      dispatchProxySelect(el, CUSTOM_FORMAT_VALUE);
+      await elementUpdated(el);
+      expect(el.shadowRoot!.querySelector('#cropper')).to.exist;
+      expect(el.shadowRoot!.querySelector('cx-asset-link-format')).to.exist;
+      expect(el.shadowRoot!.querySelector('cx-content-browser-asset-preview') === null).to.be.true;
+    });
+
+    it('returns to the original preview after an unconfirmed custom format is canceled', async () => {
+      dispatchProxySelect(el, CUSTOM_FORMAT_VALUE);
+      await elementUpdated(el);
+      const buttons = el.shadowRoot!.querySelectorAll('.content-browser-format__footer cx-button');
+      (buttons[0] as HTMLElement).click();
+      await elementUpdated(el);
+      expect(el.selectedProxy).to.equal('proxy-1');
+      expect(el.shadowRoot!.querySelector('#cropper') === null).to.be.true;
+      expect(el.shadowRoot!.querySelector('cx-asset-link-format') === null).to.be.true;
+      expect(el.shadowRoot!.querySelector('cx-content-browser-asset-preview')).to.exist;
+    });
+
+    it('preserves the custom preview on Done and removes it after a normal proxy selection', async () => {
+      dispatchProxySelect(el, CUSTOM_FORMAT_VALUE);
+      await elementUpdated(el);
+      const cropper = el.shadowRoot!.querySelector('#cropper');
+      const editor = el.shadowRoot!.querySelector('cx-asset-link-format');
+      setAssetLinkFormatStub(el, { selectedFormat: { extension: '.jpg', height: 120, width: 160 } });
+      const buttons = el.shadowRoot!.querySelectorAll('.content-browser-format__footer cx-button');
+      (buttons[1] as HTMLElement).click();
+      await elementUpdated(el);
+      expect(el.showCustomFormat).to.be.false;
+      expect(el.selectedProxy).to.equal(CUSTOM_FORMAT_VALUE);
+      expect(el.shadowRoot!.querySelector('#cropper')).to.equal(cropper);
+      expect(el.shadowRoot!.querySelector('cx-asset-link-format')).to.equal(editor);
+      expect(el.confirmedFormat?.width).to.equal(160);
+      dispatchProxySelect(el, 'proxy-1');
+      await elementUpdated(el);
+      expect(el.shadowRoot!.querySelector('#cropper') === null).to.be.true;
+      expect(el.shadowRoot!.querySelector('cx-asset-link-format') === null).to.be.true;
+      expect(el.shadowRoot!.querySelector('cx-content-browser-asset-preview')).to.exist;
+    });
   });
 
 });

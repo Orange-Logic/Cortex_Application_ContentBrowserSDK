@@ -34,6 +34,7 @@ import styles from './content-browser-control-view.styles';
  * @property {Array<ControlOption>} views - Array of selectable view options.
  * @property {boolean} isSeeThrough - Whether the "see through" mode is enabled.
  * @property {boolean} isMobile - Adjusts layout for mobile devices.
+ * @property {HTMLElement | undefined} boundary - The area the view menu and its grid submenu stay inside.
  *
  * @event cx-content-browser-control-view-change - Emitted when the view mode or see-through mode is changed.
  */
@@ -71,6 +72,9 @@ export default class CxContentBrowserControlView extends CortexElement {
 
   @property({ attribute: 'can-use-table', reflect: true, type: Boolean })
   canUseTable = false;
+
+  @property({ attribute: 'boundary', reflect: false, type: Object })
+  boundary: HTMLElement | undefined;
 
   @state()
   private selectedView: ControlOption | undefined;
@@ -132,6 +136,9 @@ export default class CxContentBrowserControlView extends CortexElement {
         placement="bottom-end"
         distance="4"
         skidding=${this.isMobile ? 40 : 0}
+        .autoSizeBoundary=${this.boundary}
+        .flipBoundary=${this.boundary}
+        .shiftBoundary=${this.boundary}
         @cx-select=${this.handleViewSelect}
         hoist
       >
@@ -192,7 +199,12 @@ export default class CxContentBrowserControlView extends CortexElement {
           () => html`
             <cx-menu key="default-menu" no-uncheck>
               <cx-menu-label>${this.localize.term('view')}</cx-menu-label>
-              <cx-menu-item type="checkbox" ?checked=${!this.isTable}>
+              <cx-menu-item
+                type="checkbox"
+                ?checked=${!this.isTable}
+                .flipBoundary=${this.boundary}
+                .shiftBoundary=${this.boundary}
+              >
                 ${this.localize.term('grid')}
                 ${when(this.selectedView,
                   () => html` (${this.selectedView?.label})`,

@@ -170,7 +170,8 @@ function isSearchResponse(response: unknown): response is GetAssetsRawResponse {
   return Array.isArray(facets)
     && facets.every(isSearchFacet)
     && Number.isFinite(totalCount)
-    && (contentItems === undefined || Array.isArray(contentItems));
+    // Cortex sends `contentItems: null` for a page with no hits (L-29UGSA). That page is a search result.
+    && (contentItems === undefined || contentItems === null || Array.isArray(contentItems));
 }
 
 // What a backend without the POST overload answers. 403/404 are excluded: they carry business errors

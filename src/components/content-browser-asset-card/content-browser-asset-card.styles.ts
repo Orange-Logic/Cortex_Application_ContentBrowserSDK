@@ -84,10 +84,21 @@ export default css`
   }
 
   .content-browser-asset-card__checkbox {
+    --selection-checkbox-inset: 10px;
+    --selection-checkbox-size: 28px;
+
     position: absolute;
-    top: 2px;
-    right: 2px;
+    top: var(--selection-checkbox-inset);
+    right: var(--selection-checkbox-inset);
     z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--selection-checkbox-size);
+    height: var(--selection-checkbox-size);
+    background-color: var(--cx-color-neutral-0);
+    border-top-right-radius: var(--cx-border-radius-small);
+    border-bottom-left-radius: var(--cx-border-radius-small);
   }
 
   .content-browser-asset-card--disabled {

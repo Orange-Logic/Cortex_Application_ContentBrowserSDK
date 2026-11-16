@@ -1,4 +1,4 @@
-import { expect, waitUntil } from '@open-wc/testing';
+import { aTimeout, expect, waitUntil } from '@open-wc/testing';
 
 import http from '@/api/api';
 import { AuthApiEndpoint, MetadataApiEndpoint } from '@/api/endpoints';
@@ -823,6 +823,49 @@ describe('FetchAndMergeAssetsController', () => {
       expect(current.getData().searchError).to.equal(false);
     });
 
+    // L-29UGSA: a folder switch with a Types filter that no asset of the new folder matches.
+    // Cortex answers with `contentItems: null`, and the main facet counts the folder without its own filter.
+    it('shows no results with the facets of the new folder when it has no match for the applied filter', async () => {
+      const clock = sinon.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+      const libraryTypes: Facet = {
+        facetDetails: { displayName: 'Types', facetFieldName: 'Types' },
+        values: [{ count: 127373, displayValue: 'Audio', value: 'audio' }],
+      };
+      const favoriteTypes: Facet = {
+        facetDetails: { displayName: 'Types', facetFieldName: 'Types' },
+        values: [
+          { count: 5, displayValue: 'Videos', value: 'videos' },
+          { count: 4, displayValue: 'Images', value: 'images' },
+        ],
+      };
+      const replies = [
+        { contentItems: [{ fields: { 'Document.RecordID': 'a1' }, recordID: 'a1' }], facets: [libraryTypes], totalCount: 127373 },
+        { contentItems: null, facets: [favoriteTypes], totalCount: 0, unreadableFields: [] },
+      ];
+      let call = 0;
+      http.defaults.adapter = async (config) => ({
+        config,
+        data: replies[call++],
+        headers: {},
+        status: 200,
+        statusText: 'OK',
+      });
+      const current = createSearchController();
+      const selectedFacets = { Types: ['audio'] };
+
+      await current.fetchAndMergeAssets({ folderId: 'library', pageSize: 2, selectedFacets, start: 0 });
+      await clock.tickAsync(200);
+      await current.fetchAndMergeAssets({ folderId: 'favorites', pageSize: 2, selectedFacets, start: 0 });
+      await clock.tickAsync(200);
+
+      const data = current.getData();
+      expect(data.searchError).to.equal(false);
+      expect(recordIdsOf(current)).to.deep.equal([]);
+      expect(data.totalCount).to.equal(0);
+      expect(data.facets.map((facet) => facet.values.map((value) => `${value.value}:${value.count}`)))
+        .to.deep.equal([['videos:5', 'images:4', 'audio:0']]);
+    });
+
     it('sends the request with the error again on a retry, and adds its rows', async () => {
       const clock = sinon.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
       const bodies = scriptSearches([
@@ -1312,6 +1355,124 @@ describe('FetchAndMergeAssetsController', () => {
       await settle();
 
       expect(current.getNextPage()).to.deep.equal({ lastPageSize: 40, start: 40 });
+    });
+  });
+
+  // L-42DAEP: the format dialog offers "Custom format" only once the available extensions are known, and
+  // the content browser renders with the same getData options until the user changes something.
+  describe('available extensions that load late (L-42DAEP)', () => {
+    const options = { allowedExtensions: ['jpg'], availableRepresentativeSubtypes: [] };
+
+    // Every request gets an empty body, except the extensions request, which waits for `release`.
+    const holdExtensions = () => {
+      let release = () => {};
+      const released = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+
+      http.defaults.adapter = async (config) => {
+        const isExtensionsRequest = config.url?.includes('getavailableextensions') ?? false;
+
+        if (isExtensionsRequest) {
+          await released;
+        }
+
+        return {
+          config,
+          data: isExtensionsRequest
+            ? {
+              extensions: {
+                Image: [
+                  { display: 'JPG', value: '.jpg' },
+                  { display: 'PNG', value: '.png' },
+                ],
+              },
+            }
+            : {},
+          headers: {},
+          status: 200,
+          statusText: 'OK',
+        };
+      };
+
+      return () => release();
+    };
+
+    beforeEach(async () => {
+      // http caches GETs by URL, so an answer cached by another case would never be held.
+      await http.storage.clear?.();
+    });
+
+    it('shows the extensions that land after the first render', async () => {
+      const release = holdExtensions();
+      const current = createController();
+
+      current.hostConnected();
+
+      expect(current.getData(options).availableExtensions).to.equal(null);
+
+      release();
+
+      await waitUntil(
+        () => current.getData(options).availableExtensions !== null,
+        'getData kept the extensions it had before they loaded',
+      );
+
+      expect(current.getData(options).availableExtensions).to.deep.equal({
+        Image: [{ display: 'JPG', value: '.jpg' }],
+      });
+    });
+
+    it('keeps the same extensions object while nothing changes', async () => {
+      holdExtensions()();
+      const current = createController();
+
+      current.hostConnected();
+
+      await waitUntil(() => current.getData(options).availableExtensions !== null);
+
+      expect(current.getData({ ...options }).availableExtensions).to.equal(current.getData(options).availableExtensions);
+    });
+
+    // Switching the site-session mode refetches while the previous mode's request can still be pending
+    // (e.g. waiting on a token refresh that the switch then cancels, whose failure yields `{}`).
+    it('keeps the newer extensions when an older request lands last', async () => {
+      const held: Array<(extensions: unknown) => void> = [];
+
+      http.defaults.adapter = async (config) => {
+        const isExtensionsRequest = config.url?.includes('getavailableextensions') ?? false;
+        const extensions = isExtensionsRequest
+          ? await new Promise((resolve) => {
+            held.push(resolve);
+          })
+          : undefined;
+
+        return {
+          config,
+          data: isExtensionsRequest ? { extensions } : {},
+          headers: {},
+          status: 200,
+          statusText: 'OK',
+        };
+      };
+
+      const current = createController({ baseUrl: 'https://old.example.com' });
+
+      current.hostConnected();
+      await waitUntil(() => held.length === 1, 'the first extensions request was never sent');
+
+      current.updateSiteSession(true, '', '', '', '');
+      await waitUntil(() => held.length === 2, 'switching the mode did not refetch the extensions');
+
+      held[1]({ Image: [{ display: 'JPG', value: '.jpg' }] });
+      await waitUntil(() => current.getData(options).availableExtensions !== null);
+
+      held[0]({});
+      await aTimeout(50);
+
+      expect(current.getData(options).availableExtensions).to.deep.equal({
+        Image: [{ display: 'JPG', value: '.jpg' }],
+      });
     });
   });
 });
