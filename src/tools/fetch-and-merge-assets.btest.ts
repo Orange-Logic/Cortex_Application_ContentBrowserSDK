@@ -845,7 +845,9 @@ describe('FetchAndMergeAssetsController', () => {
       let call = 0;
       http.defaults.adapter = async (config) => ({
         config,
-        data: replies[call++],
+        data: config.url === MetadataApiEndpoint.GET_CONTENT_BROWSER_PARAMETERS
+          ? { TitleFallback: 'uniqueIdentifier' }
+          : replies[call++],
         headers: {},
         status: 200,
         statusText: 'OK',
@@ -859,6 +861,7 @@ describe('FetchAndMergeAssetsController', () => {
       await clock.tickAsync(200);
 
       const data = current.getData();
+      expect(call).to.equal(2);
       expect(data.searchError).to.equal(false);
       expect(recordIdsOf(current)).to.deep.equal([]);
       expect(data.totalCount).to.equal(0);
