@@ -70,6 +70,7 @@ export async function apiGetAvailableFacets() {
 export async function apiGetContentBrowserParameters() {
   try {
     const response = await http.request<GetContentBrowserParametersResponse>({
+      cache: false,
       method: 'GET',
       transformResponse: [
         ...(Array.isArray(http.defaults.transformResponse)

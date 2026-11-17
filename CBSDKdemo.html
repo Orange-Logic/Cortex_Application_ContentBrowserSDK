@@ -431,6 +431,23 @@ customStorage: {
             </p>
           </li>
           <li>
+            <b>titleFallback</b> (optional override of the site default)
+            <p>
+              What the asset caption shows when the asset has no title. The title always shows when it is set.
+              If omitted, the SDK uses the site default, or <code>'uniqueIdentifier'</code> when the site has no default.
+            </p>
+            <ul>
+              <li><code>'uniqueIdentifier'</code> - the unique identifier of the asset.</li>
+              <li><code>'originalFileName'</code> - the original file name of the asset.</li>
+            </ul>
+            <p>
+              <small>
+                Note: a file name can hold private information. Set <code>'originalFileName'</code> only when every
+                user of the host can see the file names. Any other value gives <code>'uniqueIdentifier'</code>.
+              </small>
+            </p>
+          </li>
+          <li>
             <b>autoSelectFormat</b> (default false)
             <p>
               Import behaviour when picking an asset, for a host that would rather not show the format picker.
@@ -449,6 +466,27 @@ customStorage: {
                 rather than breaks. Skipping the dialog also skips everything else it offers for that asset - the
                 preview, the ATS custom format and the tracking-parameter panel - so assets are inserted with
                 tracking off, which is the dialog's own default.
+              </small>
+            </p>
+          </li>
+          <li>
+            <b>skipLinkGeneration</b> (default false)
+            <p>
+              Select an asset without an asset link, for a host that needs the asset fields, not a URL.
+            </p>
+            <ul>
+              <li><code>false</code> - Confirm creates an asset link as usual.</li>
+              <li>
+                <code>true</code> - Confirm requests GetAssetLink with <code>GenerateAssetUrl=false</code>. Cortex
+                returns the metadata and the <code>extraFields</code>, and creates no asset link.
+              </li>
+            </ul>
+            <p>
+              <small>
+                Note: use it when the host does not need a link. Cortex can refuse a link to a user who can read the
+                asset, for example a CDN permanent link without the <code>GetBulkPermanentLinks</code> security
+                function. The selection then fails. With this option, <code>imageUrl</code> is the grid preview URL.
+                Unlike <code>simplePick</code>, it accepts any <code>extraFields</code>.
               </small>
             </p>
           </li>
@@ -593,9 +631,12 @@ customStorage: {
           { title: 'Description', field: 'Document.CaptionLong' },
         ],
         tableRowActionPosition: 'host-edge', // 'host-edge' (default) or 'row-end'
+        // titleFallback: 'uniqueIdentifier', // Optional override: 'uniqueIdentifier' or 'originalFileName'
         defaultGridView: 'table', // 'small', 'medium', 'large', 'table' (default: 'medium')
         // insert with the first available format instead of opening the format dialog
         autoSelectFormat: true,
+        // true: select without an asset link, imageUrl is the preview URL
+        skipLinkGeneration: false,
         // default base url to pre-filled
         baseUrl: 'https://qa-latest.orangelogic.com',
         displayInfo: {

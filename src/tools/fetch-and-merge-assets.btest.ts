@@ -1,7 +1,7 @@
-import { expect, waitUntil } from '@open-wc/testing';
+import { aTimeout, expect, waitUntil } from '@open-wc/testing';
 
 import http from '@/api/api';
-import { AuthApiEndpoint } from '@/api/endpoints';
+import { AuthApiEndpoint, MetadataApiEndpoint } from '@/api/endpoints';
 import type CortexElement from '@/base/element';
 import type { GetAssetsRequest } from '@/types/asset';
 import type { Facet } from '@/types/content-browser';
@@ -67,6 +67,282 @@ describe('FetchAndMergeAssetsController', () => {
     return controller;
   };
 
+  describe('site title fallback', () => {
+    let siteSequence = 0;
+
+    const configureSite = (siteFallback: unknown, options: Partial<ConstructorParameters<typeof FetchAndMergeAssetsController>[1]> = {}) => {
+      siteSequence += 1;
+      const requests: InternalAxiosRequestConfig[] = [];
+      http.defaults.adapter = async (config) => {
+        requests.push(config);
+        return {
+          config,
+          data: config.url?.includes('getparameters_412Z_v1')
+            ? { EnableATSInGetLink: 'false', TitleFallback: siteFallback }
+            : { contentItems: [{ recordID: `fallback-${siteSequence}`, fields: {
+              'CoreField.Identifier': 'UID-1', 'CoreField.OriginalFileName': 'photo.jpg', 'Document.Title': '',
+            } }], facets: [], totalCount: 1 },
+          headers: {}, status: 200, statusText: 'OK',
+        };
+      };
+      return { current: createController({ baseUrl: `https://fallback-${siteSequence}.example`, ...options }), requests };
+    };
+
+    for (const [siteFallback, explicit, expected] of [
+      ['originalFileName', undefined, 'photo.jpg'],
+      ['originalFileName', 'uniqueIdentifier', 'UID-1'],
+      ['uniqueIdentifier', 'originalFileName', 'photo.jpg'],
+      ['originalFileName', 'invalid', 'UID-1'],
+      ['originalFileName', null, 'UID-1'],
+      [undefined, undefined, 'UID-1'],
+      ['invalid', undefined, 'UID-1'],
+    ] as const) {
+      it(`resolves site ${siteFallback} and explicit ${explicit} to ${expected}`, async () => {
+        const { current, requests } = configureSite(siteFallback, {
+          titleFallback: explicit as ConstructorParameters<typeof FetchAndMergeAssetsController>[1]['titleFallback'],
+        });
+        const result = await current.fetchAssets({});
+        expect(result.items[0].name).to.equal(expected);
+        const assetRequest = requests.find((request) => request.method === 'post')!;
+        expect(JSON.parse(assetRequest.data).Fields.includes('CoreField.OriginalFileName')).to.equal(expected === 'photo.jpg');
+      });
+    }
+
+    it('uses the site fallback in the first list and the format dialog', async () => {
+      const { current } = configureSite('originalFileName');
+      await current.fetchAndMergeAssets({ start: 0 });
+      await waitUntil(() => current.getData().items.length > 0);
+      expect(current.getData().items[0].name).to.equal('photo.jpg');
+      const result = await current.fetchAssetByID('site-default-dialog', { simplePick: true });
+      expect(result?.asset.name).to.equal('photo.jpg');
+    });
+
+    it('keeps the title ahead of the site filename default', async () => {
+      const { current } = configureSite('originalFileName');
+      const adapter = http.defaults.adapter as (config: InternalAxiosRequestConfig) => Promise<{
+        data: { contentItems?: Array<{ fields: Record<string, string> }> };
+      }>;
+      http.defaults.adapter = async (config) => {
+        const response = await adapter(config);
+        const item = response.data.contentItems?.[0];
+        if (item) {
+          item.fields['Document.Title'] = 'Asset title';
+        }
+        return response as never;
+      };
+      expect((await current.fetchAssets({})).items[0].name).to.equal('Asset title');
+      expect((await current.fetchAssetByID('site-title-dialog', { simplePick: true }))?.asset.name).to.equal('Asset title');
+    });
+
+    it('waits for one shared parameter request before asset requests', async () => {
+      const { current, requests } = configureSite('originalFileName');
+      const adapter = http.defaults.adapter as (config: InternalAxiosRequestConfig) => Promise<unknown>;
+      let release!: () => void;
+      const pending = new Promise<void>((resolve) => { release = resolve; });
+      http.defaults.adapter = async (config) => {
+        if (config.url === MetadataApiEndpoint.GET_CONTENT_BROWSER_PARAMETERS) {
+          await pending;
+        }
+        return await adapter(config) as never;
+      };
+      const assets = current.fetchAssets({});
+      const dialog = current.fetchAssetByID('shared-default-dialog', { simplePick: true });
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      try {
+        expect(requests).to.have.length(0);
+      } finally {
+        release();
+      }
+      expect((await assets).items[0].name).to.equal('photo.jpg');
+      expect((await dialog)?.asset.name).to.equal('photo.jpg');
+      expect(requests.filter((request) => request.url === MetadataApiEndpoint.GET_CONTENT_BROWSER_PARAMETERS)).to.have.length(1);
+    });
+
+    it('discards an old parameter response after a site-session change', async () => {
+      const { current } = configureSite('uniqueIdentifier');
+      const adapter = http.defaults.adapter as (config: InternalAxiosRequestConfig) => Promise<unknown>;
+      let release!: () => void;
+      const pending = new Promise<void>((resolve) => { release = resolve; });
+      let oldRequestStarted = false;
+      http.defaults.adapter = async (config) => {
+        if (config.url === MetadataApiEndpoint.GET_CONTENT_BROWSER_PARAMETERS && !oldRequestStarted) {
+          oldRequestStarted = true;
+          await pending;
+          return { config, data: { EnableATSInGetLink: 'false', TitleFallback: 'originalFileName' }, headers: {}, status: 200, statusText: 'OK' };
+        }
+        return await adapter(config) as never;
+      };
+      current.hostConnected();
+      await waitUntil(() => oldRequestStarted);
+      const waitingAssets = current.fetchAssets({});
+      try {
+        current.updateSiteSession(true, `${window.location.origin}/new-fallback`, '', '', '');
+        const first = await current.fetchAssets({});
+        expect(first.items[0].name).to.equal('UID-1');
+      } finally {
+        release();
+      }
+      expect((await waitingAssets).items[0].name).to.equal('UID-1');
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      expect((await current.fetchAssets({})).items[0].name).to.equal('UID-1');
+    });
+
+    it('completes the list with the identifier when the parameter API fails', async () => {
+      const { current } = configureSite('originalFileName');
+      const adapter = http.defaults.adapter as (config: InternalAxiosRequestConfig) => Promise<unknown>;
+      http.defaults.adapter = async (config) => {
+        if (config.url === MetadataApiEndpoint.GET_CONTENT_BROWSER_PARAMETERS) {
+          throw new Error('offline');
+        }
+        return await adapter(config) as never;
+      };
+      await current.fetchAndMergeAssets({ start: 0 });
+      await waitUntil(() => current.getData().items.length > 0);
+      expect(current.getData().items[0].name).to.equal('UID-1');
+      expect(current.getData().loading).to.equal(false);
+    });
+
+    it('uses the new credential default after the sort-order wait', async () => {
+      const { current, requests } = configureSite('originalFileName');
+      expect((await current.fetchAssets({})).items[0].name).to.equal('photo.jpg');
+      const adapter = http.defaults.adapter as (config: InternalAxiosRequestConfig) => Promise<unknown>;
+      let release!: () => void;
+      let sortRequestStarted = false;
+      const pending = new Promise<void>((resolve) => { release = resolve; });
+      await http.storage.clear?.();
+      http.defaults.adapter = async (config) => {
+        if (config.url === MetadataApiEndpoint.GET_SORT_ORDERS) {
+          sortRequestStarted = true;
+          await pending;
+          return { config, data: { sortOrders: [] }, headers: {}, status: 200, statusText: 'OK' };
+        }
+        if (config.url === MetadataApiEndpoint.GET_CONTENT_BROWSER_PARAMETERS) {
+          return { config, data: { TitleFallback: 'uniqueIdentifier' }, headers: {}, status: 200, statusText: 'OK' };
+        }
+        return await adapter(config) as never;
+      };
+      await current.fetchAndMergeAssets({ start: 0 });
+      try {
+        await waitUntil(() => sortRequestStarted);
+        current.updateAuth('new-identity', '', '');
+      } finally {
+        release();
+      }
+      await waitUntil(() => current.getData().items.length > 0);
+      expect(current.getData().items[0].name).to.equal('UID-1');
+      const lastAssetRequest = requests.filter((request) => request.method === 'post').at(-1)!;
+      expect(JSON.parse(lastAssetRequest.data).Fields).not.to.contain('CoreField.OriginalFileName');
+    });
+
+    for (const change of ['site', 'credentials', 'reconnect']) {
+      it(`reads a fresh default after a ${change} change`, async () => {
+        const { current } = configureSite('originalFileName');
+        expect((await current.fetchAssets({})).items[0].name).to.equal('photo.jpg');
+        const adapter = http.defaults.adapter as (config: InternalAxiosRequestConfig) => Promise<unknown>;
+        http.defaults.adapter = async (config) => config.url?.includes('getparameters_412Z_v1')
+          ? { config, data: { EnableATSInGetLink: 'false', TitleFallback: 'uniqueIdentifier' }, headers: {}, status: 200, statusText: 'OK' }
+          : await adapter(config) as never;
+        if (change === 'site') {
+          current.updateSiteSession(false, 'https://changed-default.example', '', '', '');
+        } else if (change === 'credentials') {
+          current.updateAuth('new-token', '', '');
+        } else {
+          current.hostConnected();
+        }
+        expect((await current.fetchAssets({})).items[0].name).to.equal('UID-1');
+      });
+    }
+
+    for (const credential of ['token', 'session', 'bearer']) {
+      it(`keeps loaded parameters during ${credential} rotation`, async () => {
+        const { current } = configureSite('originalFileName', { titleFallback: 'uniqueIdentifier' });
+        current.hostConnected();
+        await waitUntil(() => current.getData().parameters !== null);
+        const previous = current.getData().parameters;
+        const adapter = http.defaults.adapter as (config: InternalAxiosRequestConfig) => Promise<unknown>;
+        let release!: () => void;
+        const pending = new Promise<void>((resolve) => { release = resolve; });
+        http.defaults.adapter = async (config) => {
+          if (config.url === MetadataApiEndpoint.GET_CONTENT_BROWSER_PARAMETERS) {
+            await pending;
+          }
+          return await adapter(config) as never;
+        };
+        try {
+          current.updateAuth(credential === 'token' ? 'rotated' : '', credential === 'session' ? 'rotated' : '', credential === 'bearer' ? 'rotated' : '');
+          expect(current.getData().parameters).to.deep.equal(previous);
+        } finally {
+          release();
+          await aTimeout(20);
+        }
+      });
+    }
+
+    it('waits for the new credential parameters after the old response arrives first', async () => {
+      const { current } = configureSite('originalFileName');
+      const adapter = http.defaults.adapter as (config: InternalAxiosRequestConfig) => Promise<unknown>;
+      const held: Array<() => void> = [];
+      http.defaults.adapter = async (config) => {
+        if (config.url === MetadataApiEndpoint.GET_CONTENT_BROWSER_PARAMETERS) {
+          const index = held.length;
+          await new Promise<void>((resolve) => { held.push(resolve); });
+          return { config, data: { TitleFallback: index === 0 ? 'uniqueIdentifier' : 'originalFileName' }, headers: {}, status: 200, statusText: 'OK' };
+        }
+        return await adapter(config) as never;
+      };
+      const assets = current.fetchAssets({});
+      const dialog = current.fetchAssetByID('rotation-waiter', { simplePick: true });
+      let completed = false;
+      const results = Promise.all([assets, dialog]).then((value) => { completed = true; return value; });
+      try {
+        await waitUntil(() => held.length === 1);
+        current.updateAuth('rotated', '', '');
+        await waitUntil(() => held.length === 2);
+        held[0]();
+        await aTimeout(20);
+        expect(completed).to.equal(false);
+      } finally {
+        held.forEach((release) => release());
+      }
+      const [list, item] = await results;
+      expect(list.items[0].name).to.equal('photo.jpg');
+      expect(item?.asset.name).to.equal('photo.jpg');
+    });
+
+    it('does not restart the parameter request after disconnect', async () => {
+      const { current, requests } = configureSite('originalFileName');
+      const adapter = http.defaults.adapter as (config: InternalAxiosRequestConfig) => Promise<unknown>;
+      let release!: () => void;
+      const pending = new Promise<void>((resolve) => { release = resolve; });
+      let parameterCalls = 0;
+      http.defaults.adapter = async (config) => {
+        if (config.url === MetadataApiEndpoint.GET_CONTENT_BROWSER_PARAMETERS) {
+          parameterCalls += 1;
+          await pending;
+        }
+        return await adapter(config) as never;
+      };
+      const assets = current.fetchAssets({});
+      await waitUntil(() => parameterCalls === 1);
+      current.hostDisconnected();
+      release();
+      await assets;
+      expect(parameterCalls).to.equal(1);
+      expect(current.getData().parameters).to.equal(null);
+      expect(requests.filter((request) => request.url === MetadataApiEndpoint.GET_CONTENT_BROWSER_PARAMETERS)).to.have.length(1);
+    });
+
+    it('reloads the other site parameters after credential rotation with an explicit fallback', async () => {
+      const { current } = configureSite('originalFileName', { titleFallback: 'uniqueIdentifier' });
+      current.hostConnected();
+      await waitUntil(() => current.getData().parameters !== null);
+      current.updateAuth('rotated-token', '', '');
+      await current.fetchAssets({});
+      await waitUntil(() => current.getData().parameters !== null, 'site parameters stayed empty after credential rotation');
+      expect(current.getData().parameters?.autoExtension).to.equal('.auto');
+    });
+  });
+
   // L-42B0OO: a grid click opens the format dialog through fetchAssetByID, and content-browser.btest.ts
   // stubs that method wholesale — so without this, the caption fallback could regress here unnoticed while
   // the apiGetAssets tests stayed green.
@@ -103,6 +379,45 @@ describe('FetchAndMergeAssetsController', () => {
     const result = await createController().fetchAssetByID(recordId, { simplePick: true });
 
     expect(result?.asset.name).to.not.contain('_MG_8632');
+  });
+
+  // L-42D2A9: the format dialog opens through fetchAssetByID, so it must show the caption that the host chose.
+  it('shows the original file name for titleFallback originalFileName', async () => {
+    const recordId = stubContent({
+      'CoreField.Identifier': 'FA23E70G',
+      'CoreField.OriginalFileName': 'CHI-BEARS-ARCH.ai',
+      'Document.Title': '',
+    });
+
+    const result = await createController({ titleFallback: 'originalFileName' })
+      .fetchAssetByID(recordId, { simplePick: true });
+
+    expect(result?.asset.name).to.equal('CHI-BEARS-ARCH.ai');
+  });
+
+  it('sends titleFallback with the assets request of the host', async () => {
+    const seen: { requestedFields: string[] } = { requestedFields: [] };
+
+    http.defaults.adapter = async (config) => {
+      seen.requestedFields = JSON.parse(config.data).Fields;
+
+      return {
+        config,
+        data: {
+          contentItems: [{ recordID: 'Q0LDO000001895619', fields: { 'CoreField.OriginalFileName': 'CHI-BEARS-ARCH.ai' } }],
+          facets: [],
+          totalCount: 1,
+        },
+        headers: {},
+        status: 200,
+        statusText: 'OK',
+      };
+    };
+
+    const response = await createController({ titleFallback: 'originalFileName' }).fetchAssets({} as GetAssetsRequest);
+
+    expect(seen.requestedFields).to.contain('CoreField.OriginalFileName');
+    expect(response.items[0].name).to.equal('CHI-BEARS-ARCH.ai');
   });
 
   // L-42BIA4: the format dialog shows a different message for a failed format request than for an empty
@@ -256,9 +571,14 @@ describe('FetchAndMergeAssetsController', () => {
 
     it('retries a 401 with the bearer token the host hands over next', async () => {
       const authorizations: unknown[] = [];
+      const parameterAuthorizations: unknown[] = [];
       http.defaults.adapter = async (config) => {
         const authorization = config.headers.get('Authorization');
-        authorizations.push(authorization);
+        if (config.url === AuthApiEndpoint.GET_USER_INFO) {
+          authorizations.push(authorization);
+        } else if (config.url === MetadataApiEndpoint.GET_CONTENT_BROWSER_PARAMETERS) {
+          parameterAuthorizations.push(authorization);
+        }
         if (authorization === 'Bearer expired-token') {
           throw new AxiosError('Unauthorized', AxiosError.ERR_BAD_REQUEST, config, null, {
             ...okResponse(config),
@@ -277,6 +597,8 @@ describe('FetchAndMergeAssetsController', () => {
 
       expect(response.status).to.equal(200);
       expect(authorizations).to.deep.equal(['Bearer expired-token', 'Bearer renewed-token']);
+      await waitUntil(() => parameterAuthorizations.length > 0);
+      expect(parameterAuthorizations).to.deep.equal(['Bearer renewed-token']);
     });
 
     it('does not send a bearer token set by a controller for another site', async () => {
@@ -580,6 +902,52 @@ describe('FetchAndMergeAssetsController', () => {
       expect(current.getData().searchError).to.equal(false);
     });
 
+    // L-29UGSA: a folder switch with a Types filter that no asset of the new folder matches.
+    // Cortex answers with `contentItems: null`, and the main facet counts the folder without its own filter.
+    it('shows no results with the facets of the new folder when it has no match for the applied filter', async () => {
+      const clock = sinon.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+      const libraryTypes: Facet = {
+        facetDetails: { displayName: 'Types', facetFieldName: 'Types' },
+        values: [{ count: 127373, displayValue: 'Audio', value: 'audio' }],
+      };
+      const favoriteTypes: Facet = {
+        facetDetails: { displayName: 'Types', facetFieldName: 'Types' },
+        values: [
+          { count: 5, displayValue: 'Videos', value: 'videos' },
+          { count: 4, displayValue: 'Images', value: 'images' },
+        ],
+      };
+      const replies = [
+        { contentItems: [{ fields: { 'Document.RecordID': 'a1' }, recordID: 'a1' }], facets: [libraryTypes], totalCount: 127373 },
+        { contentItems: null, facets: [favoriteTypes], totalCount: 0, unreadableFields: [] },
+      ];
+      let call = 0;
+      http.defaults.adapter = async (config) => ({
+        config,
+        data: config.url === MetadataApiEndpoint.GET_CONTENT_BROWSER_PARAMETERS
+          ? { TitleFallback: 'uniqueIdentifier' }
+          : replies[call++],
+        headers: {},
+        status: 200,
+        statusText: 'OK',
+      });
+      const current = createSearchController();
+      const selectedFacets = { Types: ['audio'] };
+
+      await current.fetchAndMergeAssets({ folderId: 'library', pageSize: 2, selectedFacets, start: 0 });
+      await clock.tickAsync(200);
+      await current.fetchAndMergeAssets({ folderId: 'favorites', pageSize: 2, selectedFacets, start: 0 });
+      await clock.tickAsync(200);
+
+      const data = current.getData();
+      expect(call).to.equal(2);
+      expect(data.searchError).to.equal(false);
+      expect(recordIdsOf(current)).to.deep.equal([]);
+      expect(data.totalCount).to.equal(0);
+      expect(data.facets.map((facet) => facet.values.map((value) => `${value.value}:${value.count}`)))
+        .to.deep.equal([['videos:5', 'images:4', 'audio:0']]);
+    });
+
     it('sends the request with the error again on a retry, and adds its rows', async () => {
       const clock = sinon.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
       const bodies = scriptSearches([
@@ -676,6 +1044,191 @@ describe('FetchAndMergeAssetsController', () => {
     });
   });
 
+  describe('site changes', () => {
+    let siteSequence = 0;
+
+    const setup = ({ holdSortOrders = false, descendingOnlyOnA = false } = {}) => {
+      siteSequence += 1;
+      const siteA = `https://search-reset-${siteSequence}-a.example`;
+      const siteB = `https://search-reset-${siteSequence}-b.example`;
+      const clock = sinon.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+      const searches: Array<{
+        body: { Start: number; OrderBy: string; Text: string };
+        respond: () => void;
+        site: string;
+      }> = [];
+      const sorts: Array<{ respond: () => void; site: string }> = [];
+
+      http.defaults.adapter = (config) => new Promise((resolve) => {
+        const respond = (data: unknown) => resolve({ config, data, headers: {}, status: 200, statusText: 'OK' });
+        const site = config.baseURL === siteA ? 'A' : 'B';
+
+        if (config.url === MetadataApiEndpoint.GET_SORT_ORDERS) {
+          const sortRequest = {
+            respond: () => respond({ sortOrders: [
+              { id: `${site}-sort`, name: 'title', sortDirection: site === 'A' && descendingOnlyOnA ? 'descending' : 'ascending' },
+              ...(site === 'B' && descendingOnlyOnA ? [{ id: 'B-desc', name: 'title', sortDirection: 'descending' }] : []),
+            ] }),
+            site,
+          };
+          sorts.push(sortRequest);
+          if (!holdSortOrders || site === 'B') {
+            sortRequest.respond();
+          }
+        } else if (config.method === 'post') {
+          const body = JSON.parse(config.data as string);
+          searches.push({
+            body,
+            respond: () => respond({
+              contentItems: Array.from({ length: 40 }, (_, offset) => {
+                const id = `${site}-${body.Start + offset}`;
+                return { fields: { 'CoreField.Identifier': id, 'Document.RecordID': id }, recordID: id };
+              }),
+              facets: [],
+              totalCount: 120,
+              unreadableFields: ['Document.Secret'],
+            }),
+            site,
+          });
+        } else {
+          respond({});
+        }
+      });
+
+      const current = createController({ baseUrl: siteA, titleFallback: 'uniqueIdentifier' });
+      const send = async (start: number) => {
+        await current.fetchAndMergeAssets({ pageSize: 40, searchText: 'query', sortDirection: 'ascending', sortOrderName: 'title', start });
+        await clock.tickAsync(200);
+      };
+      const switchSite = () => current.updateSiteSession(false, siteB, '', '', '');
+      const shownSites = () => [...new Set(current.getData().items.map(({ id }) => String(id).split('-')[0]))];
+
+      return { clock, current, searches, send, shownSites, sorts, switchSite };
+    };
+
+    it('clears the previous list and restarts at page zero after multiple pages', async () => {
+      const { clock, current, searches, send, shownSites, switchSite } = setup();
+      await send(0);
+      searches[0].respond();
+      await clock.tickAsync(0);
+      await send(40);
+      searches[1].respond();
+      await clock.tickAsync(0);
+      expect(current.getData().items).to.have.length(80);
+
+      switchSite();
+
+      expect(current.getData().items).to.deep.equal([]);
+      expect(current.getData().facets).to.deep.equal([]);
+      expect(current.getData().totalCount).to.equal(0);
+      expect(current.getData().unreadableFields).to.deep.equal([]);
+      expect(current.getData().request).to.equal(null);
+      expect(current.getNextPage()).to.equal(null);
+      await clock.tickAsync(200);
+      expect(searches.map(({ body, site }) => `${site}@${body.Start}`)).to.deep.equal(['A@0', 'A@40', 'B@0']);
+      expect(searches[2].body.Text).to.equal('query');
+      searches[2].respond();
+      await clock.tickAsync(0);
+
+      expect(shownSites()).to.deep.equal(['B']);
+      expect(current.getNextPage()).to.deep.equal({ lastPageSize: 40, start: 40 });
+    });
+
+    for (const oldResponseFirst of [true, false]) {
+      it(`discards a previous site's pending page when it arrives ${oldResponseFirst ? 'first' : 'last'}`, async () => {
+        const { clock, current, searches, send, shownSites, switchSite } = setup();
+        await send(0);
+        searches[0].respond();
+        await clock.tickAsync(0);
+        await send(40);
+        switchSite();
+        await clock.tickAsync(200);
+
+        expect(searches).to.have.length(3);
+        expect(searches[2].body.Start).to.equal(0);
+        searches[oldResponseFirst ? 1 : 2].respond();
+        await clock.tickAsync(0);
+        expect(current.getData().loading).to.equal(oldResponseFirst);
+        expect(shownSites()).to.deep.equal(oldResponseFirst ? [] : ['B']);
+        searches[oldResponseFirst ? 2 : 1].respond();
+        await clock.tickAsync(0);
+
+        expect(shownSites()).to.deep.equal(['B']);
+        expect(current.getData().items).to.have.length(40);
+        expect(current.getNextPage()).to.deep.equal({ lastPageSize: 40, start: 40 });
+      });
+    }
+
+    it('restarts the first search when the site changes inside the debounce', async () => {
+      const { clock, current, searches, switchSite } = setup();
+      await current.fetchAndMergeAssets({ pageSize: 40, searchText: 'queued', start: 0 });
+      switchSite();
+      await clock.tickAsync(200);
+
+      expect(searches).to.have.length(1);
+      expect(searches[0].site).to.equal('B');
+      expect(searches[0].body.Start).to.equal(0);
+      expect(searches[0].body.Text).to.equal('queued');
+      searches[0].respond();
+      await clock.tickAsync(0);
+      expect(current.getData().loading).to.equal(false);
+    });
+
+    it('reloads the same sort name with the new site ID', async () => {
+      const { clock, current, searches, send, sorts, switchSite } = setup();
+      await send(0);
+      searches[0].respond();
+      await clock.tickAsync(0);
+      expect(searches[0].body.OrderBy).to.equal('A-sort');
+      switchSite();
+      await clock.tickAsync(200);
+
+      expect(sorts.map(({ site }) => site)).to.deep.equal(['A', 'B']);
+      expect(searches[1].body.OrderBy).to.equal('B-sort');
+      searches[1].respond();
+      await clock.tickAsync(0);
+      expect(current.getData().sortOrders.title[0].id).to.equal('B-sort');
+    });
+
+    it('keeps the resolved sort direction after the site changes', async () => {
+      const { clock, current, searches, send, switchSite } = setup({ descendingOnlyOnA: true });
+      await send(0);
+      searches[0].respond();
+      await clock.tickAsync(0);
+      expect(current.getData().request?.sortDirection).to.equal('descending');
+      switchSite();
+      await clock.tickAsync(200);
+
+      expect(searches[1].body.OrderBy).to.equal('B-desc');
+      searches[1].respond();
+      await clock.tickAsync(0);
+      expect(current.getData().request?.sortDirection).to.equal('descending');
+    });
+
+    it('discards an old sort response after the new site answers', async () => {
+      const { clock, current, searches, send, sorts, switchSite } = setup({ holdSortOrders: true });
+      await send(0);
+      expect(sorts).to.have.length(1);
+      expect(searches).to.have.length(0);
+      switchSite();
+      await clock.tickAsync(200);
+
+      expect(sorts.map(({ site }) => site)).to.deep.equal(['A', 'B']);
+      expect(searches).to.have.length(1);
+      expect(searches[0].body.OrderBy).to.equal('B-sort');
+      searches[0].respond();
+      await clock.tickAsync(0);
+      sorts[0].respond();
+      await clock.tickAsync(0);
+      expect(current.getData().sortOrders.title[0].id).to.equal('B-sort');
+      expect(searches).to.have.length(1);
+      await send(40);
+      expect(searches[1].body.OrderBy).to.equal('B-sort');
+      searches[1].respond();
+      await clock.tickAsync(0);
+    });
+  });
+
   describe('responses that arrive out of order (L-42BVFI)', () => {
     type Held = {
       body: { Limit?: number; Start?: number; Text?: string };
@@ -691,6 +1244,10 @@ describe('FetchAndMergeAssetsController', () => {
       held = [];
       heldSortOrders = [];
       http.defaults.adapter = (config) => new Promise((resolve, reject) => {
+        if (config.url === MetadataApiEndpoint.GET_CONTENT_BROWSER_PARAMETERS) {
+          resolve({ config, data: { TitleFallback: 'uniqueIdentifier' }, headers: {}, status: 200, statusText: 'OK' });
+          return;
+        }
         if (config.method?.toLowerCase() === 'get') {
           heldSortOrders.push(() => resolve({
             config,
@@ -880,6 +1437,124 @@ describe('FetchAndMergeAssetsController', () => {
       await settle();
 
       expect(current.getNextPage()).to.deep.equal({ lastPageSize: 40, start: 40 });
+    });
+  });
+
+  // L-42DAEP: the format dialog offers "Custom format" only once the available extensions are known, and
+  // the content browser renders with the same getData options until the user changes something.
+  describe('available extensions that load late (L-42DAEP)', () => {
+    const options = { allowedExtensions: ['jpg'], availableRepresentativeSubtypes: [] };
+
+    // Every request gets an empty body, except the extensions request, which waits for `release`.
+    const holdExtensions = () => {
+      let release = () => {};
+      const released = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+
+      http.defaults.adapter = async (config) => {
+        const isExtensionsRequest = config.url?.includes('getavailableextensions') ?? false;
+
+        if (isExtensionsRequest) {
+          await released;
+        }
+
+        return {
+          config,
+          data: isExtensionsRequest
+            ? {
+              extensions: {
+                Image: [
+                  { display: 'JPG', value: '.jpg' },
+                  { display: 'PNG', value: '.png' },
+                ],
+              },
+            }
+            : {},
+          headers: {},
+          status: 200,
+          statusText: 'OK',
+        };
+      };
+
+      return () => release();
+    };
+
+    beforeEach(async () => {
+      // http caches GETs by URL, so an answer cached by another case would never be held.
+      await http.storage.clear?.();
+    });
+
+    it('shows the extensions that land after the first render', async () => {
+      const release = holdExtensions();
+      const current = createController();
+
+      current.hostConnected();
+
+      expect(current.getData(options).availableExtensions).to.equal(null);
+
+      release();
+
+      await waitUntil(
+        () => current.getData(options).availableExtensions !== null,
+        'getData kept the extensions it had before they loaded',
+      );
+
+      expect(current.getData(options).availableExtensions).to.deep.equal({
+        Image: [{ display: 'JPG', value: '.jpg' }],
+      });
+    });
+
+    it('keeps the same extensions object while nothing changes', async () => {
+      holdExtensions()();
+      const current = createController();
+
+      current.hostConnected();
+
+      await waitUntil(() => current.getData(options).availableExtensions !== null);
+
+      expect(current.getData({ ...options }).availableExtensions).to.equal(current.getData(options).availableExtensions);
+    });
+
+    // Switching the site-session mode refetches while the previous mode's request can still be pending
+    // (e.g. waiting on a token refresh that the switch then cancels, whose failure yields `{}`).
+    it('keeps the newer extensions when an older request lands last', async () => {
+      const held: Array<(extensions: unknown) => void> = [];
+
+      http.defaults.adapter = async (config) => {
+        const isExtensionsRequest = config.url?.includes('getavailableextensions') ?? false;
+        const extensions = isExtensionsRequest
+          ? await new Promise((resolve) => {
+            held.push(resolve);
+          })
+          : undefined;
+
+        return {
+          config,
+          data: isExtensionsRequest ? { extensions } : {},
+          headers: {},
+          status: 200,
+          statusText: 'OK',
+        };
+      };
+
+      const current = createController({ baseUrl: 'https://old.example.com' });
+
+      current.hostConnected();
+      await waitUntil(() => held.length === 1, 'the first extensions request was never sent');
+
+      current.updateSiteSession(true, '', '', '', '');
+      await waitUntil(() => held.length === 2, 'switching the mode did not refetch the extensions');
+
+      held[1]({ Image: [{ display: 'JPG', value: '.jpg' }] });
+      await waitUntil(() => current.getData(options).availableExtensions !== null);
+
+      held[0]({});
+      await aTimeout(50);
+
+      expect(current.getData(options).availableExtensions).to.deep.equal({
+        Image: [{ display: 'JPG', value: '.jpg' }],
+      });
     });
   });
 });

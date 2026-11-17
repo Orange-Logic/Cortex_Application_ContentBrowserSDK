@@ -1,6 +1,6 @@
 import { createContext } from 'react';
 
-import { TableColumn, type AutoSelectFormat, type TableRowActionPosition } from '@/types/content-browser';
+import { TableColumn, type AutoSelectFormat, type TableRowActionPosition, type TitleFallback } from '@/types/content-browser';
 
 export type ImageCardDisplayInfo = {
   title?: boolean,
@@ -36,6 +36,7 @@ export type GlobalConfigContextType = {
   allowTracking: boolean;
   allowProxy: boolean;
   simplePick: boolean;
+  skipLinkGeneration: boolean;
   allowFavorites: boolean;
   allowPin: boolean;
   allowFormatDialogPin?: boolean;
@@ -43,6 +44,7 @@ export type GlobalConfigContextType = {
   autoSelectFormat: AutoSelectFormat;
   tableColumns?: TableColumn[];
   tableRowActionPosition?: TableRowActionPosition;
+  titleFallback?: TitleFallback;
 };
 
 export const GlobalConfigContext = createContext<GlobalConfigContextType>({
@@ -66,6 +68,7 @@ export const GlobalConfigContext = createContext<GlobalConfigContextType>({
   allowTracking: true,
   allowProxy: false,
   simplePick: false,
+  skipLinkGeneration: false,
   allowFavorites: false,
   allowPin: false,
   allowFormatDialogPin: false,

@@ -267,6 +267,18 @@ export type CtaTextTransform = 'none' | 'uppercase' | 'lowercase' | 'capitalize'
  */
 export type TableRowActionPosition = 'host-edge' | 'row-end';
 
+/**
+ * What the asset caption shows when the asset has no title: the unique identifier (`uniqueIdentifier`), or
+ * the original file name (`originalFileName`). The host option overrides the site default.
+ * Without either default, the SDK uses the unique identifier.
+ */
+export type TitleFallback = 'uniqueIdentifier' | 'originalFileName';
+
+/** Reads a title fallback. Any value other than `originalFileName` gives `uniqueIdentifier`. */
+export function toTitleFallback(value: unknown): TitleFallback {
+  return value === 'originalFileName' ? 'originalFileName' : 'uniqueIdentifier';
+}
+
 /** Reads a row action position. Any value other than `row-end` gives `host-edge`. */
 export function toTableRowActionPosition(value: unknown): TableRowActionPosition {
   return value === 'row-end' ? 'row-end' : 'host-edge';

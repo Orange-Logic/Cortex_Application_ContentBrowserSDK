@@ -1,5 +1,6 @@
 export * from '@orangelogic/design-system/events';
 export * from './cx-content-browser-asset-card-click';
+export * from './cx-content-browser-asset-link-error';
 export * from './cx-content-browser-asset-tracking-parameters-change';
 export * from './cx-content-browser-control-bar-search-change';
 export * from './cx-content-browser-control-filter-change';

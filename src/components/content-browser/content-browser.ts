@@ -4,6 +4,7 @@ import { ifDefined } from 'lit/directives/if-defined.js';
 import { when } from 'lit/directives/when.js';
 import _camelCase from 'lodash-es/camelCase';
 
+import { toAssetLinkError } from '@/api/asset/asset';
 import { GetAssetLinkResponse } from '@/api/asset/asset.types';
 import CortexElement from '@/base/element';
 import CxContentBrowserBrowser from '@/components/content-browser-browser/content-browser-browser';
@@ -27,7 +28,8 @@ import { FetchAndMergeAssetsController } from '@/tools/fetch-and-merge-assets';
 import {
   type AutoSelectFormat, autoSelectFormatConverter, ChangeOption, ContentBrowserFormatDialogVariant,
   type ContentBrowserView, type CtaTextTransform, GridView, isAutoSelectFormatActive, OptionType,
-  TABLE_VIEW, type TableColumn, type TableRowActionPosition, toFieldKey, toTableRowActionPosition,
+  TABLE_VIEW, type TableColumn, type TableRowActionPosition, type TitleFallback, toFieldKey, toTableRowActionPosition,
+  toTitleFallback,
 } from '@/types/content-browser';
 import { GetFolderRequest } from '@/types/folder';
 import { safeInteger } from '@/utils/number';
@@ -220,6 +222,14 @@ export default class CxContentBrowser extends CortexElement {
   @property({ attribute: 'simple-pick', reflect: true, type: Boolean })
   simplePick = false;
 
+  /**
+   * Confirm asks GetAssetLink for the asset metadata and extra fields only, so Cortex creates no asset link.
+   * For a host that needs fields such as `Document.RecordID`, not a URL: a link can be refused for a user
+   * who can still read the asset.
+   */
+  @property({ attribute: 'skip-link-generation', reflect: true, type: Boolean })
+  skipLinkGeneration = false;
+
   @property({ attribute: 'can-view-versions', reflect: true, type: Boolean })
   canViewVersions = false;
 
@@ -288,6 +298,14 @@ export default class CxContentBrowser extends CortexElement {
    */
   @property({ attribute: 'table-row-action-position', type: String })
   tableRowActionPosition: TableRowActionPosition = 'host-edge';
+
+  /**
+   * Overrides the site fallback for assets without a title: `uniqueIdentifier` or `originalFileName`.
+   * If absent, the site default applies, or `uniqueIdentifier` when no site default is available.
+   * Any other explicit value gives `uniqueIdentifier`. The title always wins.
+   */
+  @property({ attribute: 'title-fallback', type: String })
+  titleFallback?: TitleFallback;
 
   /** The widths the user saved for the table columns of this site, in pixels, keyed by field. */
   @state() private tableColumnWidths: Record<string, number> = {};
@@ -563,6 +581,7 @@ export default class CxContentBrowser extends CortexElement {
         defaultSelectedFacets: this.defaultSelectedFacets,
         defaultSortDirection: this.defaultSortDirection,
         defaultSortOrderName: this.defaultSortOrderName,
+        titleFallback: this.titleFallback === undefined ? undefined : toTitleFallback(this.titleFallback),
         token: this.token,
         useSession: this.useSession,
         useSiteSession: this.useSiteSession,
@@ -713,7 +732,7 @@ export default class CxContentBrowser extends CortexElement {
     this.fetchAndMergeAssetsController?.updateAuth(this.token, this.useSession, this.bearerToken);
   }
 
-  @watch('useSiteSession', { waitUntilFirstUpdate: true })
+  @watch(['useSiteSession', 'baseUrl'], { waitUntilFirstUpdate: true })
   handleSiteSessionChange() {
     if (this.useSiteSession) {
       this.baseUrl = resolveSiteSessionUrl(this.baseUrl);
@@ -992,6 +1011,7 @@ export default class CxContentBrowser extends CortexElement {
         ...event.detail,
         assets: [event.detail.asset],
         extraFields: this.extraFields,
+        skipLinkGeneration: this.skipLinkGeneration,
       });
 
       // Only a real failure keeps the dialog open. A successful response with no link is not one: an asset with
@@ -999,7 +1019,7 @@ export default class CxContentBrowser extends CortexElement {
       // ExtraFields the host asked for, and swallowing the selection leaves the integration with no callback
       // and no error to act on.
       if (response.isError) {
-        this.reportProxyConfirmFailure();
+        this.reportConfirmFailure(response.error);
 
         return;
       }
@@ -1011,26 +1031,31 @@ export default class CxContentBrowser extends CortexElement {
       });
 
       this.formatDialog.hide();
-    } catch {
-      this.reportProxyConfirmFailure();
+    } catch (error) {
+      this.reportConfirmFailure(error);
     } finally {
       this.#insertInFlight = false;
       this.busyAssetId = undefined;
     }
   }
 
-  private reportProxyConfirmFailure() {
-    if (this.formatDialog.isDialogOpen) {
-      this.formatDialog.setLoadingConfirm(false);
+  private reportConfirmFailure(cause: unknown) {
+    const error = toAssetLinkError(cause);
 
-      return;
+    // An auto-confirmed insert has no dialog to report into. Show the dialog the shortcut skipped:
+    // it is the state the non-shortcut path would have left the user in, and its confirm button is the retry.
+    if (!this.formatDialog.isDialogOpen) {
+      this.formatDialog.revealAfterAutoConfirm();
     }
 
-    // An auto-confirmed insert has no dialog to report into, and the SDK has no error event, so
-    // hiding here returned the user to an unchanged table with no message and no way to retry.
-    // Show the dialog the shortcut skipped instead: it is the state the non-shortcut path would
-    // have left them in, and its confirm button is the retry.
-    this.formatDialog.revealAfterAutoConfirm();
+    if (this.formatDialog.isDialogOpen) {
+      // Only a Cortex message is specific enough to show. The dialog has a localized text for the other failures.
+      this.formatDialog.showConfirmError(error.serverMessage);
+    }
+
+    this.emit('cx-content-browser-asset-link-error', {
+      detail: { error },
+    });
   }
 
   private async handleFormatConfirm(event: CxContentBrowserFormatDialogFormatConfirmEvent) {
@@ -1050,7 +1075,7 @@ export default class CxContentBrowser extends CortexElement {
       // ExtraFields the host asked for, and swallowing the selection leaves the integration with no callback
       // and no error to act on.
       if (response.isError) {
-        this.formatDialog.setLoadingConfirm(false);
+        this.reportConfirmFailure(response.error);
 
         return;
       }
@@ -1063,8 +1088,8 @@ export default class CxContentBrowser extends CortexElement {
       });
 
       this.formatDialog.hide();
-    } catch {
-      this.formatDialog.setLoadingConfirm(false);
+    } catch (error) {
+      this.reportConfirmFailure(error);
     } finally {
       this.#insertInFlight = false;
       this.busyAssetId = undefined;
@@ -1240,6 +1265,7 @@ export default class CxContentBrowser extends CortexElement {
           ></cx-content-browser-header>
           <cx-content-browser-control-bar
             .availableFacets=${availableFacets}
+            .boundary=${this.content}
             .selectedFacets=${request?.selectedFacets ?? {}}
             .facets=${facets}
             .newlyChangedOption=${this.newlyChangedOption}

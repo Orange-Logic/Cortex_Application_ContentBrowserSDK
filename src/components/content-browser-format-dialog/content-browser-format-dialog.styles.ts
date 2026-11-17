@@ -83,7 +83,13 @@ export default css`
 
   .content-browser-format__footer {
     display: flex;
+    flex-wrap: wrap;
     justify-content: flex-end;
+  }
+
+  .content-browser-format__error {
+    flex-basis: 100%;
+    margin-bottom: var(--cx-spacing-small);
   }
 
   .content-browser-format__footer__button cx-button-group {

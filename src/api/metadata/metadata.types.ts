@@ -1,5 +1,5 @@
 import {
-  AssetLinkFormatPart, CropMode, Facet, FocusMode, SortOrder,
+  AssetLinkFormatPart, CropMode, Facet, FocusMode, SortOrder, type TitleFallback,
 } from '@/types/content-browser';
 
 export type GetSortOrdersResponse = Record<string, SortOrder[]>;
@@ -19,6 +19,7 @@ export enum ContentBrowserParameters {
   RepresentativeSupportedDocSubType = 'RepresentativeSupportedDocSubType',
   SupportDocTypes = 'SupportDocTypes',
   SupportedDocSubTypesV2 = 'SupportedDocSubTypesV2',
+  TitleFallback = 'TitleFallback',
 }
 
 export type GetContentBrowserParametersResponse = {
@@ -33,4 +34,5 @@ export type GetContentBrowserParametersResponse = {
   parts?: AssetLinkFormatPart[];
   supportedExtensions: string[];
   supportedRepresentativeSubtypes: string[];
+  titleFallback: TitleFallback;
 };

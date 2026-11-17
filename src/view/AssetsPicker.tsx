@@ -19,6 +19,7 @@ import { isPromise } from '@/utils/function';
 import { deleteData, getData, storeData } from '@/utils/storage';
 
 import type {
+    CxContentBrowserAssetLinkErrorEvent,
     CxContentBrowserGridClickEvent, CxContentBrowserPinAssetChangeEvent, CxContentBrowserPinAssetLookupEvent,
     CxContentBrowserRequestChangeEvent, CxContentBrowserSelectedAssetEvent,
 } from '@/events';
@@ -145,6 +146,7 @@ const AssetsPicker = forwardRef<AssetsPickerHandle, Props>(function AssetsPicker
     allowProxy,
     allowTracking,
     simplePick,
+    skipLinkGeneration,
     allowedExtensions, // list of allowed extensions from runtime properties. e.g. ['.jpg', '.png', '.mp4']
     allowedFolders,
     availableDocTypes,
@@ -162,6 +164,7 @@ const AssetsPicker = forwardRef<AssetsPickerHandle, Props>(function AssetsPicker
     showVersions,
     tableColumns,
     tableRowActionPosition,
+    titleFallback,
     autoSelectFormat,
   } = useContext(GlobalConfigContext);
   const {
@@ -255,6 +258,12 @@ const AssetsPicker = forwardRef<AssetsPickerHandle, Props>(function AssetsPicker
     }
     onClose?.();
   }, [onAssetSelected, onClose, persistMode]);
+
+  const onAssetLinkError = useCallback((event: CxContentBrowserAssetLinkErrorEvent) => {
+    const { error } = event.detail;
+
+    onError(error.message, error);
+  }, [onError]);
 
   const onFetchAndMergeAssetsSuccess = useCallback((event: CxContentBrowserRequestChangeEvent) => {
     if (!loadedFromStorage.current) {
@@ -429,6 +438,7 @@ const AssetsPicker = forwardRef<AssetsPickerHandle, Props>(function AssetsPicker
       default-grid-view={defaultSettings.view}
       table-columns={tableColumns ?? []}
       table-row-action-position={tableRowActionPosition ?? 'host-edge'}
+      title-fallback={titleFallback}
       auto-select-format={autoSelectFormat ?? false}
       default-sort-order-name={defaultSettings.sortOrder}
       default-sort-direction={defaultSettings.sortDirection}
@@ -451,6 +461,7 @@ const AssetsPicker = forwardRef<AssetsPickerHandle, Props>(function AssetsPicker
       can-logout={allowLogout}
       can-use-proxies={allowProxy}
       simple-pick={simplePick}
+      skip-link-generation={skipLinkGeneration}
       can-track={allowTracking}
       can-view-versions={showVersions}
       cta-text={ctaText}
@@ -464,6 +475,7 @@ const AssetsPicker = forwardRef<AssetsPickerHandle, Props>(function AssetsPicker
       show-title={displayInfo.title}
       multi-select={multiSelect ? 'true' : undefined}
       oncx-content-browser-selected-asset={onSelectedAsset}
+      oncx-content-browser-asset-link-error={onAssetLinkError}
       oncx-content-browser-request-change={onFetchAndMergeAssetsSuccess}
       oncx-content-browser-grid-click={onGridClick}
       oncx-content-browser-pin-asset-lookup={onPinAssetLookup}

@@ -1,6 +1,6 @@
 import http from '@/api/api';
 import { Asset, GetAssetsRequest, MediaType } from '@/types/asset';
-import { Facet, TransformationAction } from '@/types/content-browser';
+import { Facet, type TitleFallback, TransformationAction } from '@/types/content-browser';
 import { AssetApiEndpoint } from '@/api/endpoints';
 import { appendPathAndQuery } from '@/utils/appendPathAndQuery';
 
@@ -45,13 +45,18 @@ export const LIBRARY_NAME = 'Library';
 export const MESSAGE_NEW_LINE = '\n';
 export const ORIGINAL_VIEW_SIZE = 'CoreField.OriginalPreview';
 
+/** The field the caption shows when the title is blank. */
+export function resolveTitleFallbackField(titleFallback?: TitleFallback) {
+  return titleFallback === 'originalFileName' ? FIELD_ORIGINAL_FILE_NAME : FIELD_IDENTIFIER;
+}
+
 /**
- * The caption shown under an asset. Falls back to the identifier rather than the original file name:
- * file names can carry private information (model names, shoot details) that must never reach a host
- * application, and there is no way for a customer to turn the caption off. See L-42B0OO.
+ * The caption shown under an asset. By default it falls back to the identifier rather than the original
+ * file name: file names can carry private information (model names, shoot details), and the host decides
+ * whether its users may see them. See L-42B0OO and L-42D2A9.
  */
-export function resolveAssetCaption(fields: Record<string, string>) {
-  return fields[FIELD_DOC_TITLE] || fields[FIELD_IDENTIFIER] || '';
+export function resolveAssetCaption(fields: Record<string, string>, titleFallback?: TitleFallback) {
+  return fields[FIELD_DOC_TITLE] || fields[resolveTitleFallbackField(titleFallback)] || fields[FIELD_IDENTIFIER] || '';
 }
 
 export function resolveAssetExtraFilters(
@@ -89,8 +94,55 @@ export function resolveAssetExtraFilters(
   );
 }
 
-function isCortexErrorResponse(response: GetAssetLinkResponse | CortexErrorResponse): response is CortexErrorResponse {
-  return response && typeof response === 'object' && 'ErrorCode' in response;
+/**
+ * A GetAssetLink failure. `errorCode` and `serverMessage` are set only when Cortex sent an error body.
+ */
+export class AssetLinkError extends Error {
+  readonly errorCode?: CortexErrorResponse['ErrorCode'];
+
+  readonly serverMessage?: string;
+
+  constructor(message: string, { errorCode, serverMessage }: {
+    errorCode?: CortexErrorResponse['ErrorCode'];
+    serverMessage?: string;
+  } = {}) {
+    super(message);
+    this.name = 'AssetLinkError';
+    this.errorCode = errorCode;
+    this.serverMessage = serverMessage;
+  }
+}
+
+const ASSET_LINK_FAILED_MESSAGE = 'Failed to get the asset link';
+
+function isCortexErrorResponse(response: unknown): response is CortexErrorResponse {
+  return !!response && typeof response === 'object' && 'ErrorCode' in response;
+}
+
+function fromCortexErrorResponse(response: CortexErrorResponse) {
+  const serverMessage = typeof response.Message === 'string' && response.Message.trim()
+    ? response.Message
+    : undefined;
+
+  return new AssetLinkError(serverMessage ?? ASSET_LINK_FAILED_MESSAGE, {
+    errorCode: response.ErrorCode,
+    serverMessage,
+  });
+}
+
+/** Convert any GetAssetLink failure to an AssetLinkError, and keep the Cortex error body when there is one. */
+export function toAssetLinkError(error: unknown): AssetLinkError {
+  if (error instanceof AssetLinkError) {
+    return error;
+  }
+
+  const responseData = (error as { response?: { data?: unknown } } | undefined)?.response?.data;
+
+  if (isCortexErrorResponse(responseData)) {
+    return fromCortexErrorResponse(responseData);
+  }
+
+  return new AssetLinkError(error instanceof Error && error.message ? error.message : ASSET_LINK_FAILED_MESSAGE);
 }
 
 // The merge reads `facetFieldName` and the filter reads `displayName` of the details. The filter reads `value`
@@ -118,7 +170,8 @@ function isSearchResponse(response: unknown): response is GetAssetsRawResponse {
   return Array.isArray(facets)
     && facets.every(isSearchFacet)
     && Number.isFinite(totalCount)
-    && (contentItems === undefined || Array.isArray(contentItems));
+    // Cortex sends `contentItems: null` for a page with no hits (L-29UGSA). That page is a search result.
+    && (contentItems === undefined || contentItems === null || Array.isArray(contentItems));
 }
 
 // What a backend without the POST overload answers. 403/404 are excluded: they carry business errors
@@ -333,18 +386,17 @@ export async function apiGetAssetLinks({
   parameters,
   permanentLink,
   proxyPreference,
+  skipLinkGeneration,
   transformations,
   useSession,
 }: GetAssetLinksRequest): Promise<GetAssetLinksResponse> {
-  const getAssetLinkErrors: { [key: string]: Asset[] } = {};
-  const isOnlyOneAssetSelected = assets.length === 1;
-  let hasError = false;
+  const failures: (AssetLinkError | undefined)[] = [];
   const origin = http.defaults.baseURL ?? window.location.origin;
 
   try {
-    const settled = await Promise.allSettled(assets.map(async (asset) => {
+    const settled = await Promise.allSettled(assets.map(async (asset, index) => {
       const requestBody: GetAssetLinkRequest = {
-        GenerateAssetUrl: !permanentLink,
+        GenerateAssetUrl: !permanentLink && !skipLinkGeneration,
         Parameters: parameters,
         Proxy: proxyPreference,
         RecordId: asset.recordId,
@@ -363,6 +415,7 @@ export async function apiGetAssetLinks({
 
       const attemptPost = !postUnsupportedOrigins.has(origin);
       let rawResponse: GetAssetLinkResponse | CortexErrorResponse | undefined;
+      let rawStatus = 200;
 
       if (attemptPost) {
         try {
@@ -382,6 +435,7 @@ export async function apiGetAssetLinks({
             postUnsupportedOrigins.add(origin);
           } else {
             rawResponse = postResult.data;
+            rawStatus = postResult.status;
           }
         } catch {
           // A preflight that disallows POST rejects instead of answering, so there is no status to inspect; fall
@@ -410,20 +464,35 @@ export async function apiGetAssetLinks({
         rawResponse = getResult.data;
       }
 
-      if (isCortexErrorResponse(rawResponse)) {
-        hasError = true;
-        // We will give more details error message if only one asset was imported
-        if (isOnlyOneAssetSelected) {
-          if (getAssetLinkErrors[rawResponse.ErrorCode]) {
-            getAssetLinkErrors[rawResponse.ErrorCode].push(asset);
-          } else {
-            getAssetLinkErrors[rawResponse.ErrorCode] = [asset];
-          }
-        }
+      const isResponseObject = !!rawResponse && typeof rawResponse === 'object';
+
+      if (isCortexErrorResponse(rawResponse) || !isResponseObject || rawStatus < 200 || rawStatus >= 300) {
+        failures[index] = isCortexErrorResponse(rawResponse)
+          ? fromCortexErrorResponse(rawResponse)
+          : new AssetLinkError(`${ASSET_LINK_FAILED_MESSAGE} (HTTP ${rawStatus})`);
 
         return {
           imageUrl: asset.imageUrl,
         } as GetAssetLinkResponse;
+      }
+
+      const linkResponse = rawResponse as GetAssetLinkResponse;
+
+      // Cortex sends no link for a metadata-only request, so there is nothing to rewrite.
+      if (skipLinkGeneration) {
+        return {
+          ...linkResponse,
+          imageUrl: asset.imageUrl ?? '',
+        };
+      }
+
+      // Cortex can answer 200 with no link, for example when it does not authorize the format. The ExtraFields
+      // are still valid, so the selection goes through with the preview the grid already shows.
+      if (!permanentLink && (linkResponse.imageUrl === null || linkResponse.imageUrl === undefined)) {
+        return {
+          ...linkResponse,
+          imageUrl: asset.imageUrl,
+        };
       }
 
       const imageUrl = buildAssetLinkImageUrl({
@@ -431,33 +500,37 @@ export async function apiGetAssetLinks({
         extension,
         parameters,
         permanentLink,
-        rawResponse,
+        rawResponse: linkResponse,
         transformations,
         useSession,
       });
 
       return {
-        ...rawResponse,
+        ...linkResponse,
         imageUrl,
       };
     }));
 
-    const data = settled.flatMap((result) => {
+    const data = settled.flatMap((result, index) => {
       if (result.status === 'fulfilled') {
         return [result.value];
       }
 
-      hasError = true;
+      failures[index] = toAssetLinkError(result.reason);
       return [];
     });
 
+    const error = failures.find((failure) => failure !== undefined);
+
     return {
       data,
-      isError: hasError,
+      ...(error ? { error } : {}),
+      isError: !!error,
     };
-  } catch {
+  } catch (error) {
     return {
       data: [],
+      error: toAssetLinkError(error),
       isError: true,
     };
   }
@@ -576,21 +649,23 @@ export async function apiGetAssets({
   selectedFacets,
   sortOrder,
   start,
+  titleFallback,
   useSession,
 }: GetAssetsRequest) {
   const validatedFields = fields?.filter((field) => field && typeof field === 'string') ?? [];
+  // The SDK spellings come first, so a host field in a different case cannot replace the key the caption reads.
+  const requestedFields = [
+    ...ASSET_LIST_FIELDS,
+    resolveTitleFallbackField(titleFallback),
+    ...validatedFields,
+  ].filter(
+    (field, index, all) => all.findIndex((item) => item.toLowerCase() === field.toLowerCase()) === index,
+  );
 
   try {
     const response = await http.request<GetAssetsResponse>({
       data: {
-        Fields: [
-          ...ASSET_LIST_FIELDS,
-          ...validatedFields.filter((field, index) => {
-            const seen = [...ASSET_LIST_FIELDS, ...validatedFields.slice(0, index)];
-
-            return !seen.some((item) => item.toLowerCase() === field.toLowerCase());
-          }),
-        ],
+        Fields: requestedFields,
         Limit: pageSize || undefined,
         LimitedToDocTypes: limitedToDocTypes,
         ObjectRecordID: folderId || undefined,
@@ -622,7 +697,7 @@ export async function apiGetAssets({
           const mappedItems =
             rawResponse.contentItems?.map((item) => {
               let extension = item.fields[FIELD_EXTENSION] ?? '';
-              const name = resolveAssetCaption(item.fields);
+              const name = resolveAssetCaption(item.fields, titleFallback);
 
               if (extension && !extension.startsWith('.')) {
                 extension = '.' + extension;
@@ -632,8 +707,8 @@ export async function apiGetAssets({
                 // Spread first so a requested field that shares a name with a mapped property cannot
                 // shadow it; a column reading that Cortex field still resolves under its own key.
                 ...validatedFields.reduce<Record<string, string>>((acc, field) => {
-                  const sourceField = ASSET_LIST_FIELDS.find(
-                    (defaultField) => defaultField.toLowerCase() === field.toLowerCase(),
+                  const sourceField = requestedFields.find(
+                    (requestedField) => requestedField.toLowerCase() === field.toLowerCase(),
                   ) ?? field;
                   acc[field] = item.fields[sourceField] ?? '';
 

@@ -259,7 +259,7 @@ export default class CxContentBrowserAssetProxySelector extends CortexElement {
             () => html`
               <cx-menu class="content-browser-asset-proxy-selector__menu">
                 <cx-menu-item value="tracking" class="content-browser-asset-proxy-selector__menu-item">
-                  <cx-typography variant="body3" class="proxy__name">
+                  <cx-typography variant="body3" class="content-browser-asset-proxy-selector__menu-item__name">
                     ${this.localize.term('trackingParameters')}
                   </cx-typography>
                   <cx-switch

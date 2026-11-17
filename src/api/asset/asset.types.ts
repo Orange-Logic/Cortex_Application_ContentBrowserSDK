@@ -1,3 +1,4 @@
+import type { AssetLinkError } from './asset';
 import { Asset, AssetVersion, AvailableProxy, MediaType, TrackingParameter } from '@/types/asset';
 import { Facet, Transformation } from '@/types/content-browser';
 
@@ -41,6 +42,8 @@ export type GetAssetLinkResponse = {
 
 export type GetAssetLinksResponse = {
   data: GetAssetLinkResponse[];
+  /** The first failure, in asset order. Set only when `isError` is true. */
+  error?: AssetLinkError;
   isError: boolean;
 };
 
@@ -65,7 +68,8 @@ export type GetAssetsByIDsResponse = {
 };
 
 export type GetAssetsRawResponse = {
-  contentItems?: ContentItem[];
+  /** Null when no record matches: Cortex leaves the list unset and its JSON keeps the null. */
+  contentItems?: ContentItem[] | null;
   facets: Facet[];
   totalCount: number;
   /** Absent on a Cortex build older than L-42BJ3T. */
@@ -136,6 +140,11 @@ export type GetAssetLinksRequest = {
   parameters?: TrackingParameter[];
   permanentLink?: string;
   proxyPreference?: string;
+  /**
+   * Ask Cortex for the asset metadata and ExtraFields only (GenerateAssetUrl=false), so no asset link is
+   * created. Each item's imageUrl is then the grid preview URL the asset already carries.
+   */
+  skipLinkGeneration?: boolean;
   token?: string;
   transformations?: Transformation[];
   useRepresentative?: boolean;

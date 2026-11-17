@@ -1,6 +1,7 @@
 import './styles.css';
 
 export { default as CxContentBrowser } from './components/content-browser/content-browser';
+export { AssetLinkError } from './api/asset/asset';
 
 import { createRef } from 'react';
 import { createRoot } from 'react-dom/client';
@@ -15,7 +16,9 @@ import {
   ImageCardDisplayInfo,
 } from '@/GlobalConfigContext';
 import { store } from '@/store';
-import { type AutoSelectFormat, TableColumn, type TableRowActionPosition } from '@/types/content-browser';
+import {
+  type AutoSelectFormat, TableColumn, type TableRowActionPosition, type TitleFallback, toTitleFallback,
+} from '@/types/content-browser';
 import {
   initAuthInfoFromCache,
   setUseHeaders,
@@ -59,7 +62,9 @@ type OrangeDAMContentBrowser = {
     onAppAuthUrlCopied?: AppContextType['onAppAuthUrlCopied'];
 
     /**
-     * Callback when we have any error while using content browser
+     * Callback when we have any error while using content browser.
+     * When the asset link request of a confirm fails, `error` is an `AssetLinkError`.
+     * Its `errorCode` holds the Cortex error code (for example `OL_ERR_002_NOTALLOWED`) when Cortex sent one.
      */
     onError?: AppContextType['onError'];
     /**
@@ -229,6 +234,14 @@ type OrangeDAMContentBrowser = {
     simplePick?: boolean;
 
     /**
+     * Confirm returns the asset metadata and the requested `extraFields` without creating an asset link.
+     * Use it when the host needs fields such as `Document.RecordID`, not a URL: Cortex can refuse a link
+     * (for example a CDN permanent link) to a user who can still read the asset. Each selected item's
+     * `imageUrl` is then the preview URL of the grid. Default `false`.
+     */
+    skipLinkGeneration?: boolean;
+
+    /**
      * The flag to allow the user to select favorites
      */
     allowFavorites?: boolean;
@@ -282,6 +295,21 @@ type OrangeDAMContentBrowser = {
      * Default `host-edge`.
      */
     tableRowActionPosition?: TableRowActionPosition;
+
+    /**
+     * What the asset caption shows when the asset has no title. The title always shows when it is set.
+     *
+     * If omitted, the SDK uses the site default, or `uniqueIdentifier` when the site has no default.
+     * An explicit value overrides the site default.
+     *
+     * - `uniqueIdentifier` - the unique identifier of the asset.
+     * - `originalFileName` - the original file name of the asset.
+     *
+     * A file name can hold private information, for example model names or shoot details. Set
+     * `originalFileName` only when every user of the host can see the file names. Any other value gives
+     * `uniqueIdentifier`.
+     */
+    titleFallback?: TitleFallback;
 
     /**
      * Import behaviour when picking an asset, for a host that would rather not show the format
@@ -404,6 +432,7 @@ const ContentBrowser: OrangeDAMContentBrowser = {
           { title: "Description", field: "Document.CaptionLong" },
         ],
         tableRowActionPosition: "host-edge", // Where the table row action shows: host-edge or row-end
+        // titleFallback: "uniqueIdentifier", // Optional override of the site default
       });`);
   },
   open: async ({
@@ -430,6 +459,7 @@ const ContentBrowser: OrangeDAMContentBrowser = {
     allowProxy,
     allowTracking,
     simplePick,
+    skipLinkGeneration,
     availableDocTypes,
     availableRepresentativeSubtypes,
     baseUrl,
@@ -457,6 +487,7 @@ const ContentBrowser: OrangeDAMContentBrowser = {
     defaultGridView,
     tableColumns,
     tableRowActionPosition,
+    titleFallback,
     autoSelectFormat,
   }) => {
     const siteSessionUrl = useSiteSession ? resolveSiteSessionUrl(baseUrl) : undefined;
@@ -611,11 +642,13 @@ const ContentBrowser: OrangeDAMContentBrowser = {
             allowTracking: allowTracking !== undefined ? !!allowTracking : true,
             allowProxy: simplePick ? false : (allowProxy !== undefined ? !!allowProxy : true),
             simplePick: !!simplePick,
+            skipLinkGeneration: !!skipLinkGeneration,
             allowFavorites: !!allowFavorites,
             defaultGridView: defaultGridView ?? '',
             autoSelectFormat: autoSelectFormat ?? false,
             tableColumns: tableColumns ?? [],
             tableRowActionPosition: tableRowActionPosition ?? 'host-edge',
+            titleFallback: titleFallback === undefined ? undefined : toTitleFallback(titleFallback),
           }}
         >
           <App

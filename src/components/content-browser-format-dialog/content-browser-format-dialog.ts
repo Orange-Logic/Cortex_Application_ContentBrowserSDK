@@ -14,10 +14,12 @@ import { GetAvailableExtensionsResponse } from '@/api/asset/asset.types';
 import componentStyles from '@/styles/component.styles';
 import { Asset, AssetVersion, AvailableProxy, MediaType } from '@/types/asset';
 import { watch } from '@/utils/watch';
+import CxAlert from '@orangelogic/design-system/components/alert';
 import CxAssetLinkFormat from '@orangelogic/design-system/components/asset-link-format';
 import CxCropper from '@orangelogic/design-system/components/cropper';
 import CxDialog from '@orangelogic/design-system/components/dialog';
 import CxDrawer from '@orangelogic/design-system/components/drawer';
+import CxIcon from '@orangelogic/design-system/components/icon';
 import CxIconButton from '@orangelogic/design-system/components/icon-button';
 import CxLineClamp from '@orangelogic/design-system/components/line-clamp';
 import CxSpace from '@orangelogic/design-system/components/space';
@@ -80,6 +82,7 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
   static readonly styles: CSSResultGroup = [componentStyles, styles];
 
   static readonly dependencies = {
+    'cx-alert': CxAlert,
     'cx-asset-link-format': CxAssetLinkFormat,
     'cx-cropper': CxCropper,
     'cx-content-browser-asset-preview': CxContentBrowserAssetPreview,
@@ -87,6 +90,7 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
     'cx-content-browser-asset-version-history': CxContentBrowserAssetVersionHistory,
     'cx-dialog': CxDialog,
     'cx-drawer': CxDrawer,
+    'cx-icon': CxIcon,
     'cx-icon-button': CxIconButton,
     'cx-line-clamp': CxLineClamp,
     'cx-space': CxSpace,
@@ -261,6 +265,10 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
   @state()
   loadingConfirm = false;
 
+  /** Set when the last confirm failed. An empty string shows the generic error text. */
+  @state()
+  confirmError: string | undefined = undefined;
+
   @state()
   enabledTracking: boolean = false;
 
@@ -378,6 +386,7 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
     proxiesFailed?: boolean;
   }) {
     this.asset = asset;
+    this.confirmError = undefined;
     this.isFavorite = isFavorite;
     this.isAssetPinned = isAssetPinned;
     this.proxies = proxies;
@@ -462,6 +471,15 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
 
   setLoadingConfirm(loadingConfirm: boolean) {
     this.loadingConfirm = loadingConfirm;
+  }
+
+  /**
+   * Show why the last confirm failed, and make the confirm button usable again for a retry.
+   * Without a message, the dialog shows a generic error text.
+   */
+  showConfirmError(message?: string) {
+    this.loadingConfirm = false;
+    this.confirmError = message?.trim() ?? '';
   }
 
   mapFormatConfirmPayload(asset: Asset, selectedProxy?: AvailableProxy) {
@@ -576,6 +594,8 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
     if (!this.asset || !this.canConfirm) {
       return;
     }
+
+    this.confirmError = undefined;
 
     if (!this.canUseProxies) {
       this.loadingConfirm = true;
@@ -831,9 +851,12 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
     let previewer: TemplateResult | undefined = undefined;
     let proxySelector: TemplateResult | undefined = undefined;
 
-    // The cropper is filled by cx-asset-link-format, which simple-pick does not render; without it
-    // the element would spin forever, so fall back to the plain image previewer.
-    if (!this.simplePick && this.asset.docType === MediaType.Image) {
+    // The editor initializes the cropper and requests a transformed image, even when hidden.
+    // Keep both mounted for a confirmed custom format, but leave ordinary previews on the original image.
+    const useCropper = !this.simplePick && this.asset.docType === MediaType.Image
+      && (this.showCustomFormat || this.selectedProxy === CUSTOM_FORMAT_VALUE);
+
+    if (useCropper) {
       previewer = html`
         <cx-cropper id="cropper" class="content-browser-format__cropper" fill-image></cx-cropper>
       `;
@@ -916,7 +939,7 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
     }
 
     return html`
-      ${guard([this.asset], () => previewer)}
+      ${guard([this.asset, useCropper], () => previewer)}
       ${guard([
           this.availableExtensions,
           this.asset,
@@ -924,13 +947,13 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
           this.confirmedTransformations,
           this.selectedProxy,
           this.showCustomFormat,
-          this.simplePick,
+          useCropper,
           this.cropModes,
           this.focusModes,
           this.parts,
         ],
         () => {
-          if (this.simplePick || this.asset?.docType !== MediaType.Image) {
+          if (!useCropper || !this.asset) {
             return nothing;
           }
 
@@ -1037,6 +1060,15 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
 
     return html`
       <div slot="footer" class="content-browser-format__footer">
+        ${when(this.confirmError !== undefined,
+          () => html`
+            <cx-alert class="content-browser-format__error" variant="danger" open>
+              <cx-icon slot="icon" name="report"></cx-icon>
+              ${this.confirmError || this.localize.term('oopsSomethingWentWrong')}
+            </cx-alert>
+          `,
+          () => nothing,
+        )}
         ${content}
       </div>
     `;
@@ -1070,6 +1102,7 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
 
   private handleClose() {
     this.asset = undefined;
+    this.confirmError = undefined;
     this.confirmedFormat = undefined;
     this.confirmedTransformations = [];
     this.isOpen = false;

@@ -108,6 +108,52 @@ setting is simply ignored. Because no GetAssetLink request is made, only the com
 `extraFields` (`ScrubUrl` and `AllowATSLink`) are returned in this mode -- request any
 other field with `simplePick` off.
 
+## Errors on Confirm (`onError`)
+
+When the asset link request of a confirm fails, the SDK does not call `onAssetSelected`.
+The dialog stays open and shows the error, and its confirm button becomes usable again.
+The SDK also calls `onError(errorMessage, error)`:
+
+```html
+<script>
+  OrangeDAMContentBrowser.open({
+    containerId: 'asset-picker',
+    onAssetSelected: (assets) => console.log(assets),
+    onError: (errorMessage, error) => {
+      // error.errorCode is the Cortex error code, for example 'OL_ERR_002_NOTALLOWED'.
+      console.error(errorMessage, error?.errorCode);
+    },
+  });
+</script>
+```
+
+`error` is an `AssetLinkError`. When Cortex sends an error body, `errorCode` and
+`serverMessage` hold its `ErrorCode` and `Message`. For a network failure they are empty.
+A successful response with no link is not an error: the asset goes to `onAssetSelected`
+with its preview URL as `imageUrl`.
+
+## Select Without an Asset Link (`skipLinkGeneration`)
+
+Set `skipLinkGeneration: true` when the host needs the selected asset's fields, not a
+URL. Confirm still calls GetAssetLink, but with `GenerateAssetUrl=false`, so Cortex
+returns the metadata and the requested `extraFields` and creates no asset link:
+
+```html
+<script>
+  OrangeDAMContentBrowser.open({
+    allowProxy: false,
+    extraFields: ['Document.RecordID'],
+    skipLinkGeneration: true,
+    onAssetSelected: (assets) => console.log(assets[0].extraFields['Document.RecordID']),
+  });
+</script>
+```
+
+Use it when a link is not needed. Cortex refuses a link to some users who can still
+read the asset (for example a CDN permanent link without the `GetBulkPermanentLinks`
+security function), and the selection then fails. Each selected item's `imageUrl` is
+the grid preview URL. Unlike `simplePick`, any `extraFields` can be requested.
+
 # Change Log
 * March 24, 2026 - v2.2.3
   * Supports displaying asset thumbnails according to the selected format (https://link.orangelogic.com/Tasks/420YSB)

@@ -1,4 +1,4 @@
-import { AssetLinkFormatPart } from '@/types/content-browser';
+import { AssetLinkFormatPart, toTitleFallback } from '@/types/content-browser';
 
 import { ContentBrowserParameters, GetContentBrowserParametersResponse } from './metadata.types';
 
@@ -99,5 +99,6 @@ export function toContentBrowserParameters(raw: Record<string, string>): GetCont
     parts: parseParts(raw[ContentBrowserParameters.AssetLinkFormatParts]),
     supportedExtensions: raw[ContentBrowserParameters.ExtensionsThatSupportTransformationUsingATS]?.split('\n') ?? [],
     supportedRepresentativeSubtypes: raw[ContentBrowserParameters.RepresentativeSupportedDocSubType]?.split('\r\n') ?? [],
+    titleFallback: toTitleFallback(raw[ContentBrowserParameters.TitleFallback]),
   };
 }

@@ -3,7 +3,11 @@ import { AxiosError, type AxiosResponse, type InternalAxiosRequestConfig } from 
 
 import http from '@/api/api';
 
-import { apiGetAssets, apiGetAvailableProxies, resolveAssetCaption } from './asset';
+import { type Asset, MediaType } from '@/types/asset';
+
+import {
+  apiGetAssetLinks, apiGetAssets, apiGetAvailableProxies, AssetLinkError, resolveAssetCaption,
+} from './asset';
 
 describe('asset caption', () => {
   const originalAdapter = http.defaults.adapter;
@@ -42,6 +46,38 @@ describe('asset caption', () => {
       expect(resolveAssetCaption({
         'CoreField.OriginalFileName': '_MG_8632.jpg',
       })).to.equal('');
+    });
+
+    // L-42D2A9: a host can opt in to the file name with the titleFallback option.
+    describe('with titleFallback originalFileName', () => {
+      it('falls back to the original file name when the title is blank', () => {
+        expect(resolveAssetCaption({
+          'Document.Title': '',
+          'CoreField.Identifier': 'FA23E70G',
+          'CoreField.OriginalFileName': 'CHI-BEARS-ARCH.ai',
+        }, 'originalFileName')).to.equal('CHI-BEARS-ARCH.ai');
+      });
+
+      it('still shows the title when it is set', () => {
+        expect(resolveAssetCaption({
+          'Document.Title': 'Bears arch',
+          'CoreField.Identifier': 'FA23E70G',
+          'CoreField.OriginalFileName': 'CHI-BEARS-ARCH.ai',
+        }, 'originalFileName')).to.equal('Bears arch');
+      });
+
+      it('falls back to the identifier when the file name is blank', () => {
+        expect(resolveAssetCaption({
+          'CoreField.Identifier': 'FA23E70G',
+        }, 'originalFileName')).to.equal('FA23E70G');
+      });
+    });
+
+    it('keeps the identifier for titleFallback uniqueIdentifier', () => {
+      expect(resolveAssetCaption({
+        'CoreField.Identifier': 'ARC12345',
+        'CoreField.OriginalFileName': '_MG_8632.jpg',
+      }, 'uniqueIdentifier')).to.equal('ARC12345');
     });
   });
 
@@ -87,6 +123,59 @@ describe('asset caption', () => {
 
       expect(seen.requestedFields).to.contain('Document.Title');
       expect(seen.requestedFields).to.not.contain('CoreField.OriginalFileName');
+    });
+
+    it('asks Cortex for the original file name and shows it for titleFallback originalFileName', async () => {
+      const seen = stubContent({
+        'Document.Title': '',
+        'CoreField.Identifier': 'FA23E70G',
+        'CoreField.OriginalFileName': 'CHI-BEARS-ARCH.ai',
+      });
+
+      const response = await apiGetAssets({ titleFallback: 'originalFileName' } as Parameters<typeof apiGetAssets>[0]);
+
+      expect(seen.requestedFields).to.contain('CoreField.OriginalFileName');
+      expect(response.items[0].name).to.equal('CHI-BEARS-ARCH.ai');
+      expect(response.items[0]).to.not.have.property('CoreField.OriginalFileName');
+    });
+
+    it('keeps the file name caption when a host field spells it in a different case', async () => {
+      const values: Record<string, string> = {
+        'document.title': '',
+        'corefield.identifier': 'ARC12345',
+        'corefield.originalfilename': 'photo.jpg',
+      };
+      const seen: { requestedFields: string[] } = { requestedFields: [] };
+
+      // Cortex keys each returned field by the spelling of the request.
+      http.defaults.adapter = async (config) => {
+        seen.requestedFields = JSON.parse(config.data).Fields;
+
+        return {
+          config,
+          data: {
+            contentItems: [{
+              recordID: 'Q0LDO000001895618',
+              fields: Object.fromEntries(seen.requestedFields.map((field) => [field, values[field.toLowerCase()] ?? ''])),
+            }],
+            facets: [],
+            totalCount: 1,
+          },
+          headers: {},
+          status: 200,
+          statusText: 'OK',
+        };
+      };
+
+      const response = await apiGetAssets({
+        fields: ['corefield.originalfilename'],
+        titleFallback: 'originalFileName',
+      } as Parameters<typeof apiGetAssets>[0]);
+
+      expect(seen.requestedFields.filter((field) => field.toLowerCase() === 'corefield.originalfilename'))
+        .to.deep.equal(['CoreField.OriginalFileName']);
+      expect(response.items[0].name).to.equal('photo.jpg');
+      expect(response.items[0]['corefield.originalfilename']).to.equal('photo.jpg');
     });
 
     // L-42BQUZ: axios rejects with these errors for a timeout, a lost connection and a non-2xx response.
@@ -179,6 +268,45 @@ describe('asset caption', () => {
 
       expect(response.isError).to.equal(false);
       expect(response.totalCount).to.equal(0);
+    });
+
+    // L-29UGSA: Cortex leaves ContentItems unset when nothing matches, and its JSON keeps the null.
+    // This is the body dam.qa0 sent for a folder with no match for the Types filter.
+    it('reports the Cortex body for a page with no hits (contentItems null) as a search with no hits, not an error', async () => {
+      const emptyFacet = (facetFieldName: string, displayName: string) => ({
+        facetDetails: { displayName, facetFieldName },
+        values: [],
+      });
+
+      http.defaults.adapter = async (config) => ({
+        config,
+        data: {
+          contentItems: null,
+          facets: [
+            emptyFacet('Types', 'Types'),
+            emptyFacet('CoreField.WorkflowStatus', 'Status'),
+            emptyFacet('CoreField.Purpose', 'Visibility Class'),
+            emptyFacet('CustomFacetOther.FileExtension', 'File Extension'),
+          ],
+          totalCount: 0,
+          unreadableFields: [],
+        },
+        headers: {},
+        status: 200,
+        statusText: 'OK',
+      });
+
+      const response = await apiGetAssets({} as Parameters<typeof apiGetAssets>[0]);
+
+      expect(response.isError).to.equal(false);
+      expect(response.items).to.deep.equal([]);
+      expect(response.totalCount).to.equal(0);
+      expect(response.facets.map((facet) => facet.facetDetails.facetFieldName)).to.deep.equal([
+        'Types',
+        'CoreField.WorkflowStatus',
+        'CoreField.Purpose',
+        'CustomFacetOther.FileExtension',
+      ]);
     });
 
     describe('unreadable fields (L-42BJ3T)', () => {
@@ -339,5 +467,220 @@ describe('apiGetAvailableProxies', () => {
 
     expect(response.isError).to.equal(false);
     expect(response.previewUrl).to.equal('https://cdn.example/preview.jpg');
+  });
+});
+
+describe('apiGetAssetLinks', () => {
+  const originalAdapter = http.defaults.adapter;
+  const notAllowed = {
+    ErrorCode: 'OL_ERR_002_NOTALLOWED',
+    Message: 'You do not have permission to get bulk of reusable permanent links',
+  };
+
+  const makeAsset = (overrides: Partial<Asset> = {}): Asset => ({
+    docSubType: '',
+    docType: MediaType.Image,
+    extension: '.jpg',
+    id: 'link-asset',
+    identifier: 'ID-1',
+    imageUrl: 'https://cdn.example/preview.jpg',
+    name: 'Photo',
+    originalUrl: '',
+    recordId: 'link-asset',
+    size: '1 MB',
+    tags: '',
+    ...overrides,
+  });
+
+  afterEach(() => {
+    http.defaults.adapter = originalAdapter;
+  });
+
+  it('reports a Cortex error body as an error with its code and message', async () => {
+    http.defaults.adapter = async (config) => ({
+      config,
+      data: notAllowed,
+      headers: {},
+      status: 400,
+      statusText: 'Bad Request',
+    });
+
+    const response = await apiGetAssetLinks({ assets: [makeAsset({ recordId: 'link-400' })] });
+
+    expect(response.isError).to.equal(true);
+    expect(response.error).to.be.instanceOf(AssetLinkError);
+    expect(response.error?.errorCode).to.equal('OL_ERR_002_NOTALLOWED');
+    expect(response.error?.serverMessage).to.equal(notAllowed.Message);
+    expect(response.error?.message).to.equal(notAllowed.Message);
+  });
+
+  it('reports a thrown request as an error without a code', async () => {
+    http.defaults.adapter = async (config) => {
+      throw new AxiosError('Network Error', AxiosError.ERR_NETWORK, config);
+    };
+
+    const response = await apiGetAssetLinks({ assets: [makeAsset({ recordId: 'link-network' })] });
+
+    expect(response.isError).to.equal(true);
+    expect(response.error).to.be.instanceOf(AssetLinkError);
+    expect(response.error?.errorCode).to.equal(undefined);
+    expect(response.error?.serverMessage).to.equal(undefined);
+    expect(response.error?.message).to.equal('Network Error');
+  });
+
+  it('keeps the Cortex code of a GET fallback that the server refuses', async () => {
+    http.defaults.adapter = async (config) => {
+      if (config.method?.toUpperCase() === 'POST') {
+        throw new AxiosError('Network Error', AxiosError.ERR_NETWORK, config);
+      }
+
+      throw new AxiosError(
+        'Request failed with status code 400',
+        AxiosError.ERR_BAD_REQUEST,
+        config,
+        null,
+        { config, data: notAllowed, headers: {}, status: 400, statusText: 'Bad Request' } as AxiosResponse,
+      );
+    };
+
+    const response = await apiGetAssetLinks({ assets: [makeAsset({ recordId: 'link-get-400' })] });
+
+    expect(response.isError).to.equal(true);
+    expect(response.error?.errorCode).to.equal('OL_ERR_002_NOTALLOWED');
+    expect(response.error?.serverMessage).to.equal(notAllowed.Message);
+  });
+
+  it('reports a non-2xx response without a Cortex error body as an error', async () => {
+    http.defaults.adapter = async (config) => ({
+      config,
+      data: '<html>Server error</html>',
+      headers: {},
+      status: 500,
+      statusText: 'Internal Server Error',
+    });
+
+    const response = await apiGetAssetLinks({ assets: [makeAsset({ recordId: 'link-500' })] });
+
+    expect(response.isError).to.equal(true);
+    expect(response.error?.errorCode).to.equal(undefined);
+  });
+
+  it('passes a 200 response with no link through with the preview and the extra fields', async () => {
+    http.defaults.adapter = async (config) => ({
+      config,
+      data: { extraFields: { 'Document.RecordID': 'Q2ADO000000356116' }, imageUrl: null },
+      headers: {},
+      status: 200,
+      statusText: 'OK',
+    });
+
+    const response = await apiGetAssetLinks({
+      assets: [makeAsset({ recordId: 'link-null' })],
+      extraFields: ['Document.RecordID'],
+    });
+
+    expect(response.isError).to.equal(false);
+    expect(response.error).to.equal(undefined);
+    expect(response.data).to.have.lengthOf(1);
+    expect(response.data[0].extraFields).to.deep.equal({ 'Document.RecordID': 'Q2ADO000000356116' });
+    expect(response.data[0].imageUrl).to.equal('https://cdn.example/preview.jpg');
+  });
+
+  it('still rewrites the extension of a link the server sends', async () => {
+    http.defaults.adapter = async (config) => ({
+      config,
+      data: { imageUrl: 'https://cdn.example/AssetLink/abc.png' },
+      headers: {},
+      status: 200,
+      statusText: 'OK',
+    });
+
+    const response = await apiGetAssetLinks({ assets: [makeAsset({ recordId: 'link-ok' })] });
+
+    expect(response.isError).to.equal(false);
+    expect(response.data[0].imageUrl).to.equal('https://cdn.example/AssetLink/abc.jpg');
+  });
+
+  it('reports the first failure of a multi-asset selection and keeps one entry per asset', async () => {
+    http.defaults.adapter = async (config) => {
+      const { RecordId } = JSON.parse(config.data);
+
+      return RecordId === 'multi-denied'
+        ? { config, data: notAllowed, headers: {}, status: 400, statusText: 'Bad Request' }
+        : { config, data: { imageUrl: 'https://cdn.example/AssetLink/ok.jpg' }, headers: {}, status: 200, statusText: 'OK' };
+    };
+
+    const response = await apiGetAssetLinks({
+      assets: [makeAsset({ recordId: 'multi-ok' }), makeAsset({ recordId: 'multi-denied' })],
+    });
+
+    expect(response.isError).to.equal(true);
+    expect(response.error?.errorCode).to.equal('OL_ERR_002_NOTALLOWED');
+    expect(response.data).to.have.lengthOf(2);
+    expect(response.data[0].imageUrl).to.equal('https://cdn.example/AssetLink/ok.jpg');
+    expect(response.data[1].imageUrl).to.equal('https://cdn.example/preview.jpg');
+  });
+});
+
+describe('apiGetAssetLinks with skipLinkGeneration (L-29U6N8)', () => {
+  const originalAdapter = http.defaults.adapter;
+  const asset = {
+    extension: '.jpg',
+    imageUrl: 'https://cdn.example/preview.jpg',
+    recordId: '2Z7DHUNW2RPB',
+  } as Asset;
+  let sentBodies: Record<string, unknown>[] = [];
+
+  // Cortex answers a metadata-only request with no link: imageUrl is null, the ExtraFields are there.
+  const respondWith = (data: unknown) => {
+    http.defaults.adapter = async (config) => {
+      sentBodies.push(typeof config.data === 'string' ? JSON.parse(config.data) : config.data);
+
+      return {
+        config,
+        data,
+        headers: {},
+        status: 200,
+        statusText: 'OK',
+      };
+    };
+  };
+
+  beforeEach(() => {
+    sentBodies = [];
+  });
+
+  afterEach(() => {
+    http.defaults.adapter = originalAdapter;
+  });
+
+  it('asks Cortex for metadata only, so no link is created', async () => {
+    respondWith({ extraFields: { 'Document.RecordID': 'Q2ADO000000356116' }, imageUrl: null, metadata: null });
+
+    await apiGetAssetLinks({ assets: [asset], extraFields: ['Document.RecordID'], skipLinkGeneration: true });
+
+    expect(sentBodies[0]?.GenerateAssetUrl).to.equal(false);
+  });
+
+  it('hands the host its extraFields when Cortex returns no link', async () => {
+    respondWith({ extraFields: { 'Document.RecordID': 'Q2ADO000000356116' }, imageUrl: null, metadata: null });
+
+    const response = await apiGetAssetLinks({
+      assets: [asset],
+      extraFields: ['Document.RecordID'],
+      skipLinkGeneration: true,
+    });
+
+    expect(response.isError).to.equal(false);
+    expect(response.data[0]?.extraFields?.['Document.RecordID']).to.equal('Q2ADO000000356116');
+    expect(response.data[0]?.imageUrl).to.equal('https://cdn.example/preview.jpg');
+  });
+
+  it('still asks Cortex for a link when the option is off', async () => {
+    respondWith({ extraFields: {}, imageUrl: 'https://cdn.example/AssetLink/abc.jpg', metadata: null });
+
+    await apiGetAssetLinks({ assets: [asset], extraFields: ['Document.RecordID'] });
+
+    expect(sentBodies[0]?.GenerateAssetUrl).to.equal(true);
   });
 });
