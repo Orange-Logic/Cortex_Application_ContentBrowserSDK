@@ -2130,17 +2130,32 @@ describe('content-browser-format-dialog', () => {
       expect(linkFormat.parts).to.deep.equal(parts);
     });
 
-    // cx-asset-link-format throws on an undefined parts list, so nothing is sent and it keeps its own.
+    // Unset and empty both send `undefined`, which cx-asset-link-format reads as its default panels.
     [undefined, []].forEach((parts) => {
       it(`keeps the design system's default parts when parts are ${parts ? 'empty' : 'unset'}`, async () => {
         el.parts = parts;
 
         const linkFormat = await openImage();
+        await linkFormat.updateComplete;
 
         expect(linkFormat.parts).to.deep.equal(
           (document.createElement('cx-asset-link-format') as CxAssetLinkFormat).parts,
         );
       });
+    });
+
+    it('goes back to the default parts when the parts are cleared on an open panel', async () => {
+      el.parts = [AssetLinkFormatPart.Crop];
+      await openImage();
+
+      el.parts = undefined;
+      await elementUpdated(el);
+      const linkFormat = getLinkFormat(el);
+      await linkFormat.updateComplete;
+
+      expect(linkFormat.parts).to.deep.equal(
+        (document.createElement('cx-asset-link-format') as CxAssetLinkFormat).parts,
+      );
     });
 
     it('updates an open panel when the modes and parts arrive after open()', async () => {

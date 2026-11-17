@@ -1,4 +1,4 @@
-import { CSSResultGroup, html, noChange, nothing, TemplateResult } from 'lit';
+import { CSSResultGroup, html, nothing, TemplateResult } from 'lit';
 import { property, query, state } from 'lit/decorators.js';
 import { guard } from 'lit/directives/guard.js';
 import { ifDefined } from 'lit/directives/if-defined.js';
@@ -200,8 +200,8 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
 
   /**
    * Panels of the custom format panel, in order (Cortex `AssetLinkFormatParts`). Empty → the
-   * design system's default panels: the binding then sends nothing, because cx-asset-link-format
-   * throws on an `undefined` list.
+   * design system's default panels: the binding sends `undefined`, which cx-asset-link-format reads
+   * as its defaults (an empty list there would show no panel).
    */
   @property({ attribute: false })
   parts: AssetLinkFormatPart[] | undefined = undefined;
@@ -950,7 +950,7 @@ export default class CxContentBrowserFormatDialog extends CortexElement {
               .baseUrl=${this.baseUrl}
               .cropModes=${this.cropModes?.length ? this.cropModes : CROP_MODES}
               .focusModes=${this.focusModes?.length ? this.focusModes : FOCUS_MODES}
-              .parts=${this.parts?.length ? this.parts : noChange}
+              .parts=${this.parts?.length ? this.parts : undefined}
               .extensions=${extensions}
               .queryElement=${this.shadowRoot}
               .proxies=${this.proxies}
