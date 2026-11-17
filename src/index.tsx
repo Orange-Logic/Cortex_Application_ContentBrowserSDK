@@ -299,7 +299,10 @@ type OrangeDAMContentBrowser = {
     /**
      * What the asset caption shows when the asset has no title. The title always shows when it is set.
      *
-     * - `uniqueIdentifier` (default) - the unique identifier of the asset.
+     * If omitted, the SDK uses the site default, or `uniqueIdentifier` when the site has no default.
+     * An explicit value overrides the site default.
+     *
+     * - `uniqueIdentifier` - the unique identifier of the asset.
      * - `originalFileName` - the original file name of the asset.
      *
      * A file name can hold private information, for example model names or shoot details. Set
@@ -429,7 +432,7 @@ const ContentBrowser: OrangeDAMContentBrowser = {
           { title: "Description", field: "Document.CaptionLong" },
         ],
         tableRowActionPosition: "host-edge", // Where the table row action shows: host-edge or row-end
-        titleFallback: "uniqueIdentifier", // Caption when the title is blank: uniqueIdentifier or originalFileName
+        // titleFallback: "uniqueIdentifier", // Optional override of the site default
       });`);
   },
   open: async ({
@@ -645,7 +648,7 @@ const ContentBrowser: OrangeDAMContentBrowser = {
             autoSelectFormat: autoSelectFormat ?? false,
             tableColumns: tableColumns ?? [],
             tableRowActionPosition: tableRowActionPosition ?? 'host-edge',
-            titleFallback: toTitleFallback(titleFallback),
+            titleFallback: titleFallback === undefined ? undefined : toTitleFallback(titleFallback),
           }}
         >
           <App

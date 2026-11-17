@@ -300,11 +300,12 @@ export default class CxContentBrowser extends CortexElement {
   tableRowActionPosition: TableRowActionPosition = 'host-edge';
 
   /**
-   * What the asset caption shows when the asset has no title: `uniqueIdentifier` (default) or
-   * `originalFileName`. Any other value gives `uniqueIdentifier`.
+   * Overrides the site fallback for assets without a title: `uniqueIdentifier` or `originalFileName`.
+   * If absent, the site default applies, or `uniqueIdentifier` when no site default is available.
+   * Any other explicit value gives `uniqueIdentifier`. The title always wins.
    */
   @property({ attribute: 'title-fallback', type: String })
-  titleFallback: TitleFallback = 'uniqueIdentifier';
+  titleFallback?: TitleFallback;
 
   /** The widths the user saved for the table columns of this site, in pixels, keyed by field. */
   @state() private tableColumnWidths: Record<string, number> = {};
@@ -580,7 +581,7 @@ export default class CxContentBrowser extends CortexElement {
         defaultSelectedFacets: this.defaultSelectedFacets,
         defaultSortDirection: this.defaultSortDirection,
         defaultSortOrderName: this.defaultSortOrderName,
-        titleFallback: toTitleFallback(this.titleFallback),
+        titleFallback: this.titleFallback === undefined ? undefined : toTitleFallback(this.titleFallback),
         token: this.token,
         useSession: this.useSession,
         useSiteSession: this.useSiteSession,
@@ -731,7 +732,7 @@ export default class CxContentBrowser extends CortexElement {
     this.fetchAndMergeAssetsController?.updateAuth(this.token, this.useSession, this.bearerToken);
   }
 
-  @watch('useSiteSession', { waitUntilFirstUpdate: true })
+  @watch(['useSiteSession', 'baseUrl'], { waitUntilFirstUpdate: true })
   handleSiteSessionChange() {
     if (this.useSiteSession) {
       this.baseUrl = resolveSiteSessionUrl(this.baseUrl);

@@ -42,7 +42,7 @@ import {
 import { GetContentBrowserParametersResponse } from '@/api/metadata/metadata.types';
 import { Asset, GetAssetsRequest, MediaType } from '@/types/asset';
 import { UserInfo } from '@/types/auth';
-import { Facet, SortOrder, type TitleFallback, toFieldKey } from '@/types/content-browser';
+import { Facet, SortOrder, type TitleFallback, toFieldKey, toTitleFallback } from '@/types/content-browser';
 import { GetFolderRequest } from '@/types/folder';
 import { getSiteSessionRequestUrl, resolveSiteSessionUrl } from '@/utils/site-session';
 
@@ -63,7 +63,7 @@ type FetchAndMergeAssetsControllerOptions = {
   defaultSelectedFacets: Record<string, string[]>;
   defaultSortDirection: 'ascending' | 'descending';
   defaultSortOrderName: string;
-  /** What the asset caption shows when the asset has no title. Default `uniqueIdentifier`. */
+  /** Overrides the site fallback for assets without a title. Without either value, use `uniqueIdentifier`. */
   titleFallback?: TitleFallback;
   token: string;
   useSession: string;
@@ -106,6 +106,9 @@ export class FetchAndMergeAssetsController implements ReactiveController {
 
   private lastRequest: GetAssetsRequest | null = null;
 
+  /** The latest accepted search, including the debounce and metadata wait. */
+  private latestRequest: GetAssetsRequest | null = null;
+
   /** The resolved request of the last search that got an error. A retry sends it again. */
   private failedRequest: GetAssetsRequest | null = null;
 
@@ -141,7 +144,11 @@ export class FetchAndMergeAssetsController implements ReactiveController {
 
   private additionalFields: string[];
 
-  private titleFallback: TitleFallback;
+  private readonly titleFallback?: TitleFallback;
+
+  private parametersPromise: Promise<void> | null = null;
+
+  private connectionGeneration = 0;
 
   private readonly defaultSearchText: string;
 
@@ -215,7 +222,7 @@ export class FetchAndMergeAssetsController implements ReactiveController {
     defaultSelectedFacets,
     defaultSortDirection,
     defaultSortOrderName,
-    titleFallback = 'uniqueIdentifier',
+    titleFallback,
     token,
     useSession,
     useSiteSession = false,
@@ -226,7 +233,7 @@ export class FetchAndMergeAssetsController implements ReactiveController {
 
     this.additionalFields = additionalFields ?? [];
 
-    this.titleFallback = titleFallback;
+    this.titleFallback = titleFallback === undefined ? undefined : toTitleFallback(titleFallback);
 
     this.defaultFolderId = defaultFolderId;
 
@@ -376,7 +383,8 @@ export class FetchAndMergeAssetsController implements ReactiveController {
    * step with the UI instead of serving requests through the mode the controller was built with.
    */
   updateSiteSession(useSiteSession: boolean, baseUrl: string, token: string, useSession: string, bearerToken: string) {
-    if (useSiteSession === this.useSiteSession) {
+    const nextBaseUrl = useSiteSession ? resolveSiteSessionUrl(baseUrl) : baseUrl;
+    if (useSiteSession === this.useSiteSession && nextBaseUrl === this.baseUrl) {
       return;
     }
 
@@ -389,13 +397,33 @@ export class FetchAndMergeAssetsController implements ReactiveController {
       this.resolvePendingTokenRefresh = null;
     }
 
-    this.isLoggedIn = true;
+    const request = this.latestRequest;
+
+    // A site change starts a new list before any response from the previous site can arrive.
+    this.#generation += 1;
+    if (this._debounceTimeout) {
+      clearTimeout(this._debounceTimeout);
+      this._debounceTimeout = undefined;
+    }
+    this.#queued = false;
+    this.#lastPage = null;
     this.#hasFetchedOnce = false;
+    this.items = [];
+    this.facets = [];
+    this.totalCount = 0;
+    this.unreadableFields = [];
+    this.failedRequest = null;
+    this.lastRequest = null;
+    this.latestRequest = null;
+    this.sortOrders = {};
+    this.loading = false;
+    this.isLoggedIn = true;
+    this.resetParameters();
 
     this.fetchInitialData();
 
-    if (this.lastRequest) {
-      this.fetchAndMergeAssets(this.lastRequest);
+    if (request) {
+      this.fetchAndMergeAssets({ ...request, start: 0 });
     }
 
     this.host.requestUpdate();
@@ -415,11 +443,18 @@ export class FetchAndMergeAssetsController implements ReactiveController {
       return;
     }
     const tokenChanged = this.token !== token || this.bearerToken !== bearerToken;
+    const sessionChanged = this.useSession !== useSession;
     const wasLoggedOut = !this.isLoggedIn;
 
     this.token = token;
     this.useSession = useSession;
     this.bearerToken = bearerToken;
+
+    if (tokenChanged || sessionChanged) {
+      this.connectionGeneration += 1;
+      this.parametersPromise = null;
+      this.loadParameters();
+    }
 
     if (tokenChanged && this.resolvePendingTokenRefresh) {
       this.resolvePendingTokenRefresh(bearerToken || token || null);
@@ -452,11 +487,7 @@ export class FetchAndMergeAssetsController implements ReactiveController {
       this.host.requestUpdate();
     });
 
-    apiGetContentBrowserParameters().then((parameters) => {
-      this.parameters = parameters;
-
-      this.host.requestUpdate();
-    });
+    this.loadParameters();
 
     this.#availableExtensionsGeneration += 1;
     const extensionsGeneration = this.#availableExtensionsGeneration;
@@ -470,6 +501,40 @@ export class FetchAndMergeAssetsController implements ReactiveController {
 
       this.host.requestUpdate();
     });
+  }
+
+  private resetParameters() {
+    this.connectionGeneration += 1;
+    this.parameters = null;
+    this.parametersPromise = null;
+  }
+
+  private loadParameters() {
+    if (!this.parametersPromise) {
+      const generation = this.connectionGeneration;
+      this.parametersPromise = apiGetContentBrowserParameters().then((parameters) => {
+        if (generation === this.connectionGeneration) {
+          this.parameters = parameters;
+          this.host.requestUpdate();
+        }
+      });
+    }
+    return this.parametersPromise;
+  }
+
+  private async resolveTitleFallback(): Promise<TitleFallback> {
+    if (this.titleFallback !== undefined) {
+      return this.titleFallback;
+    }
+
+    // A connection change can supersede the request while an asset fetch waits for its default.
+    let pending: Promise<void>;
+    do {
+      pending = this.loadParameters();
+      await pending;
+    } while (pending !== this.parametersPromise);
+
+    return this.parameters?.titleFallback ?? 'uniqueIdentifier';
   }
 
   private _debounceTimeout: ReturnType<typeof setTimeout> | undefined;
@@ -512,7 +577,8 @@ export class FetchAndMergeAssetsController implements ReactiveController {
   }
 
   async fetchAssets(request: GetAssetsRequest) {
-    return await apiGetAssets({ titleFallback: this.titleFallback, ...request });
+    const titleFallback = await this.resolveTitleFallback();
+    return await apiGetAssets({ titleFallback, ...request });
   }
 
   async fetchFolders(request: GetFolderRequest) {
@@ -588,6 +654,7 @@ export class FetchAndMergeAssetsController implements ReactiveController {
     }
 
     const generation = this.#generation;
+    this.latestRequest = request;
 
     /**
      * Always run these lines immediately
@@ -620,8 +687,13 @@ export class FetchAndMergeAssetsController implements ReactiveController {
       try {
         if (Object.keys(this.sortOrders).length === 0) {
           const sortOrders = await apiGetSortOrders();
+          if (generation !== this.#generation) {
+            return;
+          }
           this.sortOrders = sortOrders;
         }
+
+        const titleFallback = await this.resolveTitleFallback();
 
         // A restart that came during the wait made this request obsolete: do not send it or set lastRequest.
         if (generation !== this.#generation) {
@@ -660,11 +732,12 @@ export class FetchAndMergeAssetsController implements ReactiveController {
         };
 
         this.lastRequest = request;
+        this.latestRequest = request;
 
         const assets = await apiGetAssets({
           ...request,
           sortOrder,
-          titleFallback: this.titleFallback,
+          titleFallback,
         });
 
         if (generation !== this.#generation) {
@@ -760,6 +833,7 @@ export class FetchAndMergeAssetsController implements ReactiveController {
     simplePick?: boolean;
   }) {
     const { allowedExtensions = [], canFavorite = false, simplePick = false } = options ?? {};
+    const titleFallback = await this.resolveTitleFallback();
 
     const promises: Partial<[Promise<GetAssetsByIDsResponse>, Promise<GetAvailableProxiesResponse | undefined>, Promise<boolean>]> = [
       apiGetAssetsByIDs({
@@ -777,7 +851,7 @@ export class FetchAndMergeAssetsController implements ReactiveController {
           FIELD_SUBTYPE,
           FIELD_TITLE_WITH_FALLBACK,
           ORIGINAL_VIEW_SIZE,
-          ...(this.titleFallback === 'originalFileName' ? [resolveTitleFallbackField(this.titleFallback)] : []),
+          ...(titleFallback === 'originalFileName' ? [resolveTitleFallbackField(titleFallback)] : []),
         ],
         recordIds: [id],
       }),
@@ -821,7 +895,7 @@ export class FetchAndMergeAssetsController implements ReactiveController {
         identifier: item[FIELD_IDENTIFIER] ?? '',
         imageUrl: item[DEFAULT_VIEW_SIZE] ?? '',
         inColdStorage: Boolean(item.inColdStorage),
-        name: resolveAssetCaption(item, this.titleFallback),
+        name: resolveAssetCaption(item, titleFallback),
         originalUrl: item[ORIGINAL_VIEW_SIZE] ?? '',
         previewUrl: proxyData?.previewUrl ?? item[DEFAULT_VIEW_SIZE] ?? '',
         recordId: item[FIELD_RECORD_ID] ?? '',
@@ -953,10 +1027,12 @@ export class FetchAndMergeAssetsController implements ReactiveController {
   }
 
   hostConnected() {
+    this.resetParameters();
     this.fetchInitialData();
   }
 
   hostDisconnected() {
+    this.connectionGeneration += 1;
     if (this.requestInterceptorId !== null) {
       http.interceptors.request.eject(this.requestInterceptorId);
       this.requestInterceptorId = null;

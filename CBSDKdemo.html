@@ -431,9 +431,10 @@ customStorage: {
             </p>
           </li>
           <li>
-            <b>titleFallback</b> (default 'uniqueIdentifier')
+            <b>titleFallback</b> (optional override of the site default)
             <p>
               What the asset caption shows when the asset has no title. The title always shows when it is set.
+              If omitted, the SDK uses the site default, or <code>'uniqueIdentifier'</code> when the site has no default.
             </p>
             <ul>
               <li><code>'uniqueIdentifier'</code> - the unique identifier of the asset.</li>
@@ -630,7 +631,7 @@ customStorage: {
           { title: 'Description', field: 'Document.CaptionLong' },
         ],
         tableRowActionPosition: 'host-edge', // 'host-edge' (default) or 'row-end'
-        titleFallback: 'uniqueIdentifier', // 'uniqueIdentifier' (default) or 'originalFileName'
+        // titleFallback: 'uniqueIdentifier', // Optional override: 'uniqueIdentifier' or 'originalFileName'
         defaultGridView: 'table', // 'small', 'medium', 'large', 'table' (default: 'medium')
         // insert with the first available format instead of opening the format dialog
         autoSelectFormat: true,
