@@ -451,7 +451,8 @@ export class FetchAndMergeAssetsController implements ReactiveController {
     this.bearerToken = bearerToken;
 
     if (tokenChanged || sessionChanged) {
-      this.resetParameters();
+      this.connectionGeneration += 1;
+      this.parametersPromise = null;
       this.loadParameters();
     }
 
@@ -1031,7 +1032,7 @@ export class FetchAndMergeAssetsController implements ReactiveController {
   }
 
   hostDisconnected() {
-    this.resetParameters();
+    this.connectionGeneration += 1;
     if (this.requestInterceptorId !== null) {
       http.interceptors.request.eject(this.requestInterceptorId);
       this.requestInterceptorId = null;

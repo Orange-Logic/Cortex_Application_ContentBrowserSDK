@@ -253,6 +253,85 @@ describe('FetchAndMergeAssetsController', () => {
       });
     }
 
+    for (const credential of ['token', 'session', 'bearer']) {
+      it(`keeps loaded parameters during ${credential} rotation`, async () => {
+        const { current } = configureSite('originalFileName', { titleFallback: 'uniqueIdentifier' });
+        current.hostConnected();
+        await waitUntil(() => current.getData().parameters !== null);
+        const previous = current.getData().parameters;
+        const adapter = http.defaults.adapter as (config: InternalAxiosRequestConfig) => Promise<unknown>;
+        let release!: () => void;
+        const pending = new Promise<void>((resolve) => { release = resolve; });
+        http.defaults.adapter = async (config) => {
+          if (config.url === MetadataApiEndpoint.GET_CONTENT_BROWSER_PARAMETERS) {
+            await pending;
+          }
+          return await adapter(config) as never;
+        };
+        try {
+          current.updateAuth(credential === 'token' ? 'rotated' : '', credential === 'session' ? 'rotated' : '', credential === 'bearer' ? 'rotated' : '');
+          expect(current.getData().parameters).to.deep.equal(previous);
+        } finally {
+          release();
+          await aTimeout(20);
+        }
+      });
+    }
+
+    it('waits for the new credential parameters after the old response arrives first', async () => {
+      const { current } = configureSite('originalFileName');
+      const adapter = http.defaults.adapter as (config: InternalAxiosRequestConfig) => Promise<unknown>;
+      const held: Array<() => void> = [];
+      http.defaults.adapter = async (config) => {
+        if (config.url === MetadataApiEndpoint.GET_CONTENT_BROWSER_PARAMETERS) {
+          const index = held.length;
+          await new Promise<void>((resolve) => { held.push(resolve); });
+          return { config, data: { TitleFallback: index === 0 ? 'uniqueIdentifier' : 'originalFileName' }, headers: {}, status: 200, statusText: 'OK' };
+        }
+        return await adapter(config) as never;
+      };
+      const assets = current.fetchAssets({});
+      const dialog = current.fetchAssetByID('rotation-waiter', { simplePick: true });
+      let completed = false;
+      const results = Promise.all([assets, dialog]).then((value) => { completed = true; return value; });
+      try {
+        await waitUntil(() => held.length === 1);
+        current.updateAuth('rotated', '', '');
+        await waitUntil(() => held.length === 2);
+        held[0]();
+        await aTimeout(20);
+        expect(completed).to.equal(false);
+      } finally {
+        held.forEach((release) => release());
+      }
+      const [list, item] = await results;
+      expect(list.items[0].name).to.equal('photo.jpg');
+      expect(item?.asset.name).to.equal('photo.jpg');
+    });
+
+    it('does not restart the parameter request after disconnect', async () => {
+      const { current, requests } = configureSite('originalFileName');
+      const adapter = http.defaults.adapter as (config: InternalAxiosRequestConfig) => Promise<unknown>;
+      let release!: () => void;
+      const pending = new Promise<void>((resolve) => { release = resolve; });
+      let parameterCalls = 0;
+      http.defaults.adapter = async (config) => {
+        if (config.url === MetadataApiEndpoint.GET_CONTENT_BROWSER_PARAMETERS) {
+          parameterCalls += 1;
+          await pending;
+        }
+        return await adapter(config) as never;
+      };
+      const assets = current.fetchAssets({});
+      await waitUntil(() => parameterCalls === 1);
+      current.hostDisconnected();
+      release();
+      await assets;
+      expect(parameterCalls).to.equal(1);
+      expect(current.getData().parameters).to.equal(null);
+      expect(requests.filter((request) => request.url === MetadataApiEndpoint.GET_CONTENT_BROWSER_PARAMETERS)).to.have.length(1);
+    });
+
     it('reloads the other site parameters after credential rotation with an explicit fallback', async () => {
       const { current } = configureSite('originalFileName', { titleFallback: 'uniqueIdentifier' });
       current.hostConnected();
