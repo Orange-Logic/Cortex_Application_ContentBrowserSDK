@@ -9,14 +9,7 @@ import { ContentBrowserParameters, GetContentBrowserParametersResponse } from '.
  */
 const BUILT_IN_AUTO_MODE_NAMES = ['AzureAI', 'Optical', 'GoogleAI', 'SmartSwatch'];
 
-const PARTS = new Set<string>([
-  AssetLinkFormatPart.Proxy,
-  AssetLinkFormatPart.Crop,
-  AssetLinkFormatPart.Resize,
-  AssetLinkFormatPart.Rotate,
-  AssetLinkFormatPart.Quality,
-  AssetLinkFormatPart.Metadata,
-]);
+const PARTS = new Set<string>(Object.values(AssetLinkFormatPart).filter((part) => part !== AssetLinkFormatPart.Dimensions));
 
 /**
  * Trimmed, non-blank lines of an option-list parameter, or `undefined` when the parameter is
@@ -41,19 +34,21 @@ function splitParameterLines(raw: unknown): string[] | undefined {
  * Lower-cased names of the auto modes: the keys of `AutoCropMode` (`name=Mapping` lines) plus the
  * built-in four.
  */
-export function parseAutoModeNames(raw: unknown): string[] {
+export function parseAutoModeNames(raw: unknown): Set<string> {
   const names = (splitParameterLines(raw) ?? []).map((line) => line.split('=')[0].trim());
 
-  return [...new Set([...BUILT_IN_AUTO_MODE_NAMES, ...names].filter(Boolean).map((name) => name.toLowerCase()))];
+  return new Set([...BUILT_IN_AUTO_MODE_NAMES, ...names].filter(Boolean).map((name) => name.toLowerCase()));
 }
 
 /**
- * `value=label` lines (split at the first `=`, no `=` → value as label) without the auto modes.
- * Blank values and repeated values are skipped. `undefined` when nothing is left, so the dialog
- * falls back to its built-in list.
+ * `value=label` lines (split at the first `=`, no `=` → value as label) without the auto modes
+ * (`autoModeNames`: lower-cased, from `parseAutoModeNames`). Blank values and repeated values are
+ * skipped. `undefined` when nothing is left, so the dialog falls back to its built-in list.
  */
-export function parseModes(raw: unknown, autoModeNames: string[]): Array<{ label: string; value: string }> | undefined {
-  const autoNames = new Set(autoModeNames.map((name) => name.toLowerCase()));
+export function parseModes(
+  raw: unknown,
+  autoModeNames: ReadonlySet<string>,
+): Array<{ label: string; value: string }> | undefined {
   const modes = new Map<string, { label: string; value: string }>();
 
   splitParameterLines(raw)?.forEach((line) => {
@@ -61,7 +56,7 @@ export function parseModes(raw: unknown, autoModeNames: string[]): Array<{ label
     const value = (separator < 0 ? line : line.slice(0, separator)).trim();
     const label = separator < 0 ? '' : line.slice(separator + 1).trim();
 
-    if (!value || autoNames.has(value.toLowerCase()) || modes.has(value)) {
+    if (!value || autoModeNames.has(value.toLowerCase()) || modes.has(value)) {
       return;
     }
 

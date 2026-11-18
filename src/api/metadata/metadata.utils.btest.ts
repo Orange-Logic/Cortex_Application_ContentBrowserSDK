@@ -22,7 +22,7 @@ describe('parseAutoModeNames', () => {
 
   cases.forEach(({ expected, name, raw }) => {
     it(name, () => {
-      expect(parseAutoModeNames(raw)).to.deep.equal(expected);
+      expect([...parseAutoModeNames(raw)]).to.deep.equal(expected);
     });
   });
 });
@@ -79,7 +79,7 @@ describe('parseModes', () => {
 
   cases.forEach(({ expected, name, raw }) => {
     it(name, () => {
-      expect(parseModes(raw, [...BUILT_IN_AUTO_NAMES, 'newai'])).to.deep.equal(expected);
+      expect(parseModes(raw, new Set([...BUILT_IN_AUTO_NAMES, 'newai']))).to.deep.equal(expected);
     });
   });
 });
